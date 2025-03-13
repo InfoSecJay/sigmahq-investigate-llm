@@ -1,0 +1,46 @@
+title: Gzip Archive Decode Via PowerShell
+id: 98767d61-b2e8-4d71-b661-e36783ee24c1
+status: test
+description: Detects attempts of decoding encoded Gzip archives via PowerShell.
+references:
+- https://www.zscaler.com/blogs/security-research/onenote-growing-threat-malware-distribution
+author: Hieu Tran
+date: 2023-03-13
+tags:
+- attack.command-and-control
+- attack.t1132.001
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    CommandLine|contains|all:
+    - GZipStream
+    - ::Decompress
+  condition: selection
+falsepositives:
+- Legitimate administrative scripts may use this functionality. Use "ParentImage"
+  in combination with the script names and allowed users and applications to filter
+  legitimate executions
+level: medium
+notes: |
+  ### LLM Investigation Guide Notice
+  This guide has been generated entirely with the use of an LLM and may include incorrect information, this guide will be
+  reviewed in the future for accuracy.
+
+  ### Technical Context
+  The technique of decoding encoded Gzip archives via PowerShell is often associated with malware distribution methods,
+  where attackers leverage compressed file formats to obfuscate malicious payloads. This technique, denoted as T1132.001
+  in the MITRE ATT&CK framework, enables adversaries to evade detection by compressing scripts or binaries, making it
+  critical for SOC teams to implement detection strategies. Over the years, various malware campaigns have utilized this
+  approach to deliver payloads, with increased scrutiny on PowerShell's scripting capabilities.
+
+  ### Investigation Steps
+  1. **Analyze Process Creation Logs**: Review EDR logs for instances where `GZipStream` and `::Decompress` appear in
+  PowerShell command executions to identify potential malicious activity.
+  2. **Inspect Parent Process**: Utilize the `ParentImage` field to determine the parent process of suspected PowerShell
+  executions, cross-referencing with known administrative scripts to filter out legitimate uses.
+  3. **Query AV Logs**: Check antivirus logs for any alerts related to the same command-line executions or flagged files
+  that may have been created during the decoding process, noting any detected threats.
+  4. **Review Proxy Logs**: Analyze proxy logs for any suspicious outbound connections initiated by the identified
+  processes, looking for unusual data exfiltration patterns or communications with known malicious IPs.

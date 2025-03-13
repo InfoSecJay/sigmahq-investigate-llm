@@ -1,0 +1,63 @@
+title: HackTool - SharpMove Tool Execution
+id: 055fb54c-a8f4-4aee-bd44-f74cf30a0d9d
+status: test
+description: |
+  Detects the execution of SharpMove, a .NET utility performing multiple tasks such as "Task Creation", "SCM" query,
+  VBScript execution using WMI via its PE metadata and command line options.
+references:
+- https://github.com/0xthirteen/SharpMove/
+- https://pentestlab.blog/tag/sharpmove/
+author: Luca Di Bartolomeo (CrimpSec)
+date: 2024-01-29
+tags:
+- attack.lateral-movement
+- attack.t1021.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: \SharpMove.exe
+  - OriginalFileName: SharpMove.exe
+  selection_cli_computer:
+    CommandLine|contains: computername=
+  selection_cli_actions:
+    CommandLine|contains:
+    - action=create
+    - action=dcom
+    - action=executevbs
+    - action=hijackdcom
+    - action=modschtask
+    - action=modsvc
+    - action=query
+    - action=scm
+    - action=startservice
+    - action=taskscheduler
+  condition: selection_img or all of selection_cli_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### LLM Investigation Guide Notice
+  This guide has been generated entirely with the use of an LLM and may include incorrect information, this guide will be
+  reviewed in the future for accuracy.
+
+  ### Technical Context
+  SharpMove is a .NET utility designed for lateral movement within networks, often leveraged by attackers to facilitate
+  unauthorized task creation and manipulation of system services without detection. Its versatile capabilities include
+  executing VBScript, interacting with Windows Management Instrumentation (WMI), and scheduling tasks, making it a
+  valuable tool for adversaries aiming to maintain persistence or escalate privileges. The detection rule exploits the
+  unique command line parameters and process metadata associated with SharpMove executions, allowing security teams to
+  identify potential instances of abuse in their environments.
+
+  ### Investigation Steps
+  1. **Examine Process Creation Logs**: Utilize EDR to review recent process creation logs for any instances of
+  SharpMove.exe running, focusing particularly on the command line arguments to identify suspicious actions such as
+  "action=create" or "action=executevbs."
+  2. **Check for VBScript Execution**: Search AV logs for detections or block events related to VBScript executions that
+  might correlate with SharpMove activity, as this tool often employs VBScript for its operations.
+  3. **Review Proxy Logs**: Analyze proxy logs to identify any outbound and inbound connections that correspond to the
+  usage of SharpMove, particularly any access attempts to unusual external addresses triggered by the tool.
+  4. **Investigate System Changes via Task Scheduler**: Access task scheduler logs on the affected machines to look for
+  newly scheduled tasks or modifications to existing ones that may coincide with the identified SharpMove activity, which
+  indicates potential lateral movement or privilege escalation efforts.

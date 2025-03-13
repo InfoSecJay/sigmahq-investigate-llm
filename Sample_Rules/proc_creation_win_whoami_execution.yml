@@ -1,0 +1,50 @@
+title: Whoami Utility Execution
+id: e28a5a99-da44-436d-b7a0-2afc20a5f413
+status: test
+description: Detects the execution of whoami, which is often used by attackers after
+  exploitation / privilege escalation
+references:
+- https://brica.de/alerts/alert/public/1247926/agent-tesla-keylogger-delivered-inside-a-power-iso-daa-archive/
+- https://app.any.run/tasks/7eaba74e-c1ea-400f-9c17-5e30eee89906/
+author: Florian Roth (Nextron Systems)
+date: 2018-08-13
+modified: 2023-11-30
+tags:
+- attack.discovery
+- attack.t1033
+- car.2016-03-001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: \whoami.exe
+  - OriginalFileName: whoami.exe
+  condition: selection
+falsepositives:
+- Admin activity
+- Scripts and administrative tools used in the monitored environment
+- Monitoring activity
+level: low
+notes: |
+  ### LLM Investigation Guide Notice
+  This guide has been generated entirely with the use of an LLM and may include incorrect information, this guide will be
+  reviewed in the future for accuracy.
+
+  ### Technical Context
+  The "Whoami Utility Execution" detection rule targets the execution of the `whoami.exe` command-line tool, which is
+  often utilized by attackers following exploitation or privilege escalation attempts. The `whoami` command provides
+  information about the current user's privileges and can be a step in assessing the level of access gained on a
+  compromised machine. Given its legitimate administrative uses, distinguishing between lawful administrative activity and
+  malicious use is critical for effective security monitoring.
+
+  ### Investigation Steps
+  1. **Check Process Creation Logs**: Review the process creation logs in the EDR for instances of `whoami.exe` execution,
+  noting the user context and the parent process to determine if the execution seems suspicious.
+  2. **Verify User Scope**: Analyze the user account that executed the command. Cross-reference with recent changes in
+  user permissions or any unusual access patterns in the identity and access management system.
+  3. **Inspect Proxy Logs**: Look for any connections made by the user or device after the execution of `whoami.exe` in
+  the proxy logs, which could indicate an attempt to exfiltrate data or communicate with external malicious
+  infrastructure.
+  4. **Review Antivirus Alerts**: Check the AV logs for any associated alerts or detections within the timeframe of the
+  `whoami.exe` execution that might suggest broader malicious activity or indicators of compromise.
