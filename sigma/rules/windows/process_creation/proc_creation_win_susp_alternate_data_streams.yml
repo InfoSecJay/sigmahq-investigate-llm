@@ -1,0 +1,53 @@
+title: Execute From Alternate Data Streams
+id: 7f43c430-5001-4f8b-aaa9-c3b88f18fa5c
+status: test
+description: Detects execution from an Alternate Data Stream (ADS). Adversaries may
+  use NTFS file attributes to hide their malicious data in order to evade detection
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1564.004/T1564.004.md
+author: frack113
+date: 2021-09-01
+modified: 2022-10-09
+tags:
+- attack.defense-evasion
+- attack.t1564.004
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_stream:
+    CommandLine|contains: 'txt:'
+  selection_tools_type:
+    CommandLine|contains|all:
+    - 'type '
+    - ' > '
+  selection_tools_makecab:
+    CommandLine|contains|all:
+    - 'makecab '
+    - '.cab'
+  selection_tools_reg:
+    CommandLine|contains|all:
+    - 'reg '
+    - ' export '
+  selection_tools_regedit:
+    CommandLine|contains|all:
+    - 'regedit '
+    - ' /E '
+  selection_tools_esentutl:
+    CommandLine|contains|all:
+    - 'esentutl '
+    - ' /y '
+    - ' /d '
+    - ' /o '
+  condition: selection_stream and (1 of selection_tools_*)
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Execute From Alternate Data Streams" detection rule aims to identify potential adversarial behavior that utilizes Alternate Data Streams (ADS) in NTFS file systems to execute malicious code while concealing it from standard detection methods. This tactic allows attackers to hide their payloads within files by using the "txt:" prefix, which indicates the use of an ADS. The rule analyzes process creation logs, specifically looking for command line parameters that contain 'txt:' and are used in conjunction with specific commands known to interact with ADS, such as `type`, `makecab`, `reg`, `regedit`, and `esentutl`. By capturing this data, the rule helps organizations detect efforts to manipulate or execute content from these hidden streams, thereby enhancing their defense against evasion techniques commonly employed by threat actors.
+  ### Investigation Steps
+  - Utilize EDR to review the process creation logs associated with the alerts to identify which processes were invoked with ADS commands and to trace their parent-child relationships.
+  - Cross-reference the command line parameters flagged by the detection rule with any existing entries in your AV or endpoint protection platform to ascertain if there are any known malicious signatures related to the processes.
+  - Investigate network traffic associated with the time of the alert using NDR tools to determine if data was exfiltrated or if there were any communications with known malicious IP addresses.
+  - Check cloud logs (if applicable) for any related activity that could indicate unusual interactions or connections that align with the timestamps of the process execution detected by the rule.

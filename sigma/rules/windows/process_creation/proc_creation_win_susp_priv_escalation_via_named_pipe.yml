@@ -1,0 +1,45 @@
+title: Privilege Escalation via Named Pipe Impersonation
+id: 9bd04a79-dabe-4f1f-a5ff-92430265c96b
+related:
+- id: f35c5d71-b489-4e22-a115-f003df287317
+  type: derived
+status: test
+description: Detects a remote file copy attempt to a hidden network share. This may
+  indicate lateral movement or data staging activity.
+references:
+- https://www.elastic.co/guide/en/security/current/privilege-escalation-via-named-pipe-impersonation.html
+author: Tim Rauch, Elastic (idea)
+date: 2022-09-27
+modified: 2022-12-30
+tags:
+- attack.lateral-movement
+- attack.t1021
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_name:
+  - Image|endswith:
+    - '\cmd.exe'
+    - '\powershell.exe'
+  - OriginalFileName:
+    - 'Cmd.Exe'
+    - 'PowerShell.EXE'
+  selection_args:
+    CommandLine|contains|all:
+    - 'echo'
+    - '>'
+    - '\\\\.\\pipe\\'
+  condition: all of selection*
+falsepositives:
+- Other programs that cause these patterns (please report)
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential privilege escalation attempts via named pipe impersonation on Windows systems. Specifically, it targets instances where command-line activities involving `cmd.exe` or `powershell.exe` include the use of commands that direct output to a named pipe (e.g., `echo > \\.\pipe\`). Named pipes are a method of inter-process communication that can be abused by attackers to escalate privileges on a target system. The rule processes data from Windows process creation logs, analyzing parameters such as the executing image name and command-line arguments to detect suspicious activity indicative of lateral movement or data staging efforts.
+  By monitoring for these specific actions and parameters, the SOC can proactively identify and respond to potential threats before they escalate into more significant issues.
+  ### Investigation Steps
+  - Query the EDR platform for recent instances of `cmd.exe` or `powershell.exe` execution that match the identified command-line patterns and are associated with unusual user accounts.
+  - Review process creation logs to determine whether additional suspicious processes were executed in tandem with the detected command, indicating coordinated malicious activity.
+  - Cross-reference network logs and the proxy to identify any related outbound connections or file shares accessed around the time of the execution to assess potential lateral movement.
+  - Check the status and configuration of any named pipes that may have been created, especially those allowing communication between unauthorized processes, to understand the context of the detected activity.

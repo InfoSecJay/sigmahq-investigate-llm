@@ -1,0 +1,35 @@
+title: Potential DLL Sideloading Via VMware Xfer
+id: 9313dc13-d04c-46d8-af4a-a930cc55d93b
+status: test
+description: Detects loading of a DLL by the VMware Xfer utility from the non-default
+  directory which may be an attempt to sideload arbitrary DLL
+references:
+- https://www.sentinelone.com/labs/lockbit-ransomware-side-loads-cobalt-strike-beacon-with-legitimate-vmware-utility/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-02
+modified: 2023-02-17
+tags:
+- attack.defense-evasion
+- attack.t1574.002
+logsource:
+  product: windows
+  category: image_load
+detection:
+  selection:
+    Image|endswith: '\VMwareXferlogs.exe'
+    ImageLoaded|endswith: '\glib-2.0.dll'
+  filter:   # VMware might be installed in another path so update the rule accordingly
+    ImageLoaded|startswith: 'C:\Program Files\VMware\'
+  condition: selection and not filter
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential DLL sideloading attempts via the VMware Xfer utility. Specifically, it monitors the loading of the `glib-2.0.dll` library when invoked from the `VMwareXferlogs.exe` executable. The rule focuses on situations where this DLL is loaded from a non-default installation path of VMware, indicating a possible malicious attempt to leverage the legitimate utility for arbitrary code execution. By analyzing the `image_load` logs from Windows, the rule is able to flag these events, which might signify an evasion technique commonly associated with threats such as ransomware or other illicit activities.
+  The detection works by checking if the `Image` path ends with `VMwareXferlogs.exe` and concurrently verifies that the `ImageLoaded` path corresponds to `glib-2.0.dll`. To reduce false positives, it ensures that the DLL is being loaded from the expected path, namely `C:\Program Files\VMware\`, but only flags events when this expectation is not met.
+  ### Investigation Steps
+  - Review EDR logs to identify the process creation events around the time of the alert to ascertain whether any suspicious processes were launched.
+  - Analyze the command-line arguments of `VMwareXferlogs.exe` using process logs to check for any unusual parameters that may indicate malicious intent.
+  - Query the file system for the presence of `glib-2.0.dll` to investigate its origin, ensuring it’s not modified or sourced from a non-standard directory.
+  - Consult the network logs to trace any outbound connections made by the VMware utility, which may help identify further indicators of compromise associated with the alert.

@@ -1,0 +1,37 @@
+title: Assembly Loading Via CL_LoadAssembly.ps1
+id: c57872c7-614f-4d7f-a40d-b78c8df2d30d
+status: test
+description: Detects calls to "LoadAssemblyFromPath" or "LoadAssemblyFromNS" that
+  are part of the "CL_LoadAssembly.ps1" script. This can be abused to load different
+  assemblies and bypass App locker controls.
+references:
+- https://bohops.com/2018/01/07/executing-commands-and-bypassing-applocker-with-powershell-diagnostic-scripts/
+- https://lolbas-project.github.io/lolbas/Scripts/CL_LoadAssembly/
+author: frack113, Nasreddine Bencherchali (Nextron Systems)
+date: 2022-05-21
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1216
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+        # Note: As this function is usually called from within powershell, classical process creation even would not catch it. This will only catch inline calls via "-Command" or "-ScriptBlock" flags for example.
+    CommandLine|contains:
+    - 'LoadAssemblyFromPath '
+    - 'LoadAssemblyFromNS '
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Assembly Loading Via CL_LoadAssembly.ps1" detection rule identifies the execution of potentially malicious PowerShell commands that leverage the `LoadAssemblyFromPath` or `LoadAssemblyFromNS` functions. These functions are typically used within the context of loading .NET assemblies dynamically, which can circumvent application whitelisting tools like AppLocker. The rule specifically monitors process creation logs where PowerShell is executed with command-line arguments containing these function calls. This behavior may signify attempts to load unwanted or harmful code, making it a significant alert for SOC analysts and incident responders.
+  The detection leverages process creation data—specifically, the command-line parameters provided to PowerShell—enabling the identification of inline calls or scripts executed with the `-Command` or `-ScriptBlock` flags. By capturing this behavior, the rule aims to mitigate risks associated with defense evasion techniques frequently employed by threat actors.
+  ### Investigation Steps
+  - Review the EDR logs for the identified command-line parameters to confirm the execution context and gather additional details about associated processes.
+  - Investigate the timeline of related events, including related PowerShell command executions or scripts run leading up to the alert, to establish any suspicious patterns.
+  - Cross-reference network activity logs via the NDR to determine if there were any outbound connections made by the system following the execution of the suspicious command.
+  - Check the application whitelisting logs and configurations to see if the execution bypassed AppLocker and to evaluate potential gaps in your current application security posture.

@@ -1,0 +1,64 @@
+title: CobaltStrike Named Pipe Pattern Regex
+id: 0e7163d4-9e19-4fa7-9be6-000c61aad77a
+related:
+- id: 85adeb13-4fc9-4e68-8a4a-c7cb2c336eb7     # Patterns
+  type: similar
+- id: d5601f8c-b26f-4ab0-9035-69e11a8d4ad2     # Generic
+  type: similar
+status: test
+description: Detects the creation of a named pipe matching a pattern used by CobaltStrike
+  Malleable C2 profiles
+references:
+- https://svch0st.medium.com/guide-to-named-pipes-and-hunting-for-cobalt-strike-pipes-dc46b2c5f575
+- https://gist.github.com/MHaggis/6c600e524045a6d49c35291a21e10752
+author: Florian Roth (Nextron Systems)
+date: 2021-07-30
+modified: 2022-12-31
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1055
+logsource:
+  product: windows
+  category: pipe_created
+  definition: 'Note that you have to configure logging for Named Pipe Events in Sysmon
+    config (Event ID 17 and Event ID 18). The basic configuration is in popular sysmon
+    configuration (https://github.com/SwiftOnSecurity/sysmon-config), but it is worth
+    verifying. You can also use other repo, e.g. https://github.com/Neo23x0/sysmon-config,
+    https://github.com/olafhartong/sysmon-modular You can also use other repo, e.g.
+    https://github.com/Neo23x0/sysmon-config, https://github.com/olafhartong/sysmon-modular.
+    How to test detection? You can always use Cobalt Strike, but also you can check
+    powershell script from this site https://svch0st.medium.com/guide-to-named-pipes-and-hunting-for-cobalt-strike-pipes-dc46b2c5f575'
+detection:
+  selection:
+  - PipeName|re: '\\mojo\.5688\.8052\.(?:183894939787088877|35780273329370473)[0-9a-f]{2}'
+  - PipeName|re: '\\wkssvc_?[0-9a-f]{2}'
+  - PipeName|re: '\\ntsvcs[0-9a-f]{2}'
+  - PipeName|re: '\\DserNamePipe[0-9a-f]{2}'
+  - PipeName|re: '\\SearchTextHarvester[0-9a-f]{2}'
+  - PipeName|re: '\\mypipe-(?:f|h)[0-9a-f]{2}'
+  - PipeName|re: '\\windows\.update\.manager[0-9a-f]{2,3}'
+  - PipeName|re: '\\ntsvcs_[0-9a-f]{2}'
+  - PipeName|re: '\\scerpc_?[0-9a-f]{2}'
+  - PipeName|re: '\\PGMessagePipe[0-9a-f]{2}'
+  - PipeName|re: '\\MsFteWds[0-9a-f]{2}'
+  - PipeName|re: '\\f4c3[0-9a-f]{2}'
+  - PipeName|re: '\\fullduplex_[0-9a-f]{2}'
+  - PipeName|re: '\\msrpc_[0-9a-f]{4}'
+  - PipeName|re: '\\win\\msrpc_[0-9a-f]{2}'
+  - PipeName|re: '\\f53f[0-9a-f]{2}'
+  - PipeName|re: '\\rpc_[0-9a-f]{2}'
+  - PipeName|re: '\\spoolss_[0-9a-f]{2}'
+  - PipeName|re: '\\Winsock2\\CatalogChangeListener-[0-9a-f]{3}-0,'
+  condition: selection
+falsepositives:
+- Unknown
+level: critical
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the creation of named pipes that match specific regex patterns associated with Cobalt Strike, a widely used adversarial tool for command and control (C2) operations. Named pipes are used for inter-process communication on Windows systems, and their unusual creation patterns can indicate malicious intent, particularly in the context of attacks facilitated by Cobalt Strike's Malleable C2 profiles. The rule identifies pipe names based on regex patterns, capturing a variety of pipe prefixes that have been linked with covert operations or potential privilege escalation activities. To effectively utilize this detection rule, logging for named pipe events must be enabled through Sysmon, specifically focusing on Event IDs 17 and 18.
+  ### Investigation Steps
+  - Utilize EDR tools to observe the process tree and identify any processes that created the named pipes detected by the rule. Look for unusual parent-child relationships that may indicate malicious activity.
+  - Review Sysmon logs for Event IDs 17 and 18 to gather contextual data surrounding named pipe creation, such as process identifiers and command-line arguments utilized during their creation.
+  - Consult your SIEM platform to analyze user activities and correlate with the named pipe alerts, identifying potential lateral movement or command execution that might coincide with the detection.
+  - Investigate endpoint logs for any associated network connections or suspicious file activities that align with the timelines of the named pipe creations, leveraging data from NGFW and Proxy where applicable.

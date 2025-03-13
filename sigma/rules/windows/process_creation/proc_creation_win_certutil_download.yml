@@ -1,0 +1,45 @@
+title: Suspicious Download Via Certutil.EXE
+id: 19b08b1c-861d-4e75-a1ef-ea0c1baf202b
+related:
+- id: 13e6fe51-d478-4c7e-b0f2-6da9b400a829
+  type: similar
+status: test
+description: Detects the execution of certutil with certain flags that allow the utility
+  to download files.
+references:
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/certutil
+- https://forensicitguy.github.io/agenttesla-vba-certutil-download/
+- https://news.sophos.com/en-us/2021/04/13/compromised-exchange-server-hosting-cryptojacker-targeting-other-exchange-servers/
+- https://twitter.com/egre55/status/1087685529016193025
+- https://lolbas-project.github.io/lolbas/Binaries/Certutil/
+author: Florian Roth (Nextron Systems), Jonhnathan Ribeiro, oscd.community, Nasreddine
+  Bencherchali (Nextron Systems)
+date: 2023-02-15
+tags:
+- attack.defense-evasion
+- attack.t1027
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\certutil.exe'
+  - OriginalFileName: 'CertUtil.exe'
+  selection_flags:
+    CommandLine|contains:
+    - 'urlcache '
+    - 'verifyctl '
+  selection_http:
+    CommandLine|contains: 'http'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying suspicious activity related to the Windows utility `certutil.exe`, specifically when it is used with certain command-line flags that facilitate the downloading of files from the internet. The rule monitors process creation logs to capture instances where `certutil.exe` is executed, checking for specific parameters like `urlcache` or `verifyctl` that indicate potential misuse. Additionally, the rule looks for the presence of the keyword `http` in the command line, suggesting an attempt to download content from web sources. By monitoring these indicators, the rule aims to flag instances of potential malicious behavior, such as downloading payloads used in various attack vectors.
+  ### Investigation Steps
+  - Review EDR alerts for recent instances of `certutil.exe` execution, paying close attention to the associated command-line arguments that include terms like `urlcache` or `verifyctl`.
+  - Examine the process tree in the EDR to identify the parent process of `certutil.exe`, determining whether it was executed by a known application or a suspicious one.
+  - Query web proxy logs for any outbound HTTP requests made by the endpoint within a timeframe relevant to the `certutil.exe` execution to check for unusual downloads.
+  - Investigate any cloud logs (e.g., AWS CloudTrail, Azure Activity Logs) for API calls linked to suspicious downloads or changes that correspond to the time of the detected alert.

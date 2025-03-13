@@ -1,0 +1,44 @@
+title: Add Windows Capability Via PowerShell Cmdlet
+id: b36d01a3-ddaf-4804-be18-18a6247adfcd
+related:
+- id: 155c7fd5-47b4-49b2-bbeb-eb4fab335429
+  type: similar
+status: test
+description: Detects usage of the "Add-WindowsCapability" cmdlet to add Windows capabilities.
+  Notable capabilities could be "OpenSSH" and others.
+references:
+- https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse?tabs=powershell
+- https://www.virustotal.com/gui/file/af1c82237b6e5a3a7cdbad82cc498d298c67845d92971bada450023d1335e267/content
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-22
+modified: 2023-05-09
+tags:
+- attack.execution
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+  - OriginalFileName:
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+  selection_cmdlet:
+    CommandLine|contains: 'Add-WindowsCapability'
+  selection_capa:
+    CommandLine|contains: 'OpenSSH.'     # For both "OpenSSH.Server" and "OpenSSH.Client"
+  condition: all of selection_*
+falsepositives:
+- Legitimate usage of the capabilities by administrators or users. Add additional
+  filters accordingly.
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the use of the `Add-WindowsCapability` PowerShell cmdlet, which is typically employed to add specific capabilities to Windows systems. Notably, this cmdlet can be used to install components like OpenSSH, which might be leveraged by both legitimate administrators and potential threat actors to enable remote access. The rule works by monitoring process creation logs for instances of PowerShell execution that include the specified command line parameters indicative of capability addition. Key data sources for this detection include process creation logs and command line arguments specific to PowerShell (both `powershell.exe` and `pwsh.exe`). By filtering PowerShell executions related to this command, the rule aims to identify suspicious attempts that could signify unauthorized changes to the system's capabilities.
+  ### Investigation Steps
+  - Review EDR logs to identify the user and context in which the `Add-WindowsCapability` cmdlet was invoked, focusing on the timing and associated processes.
+  - Examine process creation events around the alert to gather information about any suspicious behavior or unusual account usage tied to the PowerShell executions.
+  - Query AV logs for detections that might correlate with the time of the cmdlet execution, as they can help identify potential malicious activity associated with capability changes.
+  - Check network traffic logs, particularly from proxy or firewall, to analyze outbound connections related to the newly added capabilities, which may indicate unauthorized access attempts.

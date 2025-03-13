@@ -1,0 +1,30 @@
+title: Suspicious Execution From Outlook Temporary Folder
+id: a018fdc3-46a3-44e5-9afb-2cd4af1d4b39
+status: test
+description: Detects a suspicious program execution in Outlook temp folder
+author: Florian Roth (Nextron Systems)
+references:
+- Internal Research
+date: 2019-10-01
+modified: 2022-10-09
+tags:
+- attack.initial-access
+- attack.t1566.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|contains: '\Temporary Internet Files\Content.Outlook\'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects potentially malicious program executions from the Outlook temporary folder, specifically focusing on the path where Outlook stores downloaded content. The underlying threat often involves attackers manipulating legitimate email communications to execute harmful scripts or executables that can compromise system security. By monitoring process creation logs for instances where an application’s executable path includes the string `\Temporary Internet Files\Content.Outlook\`, the rule aims to identify behaviors that deviate from typical user operations. This detection relies predominantly on process creation logs sourced from Windows systems, which provide insights into what applications are launched and the command-line parameters used during their execution.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR tool to confirm the execution of any suspicious applications from the Outlook temporary folder.
+  - Check the command-line parameters associated with the detected processes for any unusual flags or obfuscation that may indicate malicious intent.
+  - Analyze historical email logs in the email security platform for any recent emails containing attachments or links leading to the execution path noted in the alert.
+  - Conduct a threat intelligence lookup for the identified executable to determine if it has known associations with malicious activity.

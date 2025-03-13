@@ -1,0 +1,42 @@
+title: PUA - RemCom Default Named Pipe
+id: d36f87ea-c403-44d2-aa79-1a0ac7c24456
+related:
+- id: 9e77ed63-2ecf-4c7b-b09d-640834882028
+  type: obsolete
+status: test
+description: Detects default RemCom pipe creation
+references:
+- https://drive.google.com/file/d/1lKya3_mLnR3UQuCoiYruO3qgu052_iS_/view
+- https://github.com/kavika13/RemCom
+author: Nikita Nazarov, oscd.community, Nasreddine Bencherchali (Nextron Systems)
+date: 2023-08-07
+modified: 2023-11-30
+tags:
+- attack.lateral-movement
+- attack.t1021.002
+- attack.execution
+- attack.t1569.002
+logsource:
+  product: windows
+  category: pipe_created
+  definition: 'Note that you have to configure logging for Named Pipe Events in Sysmon
+    config (Event ID 17 and Event ID 18). The basic configuration is in popular sysmon
+    configuration (https://github.com/SwiftOnSecurity/sysmon-config), but it is worth
+    verifying. You can also use other repo, e.g. https://github.com/Neo23x0/sysmon-config,
+    https://github.com/olafhartong/sysmon-modular. How to test detection? You can
+    check powershell script from this site https://svch0st.medium.com/guide-to-named-pipes-and-hunting-for-cobalt-strike-pipes-dc46b2c5f575'
+detection:
+  selection:
+    PipeName|contains: '\RemCom'
+  condition: selection
+falsepositives:
+- Legitimate Administrator activity
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation of a specific named pipe associated with Remote Command (RemCom) activity on Windows systems. Named pipes are used for inter-process communication, and the presence of a pipe named `RemCom` can indicate potential lateral movement or execution tactics typical of adversarial activities. The rule relies on Sysmon logging, specifically tracking Event IDs 17 and 18, which must be configured correctly to capture named pipe events accurately. By monitoring these logs, the rule looks for instances where the `PipeName` contains the string `\RemCom`, which can signify unauthorized or suspicious activities often performed by attackers to execute commands on remote systems.
+  ### Investigation Steps
+  - Review the relevant Sysmon logs for Event IDs 17 and 18 to confirm the creation of the `RemCom` named pipe and gather additional context about the process and user associated with this event.
+  - Analyze process creation logs from your EDR to identify the parent processes that initiated the creation of the named pipe, checking for anomalies or patterns consistent with unauthorized usage.
+  - Query the network logs from the NGFW and NDR to assess if any suspicious traffic or unusual connections were made to systems where the `RemCom` pipe was created, which could indicate lateral movement.
+  - Examine any associated user accounts or authentication logs to determine if the actions were performed by legitimate administrators or unauthorized users, as legitimate activity may trigger false positives with this rule.

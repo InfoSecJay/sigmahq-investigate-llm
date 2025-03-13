@@ -1,0 +1,47 @@
+title: Suspicious Usage Of Active Directory Diagnostic Tool (ntdsutil.exe)
+id: a58353df-af43-4753-bad0-cd83ef35eef5
+related:
+- id: 2afafd61-6aae-4df4-baed-139fa1f4c345
+  type: derived
+status: test
+description: Detects execution of ntdsutil.exe to perform different actions such as
+  restoring snapshots...etc.
+references:
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/cc731620(v=ws.11)
+- https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/espionage-asia-governments
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-14
+tags:
+- attack.credential-access
+- attack.t1003.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\ntdsutil.exe'
+  - OriginalFileName: 'ntdsutil.exe'
+  selection_cli:
+  - CommandLine|contains|all:
+    - 'snapshot'
+    - 'mount '           # mounts a specific snapshot - Ex: ntdsutil snapshot "mount c2b3e2c6-1ffb-4625-ba8e-3503c27a9fcb" quit quit
+  - CommandLine|contains|all:
+              # This offers more coverage to the "selection_oneliner_1" case in rule 8bc64091-6875-4881-aaf9-7bd25b5dda08
+              # The shorest form of "activate" can "ac". But "act", "acti"...etc are also valid forms
+              # Same case with the "instance" flag
+    - 'ac'
+    - ' i'
+    - ' ntds'
+  condition: all of selection_*
+falsepositives:
+- Legitimate usage to restore snapshots
+- Legitimate admin activity
+level: medium
+notes: |
+  ### Technical Context
+  The detection rule for **ntdsutil.exe** focuses on identifying potentially suspicious usage of the Active Directory Diagnostic Tool, a legitimate utility primarily utilized for managing and maintaining Active Directory instances. The rule specifically examines process creation logs to capture instances where ntdsutil.exe is executed, particularly in conjunction with command-line arguments that suggest an attempt to restore or mount snapshots, which can be indicative of malicious activity. For instance, the rule detects command lines containing keywords like 'snapshot' and 'mount,' which may reveal attempts to manipulate Active Directory data illegally. Analysts should be aware that while this tool serves legitimate administrative functions, its unauthorized use may signify a threat, especially in environments where sensitive data and infrastructure are present.
+  ### Investigation Steps
+  - Review **EDR logs** for instances of ntdsutil.exe execution and document the associated user accounts. This can provide insight into whether the action was performed by a legitimate administrator or potentially by an unauthorized user.
+  - Analyze **command-line parameters** associated with ntdsutil.exe execution for any suspicious flags, particularly those pertaining to 'snapshot' and 'mount' operations. Investigate the context and timing of these commands to assess if they fit expected administrative behavior.
+  - Search **Windows Security Logs** to correlate user logins with the execution of ntdsutil.exe. This helps identify if the tool was run during atypical hours or from unusual locations.
+  - Check **network traffic logs** from NGFW and proxy servers for any connections made shortly before or after the ntdsutil.exe usage that may indicate data exfiltration or lateral movement attempts. This can help determine if the tool was used as part of a broader attack strategy.

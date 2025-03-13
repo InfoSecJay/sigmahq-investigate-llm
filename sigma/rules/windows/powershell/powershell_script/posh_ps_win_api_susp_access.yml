@@ -1,0 +1,57 @@
+title: Potential WinAPI Calls Via PowerShell Scripts
+id: 03d83090-8cba-44a0-b02f-0b756a050306
+related:
+- id: ba3f5c1b-6272-4119-9dbd-0bc8d21c2702
+  type: similar
+status: test
+description: Detects use of WinAPI functions in PowerShell scripts
+references:
+- https://speakerdeck.com/heirhabarov/hunting-for-powershell-abuse
+author: Nasreddine Bencherchali (Nextron Systems), Nikita Nazarov, oscd.community
+date: 2020-10-06
+modified: 2023-06-20
+tags:
+- attack.execution
+- attack.t1059.001
+- attack.t1106
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+    # Note: Add more suspicious combinations in the form of different selections
+  selection_injection:
+    ScriptBlockText|contains|all:
+    - 'VirtualAlloc'
+    - 'OpenProcess'
+    - 'WriteProcessMemory'
+    - 'CreateRemoteThread'
+  selection_token_steal:
+    ScriptBlockText|contains|all:
+    - 'OpenProcessToken'
+    - 'LookupPrivilegeValue'
+    - 'AdjustTokenPrivileges'
+  selection_duplicate_token:
+    ScriptBlockText|contains|all:
+    - 'OpenProcessToken'
+    - 'DuplicateTokenEx'
+    - 'CloseHandle'
+  selection_process_write_read:
+    ScriptBlockText|contains|all:
+    - 'WriteProcessMemory'
+    - 'VirtualAlloc'
+    - 'ReadProcessMemory'
+    - 'VirtualFree'
+  condition: 1 of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious usage of Windows API (WinAPI) functions within PowerShell scripts, which can be indicative of malicious activity. The rule focuses on identifying specific combinations of function calls commonly associated with process manipulation, such as `VirtualAlloc`, `OpenProcess`, and `WriteProcessMemory`, among others. By analyzing PowerShell script block logs, this detection rule relies on the requirement that Script Block Logging must be enabled on the monitored systems; this allows for capturing the content of scripts executed in PowerShell.
+  When a PowerShell script containing one of the WinAPI function combinations is executed, the rule triggers an alert. The intent is to surface potential threats like credential theft, process injection, or the execution of payloads that manipulate system processes. Security teams can use this information to investigate potentially malicious activities that may exploit normal administrative tasks or attempt to bypass security controls.
+  ### Investigation Steps
+  - Review the PowerShell script execution logs from the EDR to identify the specific script that triggered the alert, paying close attention to the context of its invocation.
+  - Analyze the command-line arguments associated with the PowerShell process in question to determine any potential risk behaviors or patterns indicative of exploitation attempts.
+  - Examine network activity logs from the Firewall or Proxy for any unusual outbound traffic that may indicate data exfiltration or command and control (C2) communications associated with the suspicious script.
+  - Check for any related alerts in the SIEM or other telemetry sources that may demonstrate a broader attack pattern or provide additional context around the potential threat actor's tactics.

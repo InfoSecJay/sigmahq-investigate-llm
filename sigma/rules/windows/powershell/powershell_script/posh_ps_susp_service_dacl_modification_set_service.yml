@@ -1,0 +1,51 @@
+title: Suspicious Service DACL Modification Via Set-Service Cmdlet - PS
+id: 22d80745-6f2c-46da-826b-77adaededd74
+related:
+- id: a95b9b42-1308-4735-a1af-abb1c5e6f5ac
+  type: similar
+status: test
+description: Detects usage of the "Set-Service" powershell cmdlet to configure a new
+  SecurityDescriptor that allows a service to be hidden from other utilities such
+  as "sc.exe", "Get-Service"...etc. (Works only in powershell 7)
+references:
+- https://twitter.com/Alh4zr3d/status/1580925761996828672
+- https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/set-service?view=powershell-7.2
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-10-24
+tags:
+- attack.persistence
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.011
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_sddl_flag:
+    ScriptBlockText|contains:
+    - '-SecurityDescriptorSddl '
+    - '-sd '
+  selection_set_service:
+    ScriptBlockText|contains|all:
+    - 'Set-Service '
+    - 'D;;'
+    ScriptBlockText|contains:
+    - ';;;IU'
+    - ';;;SU'
+    - ';;;BA'
+    - ';;;SY'
+    - ';;;WD'
+  condition: all of selection_*
+falsepositives:
+- Rare intended use of hidden services
+- Rare FP could occur due to the non linearity of the ScriptBlockText log
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the use of the PowerShell cmdlet `Set-Service` with command parameters that modify the Security Descriptor Access Control List (DACL) of services in a manner that can hide them from typical service management utilities like `sc.exe` and `Get-Service`. The rule specifically looks for the cmdlet being used to set a DACL that hides the service by appending specific SDDL (Security Descriptor Definition Language) strings which include access rights such as `IU` (Interactive User), `SU` (Service Users), `BA` (Built-in Administrator), and `SY` (System). All of these modifications can indicate potential attempts at privilege escalation or concealment of malicious services. The data source for this detection is PowerShell script block logging, which must be enabled to capture the necessary command execution details for analysis.
+  ### Investigation Steps
+  - Review PowerShell logs for the execution context around the alert to determine the user or process that initiated the `Set-Service` command and the intended service target.
+  - Analyze the service configuration and DACL settings using tools like `Get-Service` and `Get-Acl` to confirm if the changes were indeed made as detected by the rule.
+  - Investigate the source of the PowerShell script, including the full command-line invocation and any other related PowerShell activity, to determine if this action was part of a larger attack pattern.
+  - Correlate the findings with alerts from other security tools (like EDR or SIEM) to assess whether there are other indicators of compromise or associated malicious activity on the affected host.

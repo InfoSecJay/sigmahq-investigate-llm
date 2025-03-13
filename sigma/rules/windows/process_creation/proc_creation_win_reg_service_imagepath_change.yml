@@ -1,0 +1,39 @@
+title: Changing Existing Service ImagePath Value Via Reg.EXE
+id: 9b0b7ac3-6223-47aa-a3fd-e8f211e637db
+status: test
+description: |
+  Adversaries may execute their own malicious payloads by hijacking the Registry entries used by services.
+  Adversaries may use flaws in the permissions for registry to redirect from the originally specified executable to one that they control, in order to launch their own code at Service start.
+  Windows stores local service configuration information in the Registry under HKLM\SYSTEM\CurrentControlSet\Services
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1574.011/T1574.011.md#atomic-test-2---service-imagepath-change-with-regexe
+author: frack113
+date: 2021-12-30
+modified: 2024-03-13
+tags:
+- attack.persistence
+- attack.t1574.011
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\reg.exe'
+    CommandLine|contains|all:
+    - 'add '
+    - 'SYSTEM\CurrentControlSet\Services\'
+    - ' ImagePath '
+  selection_value:
+    CommandLine|contains|windash: ' -d '
+  condition: all of selection*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potential malicious behavior related to Windows services being modified via the Registry. Specifically, it looks for instances where `reg.exe`, a legitimate command-line utility for managing the Windows Registry, is used to change the `ImagePath` value of services within the `HKLM\SYSTEM\CurrentControlSet\Services` Registry key. Adversaries can exploit insufficient permissions on these Registry entries to redirect the execution from the intended service executable to a malicious payload they control. The rule captures process creation events where `reg.exe` is called with specific command-line arguments that indicate an attempt to modify service configurations, thereby signaling potential persistence mechanisms used by attackers.
+  ### Investigation Steps
+  - Review process creation logs in your EDR to locate executions of `reg.exe` that match the query parameters specified in the detection rule.
+  - Investigate the command-line parameters used in the suspected `reg.exe` execution to understand which service's `ImagePath` was modified and by whom.
+  - Analyze the Registry key `HKLM\SYSTEM\CurrentControlSet\Services` for any changes to service configuration and compare them against a baseline to identify unauthorized modifications.
+  - Correlate findings with logs from your SIEM and Antivirus solutions to determine if any alerts or detections occurred related to the new `ImagePath` values and to verify the presence of the potential malicious payloads.

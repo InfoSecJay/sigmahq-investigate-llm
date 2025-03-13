@@ -1,0 +1,35 @@
+title: Remote Access Tool - ScreenConnect File Transfer
+id: 5d19eb78-5b5b-4ef2-a9f0-4bfa94d58a13
+related:
+- id: b1f73849-6329-4069-bc8f-78a604bb8b23
+  type: similar
+status: test
+description: Detects file being transferred via ScreenConnect RMM
+references:
+- https://www.huntandhackett.com/blog/revil-the-usage-of-legitimate-remote-admin-tooling
+- https://github.com/SigmaHQ/sigma/pull/4467
+author: Ali Alwashali
+date: 2023-10-10
+tags:
+- attack.execution
+- attack.t1059.003
+logsource:
+  service: application
+  product: windows
+detection:
+  selection:
+    Provider_Name: 'ScreenConnect'
+    EventID: 201
+    Data|contains: 'Transferred files with action'
+  condition: selection
+falsepositives:
+- Legitimate use of ScreenConnect
+level: low
+notes: |
+  ### Technical Context
+  This detection rule targets file transfer activities through the ScreenConnect remote management tool, specifically monitoring for event logs that indicate files being transferred. When files are transferred via ScreenConnect, the application generates logs with a specific structure, notably including the provider name "ScreenConnect" and an event ID of 201. The rule checks for log entries containing the phrase 'Transferred files with action', suggesting potential unauthorized or suspicious file transfer activities. This is particularly relevant in environments where remote access tools are commonly used, as malicious actors may exploit legitimate tools for unauthorized access and data exfiltration. Key data sources involved in this detection include Windows application logs that follow the structured logging framework of ScreenConnect.
+  ### Investigation Steps
+  - Review the EDR logs for the specific endpoint where the ScreenConnect activity was detected and investigate any associated processes or commands executed around the same time. 
+  - Check the application logs for ScreenConnect to confirm the authenticity of the file transfer and identify the user account involved in the session.
+  - Analyze network traffic using NDR tools to determine whether any potentially suspicious external connections were made during or after the file transfer event.
+  - Consult proxy logs for any web requests linked to the ScreenConnect operation to identify unusual access patterns or connections to known malicious URLs.

@@ -1,0 +1,40 @@
+title: Microsoft Office DLL Sideload
+id: 829a3bdf-34da-4051-9cf4-8ed221a8ae4f
+status: test
+description: Detects DLL sideloading of DLLs that are part of Microsoft Office from
+  non standard location
+references:
+- https://hijacklibs.net/     # For list of DLLs that could be sideloaded (search for dlls mentioned here in there)
+author: Nasreddine Bencherchali (Nextron Systems), Wietze Beukema (project and research)
+date: 2022-08-17
+modified: 2023-03-15
+tags:
+- attack.defense-evasion
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\outllib.dll'
+  filter:
+    ImageLoaded|startswith:
+    - 'C:\Program Files\Microsoft Office\OFFICE'
+    - 'C:\Program Files (x86)\Microsoft Office\OFFICE'
+    - 'C:\Program Files\Microsoft Office\Root\OFFICE'
+    - 'C:\Program Files (x86)\Microsoft Office\Root\OFFICE'
+  condition: selection and not filter
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify instances of DLL sideloading specific to Microsoft Office applications. DLL sideloading occurs when an attacker places a malicious DLL file in the same location as a legitimate application DLL, in this case, `outllib.dll`, aiming to execute it unknowingly by the application. The rule works by analyzing image load events, focusing on processes that load the `outllib.dll` file from a non-standard location, indicating possible malicious activity. The primary data sources leveraged for this detection include Windows event logs that record image load activities, guiding incident responders to identify potentially compromised systems where Microsoft Office applications may load DLLs from unauthorized paths.
+  ### Investigation Steps
+  - Review **EDR logs** for processes that have loaded `outllib.dll`, checking the file path to confirm whether it deviates from standard Microsoft Office installation directories.
+  - Utilize **AV solutions** to perform a scan on the system hosting the alert to identify any known malware or suspicious files that could be related to the detected sideloading activity.
+  - Examine **Windows Event Logs** for any unusual patterns in user activity, particularly during the time frame surrounding the DLL loading event, which may indicate lateral movement or privilege escalation attempts.
+  - Cross-reference **network logs** from the NGFW or Proxy for any outbound connections initiated by the affected process, identifying potential C2 communications or data exfiltration associated with the suspicious DLL loading.

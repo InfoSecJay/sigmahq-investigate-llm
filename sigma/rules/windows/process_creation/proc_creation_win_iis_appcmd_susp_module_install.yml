@@ -1,0 +1,41 @@
+title: IIS Native-Code Module Command Line Installation
+id: 9465ddf4-f9e4-4ebd-8d98-702df3a93239
+status: test
+description: Detects suspicious IIS native-code module installations via command line
+references:
+- https://researchcenter.paloaltonetworks.com/2018/01/unit42-oilrig-uses-rgdoor-iis-backdoor-targets-middle-east/
+- https://www.microsoft.com/security/blog/2022/07/26/malicious-iis-extensions-quietly-open-persistent-backdoors-into-servers/
+author: Florian Roth (Nextron Systems)
+date: 2019-12-11
+modified: 2024-03-13
+tags:
+- attack.persistence
+- attack.t1505.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\appcmd.exe'
+  - OriginalFileName: 'appcmd.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'install'
+    - 'module'
+    CommandLine|contains|windash: '-name:'
+  filter_iis_setup:
+    ParentImage: 'C:\Windows\System32\inetsrv\iissetup.exe'
+  condition: all of selection_* and not 1 of filter_*
+falsepositives:
+- Unknown as it may vary from organisation to organisation how admins use to install
+  IIS modules
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying suspicious installations of native-code modules in Internet Information Services (IIS) via command line. It specifically looks for the execution of `appcmd.exe`, a command-line utility used to manage IIS settings. The rule triggers if the command line includes parameters such as "install" and "module" along with a specific syntax that indicates a module name (e.g., `-name:`) while ensuring that the parent process is not `iissetup.exe`. Together, these indicators can signify potential unauthorized or malicious modifications to the IIS environment, which could lead to exploitation through backdoors or persistence mechanisms.
+  By monitoring process creation logs, particularly those involving command line parameters associated with IIS, this rule aims to detect potentially harmful activities. Responders should be aware that false positives may occur due to legitimate administrative actions, as organizational practices can differ in handling IIS module installations.
+  ### Investigation Steps
+  - Check the EDR tool for any recent instances of `appcmd.exe` execution, specifically focusing on the command line arguments to validate if they include 'install' and 'module'.
+  - Review parent process logs to confirm whether the process was initiated by `iissetup.exe` to rule out legitimate installations.
+  - Investigate IIS logs and web server activity for any unusual or unauthorized access patterns that coincide with the detected command execution timeframe.
+  - Analyze network traffic for any outgoing connections or suspicious activities from the IIS server that could indicate exploitation or compromise following the module installation.

@@ -1,0 +1,33 @@
+title: Dynamic CSharp Compile Artefact
+id: e4a74e34-ecde-4aab-b2fb-9112dd01aed0
+status: test
+description: |
+  When C# is compiled dynamically, a .cmdline file will be created as a part of the process.
+  Certain processes are not typically observed compiling C# code, but can do so without touching disk.
+  This can be used to unpack a payload for execution
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1027.004/T1027.004.md#atomic-test-2---dynamic-c-compile
+author: frack113
+date: 2022-01-09
+modified: 2023-02-17
+tags:
+- attack.defense-evasion
+- attack.t1027.004
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|endswith: '.cmdline'
+  condition: selection
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  The "Dynamic CSharp Compile Artefact" detection rule is designed to identify potentially malicious activities involving dynamic compilation of C# code. When C# code is compiled at runtime, it generates a `.cmdline` file that can serve as an indicator of suspicious behaviors. This rule specifically looks for the creation of files with a `.cmdline` extension within the context of Windows file events. The existence of such files can suggest that an unexpected process is executing C# compilation, potentially used by threat actors to unpack and execute a payload without leaving traces on disk. Responders should be aware that many legitimate processes do not usually compile C# code and their inclusion in alerts may warrant further investigation.
+  ### Investigation Steps
+  - Utilize EDR to investigate the process associated with the creation of the `.cmdline` file and check for any suspicious command-line arguments or parent processes.
+  - Query AV logs to determine if the involved process or the resulting artifacts (e.g., payloads) have been flagged as malicious or suspicious.
+  - Review Proxy logs to trace outgoing network connections made by the process during and after the compilation, looking for any unusual or unauthorized communication.
+  - Check cloud logs (if applicable) across AWS, GCP, or Azure for any API calls or activities that correspond with the timeframe of the event, which may indicate further compromise.

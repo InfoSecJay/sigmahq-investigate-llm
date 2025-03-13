@@ -1,0 +1,47 @@
+title: Potential CobaltStrike Process Patterns
+id: f35c5d71-b489-4e22-a115-f003df287317
+status: test
+description: Detects potential process patterns related to Cobalt Strike beacon activity
+references:
+- https://hausec.com/2021/07/26/cobalt-strike-and-tradecraft/
+- https://thedfirreport.com/2021/08/29/cobalt-strike-a-defenders-guide/
+author: Florian Roth (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2021-07-27
+modified: 2023-03-29
+tags:
+- attack.execution
+- attack.t1059
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_generic_1:
+    CommandLine|endswith: 'cmd.exe /C whoami'
+    ParentImage|startswith: 'C:\Temp\'
+  selection_generic_2:
+    ParentImage|endswith:
+    - '\runonce.exe'
+    - '\dllhost.exe'
+    CommandLine|contains|all:
+    - 'cmd.exe /c echo'
+    - '> \\\\.\\pipe'
+  selection_conhost_1:
+    ParentCommandLine|contains|all:
+    - 'cmd.exe /C echo'
+    - ' > \\\\.\\pipe'
+    CommandLine|endswith: 'conhost.exe 0xffffffff -ForceV1'
+  selection_conhost_2:
+    ParentCommandLine|endswith: '/C whoami'
+    CommandLine|endswith: 'conhost.exe 0xffffffff -ForceV1'
+  condition: 1 of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to identify potential Cobalt Strike beacon activity by monitoring specific process creation patterns on Windows systems. The detection focuses on process execution variables that are indicative of malicious behavior, particularly those related to command-line interactions. It looks for command lines that execute `cmd.exe` with specific parameters that are commonly used by Cobalt Strike for beacons, such as executing `whoami`, or commands involving communication through named pipes. These behaviors are typically initiated by processes with unusual parent images like those found in temporary directories or known Cobalt Strike executables. The primary data sources utilized by this rule include process creation logs, command-line parameters, and parent image details, providing a comprehensive view into suspicious activities.
+  ### Investigation Steps
+  - Review process creation logs in the EDR solution to identify any instances of `cmd.exe` commands ending with `whoami` or involving named pipe communications, specifically checking for the parent image paths.
+  - Analyze the command-line parameters associated with processes to determine if any show signs of unusual activity patterns that align with Cobalt Strike techniques.
+  - Utilize your organization's AV solution to scan and assess the identified processes for signatures or anomalous behavior correlated with known Cobalt Strike indicators.
+  - Check any relevant proxy or network logs for outbound connections or behaviors that coincide with the detected suspicious processes to determine potential exfiltration attempts.

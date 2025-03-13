@@ -1,0 +1,33 @@
+title: Invoke-Obfuscation Via Use Clip - Powershell
+id: db92dd33-a3ad-49cf-8c2c-608c3e30ace0
+status: test
+description: Detects Obfuscated Powershell via use Clip.exe in Scripts
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009      # (Task29)
+author: Nikita Nazarov, oscd.community
+date: 2020-10-09
+modified: 2024-04-15
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_4104:
+    ScriptBlockText|re: '(?i)echo.*clip.*&&.*(Clipboard|i`?n`?v`?o`?k`?e`?)'
+  condition: selection_4104
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects the use of obfuscated PowerShell scripts that leverage `Clip.exe`, a command-line utility for manipulating the clipboard, to potentially exfiltrate data or execute malicious commands. The detection mechanism is based on the analysis of PowerShell script block logs, specifically looking for script block text that includes the terms "echo" and "clip" in combination with either "Clipboard" or "invoke". The regular expression pattern employed is case-insensitive, which allows it to capture various obfuscation techniques that attackers might use to disguise their activity. This rule requires that Script Block Logging is enabled in Windows environments to capture and analyze PowerShell execution logs effectively for relevant patterns.
+  ### Investigation Steps
+  - Review the relevant PowerShell script block logs in the EDR platform to identify instances of the detected script execution, focusing on timestamps and associated user accounts.
+  - Analyze any associated network traffic in the NDR system to determine if there are outbound connections made at the time of the alert, especially to unusual or suspicious destinations.
+  - Investigate the endpoints where the alert was triggered using AV and EDR for additional indicators of compromise, such as unknown processes, abnormal network patterns, or containment actions.
+  - Check proxy logs to trace any web requests or downloads that occurred just before or after the alert, particularly those related to known malicious sources or unexpected changes in user behavior.

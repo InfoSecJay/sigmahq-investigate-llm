@@ -1,0 +1,49 @@
+title: Mstsc.EXE Execution From Uncommon Parent
+id: ff3b6b39-e765-42f9-bb2c-ea6761e0e0f6
+status: test
+description: Detects potential RDP connection via Mstsc using a local ".rdp" file
+  located in suspicious locations.
+references:
+- https://www.blackhillsinfosec.com/rogue-rdp-revisiting-initial-access-methods/
+- https://web.archive.org/web/20230726144748/https://blog.thickmints.dev/mintsights/detecting-rogue-rdp/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-04-18
+modified: 2023-04-18
+tags:
+- attack.lateral-movement
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|endswith:
+            # Covers potential downloads/clicks from browsers
+    - '\brave.exe'
+    - '\CCleanerBrowser.exe'
+    - '\chrome.exe'
+    - '\chromium.exe'
+    - '\firefox.exe'
+    - '\iexplore.exe'
+    - '\microsoftedge.exe'
+    - '\msedge.exe'
+    - '\opera.exe'
+    - '\vivaldi.exe'
+    - '\whale.exe'
+            # Covers potential downloads/clicks from email clients
+    - '\outlook.exe'
+  selection_img:
+  - Image|endswith: '\mstsc.exe'
+  - OriginalFileName: 'mstsc.exe'
+  condition: all of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule “Mstsc.EXE Execution From Uncommon Parent” is designed to detect potential remote desktop protocol (RDP) connections that are initiated via the Microsoft Remote Desktop Connection client (`mstsc.exe`) under unusual circumstances. This rule focuses on specific parent processes that could indicate malicious activity, primarily browsers and email clients, as they may be used to download or execute suspicious `.rdp` files from uncommon locations. By monitoring process creation logs, particularly those related to `mstsc.exe`, this rule aims to uncover lateral movement attempts within a network, signaling potentially unauthorized access to systems.
+  When a process is spawned by a specified parent image (such as various web browsers or Outlook), the rule triggers an alert if `mstsc.exe` is involved. It leverages data from Windows process creation logs, analyzing both the parent process names and the executed command to identify potentially malicious behaviors indicative of RDP trafficking.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify the parent processes associated with `mstsc.exe`, focusing on any unusual or unexpected parent applications.
+  - Examine the network traffic logs from the NGFW or NDR to check for any outbound RDP connections initiated from the affected system, including the destination IP addresses and any associated user accounts.
+  - Assess the content and origin of the `.rdp` files that may have been downloaded by checking proxy logs for associated downloads through the mentioned browsers or email clients.
+  - Conduct a threat hunt within your AV/EDR tools to detect any known indicators of compromise (IOCs) related to lateral movement or RDP exploitation on the host and surrounding systems.

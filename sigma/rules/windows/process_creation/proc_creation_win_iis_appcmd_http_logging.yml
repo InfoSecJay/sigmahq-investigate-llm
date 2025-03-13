@@ -1,0 +1,38 @@
+title: Disable Windows IIS HTTP Logging
+id: e4ed6030-ffe5-4e6a-8a8a-ab3c1ab9d94e
+status: test
+description: Disables HTTP logging on a Windows IIS web server as seen by Threat Group
+  3390 (Bronze Union)
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1562.002/T1562.002.md#atomic-test-1---disable-windows-iis-http-logging
+author: frack113
+date: 2022-01-09
+modified: 2023-01-22
+tags:
+- attack.defense-evasion
+- attack.t1562.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\appcmd.exe'
+  - OriginalFileName: 'appcmd.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'set'
+    - 'config'
+    - 'section:httplogging'
+    - 'dontLog:true'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The detection rule "Disable Windows IIS HTTP Logging" identifies actions taken to disable HTTP logging on Windows IIS web servers, which is often a tactic employed by threat actors (notably Threat Group 3390, also known as Bronze Union) to evade detection. The rule focuses on the invocation of specific commands via the application command-line interface (appcmd.exe) that interact with the IIS configuration. It seeks process creation logs that reveal the use of appcmd.exe with command-line arguments that include "set" and "config" targeting the "httplogging" section, indicating an attempt to modify logging behavior. Detecting these specific attributes in the process creation logs allows analysts to proactively identify possibly malicious configurations that may lead to reduced visibility into web server activity.
+  ### Investigation Steps
+  - Review relevant **process creation logs** for instances of `appcmd.exe` being executed with the identified command-line parameters to confirm the logging modification attempt.
+  - Utilize **EDR tools** to analyze the behavior and context surrounding the process execution, including parent process details and the user account associated with the command.
+  - Check historical **IIS logs** to determine whether logging was disabled and assess any potential gap in monitoring that may have occurred as a result.
+  - Investigate related **network traffic** through your NDR solution to identify any unusual activity or connections that may have taken place around the same time the logging was disabled.

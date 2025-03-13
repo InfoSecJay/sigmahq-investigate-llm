@@ -1,0 +1,41 @@
+title: DNS Server Error Failed Loading the ServerLevelPluginDLL
+id: cbe51394-cd93-4473-b555-edf0144952d9
+related:
+- id: e61e8a88-59a9-451c-874e-70fcc9740d67
+  type: derived
+- id: f63b56ee-3f79-4b8a-97fb-5c48007e8573
+  type: derived
+status: test
+description: Detects a DNS server error in which a specified plugin DLL (in registry)
+  could not be loaded
+references:
+- https://medium.com/@esnesenon/feature-not-bug-dnsadmin-to-dc-compromise-in-one-line-a0f779b8dc83
+- https://technet.microsoft.com/en-us/library/cc735829(v=ws.10).aspx
+- https://twitter.com/gentilkiwi/status/861641945944391680
+author: Florian Roth (Nextron Systems)
+date: 2017-05-08
+modified: 2023-02-05
+tags:
+- attack.defense-evasion
+- attack.t1574.002
+logsource:
+  product: windows
+  service: dns-server
+detection:
+  selection:
+    EventID:
+    - 150
+    - 770
+    - 771
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies failures in loading a specified plugin Dynamic Link Library (DLL) used by a DNS server on Windows. By monitoring event logs for specific Event IDs (150, 770, and 771), the rule seeks to flag instances where the DNS server encountered errors related to the server-level plugin. These errors can indicate potential malicious activity, such as an attacker attempting to compromise the DNS server by manipulating the plugin implementation or configuration. The data sources involved primarily include Windows DNS server logs which detail the plugin loading events and errors, crucial for detecting abnormalities or unauthorized changes in a network’s DNS configuration.
+  ### Investigation Steps
+  - Review DNS server event logs using EDR tools to identify the specific Event IDs involved and correlate them with other related events for a clearer context.
+  - Cross-reference the affected DNS server's configuration and any recent changes made, focusing on the registry settings that reference the DLL in question.
+  - Analyze network traffic around the time of the event using NDR or proxy logs to detect any unusual external access patterns or attempts that could be indicative of exploitation.
+  - Check the integrity of the plugin DLL file in question and search antivirus logs for any detections or alerts that might suggest malicious behavior associated with the DNS server.

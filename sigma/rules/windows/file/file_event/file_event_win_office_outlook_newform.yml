@@ -1,0 +1,37 @@
+title: Potential Persistence Via Outlook Form
+id: c3edc6a5-d9d4-48d8-930e-aab518390917
+status: test
+description: Detects the creation of a new Outlook form which can contain malicious
+  code
+references:
+- https://speakerdeck.com/heirhabarov/hunting-for-persistence-via-microsoft-exchange-server-or-outlook?slide=76
+- https://speakerdeck.com/heirhabarov/hunting-for-persistence-via-microsoft-exchange-server-or-outlook?slide=79
+- https://learn.microsoft.com/en-us/office/vba/outlook/concepts/outlook-forms/create-an-outlook-form
+- https://www.slipstick.com/developer/custom-form/clean-outlooks-forms-cache/
+author: Tobias Michalski (Nextron Systems)
+date: 2021-06-10
+modified: 2023-02-22
+tags:
+- attack.persistence
+- attack.t1137.003
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    Image|endswith: '\outlook.exe'
+    TargetFilename|contains:
+    - '\AppData\Local\Microsoft\FORMS\IPM'
+    - '\Local Settings\Application Data\Microsoft\Forms'         # Windows XP
+  condition: selection
+falsepositives:
+- Legitimate use of outlook forms
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule aims to detect potentially malicious persistence mechanisms through the creation of new Outlook forms, a feature within Microsoft Outlook that can be exploited to execute harmful code. The rule specifically monitors for file events where Outlook (outlook.exe) creates or modifies files within the specified directories related to Microsoft Forms (`\AppData\Local\Microsoft\FORMS\IPM` and `\Local Settings\Application Data\Microsoft\Forms`). By focusing on these specific folders, the rule aims to identify suspicious activity that could indicate a threat actor's attempt to establish persistence in a target environment using custom forms. This detection is crucial as these forms can bypass traditional security measures if they are not adequately monitored.
+  ### Investigation Steps
+  - Review recent file creation events in the specified Outlook forms directories using EDR tools to identify the user account associated with the event.
+  - Cross-reference the identified forms with known malicious signatures or behavior in your AV tools to check if any detected forms align with documented threats.
+  - Analyze user activity logs from your proxy or network devices to determine if there were unusual outgoing connections initiated by Outlook or related processes around the time of the form creation.
+  - Investigate any related cloud logs (such as Office 365 audits) for suspicious behavior tied to the user's account, including unexpected logins or changes to mail settings.

@@ -1,0 +1,43 @@
+title: Audit Policy Tampering Via Auditpol
+id: 0a13e132-651d-11eb-ae93-0242ac130002
+related:
+- id: c6c56ada-612b-42d1-9a29-adad3c5c2c1e     # Old auditpol
+  type: similar
+status: test
+description: |
+  Threat actors can use auditpol binary to change audit policy configuration to impair detection capability.
+  This can be carried out by selectively disabling/removing certain audit policies as well as restoring a custom policy owned by the threat actor.
+references:
+- https://www.microsoft.com/security/blog/2021/01/20/deep-dive-into-the-solorigate-second-stage-activation-from-sunburst-to-teardrop-and-raindrop/
+author: Janantha Marasinghe (https://github.com/blueteam0ps)
+date: 2021-02-02
+modified: 2023-02-22
+tags:
+- attack.defense-evasion
+- attack.t1562.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\auditpol.exe'
+  - OriginalFileName: 'AUDITPOL.EXE'
+  selection_cli:
+    CommandLine|contains:
+    - 'disable'         # disables a specific audit policy
+    - 'clear'           # delete or clears audit policy
+    - 'remove'          # removes an audit policy
+    - 'restore'         # restores an audit policy
+  condition: all of selection_*
+falsepositives:
+- Administrator or administrator scripts might leverage the flags mentioned in the
+  detection section. Either way, it should always be monitored
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets the use of the `auditpol` command on Windows systems, which is employed to modify audit policy configurations. Threat actors may manipulate audit policies to eliminate or restrict logging capabilities, thus impairing the detection of malicious activities. The rule specifically looks for the execution of `auditpol.exe` and searches for command-line arguments that indicate an intent to disable, clear, remove, or restore audit policies. Data sources utilized for detection include process creation logs that capture the execution of the `auditpol` binary and the command-line parameters that may signal suspicious activities related to policy tampering.
+  ### Investigation Steps
+  - Review recent process creation logs to identify instances of `auditpol.exe` being executed, focusing on the command-line arguments used.
+  - Cross-reference these findings with user account data to determine if the execution was performed by a legitimate administrator or by an unauthorized account.
+  - Utilize EDR tools to examine the context and behavior of the system around the time of the execution to check for abnormal activities.
+  - Consult security logs and audit records for any changes in audit policies that correlate with the execution of the `auditpol` command to evaluate the scope of potential tampering.

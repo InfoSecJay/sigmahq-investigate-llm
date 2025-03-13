@@ -1,0 +1,50 @@
+title: Suspicious Child Process of AspNetCompiler
+id: 9ccba514-7cb6-4c5c-b377-700758f2f120 # SuspChild
+related:
+- id: 4c7f49ee-2638-43bb-b85b-ce676c30b260     # TMP File
+  type: similar
+- id: 9f50fe98-fe5c-4a2d-86c7-fad7f63ed622     # Susp Paths
+  type: similar
+- id: a01b8329-5953-4f73-ae2d-aa01e1f35f00     # Exec
+  type: similar
+status: test
+description: Detects potentially suspicious child processes of "aspnet_compiler.exe".
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Aspnet_Compiler/
+- https://ijustwannared.team/2020/08/01/the-curious-case-of-aspnet_compiler-exe/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-08-14
+tags:
+- attack.defense-evasion
+- attack.t1127
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|endswith: '\aspnet_compiler.exe'
+  selection_child:
+        # Note: add other potential suspicious child processes and paths
+  - Image|endswith:
+    - '\calc.exe'
+    - '\notepad.exe'
+  - Image|contains:
+    - '\Users\Public\'
+    - '\AppData\Local\Temp\'
+    - '\AppData\Local\Roaming\'
+    - ':\Temp\'
+    - ':\Windows\Temp\'
+    - ':\Windows\System32\Tasks\'
+    - ':\Windows\Tasks\'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The detection rule titled "Suspicious Child Process of AspNetCompiler" is designed to identify potentially malicious activity that occurs when a process, specifically "aspnet_compiler.exe," spawns child processes that are not typically associated with legitimate compilation tasks. The rule captures and analyzes process creation logs to determine if the parent process is "aspnet_compiler.exe" and if the child process spawned is either a known tool like "calc.exe" or "notepad.exe," or executed from common temporary or public folders that may indicate evasion tactics. By scrutinizing command-line parameters and paths, this rule aims to flag unusual executions that could signify an attacker's attempt to leverage the ASP.NET compilation tool for nefarious purposes.
+  ### Investigation Steps
+  - Check the EDR for detailed process execution logs to identify the parent and child processes involved, including command-line arguments used during execution.
+  - Review any alerts or logs from the AV solution to determine if any of the observed child processes are flagged as malicious or suspicious.
+  - Utilize Proxy logs to see if there are unusual outbound connections from the machine that executed the child process, which may indicate further compromise or data exfiltration.
+  - Investigate cloud logs (if applicable) to understand if there were any related events or compliance issues arising from the behavior of the processes detected, particularly in environments hosted on platforms like AWS or Azure.

@@ -1,0 +1,32 @@
+title: Suspicious GrpConv Execution
+id: f14e169e-9978-4c69-acb3-1cff8200bc36
+status: test
+description: Detects the suspicious execution of a utility to convert Windows 3.x
+  .grp files or for persistence purposes by malicious software or actors
+references:
+- https://twitter.com/0gtweet/status/1526833181831200770
+author: Florian Roth (Nextron Systems)
+date: 2022-05-19
+tags:
+- attack.persistence
+- attack.t1547
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains:
+    - 'grpconv.exe -o'
+    - 'grpconv -o'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Suspicious GrpConv Execution" detection rule is designed to identify potentially malicious activity involving the execution of the `grpconv.exe` utility in Windows environments. This utility is traditionally used to convert Windows 3.x `.grp` files, but its invocation with the command-line parameter `-o` could indicate an attempt to establish persistence by malicious software or actors. The rule specifically analyzes process creation logs to detect instances where this command is executed, thereby flagging abnormal behavior that could be linked to persistence mechanisms used by threat actors. Analysts should pay attention to this type of execution as it may signify attempts to manipulate or maintain unauthorized presence within the system.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR solution to trace the execution of `grpconv.exe` and evaluate the user and system accounts associated with this activity.
+  - Analyze the command-line parameters used during the execution to determine if they align with typical or legitimate use cases, considering the presence of the `-o` flag.
+  - Check for correlated alerts or process behavior in the SIEM that may suggest a broader attack pattern or related compromise indicators.
+  - Assess any relevant logs within the network firewall or proxy to identify unusual network activity that may correlate with the suspicious execution to further understand the potential threat context.

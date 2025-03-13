@@ -1,0 +1,53 @@
+title: Powershell Token Obfuscation - Powershell
+id: f3a98ce4-6164-4dd4-867c-4d83de7eca51
+related:
+- id: deb9b646-a508-44ee-b7c9-d8965921c6b6
+  type: similar
+status: test
+description: Detects TOKEN OBFUSCATION technique from Invoke-Obfuscation
+references:
+- https://github.com/danielbohannon/Invoke-Obfuscation
+author: frack113
+date: 2022-12-27
+modified: 2023-03-24
+tags:
+- attack.defense-evasion
+- attack.t1027.009
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+        # Examples:
+        #   IN`V`o`Ke-eXp`ResSIOn (Ne`W-ob`ject Net.WebClient).DownloadString
+        #   &('In'+'voke-Expressi'+'o'+'n') (.('New-Ob'+'jec'+'t') Net.WebClient).DownloadString
+        #   &("{2}{3}{0}{4}{1}"-f 'e','Expression','I','nvok','-') (&("{0}{1}{2}"-f'N','ew-O','bject') Net.WebClient).DownloadString
+  - ScriptBlockText|re: '\w+`(\w+|-|.)`[\w+|\s]'
+        # - ScriptBlockText|re: '\((\'(\w|-|\.)+\'\+)+\'(\w|-|\.)+\'\)' TODO: fixme
+  - ScriptBlockText|re: '"(\{\d\}){2,}"\s*-f'        # trigger on at least two placeholders. One might be used for legitimate string formatting
+        #   ${e`Nv:pATh}
+  - ScriptBlockText|re: '(?i)\$\{`?e`?n`?v`?:`?p`?a`?t`?h`?\}'
+  filter_envpath:
+    ScriptBlockText|contains: '${env:path}'     # TODO: Fix this. See https://github.com/SigmaHQ/sigma/pull/4964
+  filter_chocolatey:
+    ScriptBlockText|contains:
+    - 'it will return true or false instead'          # Chocolatey install script https://github.com/chocolatey/chocolatey
+    - 'The function also prevents `Get-ItemProperty` from failing'         # https://docs.chocolatey.org/en-us/create/functions/get-uninstallregistrykey
+  filter_exchange:
+    Path|startswith: 'C:\Program Files\Microsoft\Exchange Server\'
+    Path|endswith: '\bin\servicecontrol.ps1'
+    ScriptBlockText|contains: '`r`n'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the use of token obfuscation techniques in PowerShell scripts, specifically targeting the "Invoke-Obfuscation" framework. Token obfuscation is a common technique employed by attackers to evade detection by altering the way scripts appear. The rule analyzes the `ScriptBlockText` of PowerShell commands and looks for patterns that indicate obfuscation, such as backticks used for character separation and a certain frequency of placeholder usage. The analysis is performed on Windows systems where Script Block Logging is enabled, essential for capturing the execution of PowerShell scripts including those that employ complex obfuscation methods.
+  The detection logic focuses on identifying script blocks containing specific regular expressions that signify obfuscated PowerShell commands. The rule also incorporates filters to exclude known benign scripts, such as those related to Chocolatey or Microsoft Exchange installations. By narrowing the alert criteria, the rule aims to minimize false positives while effectively identifying potential malicious activity leveraging PowerShell obfuscation techniques.
+  ### Investigation Steps
+  - Review the alert details in the SIEM to understand the context of the detected script execution, including timestamps and the originating user account.
+  - Utilize EDR tools to analyze the endpoint activity around the time of the alert, paying attention to any unusual PowerShell processes or command lines executed.
+  - Check the logs from the Windows Event Viewer, specifically the PowerShell logs, to gather more insights into the script behavior and any associated commands executed.
+  - Investigate network communication patterns using NDR or Proxy logs to identify any connections to potentially malicious external IPs during the execution of the obfuscated script.

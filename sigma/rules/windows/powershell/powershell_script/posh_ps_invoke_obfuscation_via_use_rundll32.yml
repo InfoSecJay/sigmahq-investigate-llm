@@ -1,0 +1,42 @@
+title: Invoke-Obfuscation Via Use Rundll32 - PowerShell
+id: a5a30a6e-75ca-4233-8b8c-42e0f2037d3b
+status: test
+description: Detects Obfuscated Powershell via use Rundll32 in Scripts
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009
+author: Nikita Nazarov, oscd.community
+date: 2019-10-08
+modified: 2022-11-29
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_4104:
+    ScriptBlockText|contains|all:
+    - '&&'
+    - 'rundll32'
+    - 'shell32.dll'
+    - 'shellexec_rundll'
+    ScriptBlockText|contains:
+    - 'value'
+    - 'invoke'
+    - 'comspec'
+    - 'iex'
+  condition: selection_4104
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule aims to identify potential obfuscation techniques used in PowerShell scripts by monitoring the invocation of `rundll32.exe` in combination with specific keywords. The rule specifically looks for instances where a PowerShell script contains both `rundll32` and `shell32.dll`, which are often leveraged by attackers to execute commands in a concealed manner. Additionally, it flags the use of keywords like `invoke`, `comspec`, and `iex` that might indicate an attempt to execute malicious code. This analysis mainly relies on Windows PowerShell Script Block Logging, which should be enabled to capture and log all script execution details. The primary data sources include process creation logs and PowerShell script logs.
+  ### Investigation Steps
+  - Review the PowerShell logs in your EDR for any recent script executions that contain `rundll32` and the specified obfuscation patterns. This will help confirm whether a potentially malicious script was executed.
+  - Correlate the timestamps of the alerts with any unusual user activity in the SIEM to understand if the script was executed during a legitimate session or a suspicious timeframe.
+  - Use your antivirus and endpoint protection tools to scan the affected endpoints for any known malware that might relate to the execution of the flagged script.
+  - Check network logs in the NDR for any outbound connections made by PowerShell that coincide with the execution of the suspicious script, and ascertain if any data exfiltration or command-and-control communications took place.

@@ -1,0 +1,37 @@
+title: Powershell Local Email Collection
+id: 2837e152-93c8-43d2-85ba-c3cd3c2ae614
+status: test
+description: |
+  Adversaries may target user email on local systems to collect sensitive information.
+  Files containing email data can be acquired from a users local system, such as Outlook storage or cache files.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1114.001/T1114.001.md
+author: frack113
+date: 2021-07-21
+modified: 2022-12-25
+tags:
+- attack.collection
+- attack.t1114.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains:
+    - 'Get-Inbox.ps1'
+    - 'Microsoft.Office.Interop.Outlook'
+    - 'Microsoft.Office.Interop.Outlook.olDefaultFolders'
+    - '-comobject outlook.application'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Powershell Local Email Collection" detection rule is designed to identify potential malicious activity where adversaries utilize PowerShell scripts to extract sensitive email data from local user systems. By examining PowerShell script blocks, this rule looks for specific indicators such as the presence of keywords related to Outlook email data collection, including the commands 'Get-Inbox.ps1' and 'Microsoft.Office.Interop.Outlook'. The rule requires the enabling of Script Block Logging on Windows devices, ensuring that all PowerShell script executions are recorded in logs. When these commands are detected in script blocks, it signals a potential attempt to access or obtain sensitive information from local Outlook storage or cache files, prompting further investigation.
+  ### Investigation Steps
+  - Check EDR logs for any recent executions of PowerShell scripts that match the identified keywords or patterns. Analyze the context of execution, including the user, system, and time. 
+  - Review application logs for any unusual access patterns to Outlook files or directories. Identify unauthorized access to cached email data or other sensitive files.
+  - Consult SIEM log sources to determine if multiple alerts for PowerShell execution correlate with user activity, helping establish whether this is normal behavior or an indicator of compromise.
+  - Investigate related network traffic through Proxy or NDR logs for any attempts to exfiltrate email data externally. Look for unusual outbound connections that align with the timing of the PowerShell execution.

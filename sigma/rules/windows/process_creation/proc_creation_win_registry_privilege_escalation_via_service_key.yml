@@ -1,0 +1,41 @@
+title: Potential Privilege Escalation via Service Permissions Weakness
+id: 0f9c21f1-6a73-4b0e-9809-cb562cb8d981
+status: test
+description: Detect modification of services configuration (ImagePath, FailureCommand
+  and ServiceDLL) in registry by processes with Medium integrity level
+references:
+- https://speakerdeck.com/heirhabarov/hunting-for-privilege-escalation-in-windows-environment
+- https://pentestlab.blog/2017/03/31/insecure-registry-permissions/
+author: Teymur Kheirkhabarov
+date: 2019-10-26
+modified: 2024-12-01
+tags:
+- attack.privilege-escalation
+- attack.t1574.011
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    IntegrityLevel:
+    - 'Medium'
+    - 'S-1-16-8192'
+    CommandLine|contains|all:
+    - 'ControlSet'
+    - 'services'
+    CommandLine|contains:
+    - '\ImagePath'
+    - '\FailureCommand'
+    - '\ServiceDll'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential privilege escalation attempts by identifying modifications to Windows service configurations executed by processes running at a Medium integrity level. Specifically, it looks for modifications to critical service-related registry keys that could enable malicious actors to alter system services or execute unauthorized commands. The rule monitors for processes with specific command-line parameters that indicate alterations to the service's `ImagePath`, `FailureCommand`, or `ServiceDll`. The primary data sources utilized for this detection include process creation logs and command-line arguments from Windows systems, specifically targeting the registry modifications that are indicative of privilege escalation tactics.
+  ### Investigation Steps
+  - Utilize your EDR tool to review the process creation logs for the identified processes exhibiting Medium integrity levels around the time of the alert.
+  - Cross-reference the command-line parameters used by these processes with registry logs to confirm any modifications made to service configurations such as `ImagePath`, `FailureCommand`, or `ServiceDll`.
+  - Investigate user activities leading to this event, particularly focusing on any recent changes in user privileges or configurations that may have enabled the execution of these processes.
+  - Examine firewall and proxy logs for outbound connections initiated by the affected process to detect any potential communication with external malicious infrastructure.

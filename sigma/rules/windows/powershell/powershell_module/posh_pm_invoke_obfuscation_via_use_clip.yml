@@ -1,0 +1,37 @@
+title: Invoke-Obfuscation Via Use Clip - PowerShell Module
+id: ebdf49d8-b89c-46c9-8fdf-2c308406f6bd
+related:
+- id: db92dd33-a3ad-49cf-8c2c-608c3e30ace0
+  type: derived
+status: test
+description: Detects Obfuscated Powershell via use Clip.exe in Scripts
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009      # (Task29)
+author: Nikita Nazarov, oscd.community
+date: 2020-10-09
+modified: 2024-04-05
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_module
+  definition: 0ad03ef1-f21b-4a79-8ce8-e6900c54b65b
+detection:
+  selection_4103:
+    Payload|re: '(?i)echo.*clip.*&&.*(Clipboard|i`?n`?v`?o`?k`?e`?)'
+  condition: selection_4103
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets the use of the PowerShell module `Clip.exe` in conjunction with obfuscated scripts. Specifically, it looks for command execution patterns in PowerShell that include the keywords "echo," "clip," and variations of "invoke." These patterns suggest that a malicious actor may be leveraging obfuscation to hide their intentions while using clipboard functionalities for stealing data or executing commands indirectly. The primary data sources involved are PowerShell logs, which capture the execution of scripts and associated parameters, allowing analysts to track potentially deceptive activities.
+  By monitoring for this specific combination of commands, the rule aims to identify possible attempts at defense evasion tactics commonly associated with malware execution and code obfuscation techniques. Detecting such behavior is crucial for early intervention and remediation efforts within the security operations center (SOC).
+  ### Investigation Steps
+  - Investigate the PowerShell execution history to identify the originating scripts and commands that triggered the alert. Focus on the timestamps and the user accounts to determine context.
+  - Utilize the EDR tool to analyze the process tree related to the detected activity. Look for parent-child process relationships and evaluate any anomalies.
+  - Check network logs for any outbound connections initiated around the same time as the PowerShell execution. This can help identify potential data exfiltration attempts.
+  - Review the proxy logs for any unusual URL requests or data uploads that may correlate with the PowerShell commands, aiding in understanding the attacker's objectives.

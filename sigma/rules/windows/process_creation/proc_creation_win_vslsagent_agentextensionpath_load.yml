@@ -1,0 +1,36 @@
+title: Suspicious Vsls-Agent Command With AgentExtensionPath Load
+id: 43103702-5886-11ed-9b6a-0242ac120002
+status: test
+description: Detects Microsoft Visual Studio vsls-agent.exe lolbin execution with
+  a suspicious library load using the --agentExtensionPath parameter
+references:
+- https://twitter.com/bohops/status/1583916360404729857
+author: bohops
+date: 2022-10-30
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\vsls-agent.exe'
+    CommandLine|contains: '--agentExtensionPath'
+  filter:
+    CommandLine|contains: 'Microsoft.VisualStudio.LiveShare.Agent.'
+  condition: selection and not filter
+fields:
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- False positives depend on custom use of vsls-agent.exe
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule is designed to detect suspicious activity involving the execution of Microsoft's Visual Studio `vsls-agent.exe` process, particularly when it is invoked with the `--agentExtensionPath` command-line parameter. This combination may indicate potential misuse of the Visual Studio Live Share feature, which could be exploited for defense evasion or as a means of establishing unauthorized connections. The rule specifically looks for instances where the `vsls-agent.exe` is running, while distinguishing valid uses from potentially malicious behavior by filtering for command-line parameters associated with legitimate operations. Data sources for this detection include Windows process creation logs that capture details about executed processes and their associated command-line arguments.
+  ### Investigation Steps
+  - Review the EDR logs for instances of `vsls-agent.exe` execution, focusing on the associated command-line arguments to determine if the `--agentExtensionPath` flag has been used inappropriately. 
+  - Check the parent process that initiated `vsls-agent.exe` to understand the context of the command, which may provide insights into whether the execution was expected or suspicious.
+  - Correlate findings with firewall logs to identify any outbound connections made by the process, which could indicate attempts to communicate with external entities.
+  - Examine the organization’s usage policies around Visual Studio and Live Share to understand if this execution aligns with normal operational behavior or if it should be escalated for further investigation.

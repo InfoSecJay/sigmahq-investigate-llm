@@ -1,0 +1,37 @@
+title: SCM Database Privileged Operation
+id: dae8171c-5ec6-4396-b210-8466585b53e9
+status: test
+description: Detects non-system users performing privileged operation os the SCM database
+references:
+- https://threathunterplaybook.com/hunts/windows/190826-RemoteSCMHandle/notebook.html
+author: Roberto Rodriguez @Cyb3rWard0g, Tim Shelton
+date: 2019-08-15
+modified: 2022-09-18
+tags:
+- attack.privilege-escalation
+- attack.t1548
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4674
+    ObjectType: 'SC_MANAGER OBJECT'
+    ObjectName: 'servicesactive'
+    PrivilegeList: 'SeTakeOwnershipPrivilege'
+  filter:
+    SubjectLogonId: '0x3e4'
+    ProcessName|endswith: ':\Windows\System32\services.exe'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "SCM Database Privileged Operation" Sigma rule is designed to detect instances where non-system users are executing privileged operations on the Service Control Manager (SCM) database. Specifically, the rule looks for Windows Security Event ID 4674, which records attempts to perform sensitive actions on objects such as the SCM. It focuses on actions where the object type is identified as a "SC_MANAGER OBJECT" and the object name corresponds to active services, indicating that an operation is being attempted on the services database. This rule checks for the possession of the "SeTakeOwnershipPrivilege," a high-privilege right typically reserved for administrators, while filtering out system-level logon IDs to focus on user-driven actions. 
+  By monitoring these activities closely, the rule aims to uncover potential privilege escalation attempts that could signify unauthorized access or misuse of administrative functionalities within the Windows operating system. Analysts can utilize this rule to identify anomalous behavior and prevent potential security breaches.
+  ### Investigation Steps
+  - Query the EDR for recent instances of Event ID 4674 to determine the specific user accounts involved in the operations flagged by the rule.
+  - Review the command-line parameters and execution context of `services.exe` to gather additional insights about the processes that were executed during the flagged events.
+  - Check the security logs within the Windows environment for any changes made to service permissions or ownership that coincide with the recorded events.
+  - Assess user activity logs from the SIEM to correlate unusual access patterns or behaviors surrounding the times of the triggered alerts.

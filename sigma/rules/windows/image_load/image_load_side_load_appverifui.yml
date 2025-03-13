@@ -1,0 +1,40 @@
+title: Potential appverifUI.DLL Sideloading
+id: ee6cea48-c5b6-4304-a332-10fc6446f484
+status: test
+description: Detects potential DLL sideloading of "appverifUI.dll"
+references:
+- https://web.archive.org/web/20220519091349/https://fatrodzianko.com/2020/02/15/dll-side-loading-appverif-exe/
+author: X__Junior (Nextron Systems)
+date: 2023-06-20
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\appverifUI.dll'
+  filter_main_legit_path:
+    Image:
+    - 'C:\Windows\SysWOW64\appverif.exe'
+    - 'C:\Windows\System32\appverif.exe'
+    ImageLoaded|startswith:
+    - 'C:\Windows\System32\'
+    - 'C:\Windows\SysWOW64\'
+    - 'C:\Windows\WinSxS\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential DLL sideloading involving the file "appverifUI.dll," which can indicate malicious activity aimed at evading security measures and escalating privileges. The rule works by monitoring Windows image load events and specifically looking for instances where "appverifUI.dll" is loaded. It checks whether the loading process is initiated by legitimate executables, such as "appverif.exe," located in trusted system directories. By ensuring that the function occurs outside of these known legitimate paths, the rule effectively narrows down suspicious behavior that could signify a sideloading attack or exploitation attempt.
+  The primary data sources involved are Windows image load logs, specifically focusing on the `ImageLoaded` event. This includes parsing process creation logs for command-line parameters that may reveal intent and the origins of DLL files being loaded into the memory space of a running application.
+  ### Investigation Steps
+  - Utilize EDR tools to analyze process creation logs around the time of the alert, focusing on the parent process of "appverifUI.dll." Identify any suspicious behaviors or command-line parameters reflecting malicious intentions.
+  - Check the file hash and signature of "appverifUI.dll" with your organization’s AV solution and threat intelligence databases to determine if it is recognized as malicious or tied to known attacks.
+  - Review your organization's firewall and proxy logs for any unexpected outbound connections made during the time of the alert, as this might indicate data exfiltration or further compromise.
+  - Query cloud logs (if applicable) in environments such as AWS, GCP, or Azure to identify any related activities—especially if the process is connected to resources within these platforms that could facilitate an attack.

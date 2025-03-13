@@ -1,0 +1,57 @@
+title: Abusable DLL Potential Sideloading From Suspicious Location
+id: 799a5f48-0ac1-4e0f-9152-71d137d48c2a
+status: test
+description: Detects potential DLL sideloading of DLLs that are known to be abused
+  from suspicious locations
+references:
+- https://www.trendmicro.com/en_us/research/23/f/behind-the-scenes-unveiling-the-hidden-workings-of-earth-preta.html
+- https://research.checkpoint.com/2023/beyond-the-horizon-traveling-the-world-on-camaro-dragons-usb-flash-drives/
+author: X__Junior (Nextron Systems)
+date: 2023-07-11
+tags:
+- attack.execution
+- attack.t1059
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection_dll:
+    ImageLoaded|endswith:
+            # Note: Add more generic DLLs that cannot be pin-pointed to a single application
+    - '\coreclr.dll'
+    - '\facesdk.dll'
+    - '\HPCustPartUI.dll'
+    - '\libcef.dll'
+    - '\ZIPDLL.dll'
+  selection_folders_1:
+    ImageLoaded|contains:
+    - ':\Perflogs\'
+    - ':\Users\Public\'
+    - '\Temporary Internet'
+    - '\Windows\Temp\'
+  selection_folders_2:
+  - ImageLoaded|contains|all:
+    - ':\Users\'
+    - '\Favorites\'
+  - ImageLoaded|contains|all:
+    - ':\Users\'
+    - '\Favourites\'
+  - ImageLoaded|contains|all:
+    - ':\Users\'
+    - '\Contacts\'
+  - ImageLoaded|contains|all:
+    - ':\Users\'
+    - '\Pictures\'
+  condition: selection_dll and 1 of selection_folders_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The detection rule "Abusable DLL Potential Sideloading From Suspicious Location" is designed to identify potentially malicious dynamic link library (DLL) files that are loaded from locations traditionally deemed insecure or suspicious within a Windows environment. This rule specifically looks for the loading of DLLs known to be frequently abused by threat actors, such as `coreclr.dll` and `libcef.dll`, from directories that could be misused for sideloading attacks, including `C:\Users\Public\` and various user directories like `Favorites` and `Pictures`. 
+  When DLLs are loaded from these sensitive locations, it can indicate an attempt to execute malicious code under the guise of a legitimate process. The rule utilizes Windows image load events as its primary data source, tapping into logs that capture when and how these DLLs are loaded by applications, providing insights into potentially harmful behaviors.
+  ### Investigation Steps
+  - Verify the originating process that loaded the suspicious DLL using your EDR tools to assess if it is a legitimate application or potentially malicious software.
+  - Check historical logs for any abnormalities in DLL loading patterns, focusing on the specific folders flagged by the rule to identify any previous actions related to the incident.
+  - Conduct an analysis of network activity that occurred around the same time as the DLL loading events, using NDR and Proxy logs to identify any external connections that may indicate data exfiltration or command and control communication.
+  - Review endpoint protection alerts and logs for any matching indicators of compromise (IOCs) that may correlate with the identified DLLs or their associated processes, using AV logs for deeper context.

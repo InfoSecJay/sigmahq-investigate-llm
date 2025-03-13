@@ -1,0 +1,52 @@
+title: Uncommon Child Process Of Appvlp.EXE
+id: 9c7e131a-0f2c-4ae0-9d43-b04f4e266d43
+status: test
+description: |
+  Detects uncommon child processes of Appvlp.EXE
+  Appvlp or the Application Virtualization Utility is included with Microsoft Office. Attackers are able to abuse "AppVLP" to execute shell commands.
+  Normally, this binary is used for Application Virtualization, but it can also be abused to circumvent the ASR file path rule folder
+  or to mark a file as a system file.
+references:
+- https://lolbas-project.github.io/lolbas/OtherMSBinaries/Appvlp/
+author: Sreeman
+date: 2020-03-13
+modified: 2023-11-09
+tags:
+- attack.t1218
+- attack.defense-evasion
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\appvlp.exe'
+    # Note: Filters based on data from EchoTrail: https://www.echotrail.io/insights/search/appvlp.exe/
+  filter_main_generic:
+    Image|endswith:
+    - ':\Windows\SysWOW64\rundll32.exe'
+    - ':\Windows\System32\rundll32.exe'
+  filter_optional_office_msoasb:
+    Image|contains: ':\Program Files\Microsoft Office'
+    Image|endswith: '\msoasb.exe'
+  filter_optional_office_skype:
+    Image|contains|all:
+    - ':\Program Files\Microsoft Office'
+    - '\SkypeSrv\'
+    Image|endswith: '\SKYPESERVER.EXE'
+  filter_optional_office_msouc:
+    Image|contains: ':\Program Files\Microsoft Office'
+    Image|endswith: '\MSOUC.EXE'
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies unusual child processes spawned by `appvlp.exe`, a Microsoft Office utility associated with Application Virtualization. While `appvlp.exe` is typically used for legitimate purposes, attackers can exploit it to execute malicious commands and circumvent application security measures. The rule specifically looks for processes initiated by `appvlp.exe` that do not match known safe child processes, such as `rundll32.exe` or Office-related executables. By analyzing process creation logs, the rule helps identify potential security incidents that involve the misuse of Application Virtualization technology.
+  The primary data source for this rule is the Windows process creation logs, which provide details about parent-child process relationships and command-line execution parameters. Analysts can use this information to determine whether an observed child process is consistent with regular patterns or indicative of malicious activity.
+  ### Investigation Steps
+  - Investigate the process creation logs on the affected system to determine the full command line of the detected child process spawned by `appvlp.exe`.
+  - Use EDR tools to analyze the behavior of the child process, checking for any indications of malicious activity, such as unusual network connections or file modifications.
+  - Verify the legitimacy of the parent-child relationship by cross-referencing the parent process (appvlp.exe) with known software and security policies in your environment.
+  - Consult the proxy and network logs to identify any unauthorized data exfiltration or communication attempts associated with the unusual child processes.

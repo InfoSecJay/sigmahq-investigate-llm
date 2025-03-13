@@ -1,0 +1,49 @@
+title: Potential Suspicious Windows Feature Enabled
+id: 55c925c1-7195-426b-a136-a9396800e29b
+related:
+- id: c740d4cf-a1e9-41de-bb16-8a46a4f57918
+  type: similar
+status: test
+description: |
+  Detects usage of the built-in PowerShell cmdlet "Enable-WindowsOptionalFeature" used as a Deployment Image Servicing and Management tool.
+  Similar to DISM.exe, this cmdlet is used to enumerate, install, uninstall, configure, and update features and packages in Windows images
+references:
+- https://learn.microsoft.com/en-us/powershell/module/dism/enable-windowsoptionalfeature?view=windowsserver2022-ps
+- https://learn.microsoft.com/en-us/windows/win32/projfs/enabling-windows-projected-file-system
+- https://learn.microsoft.com/en-us/windows/wsl/install-on-server
+author: frack113
+date: 2022-09-10
+modified: 2022-12-29
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_cmd:
+    ScriptBlockText|contains|all:
+    - 'Enable-WindowsOptionalFeature'
+    - '-Online'
+    - '-FeatureName'
+  selection_feature:
+        # Add any insecure/unusual windows features to your env
+    ScriptBlockText|contains:
+    - 'TelnetServer'
+    - 'Internet-Explorer-Optional-amd64'
+    - 'TFTP'
+    - 'SMB1Protocol'
+    - 'Client-ProjFS'
+    - 'Microsoft-Windows-Subsystem-Linux'
+  condition: all of selection_*
+falsepositives:
+- Legitimate usage of the features listed in the rule.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the use of the PowerShell cmdlet `Enable-WindowsOptionalFeature`, which is often leveraged to manipulate Windows operating system features. The cmdlet is a part of the Deployment Image Servicing and Management (DISM) tool, used for tasks such as enabling, disabling, or configuring features within the Windows OS. The specific focus of the rule is on script execution logs that contain certain command-line parameters indicating potential misuse of system features, particularly those associated with outdated protocols like Telnet or SMB1. To enable effective monitoring, script block logging must be activated on Windows systems, which allows for visibility into PowerShell activities that could signify abnormal behavior or security risks.
+  ### Investigation Steps
+  - Review the relevant PowerShell script block log entries in your EDR system to identify any occurrences of `Enable-WindowsOptionalFeature` with the specified parameters.
+  - Check for any associated processes or user accounts in the context of the detected cmdlet usage to determine if unauthorized modifications to system features were made.
+  - Analyze the logs from your NGFW and Proxy to trace any associated network traffic related to the functionalities that were enabled, which may indicate malicious intent.
+  - Use your cloud provider's activity logs (AWS CloudTrail, Azure Activity Logs, etc.) to verify if any changes were made to cloud resources in conjunction with the PowerShell command, particularly for services that might enable the listed Windows features in a cloud environment.

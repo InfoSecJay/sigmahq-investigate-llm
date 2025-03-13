@@ -1,0 +1,61 @@
+title: Suspicious Child Process Of Veeam Dabatase
+id: d55b793d-f847-4eea-b59a-5ab09908ac90
+related:
+- id: 869b9ca7-9ea2-4a5a-8325-e80e62f75445
+  type: similar
+status: test
+description: Detects suspicious child processes of the Veeam service process. This
+  could indicate potential RCE or SQL Injection.
+references:
+- https://labs.withsecure.com/publications/fin7-target-veeam-servers
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-04
+tags:
+- attack.initial-access
+- attack.persistence
+- attack.privilege-escalation
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|endswith: '\sqlservr.exe'
+    ParentCommandLine|contains: 'VEEAMSQL'
+  selection_child_1:
+    Image|endswith:
+    - '\cmd.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\wsl.exe'
+    - '\wt.exe'
+    CommandLine|contains:
+    - '-ex '
+    - 'bypass'
+    - 'cscript'
+    - 'DownloadString'
+    - 'http://'
+    - 'https://'
+    - 'mshta'
+    - 'regsvr32'
+    - 'rundll32'
+    - 'wscript'
+    - 'copy '
+  selection_child_2:
+    Image|endswith:
+    - '\net.exe'
+    - '\net1.exe'
+    - '\netstat.exe'
+    - '\nltest.exe'
+    - '\ping.exe'
+    - '\tasklist.exe'
+    - '\whoami.exe'
+  condition: selection_parent and 1 of selection_child_*
+level: critical
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious child processes spawned by the Veeam service process, specifically when the parent process is `sqlservr.exe`. The rule looks for command-line activity indicative of suspicious behavior, such as the execution of scripts, downloading content, or utilizing commands often associated with post-exploitation techniques. By monitoring process creation logs, the rule examines the parameters associated with the parent and child processes, focusing on known indicators that could signal remote code execution (RCE) or SQL injection attempts. Detecting these abnormal relationships between processes is critical for detecting unauthorized access and persistently monitoring for threats within the enterprise's environment.
+  ### Investigation Steps
+  - Review the EDR logs for the parent process (`sqlservr.exe`) to understand its execution context, including user accounts and time of execution, which may help identify unauthorized access attempts.
+  - Investigate the command-line parameters of the child processes to determine if they contain suspicious strings such as `bypass`, `http://`, or any other potentially malicious indicators.
+  - Utilize the SIEM to correlate alerts with user activities and other related logs to identify any anomalies or patterns associated with the process executions.
+  - Check the activity on the network firewall and proxy logs for connections to suspicious external hosts or unusual data exfiltration patterns during the time frame of the detected event.

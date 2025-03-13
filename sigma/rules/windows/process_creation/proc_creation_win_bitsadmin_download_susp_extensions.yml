@@ -1,0 +1,75 @@
+title: File With Suspicious Extension Downloaded Via Bitsadmin
+id: 5b80a791-ad9b-4b75-bcc1-ad4e1e89c200
+status: test
+description: Detects usage of bitsadmin downloading a file with a suspicious extension
+references:
+- https://blog.netspi.com/15-ways-to-download-a-file/#bitsadmin
+- https://isc.sans.edu/diary/22264
+- https://lolbas-project.github.io/lolbas/Binaries/Bitsadmin/
+author: Florian Roth (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-28
+modified: 2023-05-30
+tags:
+- attack.defense-evasion
+- attack.persistence
+- attack.t1197
+- attack.s0190
+- attack.t1036.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\bitsadmin.exe'
+  - OriginalFileName: 'bitsadmin.exe'
+  selection_flags:
+    CommandLine|contains:
+    - ' /transfer '
+    - ' /create '
+    - ' /addfile '
+  selection_extension:
+    CommandLine|contains:
+    - '.7z'
+    - '.asax'
+    - '.ashx'
+    - '.asmx'
+    - '.asp'
+    - '.aspx'
+    - '.bat'
+    - '.cfm'
+    - '.cgi'
+    - '.chm'
+    - '.cmd'
+    - '.dll'
+    - '.gif'
+    - '.jpeg'
+    - '.jpg'
+    - '.jsp'
+    - '.jspx'
+    - '.log'
+    - '.png'
+    - '.ps1'
+    - '.psm1'
+    - '.rar'
+    - '.scf'
+    - '.sct'
+    - '.txt'
+    - '.vbe'
+    - '.vbs'
+    - '.war'
+    - '.wsf'
+    - '.wsh'
+    - '.xll'
+    - '.zip'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of `bitsadmin.exe`, a command-line tool in Windows, which is used for downloading files. The rule specifically looks for the command-line parameters suggesting a file transfer operation, as well as the presence of potentially malicious file extensions during the execution of `bitsadmin.exe`. By analyzing process creation logs, particularly focusing on the command line used for the downloads, the rule flags activities associated with downloading files that have extensions historically linked to malicious content. The use of `bitsadmin` in this context can indicate an attempt to evade detection mechanisms by utilizing a legitimate Windows application, thereby raising suspicions and warranting further investigation.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR platform to identify instances of `bitsadmin.exe` being executed, focusing on the associated command line arguments.
+  - Investigate the downloaded file paths to confirm if any files were saved with extensions such as `.exe`, `.dll`, or `.ps1`, which could indicate malicious intent.
+  - Utilize the SIEM to correlate alerts with user activity logs, network traffic data, and any anomalous behavior that coincides with the execution of `bitsadmin.exe`.
+  - Check the logs from your antivirus or endpoint protection tools to determine if any previous detections were logged related to files with suspicious extensions downloaded around the same time.

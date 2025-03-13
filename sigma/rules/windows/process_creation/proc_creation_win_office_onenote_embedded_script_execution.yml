@@ -1,0 +1,41 @@
+title: OneNote.EXE Execution of Malicious Embedded Scripts
+id: 84b1706c-932a-44c4-ae28-892b28a25b94
+status: test
+description: |
+  Detects the execution of malicious OneNote documents that contain embedded scripts.
+  When a user clicks on a OneNote attachment and then on the malicious link inside the ".one" file, it exports and executes the malicious embedded script from specific directories.
+references:
+- https://bazaar.abuse.ch/browse/tag/one/
+author: '@kostastsale'
+date: 2023-02-02
+tags:
+- attack.defense-evasion
+- attack.t1218.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\onenote.exe'
+    Image|endswith:
+    - '\cmd.exe'
+    - '\cscript.exe'
+    - '\mshta.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\wscript.exe'
+    CommandLine|contains:
+    - '\exported\'
+    - '\onenoteofflinecache_files\'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects suspicious behavior associated with the execution of malicious scripts via OneNote, specifically when embedded scripts are triggered by user interactions with OneNote attachments. When a user opens a OneNote document containing a malicious link, the rule identifies instances where OneNote (onenote.exe) acts as a parent process, and subsequently, a new process is created in the system by executing common scripting engines like cmd.exe, cscript.exe, mshta.exe, PowerShell, pwsh.exe, or wscript.exe. The rule monitors both the image names and command-line parameters for indicators of malicious activity, particularly those that include paths such as `\exported\` or `\onenoteofflinecache_files\`, which are often used by attackers to obfuscate malicious operations.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR to identify any instances of OneNote executing command-line scripts from the specified directories. Focus on the timestamps and user accounts associated with the processes.
+  - Examine the network logs via NDR for any outbound connections that coincide with the execution of the detected script processes. Look for suspicious IP addresses or unusual request types that may indicate data exfiltration.
+  - Check the AV and endpoint protection logs for alerts or detections related to the identified processes. This can help verify if any of the executed scripts were flagged as malicious by the security solutions in place.
+  - Investigate user activity in OneNote and any recent document downloads through proxy or cloud logs to ascertain the context of the file access. This can aid in understanding the potential threat vector and user engagement with the malicious document.

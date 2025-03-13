@@ -1,0 +1,54 @@
+title: PowerShell Base64 Encoded IEX Cmdlet
+id: 88f680b8-070e-402c-ae11-d2914f2257f1
+status: test
+description: Detects usage of a base64 encoded "IEX" cmdlet in a process command line
+references:
+- Internal Research
+author: Florian Roth (Nextron Systems)
+date: 2019-08-23
+modified: 2023-04-06
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - CommandLine|base64offset|contains:
+    - 'IEX (['
+    - 'iex (['
+    - 'iex (New'
+    - 'IEX (New'
+    - 'IEX(['
+    - 'iex(['
+    - 'iex(New'
+    - 'IEX(New'
+    - "IEX(('"
+    - "iex(('"
+        # UTF16 LE
+  - CommandLine|contains:
+    - 'SQBFAFgAIAAoAFsA'
+    - 'kARQBYACAAKABbA'
+    - 'JAEUAWAAgACgAWw'
+    - 'aQBlAHgAIAAoAFsA'
+    - 'kAZQB4ACAAKABbA'
+    - 'pAGUAeAAgACgAWw'
+    - 'aQBlAHgAIAAoAE4AZQB3A'
+    - 'kAZQB4ACAAKABOAGUAdw'
+    - 'pAGUAeAAgACgATgBlAHcA'
+    - 'SQBFAFgAIAAoAE4AZQB3A'
+    - 'kARQBYACAAKABOAGUAdw'
+    - 'JAEUAWAAgACgATgBlAHcA'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential misuse of PowerShell through the execution of base64-encoded commands containing the "IEX" (Invoke-Expression) cmdlet, which is often exploited by attackers to execute malicious code hidden in obfuscated commands. By examining process creation logs, particularly the command lines of PowerShell executions, the rule looks for specific patterns associated with base64 encoding. The patterns include variations of "IEX" at the beginning of the command line or base64-encoded strings that are common indicators of malicious intent. The detection relies on both the presence of specific command line phrases related to IEX commands and well-known base64-encoded values that are likely used in attacks.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR system to find instances of PowerShell executing with the identified command line patterns, focusing on the time of alert and any associated user accounts.
+  - Analyze network traffic logs from your NDR to detect any unusual outbound connections initiated by the affected PowerShell process, which might indicate data exfiltration or command and control (C2) communication.
+  - Check AV and other endpoint protection logs for any flagged or quarantined files corresponding to the same timeframe, particularly focusing on executables related to PowerShell scripts.
+  - Investigate cloud logs in platforms like AWS, GCP, or Azure for signs of unauthorized actions or resource provisioning linked to the user account that executed the malicious command, which may provide insights into the attacker's objectives.

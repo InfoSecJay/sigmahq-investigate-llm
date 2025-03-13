@@ -1,0 +1,33 @@
+title: Protected Storage Service Access
+id: 45545954-4016-43c6-855e-eae8f1c369dc
+status: test
+description: Detects access to a protected_storage service over the network. Potential
+  abuse of DPAPI to extract domain backup keys from Domain Controllers
+references:
+- https://threathunterplaybook.com/hunts/windows/190620-DomainDPAPIBackupKeyExtraction/notebook.html
+author: Roberto Rodriguez @Cyb3rWard0g
+date: 2019-08-10
+modified: 2021-11-27
+tags:
+- attack.lateral-movement
+- attack.t1021.002
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 5145
+    ShareName|contains: 'IPC'
+    RelativeTargetName: 'protected_storage'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Protected Storage Service Access" detection rule is designed to monitor access to the protected storage service on Windows systems, particularly targeting the extraction of sensitive domain backup keys associated with the Data Protection API (DPAPI). This is an important concern because malicious actors may leverage such access to facilitate lateral movement within an enterprise, gaining unauthorized access to critical security artifacts stored on Domain Controllers. The rule relies on examining Windows security event logs, specifically looking for Event ID 5145, which indicates a successful access event. The presence of a share name containing 'IPC' alongside the relative target name 'protected_storage' serves as a key indicator of potential abuse.
+  ### Investigation Steps
+  - Review the relevant Event ID 5145 logs in the Windows security logs to identify the source IP address and user account accessing the protected storage service.
+  - Utilize EDR tools to assess the behavior of the user account involved in the access event, focusing on recent activities and potential lateral movement indicators.
+  - Analyze network traffic logs from the NDR or NGFW to trace any suspicious communication patterns linked to the accessing IP address, noting any anomalies or connections to known malicious entities.
+  - Check for any related alerts or events in SIEM that might provide additional context or corroborative evidence concerning the activity around DPAPI access or account behaviors.

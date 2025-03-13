@@ -1,0 +1,35 @@
+title: HTTP Logging Disabled On IIS Server
+id: e8ebd53a-30c2-45bd-81bb-74befba07bdb
+status: experimental
+description: Detects changes to of the IIS server configuration in order to disable
+  HTTP logging for successful requests.
+references:
+- https://learn.microsoft.com/en-us/iis/manage/provisioning-and-managing-iis/configure-logging-in-iis
+- https://www.microsoft.com/en-us/security/blog/2022/12/12/iis-modules-the-evolution-of-web-shells-and-how-to-detect-them/
+- https://learn.microsoft.com/en-us/iis/configuration/system.webserver/httplogging
+author: frack113
+date: 2024-10-06
+tags:
+- attack.defense-evasion
+- attack.t1562.002
+- attack.t1505.004
+logsource:
+  product: windows
+  service: iis-configuration
+detection:
+  selection:
+    EventID: 29
+    Configuration: '/system.webServer/httpLogging/@dontLog'
+    NewValue: 'true'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule monitors changes to the Internet Information Services (IIS) server configuration that disable HTTP logging for successful requests. Specifically, it looks for Event ID 29 in the IIS configuration logs, indicating the setting of the attribute `dontLog` to `true`. When HTTP logging is disabled, it can indicate an attempt to evade detection mechanisms, as successful requests will not be recorded, impeding visibility into potentially malicious activities, such as web shell deployments. The primary data source for this rule is the IIS configuration logs, which provide insights into configuration changes and operational behavior of the web server.
+  ### Investigation Steps
+  - Review IIS configuration logs for additional Event ID 29 entries that may indicate repetitive changes to the logging settings, and correlate with timestamps of recent activities.
+  - Use EDR tools to examine process creation logs linked to the IIS service around the time the logging was disabled, checking for unusual processes or command-line activities.
+  - Check network traffic logs for any unusual outbound connections or patterns correlating with the time logging was turned off, potentially indicating data exfiltration or unauthorized access.
+  - Investigate user activity logs in the context of account changes, to identify who modified the logging settings and if their actions align with legitimate administrative tasks or indicate potential unauthorized access.

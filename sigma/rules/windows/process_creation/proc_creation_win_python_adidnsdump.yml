@@ -1,0 +1,34 @@
+title: PUA - Adidnsdump Execution
+id: 26d3f0a2-f514-4a3f-a8a7-e7e48a8d9160
+status: test
+description: |
+  This tool enables enumeration and exporting of all DNS records in the zone for recon purposes of internal networks Python 3 and python.exe must be installed,
+  Usee to Query/modify DNS records for Active Directory integrated DNS via LDAP
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1018/T1018.md#atomic-test-9---remote-system-discovery---adidnsdump
+author: frack113
+date: 2022-01-01
+modified: 2023-02-21
+tags:
+- attack.discovery
+- attack.t1018
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\python.exe'
+    CommandLine|contains: 'adidnsdump'
+  condition: selection
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  The Sigma rule titled "PUA 
+  - Adidnsdump Execution" is designed to detect the execution of a potentially unwanted application (PUA) called "adidnsdump." This tool is typically used for reconnaissance purposes, particularly for enumerating and exporting DNS records in environments utilizing Active Directory. The rule specifically looks for instances where the `python.exe` process is initiated with the command line containing the term "adidnsdump." Key technical data sources involved in this detection include process creation logs that document newly spawned processes and their associated command-line parameters. Identifying the execution of this tool can alert security teams to possible reconnaissance activities in the network.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR system to identify any instances of `python.exe` executed with the command line containing "adidnsdump."
+  - Cross-check the timestamps of the detected executions against other logs such as user activity or remote access logs to assess the legitimacy of the commands.
+  - Analyze network traffic logs from the NDR to see if there are any anomalous queries or requests made following the execution, particularly to DNS servers.
+  - Check for any recent changes in DNS records via cloud platform logs (such as AWS Route 53) to determine if there were unauthorized modifications that coincide with the execution of adidnsdump.

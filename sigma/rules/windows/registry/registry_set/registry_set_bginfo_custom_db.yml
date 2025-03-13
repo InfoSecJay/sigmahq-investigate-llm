@@ -1,0 +1,33 @@
+title: New BgInfo.EXE Custom DB Path Registry Configuration
+id: 53330955-dc52-487f-a3a2-da24dcff99b5
+status: test
+description: Detects setting of a new registry database value related to BgInfo configuration.
+  Attackers can for example set this value to save the results of the commands executed
+  by BgInfo in order to exfiltrate information.
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-08-16
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    EventType: SetValue
+    TargetObject|endswith: '\Software\Winternals\BGInfo\Database'
+  condition: selection
+falsepositives:
+- Legitimate use of external DB to save the results
+level: medium
+notes: |
+  ### Technical Context
+  The detection rule identifies the modification of a Windows registry value associated with the BgInfo application, which is commonly used to display system information on the desktop. Specifically, it monitors for changes to the registry path ending in `\Software\Winternals\BGInfo\Database`, where attackers may set a custom database path to capture and exfiltrate command output that BgInfo generates. This behavior is indicative of potential defense evasion and information exfiltration tactics, as it allows attackers to store sensitive system data in locations that could evade detection.
+  The rule relies on event logs that indicate registry key modifications, specifically targeting instances where a value is set (EventType: SetValue). By analyzing this event data, security teams can identify unauthorized changes that may signal malicious activity and prompt further investigation.
+  ### Investigation Steps
+  - Utilize EDR tools to review process activity and identify instances of BgInfo.EXE running on the affected system, noting any suspicious command-line arguments passed to it.
+  - Examine registry logs to corroborate any changes made to the BgInfo configuration, focusing on the timestamps around the detected event to pinpoint potential unauthorized actions.
+  - Query NGFW and proxy logs to identify any unusual outbound connections or data transfers from systems where the registry change was detected.
+  - Review user activity logs within Windows to ensure that the account making the registry changes had legitimate access, and check for any signs of account compromise related to that user.

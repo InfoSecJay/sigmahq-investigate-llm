@@ -1,0 +1,37 @@
+title: COM Object Execution via Xwizard.EXE
+id: 53d4bb30-3f36-4e8a-b078-69d36c4a79ff
+status: test
+description: |
+  Detects the execution of Xwizard tool with the "RunWizard" flag and a GUID like argument.
+  This utility can be abused in order to run custom COM object created in the registry.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Xwizard/
+- https://www.elastic.co/guide/en/security/current/execution-of-com-object-via-xwizard.html
+- https://www.hexacorn.com/blog/2017/07/31/the-wizard-of-x-oppa-plugx-style/
+author: Ensar Şamil, @sblmsrsn, @oscd_initiative, Nasreddine Bencherchali (Nextron
+  Systems)
+date: 2020-10-07
+modified: 2024-08-15
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine: 'RunWizard'
+    CommandLine|re: '\{[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\}'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects potentially suspicious activity related to the execution of the Xwizard tool on Windows systems. Specifically, it looks for instances where the command line contains the "RunWizard" flag paired with a GUID-like argument, which can indicate the use of Xwizard to execute custom COM objects. Xwizard is a legitimate utility, but adversaries may exploit it to run malicious code by modifying the registry to include harmful COM objects. By monitoring for these specific command-line patterns in process creation logs, the rule aims to identify and alert on these potentially malicious actions, allowing security teams to respond accordingly.
+  The primary data sources for this detection are Windows process creation logs, which provide essential details about executed processes, including their command line arguments. Analyzing these logs can help SOC analysts identify unusual or unauthorized use of Xwizard, thus enhancing overall security posture.
+  ### Investigation Steps
+  - Review the process creation logs from the EDR for any instances of Xwizard.EXE being executed. Pay close attention to the command line arguments to confirm the presence of "RunWizard" and a GUID.
+  - Check for related activities around the same time, such as any modifications to the registry that might indicate a malicious use of COM objects. This can be done through registry monitoring tools or logs.
+  - Analyze network connections associated with the Xwizard execution using NDR tools to determine if any external communication occurred that could signify further malicious intent.
+  - Investigate user behavior and access patterns to assess whether the execution of Xwizard was legitimate or if it aligns with known attack vectors in your environment. Use SIEM data to correlate events with user activity logs.

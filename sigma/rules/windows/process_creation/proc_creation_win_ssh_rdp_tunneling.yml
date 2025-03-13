@@ -1,0 +1,35 @@
+title: Potential RDP Tunneling Via SSH
+id: f7d7ebd5-a016-46e2-9c54-f9932f2d386d
+related:
+- id: f38ce0b9-5e97-4b47-a211-7dc8d8b871da     # plink.exe
+  type: similar
+status: test
+description: Execution of ssh.exe to perform data exfiltration and tunneling through
+  RDP
+references:
+- https://www.absolomb.com/2018-01-26-Windows-Privilege-Escalation-Guide/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-10-12
+modified: 2023-01-25
+tags:
+- attack.command-and-control
+- attack.t1572
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\ssh.exe'
+    CommandLine|contains: ':3389'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets potential malicious behavior involving Remote Desktop Protocol (RDP) tunneling via SSH. Specifically, it monitors for instances where `ssh.exe` is executed with a command line that includes the port `:3389`, which is the standard port for RDP connections. The rule leverages process creation logs, analyzing the image name and command line parameters to identify suspicious activity that may indicate data exfiltration or unauthorized access through RDP. By flagging these specific conditions, the rule aims to provide early detection of potential misuse that could lead to security breaches within the network.
+  ### Investigation Steps
+  - Verify the context of the `ssh.exe` execution by examining the process creation logs in your EDR to confirm if it was initiated by a legitimate user or process.
+  - Investigate the command line parameters associated with the instance of `ssh.exe` for any unusual arguments or connections, especially those targeting external or unknown IP addresses.
+  - Use the Firewall logs to determine if there were any outbound RDP connection attempts at the same time that align with the detected activity, which could indicate tunneling.
+  - Review user access logs to establish whether the user account associated with the `ssh.exe` execution has legitimate reasons for using RDP, and check for any prior anomalies in their behavior.

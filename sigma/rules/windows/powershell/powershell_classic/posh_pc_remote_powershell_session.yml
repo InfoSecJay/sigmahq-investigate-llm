@@ -1,0 +1,38 @@
+title: Remote PowerShell Session (PS Classic)
+id: 60167e5c-84b2-4c95-a7ac-86281f27c445
+related:
+- id: 96b9f619-aa91-478f-bacb-c3e50f8df575
+  type: derived
+status: test
+description: Detects remote PowerShell sessions
+references:
+- https://threathunterplaybook.com/hunts/windows/190511-RemotePwshExecution/notebook.html
+author: Roberto Rodriguez @Cyb3rWard0g
+date: 2019-08-10
+modified: 2024-01-03
+tags:
+- attack.execution
+- attack.t1059.001
+- attack.lateral-movement
+- attack.t1021.006
+logsource:
+  product: windows
+  category: ps_classic_start
+detection:
+  selection:
+    Data|contains|all:
+    - 'HostName=ServerRemoteHost'
+    - 'wsmprovhost.exe'
+  condition: selection
+falsepositives:
+- Legitimate use remote PowerShell sessions
+# Note: Increase the level to "medium" in environments that do not leverage PowerShell remoting
+level: low
+notes: |
+  ### Technical Context
+  The detection rule identifies potentially unauthorized remote PowerShell sessions by analyzing process creation logs for an instance of `wsmprovhost.exe`, which indicates the use of Windows Remote Management (WinRM) to initiate remote PowerShell commands. The rule specifically looks for data containing the string 'HostName=ServerRemoteHost' alongside the presence of `wsmprovhost.exe`, allowing SOC analysts to discern between legitimate administrative activities and potentially malicious lateral movements within the organization. Effective detection relies on comprehensive logging and monitoring of PowerShell activities, making it imperative to tune the alerting thresholds based on each organization’s use of remote sessions. 
+  ### Investigation Steps
+  - Review EDR logs to identify active and historical instances of `wsmprovhost.exe` to see the context of the session initiation, including the source user and machine.
+  - Utilize the SIEM to track any unusual command-line arguments associated with remote PowerShell executions, which may indicate unauthorized access attempts.
+  - Check Proxy logs for any outbound connections to external IP addresses originating from the source machine identified in the alert, which may highlight suspicious behavior.
+  - Examine cloud logs from GCP, AWS, or Azure to ascertain whether any cloud resources were accessed or manipulated during the remote session, providing insights on the extent of the potential compromise.

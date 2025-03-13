@@ -1,0 +1,36 @@
+title: Service Installation with Suspicious Folder Pattern
+id: 1b2ae822-6fe1-43ba-aa7c-d1a3b3d1d5f2
+status: test
+description: Detects service installation with suspicious folder patterns
+references:
+- Internal Research
+author: pH-T (Nextron Systems)
+date: 2022-03-18
+modified: 2022-03-24
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- car.2013-09-005
+- attack.t1543.003
+logsource:
+  product: windows
+  service: system
+detection:
+  selection_eid:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7045
+  selection_img_paths:
+  - ImagePath|re: '^[Cc]:\\[Pp]rogram[Dd]ata\\.{1,9}\.exe'
+  - ImagePath|re: '^[Cc]:\\.{1,9}\.exe'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially suspicious service installations on Windows systems by monitoring the Service Control Manager (SCM) for specific event logs. It primarily looks for Event ID 7045, which is generated when a new service is created. The rule is particularly focused on filtering out service installations that occur from executable files located in atypical or dubious paths, specifically targeting those that originate from the `ProgramData` directory or from overly abbreviated paths. These paths often indicate an attempt to evade detection, as malicious actors may choose unconventional locations to hide their executables. Log sources involved in this detection include system event logs that provide information about newly created services, particularly the image paths from which they are being executed.
+  ### Investigation Steps
+  - Review the event logs for Event ID 7045 in the EDR or SIEM platform to identify the services that were installed along with their respective executable paths.
+  - Conduct a forensic analysis of the identified image paths using the EDR to determine the file’s properties, history, and any associated processes to ascertain if they align with known safe software.
+  - Cross-reference any suspicious executables with threat intelligence databases and internal indicators of compromise (IOCs) to assess potential malicious behavior.
+  - Examine network logs from the NDR or proxy tools to search for any outbound connections associated with the suspicious services, indicating possible command and control activity.

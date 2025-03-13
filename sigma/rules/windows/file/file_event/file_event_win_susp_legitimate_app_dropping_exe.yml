@@ -1,0 +1,53 @@
+title: Legitimate Application Dropped Executable
+id: f0540f7e-2db3-4432-b9e0-3965486744bc
+status: test
+description: Detects programs on a Windows system that should not write executables
+  to disk
+references:
+- https://github.com/Neo23x0/sysmon-config/blob/3f808d9c022c507aae21a9346afba4a59dd533b9/sysmonconfig-export-block.xml#L1326
+author: frack113, Florian Roth (Nextron Systems)
+date: 2022-08-21
+modified: 2023-06-22
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    Image|endswith:
+            # Microsoft Office Programs Dropping Executables / Rest of the apps are covered in: c7a74c80-ba5a-486e-9974-ab9e682bc5e4
+    - '\eqnedt32.exe'
+    - '\wordpad.exe'
+    - '\wordview.exe'
+            # LOLBINs that can be used to download executables
+    - '\certutil.exe'
+    - '\certoc.exe'
+    - '\CertReq.exe'
+            # - \bitsadmin.exe (depends on the environment; comment in if you're sure that bitsadmin doesn't do that in your env)
+    - '\Desktopimgdownldr.exe'
+    - '\esentutl.exe'
+            # - \expand.exe
+    - '\mshta.exe'
+            # Executables that should never drop an executable to disk (but may after a previous process injection or if it's malware that uses a legitimate name)
+    - '\AcroRd32.exe'
+    - '\RdrCEF.exe'
+    - '\hh.exe'
+    - '\finger.exe'
+    TargetFilename|endswith:
+    - '.exe'
+    - '.dll'
+    - '.ocx'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Legitimate Application Dropped Executable" detection rule is designed to identify instances where legitimate Windows applications unexpectedly write executable files (e.g., .exe, .dll, .ocx) to disk. This behavior is often indicative of an attack technique known as "defense evasion," where adversaries leverage trusted applications to execute malicious code without attracting attention. The rule specifically focuses on several known tools, including Microsoft Office programs and various utilities, which should not engage in the behavior of writing executables to disk. The primary technical data sources leveraged by this rule are file event logs, capturing details about file creation actions, including the image names of the processes involved and the target filenames generated during these events.
+  ### Investigation Steps
+  - Review file event logs in the EDR system to identify the specific processes that triggered the alert and analyze their behavior prior to the executable being created. Look for any anomalies or known bad behavior linked to these processes.
+  - Investigate the command-line parameters used by the applications identified in the alert to determine if they are being misused or if there is any malicious context, such as suspicious flags or unusual arguments.
+  - Cross-reference alerts with any network traffic logged by the NDR system to identify potential command and control communication that might indicate a compromised state.
+  - Examine the logs from endpoint security solutions (e.g., AV) to assess if any of the dropped executables have been detected as malicious or if the legitimate applications have recently exhibited unusual activity.

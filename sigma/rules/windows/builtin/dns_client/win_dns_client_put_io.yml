@@ -1,0 +1,33 @@
+title: DNS Query To Put.io - DNS Client
+id: 8b69fd42-9dad-4674-abef-7fdef43ef92a
+status: experimental
+description: Detects DNS queries for subdomains related to "Put.io" sharing website.
+references:
+- https://darkatlas.io/blog/medusa-ransomware-group-opsec-failure
+author: Omar Khaled (@beacon_exe)
+date: 2024-08-23
+tags:
+- attack.command-and-control
+logsource:
+  product: windows
+  service: dns-client
+  definition: 'Requirements: Microsoft-Windows-DNS Client Events/Operational Event
+    Log must be enabled/collected in order to receive the events.'
+detection:
+  selection:
+    EventID: 3008
+    QueryName|contains:
+    - 'api.put.io'
+    - 'upload.put.io'
+  condition: selection
+falsepositives:
+- Legitimate DNS queries and usage of Put.io
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule monitors DNS queries specifically targeting subdomains associated with the "Put.io" sharing website, a known platform for storing and sharing files. By focusing on DNS Client events, this rule captures logs where specified subdomains—such as "api.put.io" and "upload.put.io"—are requested by systems within the enterprise environment. The rule relies on Microsoft Windows DNS Client Events, necessitating that these logs be enabled and collected for effective monitoring. By identifying these DNS queries, analysts can potentially uncover command-and-control communications or data exfiltration attempts linked to malicious actors, including those affiliated with the Medusa ransomware group.
+  ### Investigation Steps
+  - Review the DNS Client logs for any unusual patterns or repeated queries related to "Put.io" that could indicate malicious activity, using EDR or SIEM tools to filter the results effectively.
+  - Correlate the identified DNS queries with other security tools like EDR and AV solutions to determine if any corresponding processes or threats have been flagged on the affected endpoints.
+  - Analyze network traffic for outgoing connections to "Put.io" IP addresses using NDR tools to assess if any data exfiltration or unauthorized communications are taking place.
+  - Check proxy logs to confirm whether users are accessing "Put.io" through sanctioned channels or if there are any unauthorized attempts that could signal potential abuse or compromise.

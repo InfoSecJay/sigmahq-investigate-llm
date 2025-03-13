@@ -1,0 +1,38 @@
+title: Interesting Service Enumeration Via Sc.EXE
+id: e83e8899-c9b2-483b-b355-5decc942b959
+status: test
+description: |
+  Detects the enumeration and query of interesting and in some cases sensitive services on the system via "sc.exe".
+  Attackers often try to enumerate the services currently running on a system in order to find different attack vectors.
+references:
+- https://www.n00py.io/2021/05/dumping-plaintext-rdp-credentials-from-svchost-exe/
+- https://pentestlab.blog/tag/svchost/
+author: Swachchhanda Shrawan Poudel
+date: 2024-02-12
+tags:
+- attack.t1003
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith: '\sc.exe'
+  - OriginalFileName: 'sc.exe'
+  selection_cli:
+    CommandLine|contains: 'query'
+  selection_cmd:
+        # Note: add more interesting services
+    CommandLine|contains: 'termservice'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+# Note: can be upgraded to medium after an initial baseline
+level: low
+notes: |
+  ### Technical Context
+  This detection rule aims to identify potential reconnaissance activities on Windows systems by monitoring for the use of the `sc.exe` command-line tool. The tool is often employed by attackers to enumerate services running on a machine, providing insights into potential vulnerabilities or entry points for further exploitation. The rule specifically looks for process creation logs indicating the execution of `sc.exe`, along with command-line parameters that suggest querying for services, especially those that are considered sensitive, such as Terminal Services (`termservice`). The data sources involved in this detection include Windows process creation logs, which capture information about the execution of processes and the associated command-line arguments. By identifying these execution patterns, the rule helps SOC analysts flag suspicious attempts to enumerate services on enterprise systems.
+  ### Investigation Steps
+  - Review Windows process creation logs in the EDR tool to identify the execution of `sc.exe` and understand the context of its usage, including the user account involved.
+  - Analyze the command-line arguments associated with the `sc.exe` execution to determine if sensitive services like `termservice` were queried, which may indicate potential malicious intent.
+  - Cross-reference alerts with logs from other security tools, such as the NGFW and AV, to identify any associated behavior or previous alerts that may indicate a compromised state.
+  - Investigate any user or machine that triggered the alert in the proxy or VPN logs to see if there is any ongoing suspicious activity or connections to potentially malicious external entities.

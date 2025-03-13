@@ -1,0 +1,39 @@
+title: Gpscript Execution
+id: 1e59c230-6670-45bf-83b0-98903780607e
+status: test
+description: Detects the execution of the LOLBIN gpscript, which executes logon or
+  startup scripts configured in Group Policy
+references:
+- https://oddvar.moe/2018/04/27/gpscript-exe-another-lolbin-to-the-list/
+- https://lolbas-project.github.io/lolbas/Binaries/Gpscript/
+author: frack113
+date: 2022-05-16
+modified: 2023-06-14
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith: '\gpscript.exe'
+  - OriginalFileName: 'GPSCRIPT.EXE'
+  selection_cli:
+    CommandLine|contains:
+    - ' /logon'
+    - ' /startup'
+  filter_main_svchost:
+    ParentCommandLine: 'C:\windows\system32\svchost.exe -k netsvcs -p -s gpsvc'
+  condition: all of selection_* and not 1 of filter_main_*
+falsepositives:
+- Legitimate uses of logon scripts distributed via group policy
+level: medium
+notes: |
+  ### Technical Context
+  The "Gpscript Execution" detection rule is designed to identify the execution of `gpscript.exe`, a legitimate tool used to execute logon and startup scripts configured through Group Policy. The rule looks for specific indicators such as the process image path ending with `\gpscript.exe`, and both the original file name and command line parameters that contain `/logon` or `/startup`. Additionally, it filters out cases where `gpscript.exe` is executed by a legitimate service host process (`svchost.exe` running the Group Policy Client service), thereby focusing on potentially malicious executions of this binary. This detection leverages process creation logs to monitor the behaviors associated with the execution of this Living Off the Land Binary (LOLBIN), which attackers might exploit to maintain persistence or execute unwanted scripts without triggering typical security alerts.
+  ### Investigation Steps
+  - Review process creation logs in the EDR system to identify instances of `gpscript.exe` execution along with the associated command line arguments.
+  - Examine the parent process details in the EDR to determine if the execution was initiated by `svchost.exe` to rule out legitimate Group Policy operations.
+  - Analyze the environment where the execution occurred using logs from Active Directory to confirm if unauthorized scripts or changes have been implemented via Group Policy.
+  - Cross-reference alerts with network traffic logs from the NDR to identify any anomalous communications initiated by the device running the detected instance of `gpscript.exe`.

@@ -1,0 +1,41 @@
+title: Suspicious Svchost Process Access
+id: 166e9c50-8cd9-44af-815d-d1f0c0e90dde
+status: test
+description: Detects suspicious access to the "svchost" process such as that used
+  by Invoke-Phantom to kill the thread of the Windows event logging service.
+references:
+- https://github.com/hlldz/Invoke-Phant0m
+- https://twitter.com/timbmsft/status/900724491076214784
+author: Tim Burrell
+date: 2020-01-02
+modified: 2023-01-30
+tags:
+- attack.defense-evasion
+- attack.t1562.002
+logsource:
+  category: process_access
+  product: windows
+detection:
+  selection:
+    TargetImage|endswith: ':\Windows\System32\svchost.exe'
+    GrantedAccess: '0x1F3FFF'
+    CallTrace|contains: 'UNKNOWN'
+  filter_main_msbuild:
+    SourceImage|contains: ':\Program Files\Microsoft Visual Studio\'
+    SourceImage|endswith: '\MSBuild\Current\Bin\MSBuild.exe'
+        # Just to make sure it's "really" .NET :)
+    CallTrace|contains:
+    - 'Microsoft.Build.ni.dll'
+    - 'System.ni.dll'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Suspicious Svchost Process Access" detection rule focuses on identifying potentially malicious behavior targeting the "svchost.exe" process on Windows systems. Svchost.exe is a legitimate Windows process that acts as a host for various services but can be exploited by attackers to execute unauthorized operations covertly. This rule looks for specific patterns of access where an external process seeks to interact with svchost.exe, particularly utilizing high-level access rights (represented by the GrantedAccess value of '0x1F3FFF') which allows comprehensive control over the target process. It also ensures that the call trace does not originate from specific development-related tools like Microsoft Visual Studio's MSBuild, indicating that the action might be malicious rather than benign.
+  ### Investigation Steps
+  - Review process access logs in the EDR tool to check for any recent suspicious attempts to access svchost.exe, focusing particularly on the process ID and initiating source with high GrantedAccess levels.
+  - Analyze the command-line parameters and parent-child process relationships in the EDR logs to identify if any known malicious process initiated access to svchost.exe.
+  - Cross-reference the activity with the SIEM for any abnormal behavior or patterns that may correlate with other alerts related to defense evasion tactics.
+  - Investigate the network connection logs in the NGFW or Proxy to determine whether there was any anomalous communication from the host that could indicate malware attempting to exfiltrate data or communicate with a command-and-control server.

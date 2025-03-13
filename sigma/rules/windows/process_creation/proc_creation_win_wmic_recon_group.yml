@@ -1,0 +1,37 @@
+title: Local Groups Reconnaissance Via Wmic.EXE
+id: 164eda96-11b2-430b-85ff-6a265c15bf32
+status: test
+description: |
+  Detects the execution of "wmic" with the "group" flag.
+  Adversaries may attempt to find local system groups and permission settings.
+  The knowledge of local system permission groups can help adversaries determine which groups exist and which users belong to a particular group.
+  Adversaries may use this information to determine which users have elevated permissions, such as the users found within the local administrators group.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1069.001/T1069.001.md
+author: frack113
+date: 2021-12-12
+modified: 2023-02-14
+tags:
+- attack.discovery
+- attack.t1069.001
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith: '\wmic.exe'
+  - OriginalFileName: 'wmic.exe'
+  selection_cli:
+    CommandLine|contains: ' group'
+  condition: all of selection*
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies potential reconnaissance activities conducted by adversaries using the Windows Management Instrumentation Command-line (WMIC) tool, specifically when it is executed with the "group" flag. The primary focus is on the execution of `wmic.exe`, which is often used in local group enumeration to gather information about user permissions and group memberships on a system. By analyzing the command line parameters for instances where "group" is present, the rule can detect attempts to uncover local system groups, including those with elevated privileges like local administrators. The rule pulls data from process creation logs to identify these executions, making it vital for incident responders to recognize such activities as a possible precursor to more aggressive attacks.
+  ### Investigation Steps
+  - Review EDR logs to identify the process creation events related to `wmic.exe`, paying special attention to the command line parameters used in the execution.
+  - Examine the user account that executed the `wmic` command to determine whether it possesses elevated privileges or recent suspicious activity related to privilege escalation.
+  - Check system event logs for any unusual login patterns or unauthorized access attempts that correlate with the time frame of the WMIC execution.
+  - Utilize Sysmon logs, if available, to gather additional context on the behavior and network activity of the process following the execution of `wmic.exe`.

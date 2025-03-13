@@ -1,0 +1,36 @@
+title: Disable Tamper Protection on Windows Defender
+id: 93d298a1-d28f-47f1-a468-d971e7796679
+status: test
+description: Detects disabling Windows Defender Tamper Protection
+references:
+- https://www.tenforums.com/tutorials/123792-turn-off-tamper-protection-microsoft-defender-antivirus.html
+author: Austin Songer @austinsonger
+date: 2021-08-04
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\Microsoft\Windows Defender\Features\TamperProtection'
+    Details: DWORD (0x00000000)
+  filter_msmpeng_client:   # only disabled temporarily during updates
+    Image|startswith: 'C:\ProgramData\Microsoft\Windows Defender\Platform\'
+    Image|endswith: '\MsMpEng.exe'
+  filter_msmpeng_domain_controller:   # only disabled temporarily during updates
+    Image: 'C:\Program Files\Windows Defender\MsMpEng.exe'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The detection rule titled "Disable Tamper Protection on Windows Defender" aims to identify instances where the tamper protection feature of Microsoft Defender Antivirus is disabled. Tamper protection is critical for safeguarding antivirus settings from unauthorized changes, particularly by malware. The rule monitors changes in a specific registry key associated with the tamper protection feature, looking for a DWORD value that indicates it has been turned off (0x00000000). It checks for activities related to the legitimate processes of Microsoft Defender, specifically the MsMpEng.exe, ensuring that these settings are not altered during regular updates, which are valid exceptions. By focusing on the registry paths and the conditions around these changes, this rule helps highlight potential evasion techniques employed by attackers to disable antivirus protections.
+  ### Investigation Steps
+  - Review endpoint alerts using EDR tools to identify any recent changes to the Windows Defender Tamper Protection settings on affected hosts. Look for any patterns or commonalities among affected machines.
+  - Cross-reference the timing of the registry change with logs from the Windows Event Viewer to identify any user or process actions that occurred just prior to the change, especially in relation to administrative access.
+  - Analyze network logs from the NGFW or NDR solutions to detect any suspicious outbound traffic or connections originating from the affected device, which might indicate a compromise attempt.
+  - Examine Windows Defender logs for any anomalies or suspicious activities related to malware detection that could correlate with the disabling of tamper protection. This may provide insight into the context and intent behind the change.

@@ -1,0 +1,35 @@
+title: HybridConnectionManager Service Installation
+id: 0ee4d8a5-4e67-4faf-acfa-62a78457d1f2
+status: test
+description: Rule to detect the Hybrid Connection Manager service installation.
+references:
+- https://twitter.com/Cyb3rWard0g/status/1381642789369286662
+author: Roberto Rodriguez (Cyb3rWard0g), OTR (Open Threat Research)
+date: 2021-04-12
+modified: 2022-10-09
+tags:
+- attack.persistence
+- attack.t1554
+logsource:
+  product: windows
+  service: security
+  definition: The 'System Security Extension' audit subcategory need to be enabled
+    to log the EID 4697
+detection:
+  selection:
+    EventID: 4697
+    ServiceName: HybridConnectionManager
+    ServiceFileName|contains: HybridConnectionManager
+  condition: selection
+falsepositives:
+- Legitimate use of Hybrid Connection Manager via Azure function apps.
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "HybridConnectionManager Service Installation" is designed to detect the installation of the Hybrid Connection Manager service on Windows systems. This rule looks for Event ID 4697, which is triggered whenever a new service is created. Specifically, it checks for the service name "HybridConnectionManager" and any service file name that contains "HybridConnectionManager." The logging for this event must be enabled through the 'System Security Extension' audit subcategory. By monitoring these parameters, security teams can identify potentially unauthorized installations of this service, which could indicate attempts at persistence or lateral movement by threat actors.
+  The data sources involved in this detection rule primarily include Windows security event logs, specifically focusing on service installation events. Understanding the context of service installations helps incident responders differentiate between legitimate operations—like those performed by Azure function apps—and potentially malicious activities.
+  ### Investigation Steps
+  - Use the EDR to search for the Event ID 4697 across the affected Windows hosts, filtering for instances of the Hybrid Connection Manager service to determine when it was installed.
+  - Review the command-line parameters and process creation logs associated with the installation event to identify any suspicious commands or activities leading up to the creation of the service.
+  - Cross-reference the installation timestamp with user logins and other user activity logs to ascertain whether the service was installed by an authorized user or as part of a legitimate operation.
+  - Investigate network logs (such as proxy or NDR data) to assess if any unusual outbound connections were initiated by the Hybrid Connection Manager service after its installation, indicating potential malicious activity.

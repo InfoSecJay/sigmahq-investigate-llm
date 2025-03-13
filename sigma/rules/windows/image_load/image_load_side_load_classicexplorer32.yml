@@ -1,0 +1,36 @@
+title: Potential DLL Sideloading Via ClassicExplorer32.dll
+id: caa02837-f659-466f-bca6-48bde2826ab4
+status: test
+description: Detects potential DLL sideloading using ClassicExplorer32.dll from the
+  Classic Shell software
+references:
+- https://blogs.blackberry.com/en/2022/12/mustang-panda-uses-the-russian-ukrainian-war-to-attack-europe-and-asia-pacific-targets
+- https://app.any.run/tasks/6d8cabb0-dcda-44b6-8050-28d6ce281687/
+author: frack113
+date: 2022-12-13
+tags:
+- attack.defense-evasion
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection_classicexplorer:
+    ImageLoaded|endswith: '\ClassicExplorer32.dll'
+  filter_classicexplorer:
+    ImageLoaded|startswith: 'C:\Program Files\Classic Shell\'
+  condition: selection_classicexplorer and not filter_classicexplorer
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potential DLL sideloading activities involving the ClassicExplorer32.dll file, associated with the Classic Shell software on Windows systems. DLL sideloading is a technique used by attackers to execute malicious code by exploiting legitimate software processes, which may lead to unauthorized privilege escalation or persistence on the target system. The rule looks for instances where the ClassicExplorer32.dll is loaded from non-standard paths while still being associated with Classic Shell, highlighting possible evasion tactics. The primary data sources for this detection are image load events, specifically monitoring the `ImageLoaded` field to determine the DLL's origin and intent.
+  ### Investigation Steps
+  - Review the EDR logs for any recent process executions that involve ClassicExplorer32.dll to determine when and how it was loaded. 
+  - Correlate the presence of ClassicExplorer32.dll with system-wide changes or unusual behavior in applications that rely on the Classic Shell software.
+  - Check for any network activity or outbound connections that might have occurred after the DLL was loaded, utilizing NDR logs to identify potential command-and-control communications.
+  - Cross-reference findings with external threat intelligence sources to assess whether the observed activity aligns with known exploitation techniques or active attackers.

@@ -1,0 +1,37 @@
+title: Process Monitor Driver Creation By Non-Sysinternals Binary
+id: a05baa88-e922-4001-bc4d-8738135f27de
+status: test
+description: Detects creation of the Process Monitor driver by processes other than
+  Process Monitor (procmon) itself.
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-05
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1068
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|contains: '\procmon'
+    TargetFilename|endswith: '.sys'
+  filter_main_process_explorer:
+    Image|endswith:
+    - '\procmon.exe'
+    - '\procmon64.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Some false positives may occur with legitimate renamed process monitor binaries
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the unauthorized creation of the Process Monitor driver (`procmon.sys`) by processes that are not the official Process Monitor binaries (i.e., `procmon.exe` and `procmon64.exe`). The rule leverages file event logs from Windows systems, specifically monitoring for the creation of files that match the target filename containing `\procmon` and ending with the `.sys` extension. By ensuring that the creating process is not a recognized instance of Process Monitor itself, the rule aims to identify potential attempts at privilege escalation or malicious activities where an attacker may try to use Process Monitor functionality for their own purposes.
+  Responders and SOC analysts should note that while this detection rule is helpful for identifying suspicious activity, there may be some legitimate cases that trigger false positives—such as renamed legitimate binaries—requiring careful investigation of the alerts.
+  ### Investigation Steps
+  - Review EDR logs to identify the process that triggered the creation of the `procmon.sys` file, including its command line and parent process details for context.
+  - Cross-reference the initial detection with file creation timestamps against known software installation or update windows to rule out legitimate activity.
+  - Check AV logs for any related detections or alerts that may indicate malicious behavior correlated with the suspicious process.
+  - Analyze network traffic logs from the NDR or Proxy to determine if the alerting process attempted outbound connections that could indicate further malicious intent.

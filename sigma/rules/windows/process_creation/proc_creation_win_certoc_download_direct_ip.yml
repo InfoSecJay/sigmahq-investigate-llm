@@ -1,0 +1,38 @@
+title: File Download From IP Based URL Via CertOC.EXE
+id: b86f6dea-0b2f-41f5-bdcc-a057bd19cd6a
+related:
+- id: 70ad0861-d1fe-491c-a45f-fa48148a300d
+  type: similar
+status: test
+description: Detects when a user downloads a file from an IP based URL using CertOC.exe
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Certoc/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-10-18
+tags:
+- attack.command-and-control
+- attack.execution
+- attack.t1105
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\certoc.exe'
+  - OriginalFileName: 'CertOC.exe'
+  selection_ip:
+    CommandLine|re: '://[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'
+  selection_cli:
+    CommandLine|contains: '-GetCACAPS'
+  condition: all of selection*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the use of CertOC.exe, a command-line tool, to download files from IP-based URLs. The detection works by monitoring process creation logs for instances where CertOC.exe is executed with a command line that includes an IP address in the URL. It specifically looks for the `-GetCACAPS` parameter, which indicates a potential operation to retrieve files from a specified IP address. The combination of these elements serves as an alert for suspicious behavior, which may indicate that an adversary is attempting to exfiltrate data or execute remote commands using an untrusted source. By analyzing the command line parameters, analysts can identify potentially malicious actions initiated by this executable.
+  ### Investigation Steps
+  - Review process creation logs in your EDR to identify instances where CertOC.exe was executed, paying close attention to the timestamps and user contexts associated with each execution.
+  - Cross-reference the command line parameters logged to determine if the request targeted an external IP address, particularly in conjunction with the `-GetCACAPS` option.
+  - Investigate the source IP address from which the file was downloaded to ascertain if it is associated with known malicious infrastructure or if it is an unexpected or unauthorized source.
+  - Check endpoint logs for any downloaded files or changes made post-execution of CertOC.exe, to evaluate the potential impact or further actions taken by the user or the system.

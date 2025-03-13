@@ -1,0 +1,35 @@
+title: NtdllPipe Like Activity Execution
+id: bbc865e4-7fcd-45a6-8ff1-95ced28ec5b2
+status: test
+description: Detects command that type the content of ntdll.dll to a different file
+  or a pipe in order to evade AV / EDR detection. As seen being used in the POC NtdllPipe
+references:
+- https://web.archive.org/web/20220306121156/https://www.x86matthew.com/view_post?id=ntdll_pipe
+author: Florian Roth (Nextron Systems)
+date: 2022-03-05
+modified: 2023-03-07
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains:
+    - 'type %windir%\system32\ntdll.dll'
+    - 'type %systemroot%\system32\ntdll.dll'
+    - 'type c:\windows\system32\ntdll.dll'
+    - '\\ntdll.dll > \\\\.\\pipe\\'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "NtdllPipe Like Activity Execution" detection rule is designed to identify potentially malicious commands that attempt to read and output the contents of the `ntdll.dll` file to a file or named pipe. This technique can be utilized by attackers to evade detection mechanisms such as antivirus (AV) and endpoint detection and response (EDR) systems. The rule triggers alerts based on specific command-line patterns that include the `type` command directed at the `ntdll.dll` file, which is critical in Windows operating systems. The detection primarily leverages process creation logs from Windows, monitoring the command-line arguments passed to processes for the specified patterns indicative of nefarious intent.
+  Given its focus on system-critical components and covert data extraction methods, this rule is particularly relevant for identifying advanced persistent threats (APTs) and other forms of sophisticated malware that attempt to manipulate or exfiltrate data without being detected.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution for any instances of the `type` command being executed with `ntdll.dll` file paths.
+  - Analyze the command-line parameters associated with the detected processes to determine if they were invoked by legitimate applications or potentially malicious actors.
+  - Check related network traffic using your NDR tool to identify any unusual connections or data transfers that may correlate with the timeline of the suspicious command execution.
+  - Utilize AV logs to assess whether the detected process has been flagged in previous scans or if there are known signatures associated with the command used.

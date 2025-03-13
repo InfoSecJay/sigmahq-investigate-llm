@@ -1,0 +1,48 @@
+title: Delete Important Scheduled Task
+id: dbc1f800-0fe0-4bc0-9c66-292c2abe3f78
+related:
+- id: 9e3cb244-bdb8-4632-8c90-6079c8f4f16d     # TaskScheduler EventLog
+  type: similar
+- id: 7595ba94-cf3b-4471-aa03-4f6baa9e5fad     # Security-Audting Eventlog
+  type: similar
+status: test
+description: Detects when adversaries stop services or processes by deleting their
+  respective scheduled tasks in order to conduct data destructive activities
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-09
+tags:
+- attack.impact
+- attack.t1489
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\schtasks.exe'
+    CommandLine|contains|all:
+    - '/delete'
+    - '/tn'
+    CommandLine|contains:
+            # Add more important tasks
+    - '\Windows\BitLocker'
+    - '\Windows\ExploitGuard'
+    - '\Windows\SystemRestore\SR'
+    - '\Windows\UpdateOrchestrator\'
+    - '\Windows\Windows Defender\'
+    - '\Windows\WindowsBackup\'
+    - '\Windows\WindowsUpdate\'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This rule is designed to detect potentially malicious activities where an adversary deletes critical scheduled tasks on Windows systems. Scheduled tasks are often leveraged by services and applications to perform important operations, such as system updates or backups. The rule specifically looks for command-line executions involving `schtasks.exe`, particularly those that include the `/delete` flag and target essential Windows components like BitLocker, Windows Defender, and System Restore. By monitoring these command executions, the rule helps identify attempts to disrupt service operations or erase essential recovery mechanisms, indicating potential data-destructive behaviors of threat actors.
+  The primary data source for this detection is the process creation logs, which record command-line parameters provided during the execution of processes. This allows for detailed analysis of what specific commands are being executed and which tasks are being targeted, enabling SOC teams to uncover and respond to suspicious activities effectively.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify instances of `schtasks.exe` executing with the `/delete` command-line options.
+  - Cross-reference the scheduled tasks that were targeted for deletion with the organization's list of critical scheduled tasks to assess their importance and impact.
+  - Utilize SIEM alerts to correlate any related events that occurred around the same time as the detected deletion, such as unusual user activities or other system changes.
+  - Examine logs from the endpoint protection solutions (AV) to identify any related malware activity or indicators of compromise surrounding the timestamps of the event.

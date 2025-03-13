@@ -1,0 +1,47 @@
+title: Potential Arbitrary File Download Using Office Application
+id: 4ae3e30b-b03f-43aa-87e3-b622f4048eed
+related:
+- id: 0c79148b-118e-472b-bdb7-9b57b444cc19
+  type: obsolete
+status: test
+description: Detects potential arbitrary file download using a Microsoft Office application
+references:
+- https://lolbas-project.github.io/lolbas/OtherMSBinaries/Winword/
+- https://lolbas-project.github.io/lolbas/OtherMSBinaries/Powerpnt/
+- https://lolbas-project.github.io/lolbas/OtherMSBinaries/Excel/
+- https://medium.com/@reegun/unsanitized-file-validation-leads-to-malicious-payload-download-via-office-binaries-202d02db7191
+author: Nasreddine Bencherchali (Nextron Systems), Beyu Denis, oscd.community
+date: 2022-05-17
+modified: 2023-06-22
+tags:
+- attack.defense-evasion
+- attack.t1202
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\EXCEL.EXE'
+    - '\POWERPNT.EXE'
+    - '\WINWORD.exe'
+  - OriginalFileName:
+    - 'Excel.exe'
+    - 'POWERPNT.EXE'
+    - 'WinWord.exe'
+  selection_http:
+    CommandLine|contains:
+    - 'http://'
+    - 'https://'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential arbitrary file downloads initiated by Microsoft Office applications, specifically Excel, PowerPoint, and Word. The detection logic focuses on process creation logs, looking for instances where these specific applications are launched with command-line parameters that include HTTP or HTTPS URLs. When an Office application executes a command that connects to the internet to download a file, it poses a significant security risk, as this could lead to the downloading of malicious payloads. The rule identifies these risky behaviors by monitoring for the execution of the relevant Office binaries alongside suspicious command-line inputs that suggest an unauthorized file download attempt.
+  ### Investigation Steps
+  - Verify the process creation logs in your EDR system to determine if the flagged Office application was indeed executed with the indicated command-line parameters.
+  - Review network traffic logs using your NGFW or NDR solutions to check for connections made to any HTTP or HTTPS resources by the identified process.
+  - Cross-reference the detected event with proxy logs to identify the exact URLs accessed and assess whether they are known malicious domains or otherwise benign.
+  - Consult any relevant threat intelligence feeds or historical logs to understand the context of the URLs utilized and determine if there are any related incidents or ongoing campaigns.

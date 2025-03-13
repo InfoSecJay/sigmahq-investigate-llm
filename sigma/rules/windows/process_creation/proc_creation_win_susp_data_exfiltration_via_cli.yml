@@ -1,0 +1,75 @@
+title: Potential Data Exfiltration Activity Via CommandLine Tools
+id: 7d1aaf3d-4304-425c-b7c3-162055e0b3ab
+status: test
+description: Detects the use of various CLI utilities exfiltrating data via web requests
+references:
+- https://www.sentinelone.com/blog/living-off-windows-defender-lockbit-ransomware-sideloads-cobalt-strike-through-microsoft-security-tool/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-02
+modified: 2023-07-27
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_iwr:
+    Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\cmd.exe'
+    CommandLine|contains:
+    - 'Invoke-WebRequest'
+    - 'iwr '
+    - 'wget '
+    - 'curl '
+    CommandLine|contains|all:
+    - ' -ur'         # Shortest possible version of the -uri flag
+    - ' -me'         # Shortest possible version of the -method flag
+    - ' -b'
+    - ' POST '
+  selection_curl:
+    Image|endswith: '\curl.exe'
+    CommandLine|contains: '--ur'     # Shortest possible version of the --uri flag
+  selection_curl_data:
+    CommandLine|contains:
+    - ' -d '         # Shortest possible version of the --data flag
+    - ' --data '
+  selection_wget:
+    Image|endswith: '\wget.exe'
+    CommandLine|contains:
+    - '--post-data'
+    - '--post-file'
+  payloads:
+  - CommandLine|contains:
+    - 'Get-Content'
+    - 'GetBytes'
+    - 'hostname'
+    - 'ifconfig'
+    - 'ipconfig'
+    - 'net view'
+    - 'netstat'
+    - 'nltest'
+    - 'qprocess'
+    - 'sc query'
+    - 'systeminfo'
+    - 'tasklist'
+    - 'ToBase64String'
+    - 'whoami'
+  - CommandLine|contains|all:
+    - 'type '
+    - ' > '
+    - ' C:\'
+  condition: (selection_iwr or all of selection_curl* or selection_wget) and payloads
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential data exfiltration activities that utilize command-line interface (CLI) tools, particularly focusing on Windows-based command-line utilities such as PowerShell, curl, and wget. The rule monitors process creation logs to identify when users execute commands that involve these utilities alongside specific arguments commonly used for sending data over the network. The malicious intent is typically indicated by the inclusion of flags that specify making HTTP requests to an external server (e.g., using `Invoke-WebRequest`, `-Uri`, `-Method`, or data flags such as `-d` or `--data`). In essence, the detection logic revolves around identifying unusual or excessive data requests initiated through CLI tools, which could indicate attempts to exfiltrate sensitive information from within the enterprise environment.
+  ### Investigation Steps
+  - Use EDR tools to examine the command-line activity associated with the alert, focusing on the specifics of what was executed and the arguments used.
+  - Investigate process creation logs to identify any related suspicious processes that may have invoked the CLI utilities captured by this rule.
+  - Analyze network traffic logs through a NDR solution to see if there are any outbound connections matching the suspicious commands, particularly looking for unexpected data flows to untrusted IP addresses.
+  - Review user account activity in Azure or AWS logs to determine if the executed commands correlate with legitimate user behavior or if they deviate from typical usage patterns.

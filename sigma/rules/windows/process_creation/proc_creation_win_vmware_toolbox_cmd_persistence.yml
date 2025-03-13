@@ -1,0 +1,41 @@
+title: Potential Persistence Via VMwareToolBoxCmd.EXE VM State Change Script
+id: 7aa4e81a-a65c-4e10-9f81-b200eb229d7d
+related:
+- id: 236d8e89-ed95-4789-a982-36f4643738ba
+  type: derived
+status: test
+description: Detects execution of the "VMwareToolBoxCmd.exe" with the "script" and
+  "set" flag to setup a specific script to run for a specific VM state
+references:
+- https://bohops.com/2021/10/08/analyzing-and-detecting-a-vmtools-persistence-technique/
+- https://www.hexacorn.com/blog/2017/01/14/beyond-good-ol-run-key-part-53/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-06-14
+tags:
+- attack.execution
+- attack.persistence
+- attack.t1059
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\VMwareToolBoxCmd.exe'
+  - OriginalFileName: 'toolbox-cmd.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - ' script '
+    - ' set '
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects potential persistence mechanisms using the `VMwareToolBoxCmd.exe` executable, which is a command-line tool associated with VMware's virtualization software. The rule specifically looks for instances where `VMwareToolBoxCmd.exe` is executed with command-line parameters that include the keywords "script" and "set". These parameters hint that an attacker may be leveraging this tool to set up a specific script that runs when a virtual machine transitions between different states, which is a common tactic for establishing persistence in a compromised environment. The primary data sources for this detection are process creation logs that capture details such as the executable name and its command-line arguments.
+  Incident responders should take this alert seriously, as it may indicate an attempt to maintain unauthorized control over a VM. Investigators should consider this rule's context alongside other VM activity to assess the implications further.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR for instances of `VMwareToolBoxCmd.exe` execution with the "script" and "set" parameters. Cross-reference these instances with user and system activity around the same timestamp.
+  - Analyze the command-line arguments used in the executions. Identify the specific scripts being executed and check for anomalies, such as scripts from unusual directories or with uncommon names.
+  - Utilize your SIEM to correlate this alert with any abnormal network outbound connections from the affected virtual machine, as these may indicate further malicious activity.
+  - Examine AV logs for any alerts related to the scripts identified. If any of the scripts are flagged as malicious or suspicious, take corrective action based on your incident response protocols.

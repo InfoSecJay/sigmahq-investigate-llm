@@ -1,0 +1,39 @@
+title: Suspicious UltraVNC Execution
+id: 871b9555-69ca-4993-99d3-35a59f9f3599
+status: test
+description: Detects suspicious UltraVNC command line flag combination that indicate
+  a auto reconnect upon execution, e.g. startup (as seen being used by Gamaredon threat
+  group)
+references:
+- https://web.archive.org/web/20220224045756/https://www.ria.ee/sites/default/files/content-editors/kuberturve/tale_of_gamaredon_infection.pdf
+- https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/shuckworm-gamaredon-espionage-ukraine
+- https://unit42.paloaltonetworks.com/unit-42-title-gamaredon-group-toolset-evolution
+- https://uvnc.com/docs/uvnc-viewer/52-ultravnc-viewer-commandline-parameters.html
+author: Bhabesh Raj
+date: 2022-03-04
+modified: 2022-03-09
+tags:
+- attack.lateral-movement
+- attack.g0047
+- attack.t1021.005
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - '-autoreconnect '
+    - '-connect '
+    - '-id:'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the execution of the UltraVNC application with specific command-line parameters that suggest potentially malicious behavior. By monitoring process creation logs, the rule looks for command-line invocations that include the flags `-autoreconnect`, `-connect`, and `-id:`. The presence of these flags indicates an attempt to establish an automatic reconnection to a remote device, which is consistent with tactics used by the Gamaredon threat group. Analysts should be aware that these suspicious command-line flags can be used for unauthorized remote access, which poses a significant security risk within enterprise environments.
+  ### Investigation Steps
+  - Review recent process creation logs in the EDR tool to identify events corresponding to UltraVNC executions with the specified command-line parameters.
+  - Analyze the corresponding network traffic for any connections made to suspicious external IP addresses or domains to verify if unauthorized access was attempted.
+  - Inspect the event logs on affected machines to identify any unusual user activity or lateral movement that may indicate exploitation or compromise.
+  - Correlate findings with logs from the NGFW and Proxy to determine if any related traffic or external communications were blocked or flagged during the time of the alert.

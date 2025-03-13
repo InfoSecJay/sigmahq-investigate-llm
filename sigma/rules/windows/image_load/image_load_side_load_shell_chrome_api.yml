@@ -1,0 +1,39 @@
+title: DLL Sideloading Of ShellChromeAPI.DLL
+id: ee4c5d06-3abc-48cc-8885-77f1c20f4451
+related:
+- id: e173ad47-4388-4012-ae62-bd13f71c18a8
+  type: similar
+status: test
+description: |
+  Detects processes loading the non-existent DLL "ShellChromeAPI". One known example is the "DeviceEnroller" binary in combination with the "PhoneDeepLink" flag tries to load this DLL.
+  Adversaries can drop their own renamed DLL and execute it via DeviceEnroller.exe using this parameter
+references:
+- https://mobile.twitter.com/0gtweet/status/1564131230941122561
+- https://strontic.github.io/xcyclopedia/library/DeviceEnroller.exe-24BEF0D6B0ECED36BB41831759FDE18D.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-12-01
+tags:
+- attack.defense-evasion
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+        # The DLL shouldn't exist on Windows anymore. If for some reason you still have it. You could filter out legitimate calls
+    ImageLoaded|endswith: '\ShellChromeAPI.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies a potential security risk associated with DLL sideloading, specifically targeting the "ShellChromeAPI.dll" file, which should not exist on Windows systems. The rule detects attempts by malicious processes, particularly "DeviceEnroller.exe", to load this non-existent DLL. Adversaries may exploit this behavior by placing a malicious DLL file with the same name in an accessible location and executing it using the DeviceEnroller process. The rule is activated by monitoring image load events within Windows, specifically looking for any process attempting to load a DLL that ends with the specified name. This can indicate that a threat actor is trying to evade detection or maintain persistence through a targeted process manipulation technique.
+  ### Investigation Steps
+  - Review EDR logs for any instances of "DeviceEnroller.exe" initiating process creation or attempting to load the "ShellChromeAPI.dll". Focus on timestamps and associated user accounts to gauge potential impacts.
+  - Analyze command-line arguments related to "DeviceEnroller.exe" for the inclusion of the "PhoneDeepLink" flag as indicated in the exploitation method. This can highlight specific usage patterns or attempts to invoke unauthorized DLLs.
+  - Query network logs via the NDR tool for any outbound connections made by the process following its execution. This can help identify any data exfiltration or command-and-control communication.
+  - Inspect AV logs and alerts for any detections or quarantined files related to "ShellChromeAPI.dll" or related processes. This can provide insights into whether the malicious DLL has already been deployed and how it was managed by the security software.

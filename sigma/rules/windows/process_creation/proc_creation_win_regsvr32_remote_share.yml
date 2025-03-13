@@ -1,0 +1,33 @@
+title: Suspicious Regsvr32 Execution From Remote Share
+id: 88a87a10-384b-4ad7-8871-2f9bf9259ce5
+status: test
+description: Detects REGSVR32.exe to execute DLL hosted on remote shares
+references:
+- https://thedfirreport.com/2022/10/31/follina-exploit-leads-to-domain-compromise/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-10-31
+tags:
+- attack.defense-evasion
+- attack.t1218.010
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\regsvr32.exe'
+  - OriginalFileName: '\REGSVR32.EXE'
+  selection_cli:
+    CommandLine|contains: ' \\\\'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+# Decrease to medium if this is something common in your org
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects potentially malicious executions of the Windows utility `REGSVR32.exe`, specifically when it is used to register a DLL file hosted on a remote share. The rule monitors process creation events and looks for instances where `REGSVR32.exe` is executed with command-line parameters that contain a network path (i.e., starting with `\\`). This behavior is often indicative of an attacker's attempt to execute code from an untrusted source, leveraging the Windows authentication and remote file execution capabilities. The primary data sources involved are process creation logs monitored by systems like endpoint detection and response (EDR) solutions, which track command-line arguments and executable file paths.
+  ### Investigation Steps
+  - Review the EDR logs for any instances of `REGSVR32.exe` executing with command-line parameters that include a remote path. Investigate the specific network share to identify if it is a known or trusted source.
+  - Check for any associated processes that may have executed prior to or concurrently with the `REGSVR32.exe` execution, as this may provide additional context for the alert.
+  - Analyze firewall and proxy logs to determine any external communications made by the endpoint before the suspicious execution, as this can indicate command-and-control (C2) activity.
+  - Query cloud platform logs if the endpoint is part of hybrid infrastructure, focusing on any suspicious activities around remote resources or share configurations. This helps identify potential misconfigurations or unauthorized changes that may have facilitated the malicious action.

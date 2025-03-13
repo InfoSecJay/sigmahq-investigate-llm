@@ -1,0 +1,36 @@
+title: Disable Administrative Share Creation at Startup
+id: c7dcacd0-cc59-4004-b0a4-1d6cdebe6f3e
+status: test
+description: Administrative shares are hidden network shares created by Microsoft
+  Windows NT operating systems that grant system administrators remote access to every
+  disk volume on a network-connected system
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1070.005/T1070.005.md#atomic-test-4---disable-administrative-share-creation-at-startup
+author: frack113
+date: 2022-01-16
+modified: 2024-03-25
+tags:
+- attack.defense-evasion
+- attack.t1070.005
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\Services\LanmanServer\Parameters\'
+    TargetObject|endswith:
+    - '\AutoShareWks'
+    - '\AutoShareServer'
+    Details: 'DWORD (0x00000000)'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects attempts to disable automatic administrative shares on Windows systems, which are hidden shares that allow system administrators to access all disk volumes remotely. By monitoring registry changes, specifically keys related to the `LanmanServer` service parameters, the rule identifies when the `AutoShareWks` or `AutoShareServer` entries are set to `0`. These modifications indicate that an attacker may be attempting to obscure their activities by preventing administrative share creation, a common defense evasion tactic. The primary data sources utilized for this detection include registry set logs, which provide insights into changes made to system configurations.
+  ### Investigation Steps
+  - Check EDR logs for any process executions that manipulate registry settings around the time of the alert. Look for unusual or unauthorized applications that may have executed registry modifications.
+  - Review user account activity in the cloud (if applicable) to find any unauthorized access attempts or actions related to administrative privileges. This can help uncover potential insider threats or compromised accounts.
+  - Inspect network traffic logs from the NGFW or NDR for any unusual remote access behavior post-alert. Look for connections to or from unfamiliar IP addresses targeting administrative ports.
+  - Use SIEM to correlate data around the time of the registry change, such as authentication logs, process activity, and any alerts triggered by other security tools. This may provide additional context on the potential attacker’s methodologies.

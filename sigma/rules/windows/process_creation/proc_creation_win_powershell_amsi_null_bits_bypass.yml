@@ -1,0 +1,36 @@
+title: Potential AMSI Bypass Using NULL Bits
+id: 92a974db-ab84-457f-9ec0-55db83d7a825
+related:
+- id: fa2559c8-1197-471d-9cdd-05a0273d4522
+  type: similar
+status: test
+description: Detects usage of special strings/null bits in order to potentially bypass
+  AMSI functionalities
+references:
+- https://github.com/r00t-3xp10it/hacking-material-books/blob/43cb1e1932c16ff1f58b755bc9ab6b096046853f/obfuscation/simple_obfuscation.md#amsi-bypass-using-null-bits-satoshi
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-04
+modified: 2023-05-09
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    CommandLine|contains:
+    - "if(0){{{0}}}' -f $(0 -as [char]) +"
+    - "#<NULL>"
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The detection rule titled "Potential AMSI Bypass Using NULL Bits" monitors for command line activities that may indicate attempts to bypass Anti-Malware Script Interface (AMSI) protections. AMSI is designed to help applications detect and prevent the execution of malicious scripts. This rule specifically targets the use of special strings or NULL bits in the command line parameters of processes, which can be utilized by threat actors to obscure their malicious intents and evade detection mechanisms. Key data sources involved in this detection include Windows process creation logs, which capture the command line inputs provided to executing processes. The rule focuses on identifying specific patterns in these command line strings that are commonly associated with obfuscation techniques.
+  ### Investigation Steps
+  Investigate the process creation logs in the EDR to find the specific command lines containing the identified NULL bits or special strings. 
+  Review the associated file paths and parent process information for context on how the potentially malicious process was initiated. 
+  Utilize the SIEM to correlate this alert with other security events to identify any prior anomalous behavior from the same host or user account. 
+  Check for any additional indicators of compromise (IOCs) in the AV or NDR tools that may hint at further malicious activities related to this detection.

@@ -1,0 +1,39 @@
+title: Potential Access Token Abuse
+id: 02f7c9c1-1ae8-4c6a-8add-04693807f92f
+status: test
+description: Detects potential token impersonation and theft. Example, when using
+  "DuplicateToken(Ex)" and "ImpersonateLoggedOnUser" with the "LOGON32_LOGON_NEW_CREDENTIALS
+  flag".
+references:
+- https://www.elastic.co/fr/blog/how-attackers-abuse-access-token-manipulation
+- https://www.manageengine.com/log-management/cyber-security/access-token-manipulation.html
+author: Michaela Adams, Zach Mathis
+date: 2022-11-06
+modified: 2023-04-26
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1134.001
+- stp.4u
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4624
+    LogonType: 9
+    LogonProcessName: 'Advapi'
+    AuthenticationPackageName: 'Negotiate'
+    ImpersonationLevel: '%%1833'     # Impersonation
+  condition: selection
+falsepositives:
+- Anti-Virus
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential access token abuse, specifically targeting instances where an attacker might impersonate another user or escalate privileges. The rule looks for Windows Security Event ID 4624, which represents successful logon events, with specific conditions indicating potentially malicious behavior. The criteria include a LogonType of 9, which signifies a service logon with an impersonation level that permits the use of the caller's identity. Additionally, the rule focuses on the usage of the "Advapi" logon process and the "Negotiate" authentication package, commonly exploited by attackers manipulating access tokens to gain unauthorized access. By monitoring these parameters, security teams can detect suspicious activity indicative of token impersonation.
+  ### Investigation Steps
+  - Review the EDR logs for the specific Event ID 4624 around the time of the alert to identify the process and user involved in the logon event.
+  - Investigate the command-line parameters associated with the detected logon event to assess if there were any atypical arguments that may indicate malicious intent.
+  - Cross-reference the timeline of the alert with Proxy and VPN logs to determine if there were any unauthorized network activities occurring around the same time.
+  - Consult cloud platform logs (e.g., AWS, GCP) to analyze if any resources were accessed or modified that align with the time and user related to the detected impersonation event.

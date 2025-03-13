@@ -1,0 +1,34 @@
+title: Blue Mockingbird - Registry
+id: 92b0b372-a939-44ed-a11b-5136cf680e27
+related:
+- id: c3198a27-23a0-4c2c-af19-e5328d49680e
+  type: derived
+status: test
+description: Attempts to detect system changes made by Blue Mockingbird
+references:
+- https://redcanary.com/blog/blue-mockingbird-cryptominer/
+author: Trent Liffick (@tliffick)
+date: 2020-05-14
+modified: 2023-08-17
+tags:
+- attack.execution
+- attack.t1112
+- attack.t1047
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject|endswith: '\CurrentControlSet\Services\wercplsupport\Parameters\ServiceDll'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect modifications made to the Windows Registry, specifically targeting the path of the `ServiceDll` parameter associated with the `wercplsupport` service. The Blue Mockingbird threat actor is known for exploiting vulnerabilities to deploy a cryptominer and perform unauthorized changes to system configurations. When the rule triggers, it indicates that an attempt to alter this particular registry entry has occurred, which may signify malicious activity related to the execution of cryptomining software. The rule relies on data from registry event logs, specifically focusing on registry set operations which capture the changes in the Windows registry.
+  ### Investigation Steps
+  - Use EDR to review the timeline of process creation events and any associated executable files that correspond to the timestamp of the registry modification. Look for suspicious processes that may indicate malicious activity.
+  - Check for any blocked or flagged activities in the AV logs that coincide with the registry change. This can provide insights into whether known threats were attempting to be executed on the system.
+  - Review network logs from the NDR or Firewall related to outbound connections following the registry change. This helps identify any communication attempts with known malicious IP addresses or domains.
+  - Investigate any cloud logs from pertinent services (e.g., AWS CloudTrail, GCP Logging) to trace back potential unauthorized access attempts or resource provisioning triggered by the detected activity.

@@ -1,0 +1,36 @@
+title: Suspicious Use of CSharp Interactive Console
+id: a9e416a8-e613-4f8b-88b8-a7d1d1af2f61
+status: test
+description: Detects the execution of CSharp interactive console by PowerShell
+references:
+- https://redcanary.com/blog/detecting-attacks-leveraging-the-net-framework/
+author: Michael R. (@nahamike01)
+date: 2020-03-08
+modified: 2022-07-14
+tags:
+- attack.execution
+- attack.t1127
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\csi.exe'
+    ParentImage|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\powershell_ise.exe'
+    OriginalFileName: 'csi.exe'
+  condition: selection
+falsepositives:
+- Possible depending on environment. Pair with other factors such as net connections,
+  command-line args, etc.
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of the CSharp Interactive Console (csi.exe) initiated specifically by PowerShell or its alternatives (like pwsh.exe and powershell_ise.exe). The rule analyzes process creation logs, focusing on instances where csi.exe is executed as a child process of PowerShell. Given that csi.exe can be used legitimately in development environments, the rule includes checks for its parent process and the original file name to enhance detection accuracy. Threat actors may exploit CSharp Interactive Console to execute potentially malicious code within a trusted scripting environment, making this rule critical for spotting unusual activities that could indicate an attack.
+  ### Investigation Steps
+  - Use EDR tools to examine process creation logs surrounding the alert to determine the context of the csi.exe execution, specifically looking for suspicious parent processes and command-line arguments.
+  - Investigate the network connections originating from the compromised system during the time of the alert to identify any communications with known malicious IP addresses or domains.
+  - Check the system's AV logs for any detections or warnings that correspond with the execution time of csi.exe to assess if any known threats were involved.
+  - Review proxy logs to analyze web requests made from PowerShell or csi.exe, as they may reveal attempts to download additional payloads or communicate with external command and control servers.

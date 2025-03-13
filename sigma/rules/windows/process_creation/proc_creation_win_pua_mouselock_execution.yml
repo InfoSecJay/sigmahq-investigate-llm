@@ -1,0 +1,41 @@
+title: PUA - Mouse Lock Execution
+id: c9192ad9-75e5-43eb-8647-82a0a5b493e3
+status: test
+description: In Kaspersky's 2020 Incident Response Analyst Report they listed legitimate
+  tool "Mouse Lock" as being used for both credential access and collection in security
+  incidents.
+references:
+- https://github.com/klsecservices/Publications/blob/657deb6a6eb6e00669afd40173f425fb49682eaa/Incident-Response-Analyst-Report-2020.pdf
+- https://sourceforge.net/projects/mouselock/
+author: Cian Heasley
+date: 2020-08-13
+modified: 2023-02-21
+tags:
+- attack.credential-access
+- attack.collection
+- attack.t1056.002
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+  - Product|contains: 'Mouse Lock'
+  - Company|contains: 'Misc314'
+  - CommandLine|contains: 'Mouse Lock_'
+  condition: selection
+fields:
+- Product
+- Company
+- CommandLine
+falsepositives:
+- Legitimate uses of Mouse Lock software
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of the legitimate tool "Mouse Lock," which has been documented as being leveraged for credential access and data collection in various security incidents. The rule analyzes process creation logs from Windows systems, focusing on specific attributes such as the product name containing "Mouse Lock", the company name indicating "Misc314", and relevant command-line parameters that include "Mouse Lock_". By correlating these indicators, the rule flags potential unauthorized uses of Mouse Lock, which may denote malicious activity in an organization's environment.
+  The primary data sources utilized in this detection include process creation events logged by the operating system, providing key insights into which applications are being executed, how they are being launched, and the context of their use. Incident responders can use this information to differentiate legitimate usage from potential threats based on the characteristics of the executing process.
+  ### Investigation Steps
+  - Utilize EDR tools to retrieve the process creation logs around the time of the alert to determine if "Mouse Lock" was executed by an authorized user or application. 
+  - Examine the command-line parameters associated with the detected instance of "Mouse Lock" to identify any suspicious flags or arguments that could indicate malicious intent.
+  - Investigate user activity by reviewing authentication logs to establish whether any credential accesses correlate with the execution of "Mouse Lock," which can suggest attempted credential theft.
+  - Check other relevant logs from network devices, AV tools, or proxies to identify any additional anomalous behavior or outgoing connections related to the legitimate tool's execution.

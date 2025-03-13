@@ -1,0 +1,38 @@
+title: Bypass UAC Using SilentCleanup Task
+id: 724ea201-6514-4f38-9739-e5973c34f49a
+status: test
+description: |
+  Detects the setting of the environement variable "windir" to a non default value.
+  Attackers often abuse this variable in order to trigger a UAC bypass via the "SilentCleanup" task.
+  The SilentCleanup task located in %windir%\system32\cleanmgr.exe is an auto-elevated task that can be abused to elevate any file with administrator privileges without prompting UAC.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1548.002/T1548.002.md#atomic-test-9---bypass-uac-using-silentcleanup-task
+- https://www.reddit.com/r/hacking/comments/ajtrws/bypassing_highest_uac_level_windows_810/
+- https://www.fortinet.com/blog/threat-research/enter-the-darkgate-new-cryptocurrency-mining-and-ransomware-campaign
+author: frack113, Nextron Systems
+date: 2022-01-06
+modified: 2024-01-30
+tags:
+- attack.privilege-escalation
+- attack.defense-evasion
+- attack.t1548.002
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: '\Environment\windir'
+  filter_main_default:
+    Details: '%SystemRoot%'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies attempts to exploit the "SilentCleanup" scheduled task in Windows systems for a User Account Control (UAC) bypass. Typically, attackers set the "windir" environment variable to a non-default value using registry manipulation, thereby redirecting processes to execute malware with elevated privileges without showing the UAC prompt. The detection focuses on registry modifications, specifically looking for changes to the "TargetObject" ending with `\Environment\windir`, while filtering out legitimate system processes by ensuring the value does not match the default `%SystemRoot%`. This rule specifically monitors Windows registry activity, providing insight into potentially malicious behaviors associated with privilege escalation.
+  ### Investigation Steps
+  - Confirm the registry modification by querying EDR logs for changes to the `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\` key.
+  - Cross-reference the affected endpoint’s process execution history to check if `cleanmgr.exe` was invoked around the time of the environment variable change.
+  - Inspect command-line arguments related to the execution of `cleanmgr.exe` to identify any potentially suspicious activity or attempts to run non-standard tasks.
+  - Review network logs from the NGFW or Proxy for any unusual outbound traffic from the compromised system that may correlate with the privilege escalation attempt.

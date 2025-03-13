@@ -1,0 +1,42 @@
+title: Change Default File Association To Executable Via Assoc
+id: ae6f14e6-14de-45b0-9f44-c0986f50dc89
+related:
+- id: 3d3aa6cd-6272-44d6-8afc-7e88dfef7061
+  type: derived
+status: test
+description: |
+  Detects when a program changes the default file association of any extension to an executable.
+  When a file is opened, the default program used to open the file (also called the file association or handler) is checked. File association selections are stored in the Windows Registry and can be edited by users, administrators, or programs that have Registry access or by administrators using the built-in assoc utility. Applications can modify the file association for a given file extension to call an arbitrary program when a file with the given extension is opened.
+references:
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/assoc
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-28
+modified: 2023-03-06
+tags:
+- attack.persistence
+- attack.t1546.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\cmd.exe'
+  - OriginalFileName: 'Cmd.Exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'assoc '
+    - 'exefile'
+  filter:
+    CommandLine|contains: '.exe=exefile'
+  condition: all of selection_* and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential malicious activity where a program attempts to change the default file association for a specific file extension to an executable. By utilizing the Windows command line utility `assoc`, attackers can reconfigure which program is launched when a given file type is opened. The rule tracks anomalies by monitoring the process creation logs for instances where `cmd.exe` is used with command-line parameters indicative of an attempted file association change for executables. Specifically, it looks for command-line patterns that modify the association to make an arbitrary program the default handler for file extensions, checking against the Windows Registry where such associations are stored.
+  ### Investigation Steps
+  - Utilize EDR tools to monitor and investigate the execution history of `cmd.exe`, particularly focusing on the timestamps when this command was initiated. 
+  - Review command-line arguments associated with the process to assess whether they include unusual associations, specifically looking for the use of "assoc" to change an executable's file type.
+  - Check the Windows Registry changes around the same time the alert was triggered to identify any modifications made to file associations that could indicate malicious intent.
+  - Use network logs from the firewall (NGFW) or proxy to examine any outbound connections that may have been initiated by the altered executable, which could suggest a compromised program performing additional malicious actions.

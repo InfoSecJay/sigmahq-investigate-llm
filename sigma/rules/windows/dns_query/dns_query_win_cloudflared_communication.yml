@@ -1,0 +1,40 @@
+title: Cloudflared Tunnels Related DNS Requests
+id: a1d9eec5-33b2-4177-8d24-27fe754d0812
+related:
+- id: 7cd1dcdc-6edf-4896-86dc-d1f19ad64903
+  type: similar
+status: test
+description: |
+  Detects DNS requests to Cloudflared tunnels domains.
+  Attackers can abuse that feature to establish a reverse shell or persistence on a machine.
+references:
+- https://www.guidepointsecurity.com/blog/tunnel-vision-cloudflared-abused-in-the-wild/
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-12-20
+tags:
+- attack.command-and-control
+- attack.t1071.001
+logsource:
+  category: dns_query
+  product: windows
+detection:
+  selection:
+    QueryName|endswith:
+    - '.v2.argotunnel.com'
+    - 'protocol-v2.argotunnel.com'
+    - 'trycloudflare.com'
+    - 'update.argotunnel.com'
+  condition: selection
+falsepositives:
+- Legitimate use of cloudflare tunnels will also trigger this.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies DNS requests directed towards specific Cloudflared tunnel domains known to be associated with malicious activities. Attackers may exploit Cloudflare tunnels to establish backdoors or maintain persistence on compromised machines. The rule looks for DNS queries that end with domains such as `.v2.argotunnel.com`, `protocol-v2.argotunnel.com`, `trycloudflare.com`, and `update.argotunnel.com`, collected from Windows DNS query logs. By monitoring these DNS queries, the rule aids in revealing potential command and control (C2) communications that could be indicative of a broader security incident.
+  The data sources primarily involved are DNS query logs from Windows systems, which record the details of domain name resolutions performed on the network. Anomalies in DNS request patterns can signal possible breaches or misuse of network resources, prompting further investigative actions from SOC analysts.
+  ### Investigation Steps
+  - Review recent DNS query logs to identify any instances of DNS requests directed to the specified Cloudflared tunnel domains, focusing on timestamps that coincide with anomalous device activities. 
+  - Utilize EDR tools to investigate any endpoints that made these DNS requests, checking for associated processes or documentation of suspicious command-line parameters that may indicate malicious behavior.
+  - Analyze network traffic logs (NDR) to ascertain if any outbound connections to these domains were made, paying close attention to any high volume of connections that could signify a compromised system.
+  - Check user account activities and authentication logs to ensure that no unauthorized access occurred around the time of the detected DNS requests, validating the integrity of user sessions and attempting to uncover potential lateral movement within the environment.

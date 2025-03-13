@@ -1,0 +1,34 @@
+title: New BITS Job Created Via Bitsadmin
+id: 1ff315dc-2a3a-4b71-8dde-873818d25d39
+status: test
+description: Detects the creation of a new bits job by Bitsadmin
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1197/T1197.md
+author: frack113
+date: 2022-03-01
+modified: 2023-03-27
+tags:
+- attack.defense-evasion
+- attack.persistence
+- attack.t1197
+logsource:
+  product: windows
+  service: bits-client
+detection:
+  selection:
+    EventID: 3
+    processPath|endswith: '\bitsadmin.exe'
+  condition: selection
+falsepositives:
+- Many legitimate applications or scripts could leverage "bitsadmin". This event is
+  best correlated with EID 16403 via the JobID field
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation of new Background Intelligent Transfer Service (BITS) jobs via the Bitsadmin utility, specifically monitoring for Event ID 3 from the Windows BITS client logs. BITS is commonly used for transferring files in a reliable way, but malicious actors can abuse it to download or execute malware in a stealthy manner. The rule looks for instances where the `bitsadmin.exe` process is involved in job creation, which may indicate potential misuse in support of lateral movement or persistence strategies. 
+  The relevant data source for this detection is Windows event logs, particularly focusing on the process creation logs that capture event details related to BITS job creation. An important consideration is the possibility of false positives, as legitimate applications may also invoke `bitsadmin.exe`. Reviewing correlated events based on JobID can help determine the context of the detected behavior.
+  ### Investigation Steps
+  - Analyze EDR logs for instances of `bitsadmin.exe`, reviewing the command-line parameters used to determine if they appear legitimate or suspicious. 
+  - Cross-reference the JobID from the detected BITS job creation event with Event ID 16403 logs to identify the originating application or script.
+  - Review Proxy Logs for any unusual outbound connections made shortly after the BITS job creation to identify potential data exfiltration or malicious downloads.
+  - Inspect any associated file transfers or changes on the system to assess if malicious payloads were delivered via the newly created BITS job.

@@ -1,0 +1,44 @@
+title: Potential RoboForm.DLL Sideloading
+id: f64c9b2d-b0ad-481d-9d03-7fc75020892a
+status: test
+description: Detects potential DLL sideloading of "roboform.dll", a DLL used by RoboForm
+  Password Manager
+references:
+- https://twitter.com/StopMalvertisin/status/1648604148848549888
+- https://twitter.com/t3ft3lb/status/1656194831830401024
+- https://www.roboform.com/
+author: X__Junior (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-14
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith:
+    - '\roboform.dll'
+    - '\roboform-x64.dll'
+  filter_main_path:
+    Image|startswith:
+    - ' C:\Program Files (x86)\Siber Systems\AI RoboForm\'
+    - ' C:\Program Files\Siber Systems\AI RoboForm\'
+    Image|endswith:
+    - '\robotaskbaricon.exe'
+    - '\robotaskbaricon-x64.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- If installed on a per-user level, the path would be located in "AppData\Local".
+  Add additional filters to reflect this mode of installation
+level: medium
+notes: |
+  ### Technical Context
+  The "Potential RoboForm.DLL Sideloading" detection rule is designed to identify unauthorized DLL sideloading attempts involving the "roboform.dll" files, which are associated with the RoboForm Password Manager. This technique typically leverages the legitimate RoboForm executable (such as `robotaskbaricon.exe`) to load malicious DLLs found in the same directory by manipulating the image loading process. The rule primarily focuses on monitoring Windows image load events, assessing specific conditions to determine if the loading of the DLL is taking place in a legitimate context, specifically from the expected installation paths of RoboForm. If the DLL is loaded from a path that does not match these criteria, particularly if the loading process is initiated by `robotaskbaricon.exe`, it may indicate an attack trying to exploit the DLL.
+  ### Investigation Steps
+  - Review EDR logs for process creation events associated with `robotaskbaricon.exe` to determine if it executed from an expected installation directory.
+  - Analyze the command-line parameters and parent process for `robotaskbaricon.exe` to detect any suspicious arguments or unusual process relationships.
+  - Check firewalls and proxy logs for outbound traffic initiated by processes related to RoboForm, assessing any connections that appear uncharacteristic.
+  - Examine local system logs or cloud logs if applicable for any changes related to the installation of applications or unauthorized modifications post the DLL load event.

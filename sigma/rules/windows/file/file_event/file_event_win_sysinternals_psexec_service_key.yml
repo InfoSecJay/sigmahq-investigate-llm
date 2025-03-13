@@ -1,0 +1,41 @@
+title: PSEXEC Remote Execution File Artefact
+id: 304afd73-55a5-4bb9-8c21-0b1fc84ea9e4
+status: test
+description: Detects creation of the PSEXEC key file. Which is created anytime a PsExec
+  command is executed. It gets written to the file system and will be recorded in
+  the USN Journal on the target system
+references:
+- https://aboutdfir.com/the-key-to-identify-psexec/
+- https://twitter.com/davisrichardg/status/1616518800584704028
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-21
+modified: 2023-02-23
+tags:
+- attack.lateral-movement
+- attack.privilege-escalation
+- attack.execution
+- attack.persistence
+- attack.t1136.002
+- attack.t1543.003
+- attack.t1570
+- attack.s0029
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|startswith: 'C:\Windows\PSEXEC-'
+    TargetFilename|endswith: '.key'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule for detecting PSEXEC remote execution file artifacts focuses on identifying the creation of files that adhere to a specific naming convention indicative of PsExec activity. PsExec is a widely used tool that enables remote execution of commands on Windows systems. When the PsExec command is executed, it generates key files, typically named in the format "PSEXEC-XXXX.key," which are stored in the `C:\Windows\` directory. This rule employs file event logs, specifically monitoring `TargetFilename` attributes to pinpoint files that start with "C:\Windows\PSEXEC-" and end with ".key". These artifacts are also recorded in the USN Journal, providing additional context for forensic investigations.
+  By executing this rule, security teams can effectively identify instances where PsExec has been used, potentially indicating lateral movement, privilege escalation, or unauthorized command execution within the environment.
+  ### Investigation Steps
+  - Use EDR tools to examine process execution logs on the host where the alert triggered. Focus on correlating the detected file creation with process execution to confirm the use of PsExec.
+  - Investigate the corresponding USN Journal entries for any relevant activity around the time the PSEXEC key file was created. This can provide deeper insights into subsequent file operations or commands executed remotely.
+  - Review network traffic logs via NDR to confirm any unusual outbound connections or lateral movement patterns that align with the timing of the PSEXEC command execution.
+  - Check firewall and proxy logs for any blocked or allowed connections to external hosts that correspond with the identified PSEXEC usage, which could indicate external command-and-control communications.

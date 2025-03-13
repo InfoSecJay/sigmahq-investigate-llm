@@ -1,0 +1,81 @@
+title: Potential Direct Syscall of NtOpenProcess
+id: 3f3f3506-1895-401b-9cc3-e86b16e630d0
+status: test
+description: Detects potential calls to NtOpenProcess directly from NTDLL.
+references:
+- https://medium.com/falconforce/falconfriday-direct-system-calls-and-cobalt-strike-bofs-0xff14-741fa8e1bdd6
+author: Christian Burkard (Nextron Systems), Tim Shelton (FP)
+date: 2021-07-28
+modified: 2023-12-13
+tags:
+- attack.execution
+- attack.t1106
+logsource:
+  category: process_access
+  product: windows
+detection:
+  selection:
+    CallTrace|startswith: 'UNKNOWN'
+  filter_main_vcredist:
+    TargetImage|endswith: 'vcredist_x64.exe'
+    SourceImage|endswith: 'vcredist_x64.exe'
+  filter_main_generic:
+        # Examples include "systeminfo", "backgroundTaskHost", "AUDIODG"
+    SourceImage|contains:
+    - ':\Program Files (x86)\'
+    - ':\Program Files\'
+    - ':\Windows\System32\'
+    - ':\Windows\SysWOW64\'
+    - ':\Windows\WinSxS\'
+    TargetImage|contains:
+    - ':\Program Files (x86)\'
+    - ':\Program Files\'
+    - ':\Windows\System32\'
+    - ':\Windows\SysWOW64\'
+    - ':\Windows\WinSxS\'
+  filter_main_kerneltrace_edge:
+        # Cases in which the CallTrace is just e.g. 'UNKNOWN(19290435374)' from Microsoft-Windows-Kernel-Audit-API-Calls provider
+    Provider_Name: 'Microsoft-Windows-Kernel-Audit-API-Calls'
+  filter_optional_vmware:
+    TargetImage|endswith: ':\Windows\system32\systeminfo.exe'
+    SourceImage|endswith: 'setup64.exe'     # vmware
+  filter_optional_cylance:
+    SourceImage|endswith: ':\Windows\Explorer.EXE'
+    TargetImage|endswith: ':\Program Files\Cylance\Desktop\CylanceUI.exe'
+  filter_optional_amazon:
+    SourceImage|endswith: 'AmazonSSMAgentSetup.exe'
+    TargetImage|endswith: 'AmazonSSMAgentSetup.exe'
+  filter_optional_vscode:   # VsCode
+    SourceImage|endswith: '\AppData\Local\Programs\Microsoft VS Code\Code.exe'
+    TargetImage|endswith: '\AppData\Local\Programs\Microsoft VS Code\Code.exe'
+  filter_optional_teams:   # MS Teams
+    TargetImage|endswith: '\AppData\Local\Microsoft\Teams\current\Teams.exe'
+    SourceImage|endswith: '\AppData\Local\Microsoft\Teams\current\Teams.exe'
+  filter_optional_discord:   # Discord
+    TargetImage|contains: '\AppData\Local\Discord\'
+    TargetImage|endswith: '\Discord.exe'
+  filter_optional_yammer:
+    SourceImage|contains: '\AppData\Local\yammerdesktop\app-'
+    SourceImage|endswith: '\Yammer.exe'
+    TargetImage|contains: '\AppData\Local\yammerdesktop\app-'
+    TargetImage|endswith: '\Yammer.exe'
+    GrantedAccess: '0x1000'
+  filter_optional_evernote:
+    TargetImage|endswith: '\Evernote\Evernote.exe'
+  filter_optional_adobe_acrobat:
+    SourceImage|contains: ':\Program Files\Adobe\Acrobat DC\Acrobat\'
+    SourceImage|endswith: '\AcroCEF.exe'
+    TargetImage|contains: ':\Program Files\Adobe\Acrobat DC\Acrobat\'
+    TargetImage|endswith: '\AcroCEF.exe'
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential direct system calls to the `NtOpenProcess` function from `ntdll.dll` in Windows environments. Direct system calls can be indicative of nefarious activities, especially in scenarios where legitimate processes are misused, such as in advanced malware techniques. The rule is structured to observe specific call traces where the process access logs show a call trace beginning with 'UNKNOWN', suggesting that a non-standard execution path is being taken. The rule leverages a variety of filters to exclude known safe processes and contexts, such as certain applications and system tools, that are typically observed in benign scenarios. This helps in reducing false positives and improving the signal-to-noise ratio for incident responders.
+  ### Investigation Steps
+  - Review process creation logs in the EDR for any suspicious parent-child relationships, focusing on processes that initiated the `NtOpenProcess` call.
+  - Utilize the SIEM to correlate alerts with other logs, such as network traffic from NDR, to identify potentially malicious outbound connections related to affected processes.
+  - Check for anomalies in command-line parameters or execution patterns using the command history logs stored in the EDR, particularly for processes like `vcredist_x64.exe`, `systeminfo.exe`, and others identified in the detection filters.
+  - Analyze user activity logs and authentication events from the SIEM to assess whether the alerts coincide with any unauthorized user behavior or access during the alert timeframe.

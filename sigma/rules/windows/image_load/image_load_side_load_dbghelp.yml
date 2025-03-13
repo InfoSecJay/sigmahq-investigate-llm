@@ -1,0 +1,52 @@
+title: Potential DLL Sideloading Of DBGHELP.DLL
+id: 6414b5cd-b19d-447e-bb5e-9f03940b5784
+status: test
+description: Detects potential DLL sideloading of "dbghelp.dll"
+references:
+- https://hijacklibs.net/     # For list of DLLs that could be sideloaded (search for dlls mentioned here in there)
+author: Nasreddine Bencherchali (Nextron Systems), Wietze Beukema (project and research)
+date: 2022-10-25
+modified: 2023-05-05
+tags:
+- attack.defense-evasion
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\dbghelp.dll'
+  filter_main_generic:
+    ImageLoaded|startswith:
+    - 'C:\Program Files (x86)\'
+    - 'C:\Program Files\'
+    - 'C:\Windows\SoftwareDistribution\'
+    - 'C:\Windows\System32\'
+    - 'C:\Windows\SystemTemp\'
+    - 'C:\Windows\SysWOW64\'
+    - 'C:\Windows\WinSxS\'
+  filter_optional_anaconda:
+    ImageLoaded|endswith:
+    - '\Anaconda3\Lib\site-packages\vtrace\platforms\windll\amd64\dbghelp.dll'
+    - '\Anaconda3\Lib\site-packages\vtrace\platforms\windll\i386\dbghelp.dll'
+  filter_optional_epicgames:
+    ImageLoaded|endswith:
+    - '\Epic Games\Launcher\Engine\Binaries\ThirdParty\DbgHelp\dbghelp.dll'
+    - '\Epic Games\MagicLegends\x86\dbghelp.dll'
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- Legitimate applications loading their own versions of the DLL mentioned in this
+  rule
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies instances of potential DLL sideloading of `dbghelp.dll` in a Windows environment. DLL sideloading occurs when a malicious actor exploits a legitimate application to load a tampered version of a Dynamic Link Library (DLL). The rule specifically looks for the image load events where the `ImageLoaded` field ends with `\dbghelp.dll`. It filters out legitimate load paths such as `C:\Program Files`, `C:\Windows`, and other designated directories that typically contain trusted versions of system files. Additionally, it allows for the inclusion of specific known paths from legitimate software packages, such as Anaconda and Epic Games, ensuring that only potential sideloading attempts are flagged for investigation.
+  The relevant technical data sources include sysmon process creation logs, image load events, and potentially other application logs that can illuminate the origins of DLL loads. By focusing on the context and sources of these DLL loads, the rule seeks to reduce false positives while aiding incident responders in identifying potentially malicious activities involving DLL sideloading.
+  ### Investigation Steps
+  - Review the EDR logs for the process that loaded `dbghelp.dll` to determine its parent process and execution context, which may reveal suspicious behavior.
+  - Check the command-line parameters and network activity of the suspected process to identify any unusual connections or behaviors indicative of malicious intent.
+  - Cross-reference the loaded DLL path with known legitimate versions from trusted directories to confirm whether the DLL is approved and not tampered with.
+  - Examine user account activities associated with the process for any signs of privilege escalation or persistence mechanisms that could indicate a deeper compromise.

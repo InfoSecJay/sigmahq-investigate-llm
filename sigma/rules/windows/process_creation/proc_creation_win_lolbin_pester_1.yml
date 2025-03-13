@@ -1,0 +1,48 @@
+title: Execute Code with Pester.bat
+id: 59e938ff-0d6d-4dc3-b13f-36cc28734d4e
+status: test
+description: Detects code execution via Pester.bat (Pester - Powershell Modulte for
+  testing)
+references:
+- https://twitter.com/Oddvarmoe/status/993383596244258816
+- https://github.com/api0cradle/LOLBAS/blob/d148d278f5f205ce67cfaf49afdfb68071c7252a/OSScripts/pester.md
+author: Julia Fomina, oscd.community
+date: 2020-10-08
+modified: 2023-11-09
+tags:
+- attack.execution
+- attack.t1059.001
+- attack.defense-evasion
+- attack.t1216
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  powershell_module:
+    Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    CommandLine|contains|all:
+    - 'Pester'
+    - 'Get-Help'
+  cmd_execution:
+    Image|endswith: '\cmd.exe'
+    CommandLine|contains|all:
+    - 'pester'
+    - ';'
+  get_help:
+    CommandLine|contains:
+    - 'help'
+    - '\?'
+  condition: powershell_module or (cmd_execution and get_help)
+falsepositives:
+- Legitimate use of Pester for writing tests for Powershell scripts and modules
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially malicious code execution using Pester, a PowerShell module primarily utilized for testing scripts and modules. The detection focuses on command-line invocations of Pester through both PowerShell and CMD. When a user or process invokes Pester, particularly with commands involving "Get-Help" or specific help queries, it raises a flag for further investigation. The rule monitors process creation logs for PowerShell (identified by `powershell.exe` or `pwsh.exe`) and command execution logs for CMD (`cmd.exe`), specifically looking for command lines that include terms like "Pester" and phrases associated with help commands. This approach captures both standard usage and potentially nefarious applications of the module.
+  ### Investigation Steps
+  - Investigate recent process creation logs in the EDR to identify all instances where PowerShell or CMD was executed with Pester-related commands.
+  - Review the command-line arguments associated with these processes to determine the context of usage, focusing particularly on any commands containing "Get-Help".
+  - Correlate network traffic logs from the Proxy or NDR to identify any suspicious behavior or data exfiltration attempts from the machines where Pester was executed.
+  - Analyze user activity logs in the cloud platforms (AWS, GCP, Azure) for any abnormal access patterns or entitlements that could suggest misuse or credential compromise related to Pester execution.

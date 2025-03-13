@@ -1,0 +1,48 @@
+title: Suspicious Reconnaissance Activity Using Get-LocalGroupMember Cmdlet
+id: c8a180d6-47a3-4345-a609-53f9c3d834fc
+related:
+- id: cef24b90-dddc-4ae1-a09a-8764872f69fc
+  type: similar
+status: test
+description: Detects suspicious reconnaissance command line activity on Windows systems
+  using the PowerShell Get-LocalGroupMember Cmdlet
+references:
+- https://www.absolomb.com/2018-01-26-Windows-Privilege-Escalation-Guide/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-10-10
+tags:
+- attack.discovery
+- attack.t1087.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+    # Covers group and localgroup flags
+  selection_cmdlet:
+    CommandLine|contains: 'Get-LocalGroupMember '
+  selection_group:
+    CommandLine|contains:
+            # Add more groups for other languages
+    - 'domain admins'
+    - ' administrator'         # Typo without an 'S' so we catch both
+    - ' administrateur'         # Typo without an 'S' so we catch both
+    - 'enterprise admins'
+    - 'Exchange Trusted Subsystem'
+    - 'Remote Desktop Users'
+    - 'Utilisateurs du Bureau à distance'         # French for "Remote Desktop Users"
+    - 'Usuarios de escritorio remoto'         # Spanish for "Remote Desktop Users"
+  condition: all of selection_*
+fields:
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Administrative activity
+level: medium
+notes: |
+  ### Technical Context
+  The detection rule identifies potentially suspicious reconnaissance behaviors on Windows systems by monitoring the usage of the PowerShell cmdlet `Get-LocalGroupMember`. This cmdlet retrieves members of a specified group, and when used in conjunction with certain sensitive groups such as "Domain Admins" or "Enterprise Admins," it may indicate an adversary's attempt to gather information about user privileges and group memberships within the organization's Active Directory environment. The rule employs process creation logs as its primary data source, analyzing the command line parameters to detect the specific cmdlet usage and the targeted groups of interest. Given that some adversaries may exploit typographical variants, this rule includes checks for common misspellings in several languages, increasing its effectiveness in capturing malicious attempts at reconnaissance.
+  ### Investigation Steps
+  - Utilize EDR tools to review the process creation events associated with the detected command and gather context on the user account executing the cmdlet.
+  - Examine related network and proxy logs to identify any unusual access patterns or connections established by the affected host around the time of the alert.
+  - Investigate user account activities in the identity and access management system to determine if there are any unauthorized changes or anomalies linked to the groups queried by the cmdlet.
+  - Validate the alert by reviewing past actions of the initiating user, and assess whether legitimate administrative tasks were conducted during the timeframe of the suspicious command.

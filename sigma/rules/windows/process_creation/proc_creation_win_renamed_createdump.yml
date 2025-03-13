@@ -1,0 +1,47 @@
+title: Renamed CreateDump Utility Execution
+id: 1a1ed54a-2ba4-4221-94d5-01dee560d71e
+related:
+- id: 515c8be5-e5df-4c5e-8f6d-a4a2f05e4b48
+  type: similar
+status: test
+description: Detects uses of a renamed legitimate createdump.exe LOLOBIN utility to
+  dump process memory
+references:
+- https://www.crowdstrike.com/blog/overwatch-exposes-aquatic-panda-in-possession-of-log-4-shell-exploit-tools/
+- https://twitter.com/bopin2020/status/1366400799199272960
+author: Florian Roth (Nextron Systems)
+date: 2022-09-20
+modified: 2023-02-14
+tags:
+- attack.defense-evasion
+- attack.t1036
+- attack.t1003.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_pe:
+    OriginalFileName: 'FX_VER_INTERNALNAME_STR'
+  selection_cli:
+  - CommandLine|contains|all:
+    - ' -u '           # Short version of '--full'
+    - ' -f '           # Short version of '--name'
+    - '.dmp'
+  - CommandLine|contains|all:
+    - ' --full '           # Short version of '--full'
+    - ' --name '           # Short version of '--name'
+    - '.dmp'
+  filter:
+    Image|endswith: '\createdump.exe'
+  condition: 1 of selection_* and not filter
+falsepositives:
+- Command lines that use the same flags
+level: high
+notes: |
+  ### Technical Context
+  The "Renamed CreateDump Utility Execution" detection rule is designed to identify malicious use of the legitimate Windows utility `createdump.exe`, which can be misused to extract process memory. This rule targets instances where this utility has been renamed or disguised, as this behavior is often associated with evasion tactics employed by threat actors. The rule checks for specific command-line arguments that are commonly used in conjunction with memory dumping, such as `-u`, `-f`, `--full`, and `--name`, while filtering out those cases where the executable name is explicitly `createdump.exe`. By analyzing process creation logs from Windows systems, the rule assists in uncovering nefarious activities aiming to bypass traditional detection mechanisms.
+  ### Investigation Steps
+  - Review the alerts triggered by this rule in the SIEM, focusing on the associated process creation logs and command-line parameters for any suspicious activities.
+  - Utilize your EDR tools to track the process lineage and determine whether `createdump.exe` was invoked from unexpected locations or by unusual parent processes.
+  - Check for any instances of renamed executables on the affected host using file integrity monitoring solutions or manual inspections of the filesystem.
+  - Correlate the findings with other data sources, such as network logs and proxy logs, to ascertain whether any exfiltration attempts were made following the memory dump action.

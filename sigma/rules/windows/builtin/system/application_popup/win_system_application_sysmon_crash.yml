@@ -1,0 +1,35 @@
+title: Sysmon Application Crashed
+id: 4d7f1827-1637-4def-8d8a-fd254f9454df
+status: test
+description: Detects application popup reporting a failure of the Sysmon service
+references:
+- https://github.com/nasbench/EVTX-ETW-Resources/blob/f1b010ce0ee1b71e3024180de1a3e67f99701fe4/ETWProvidersManifests/Windows10/1803/W10_1803_Pro_19700101_17134.1/WEPExplorer/Application%20Popup.xml#L36
+author: Tim Shelton
+date: 2022-04-26
+modified: 2024-01-17
+tags:
+- attack.defense-evasion
+- attack.t1562
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    Provider_Name: 'Application Popup'
+    EventID: 26
+    Caption:
+    - 'sysmon64.exe - Application Error'
+    - 'sysmon.exe - Application Error'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect events indicating that the Sysmon service has encountered a failure, resulting in an application error message. It specifically looks for "Application Popup" events with Event ID 26, which are typically generated when Sysmon, a Windows system monitoring tool, experiences a crash or fault. The rule focuses on the application error messages related to both `sysmon.exe` and its 64-bit counterpart, `sysmon64.exe`. By monitoring for these specific events, the detection can help identify critical issues in the Sysmon service, which may signal attempts by malicious actors to evade detection by disrupting or disabling monitoring solutions in place.
+  The technical data sources involved in this detection include Windows event logs—particularly those associated with application errors—which can be collected using tools such as EDR solutions or centralized logging systems like SIEMs. The identification of these events allows SOC analysts to pinpoint when Sysmon may be malfunctioning, potentially indicating larger security or operational problems within the environment.
+  ### Investigation Steps
+  - Query the EDR logs for Event ID 26 from the Windows event log to identify specific instances when the Sysmon application reported an error. Analyze the timestamps and any associated process behavior leading up to the crash.
+  - Examine the application error messages for more context regarding the cause of the failure. Look for patterns or repeated occurrences that may suggest a systemic issue or potential malicious interference.
+  - Check additional logs, such as process creation events, to identify any suspicious activities related to `sysmon.exe` or `sysmon64.exe` around the time of the application crash.
+  - Review threat intelligence and the audit trails of any recent changes made to the Sysmon configuration or deployment to determine if any anomalies correlate with the application errors detected.

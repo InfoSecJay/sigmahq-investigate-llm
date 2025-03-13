@@ -1,0 +1,53 @@
+title: Permission Misconfiguration Reconnaissance Via Findstr.EXE
+id: 47e4bab7-c626-47dc-967b-255608c9a920
+status: test
+description: |
+  Detects usage of findstr with the "EVERYONE" or "BUILTIN" keywords.
+  This was seen being used in combination with "icacls" and other utilities to spot misconfigured files or folders permissions.
+references:
+- https://www.absolomb.com/2018-01-26-Windows-Privilege-Escalation-Guide/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-12
+modified: 2023-11-11
+tags:
+- attack.credential-access
+- attack.t1552.006
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_findstr_img:
+  - Image|endswith:
+    - '\find.exe'
+    - '\findstr.exe'
+  - OriginalFileName:
+    - 'FIND.EXE'
+    - 'FINDSTR.EXE'
+  selection_findstr_cli:
+    CommandLine|contains:
+    - '"Everyone"'
+    - "'Everyone'"
+    - '"BUILTIN\\"'
+    - "'BUILTIN\\'"
+  selection_special:
+    CommandLine|contains|all:
+            # Example CLI would be: icacls "C:\Program Files\*" 2>nul | findstr "(M)" | findstr "Everyone"
+            # You could extend it for other groups and users
+            #   Example: icacls "C:\Program Files\*" 2>nul | findstr "(M)" | findstr "BUILTIN\Users"
+            # Note: This selection only detects the command when executed from a handler such as a "cmd /c" or "powershell -c"
+    - 'icacls '
+    - 'findstr '
+    - 'Everyone'
+  condition: all of selection_findstr_* or selection_special
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potential reconnaissance activities that exploit permission misconfigurations within Windows environments. Specifically, it targets instances where the `findstr.exe` utility is used alongside keywords such as "EVERYONE" and "BUILTIN" in command line arguments. The rule identifies command lines that demonstrate a pattern commonly employed by attackers to query file and folder permissions—often as a precursor to privilege escalation. Key data sources for this detection include process creation logs, which provide insight into the command executions (including the executable image and original file names) and the specific command line arguments employed.
+  By monitoring for the presence of combinations like `icacls` used with `findstr`, the rule seeks to reveal attempts to list files and directories with weak permissions that could be exploited. This approach enables SOC analysts to proactively detect and respond to potential credential access threats before they escalate.
+  ### Investigation Steps
+  - Query the EDR for process creation logs related to `findstr.exe` and `icacls` during the time frame associated with the alert to analyze the context of the command executions.
+  - Review the command-line arguments passed to `findstr` to confirm if they included "Everyone" or "BUILTIN," indicating potential probing for misconfigured permissions.
+  - Examine associated logs from Firewalls and Proxies to identify any external connections or suspicious traffic that may correlate with the detected commands, providing context to the suspected reconnaissance.
+  - Check within cloud service providers (e.g., AWS or Azure) for any relevant IAM policy configurations that could showcase excessive permissions being queried, which could further inform the investigation.

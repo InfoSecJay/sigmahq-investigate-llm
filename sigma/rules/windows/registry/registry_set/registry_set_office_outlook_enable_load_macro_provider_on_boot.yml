@@ -1,0 +1,36 @@
+title: Potential Persistence Via Outlook LoadMacroProviderOnBoot Setting
+id: 396ae3eb-4174-4b9b-880e-dc0364d78a19
+status: test
+description: Detects the modification of Outlook setting "LoadMacroProviderOnBoot"
+  which if enabled allows the automatic loading of any configured VBA project/module
+references:
+- https://speakerdeck.com/heirhabarov/hunting-for-persistence-via-microsoft-exchange-server-or-outlook?slide=53
+- https://www.linkedin.com/pulse/outlook-backdoor-using-vba-samir-b-/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2021-04-05
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.command-and-control
+- attack.t1137
+- attack.t1008
+- attack.t1546
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: '\Outlook\LoadMacroProviderOnBoot'
+    Details|contains: '0x00000001'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule aims to identify potential persistence mechanisms through the modification of the Outlook setting "LoadMacroProviderOnBoot." When this setting is enabled, it allows the automatic loading of any configured VBA (Visual Basic for Applications) project or module on startup. The rule inspects registry changes in Windows where the `LoadMacroProviderOnBoot` setting exists under the Outlook registry path. Specifically, it looks for entries that indicate the setting has been set to `1`, which would suggest an attempt to enable this potentially malicious feature. By monitoring registry modifications related to this setting, the rule raises alerts for further investigation into possible misuse for establishing persistence or executing malicious code through VBA scripts.
+  ### Investigation Steps
+  - Verify the source of the registry change by checking EDR logs for any related process creation or execution activities around the time the modification was made.
+  - Review user account activities in the corresponding timeframe with SIEM to identify any unusual logins or access patterns that could indicate compromise.
+  - Cross-reference proxy logs to detect any suspicious outbound connections from Outlook, especially if VBA macros are executed to exfiltrate data or communicate with command-and-control servers.
+  - Examine the Outlook configuration and VBA project settings to determine if any unauthorized scripts or modules have been added, utilizing tools or logs supported by the cloud service being used (e.g., Microsoft 365 audit logs).

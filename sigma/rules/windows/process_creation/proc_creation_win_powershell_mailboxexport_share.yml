@@ -1,0 +1,40 @@
+title: Suspicious PowerShell Mailbox Export to Share
+id: 889719ef-dd62-43df-86c3-768fb08dc7c0
+status: test
+description: Detects usage of the powerShell New-MailboxExportRequest Cmdlet to exports
+  a mailbox to a remote or local share, as used in ProxyShell exploitations
+references:
+- https://youtu.be/5mqid-7zp8k?t=2481
+- https://blog.orange.tw/2021/08/proxylogon-a-new-attack-surface-on-ms-exchange-part-1.html
+- https://peterjson.medium.com/reproducing-the-proxyshell-pwn2own-exploit-49743a4ea9a1
+- https://m365internals.com/2022/10/07/hunting-in-on-premises-exchange-server-logs/
+author: Florian Roth (Nextron Systems)
+date: 2021-08-07
+modified: 2022-10-26
+tags:
+- attack.exfiltration
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - 'New-MailboxExportRequest'
+    - ' -Mailbox '
+    - ' -FilePath \\\\'
+  condition: selection
+fields:
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Unknown
+level: critical
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to identify potentially malicious uses of the PowerShell cmdlet `New-MailboxExportRequest`, which is commonly exploited in ProxyShell attacks. This cmdlet is used to export mailboxes from Microsoft Exchange to a specified file path, which can be a remote or local share. The rule monitors process creation logs for command lines that contain not only the `New-MailboxExportRequest` cmdlet, but also the parameters `-Mailbox` and `-FilePath \\`, indicating an attempt to export a mailbox to a shared location. The focus on the file path with double backslashes suggests that the potential attack leverages network shares, which are often used by attackers to exfiltrate sensitive information.
+  The detection leverages data from Windows process creation logs, particularly examining the command-line arguments and capturing details regarding the parent process. By analyzing these logs, security teams can flag and investigate instances where mailbox export requests may indicate an unauthorized or suspicious activity.
+  ### Investigation Steps
+  - Review the EDR logs for any recent occurrences of the `New-MailboxExportRequest` cmdlet along with the associated command line parameters to verify the context of the request.
+  - Cross-reference the timestamp of the alert with account activity logs in the Microsoft Exchange environment to identify any unusual login behavior or access patterns.
+  - Inspect the network logs to determine if there were any connections to unknown or unauthorized shares around the same time the mailbox export was requested.
+  - Utilize the SIEM to correlate alerts related to PowerShell activity and mailbox access to provide context on whether this is part of a broader attack or isolated incident.

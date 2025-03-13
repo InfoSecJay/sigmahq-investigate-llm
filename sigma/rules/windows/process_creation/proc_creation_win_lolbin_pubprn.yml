@@ -1,0 +1,32 @@
+title: Pubprn.vbs Proxy Execution
+id: 1fb76ab8-fa60-4b01-bddd-71e89bf555da
+status: test
+description: Detects the use of the 'Pubprn.vbs' Microsoft signed script to execute
+  commands.
+references:
+- https://lolbas-project.github.io/lolbas/Scripts/Pubprn/
+author: frack113
+date: 2022-05-28
+tags:
+- attack.defense-evasion
+- attack.t1216.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - '\pubprn.vbs'
+    - 'script:'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Pubprn.vbs Proxy Execution" detection rule identifies the execution of the Microsoft signed script "Pubprn.vbs," which is often used for command execution in a potentially malicious manner. When this script is invoked, it typically appears in the command-line parameters, especially with terms like 'script:' that indicate its use as a proxy for running additional commands. The rule analyzes process creation logs specifically looking for instances where the command line contains both the reference to 'pubprn.vbs' and the 'script:' keyword, suggesting it is being used to obfuscate or execute further malicious commands or activities. By monitoring these command-line arguments, the SOC can proactively respond to potential misuse of this script in the enterprise environment.
+  ### Investigation Steps
+  - Review process creation logs in your EDR solution for instances where 'pubprn.vbs' is mentioned along with 'script:'. This will help confirm execution details, including timestamps and user context.
+  - Check the associated command-line parameters for any potentially harmful commands that may have been executed following the invocation of 'pubprn.vbs'. This can provide insights into the intent of the execution.
+  - Analyze any related network traffic logs via your NDR or NGFW tools to identify suspicious outbound connections that might correlate with the timing of the script execution.
+  - Examine logs from your AV and proxy solutions for alerts or blocks related to the activity around the time of the detected execution. This may uncover further indicators of compromise or upstream threats.

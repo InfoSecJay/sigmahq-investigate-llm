@@ -1,0 +1,47 @@
+title: File Download Via Bitsadmin
+id: d059842b-6b9d-4ed1-b5c3-5b89143c6ede
+status: test
+description: Detects usage of bitsadmin downloading a file
+references:
+- https://blog.netspi.com/15-ways-to-download-a-file/#bitsadmin
+- https://isc.sans.edu/diary/22264
+- https://lolbas-project.github.io/lolbas/Binaries/Bitsadmin/
+author: Michael Haag, FPT.EagleEye
+date: 2017-03-09
+modified: 2023-02-15
+tags:
+- attack.defense-evasion
+- attack.persistence
+- attack.t1197
+- attack.s0190
+- attack.t1036.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\bitsadmin.exe'
+  - OriginalFileName: 'bitsadmin.exe'
+  selection_cmd:
+    CommandLine|contains: ' /transfer '
+  selection_cli_1:
+    CommandLine|contains:
+    - ' /create '
+    - ' /addfile '
+  selection_cli_2:
+    CommandLine|contains: 'http'
+  condition: selection_img and (selection_cmd or all of selection_cli_*)
+fields:
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Some legitimate apps use this, but limited.
+level: medium
+notes: |
+  ### Technical Context
+  The rule "File Download Via Bitsadmin" is designed to detect the execution of the Windows utility Bitsadmin that is commonly exploited by threat actors to download files in a stealthy manner. It looks for specific indicators related to Bitsadmin's process creation events, particularly focusing on the command-line arguments that are indicative of file download activities. The detection criteria include checking whether the executed image is Bitsadmin and whether the command-line parameters include specific keywords, namely `/transfer`, `/create`, or `/addfile`, alongside the presence of a URL. This rule primarily leverages process creation logs as the primary data source, which provides insight into the command-line usage of applications running on Windows endpoints.
+  ### Investigation Steps
+  - Review the EDR logs to identify the parent process that initiated Bitsadmin, as this can provide context on the legitimacy of the download attempt.
+  - Analyze the command-line arguments captured in the logs for any suspicious URLs or unexpected file transfer requests, which may indicate malicious activity.
+  - Examine any related network activity logs from the Proxy or NGFW to trace the external connections and data exfiltration attempts associated with the download.
+  - Check for logs in cloud platforms, if applicable, to determine if the downloaded file was uploaded or accessed post-download, which may indicate persistence or further malicious intent.

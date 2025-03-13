@@ -1,0 +1,37 @@
+title: Active Directory Structure Export Via Ldifde.EXE
+id: 4f7a6757-ff79-46db-9687-66501a02d9ec
+status: test
+description: Detects the execution of "ldifde.exe" in order to export organizational
+  Active Directory structure.
+references:
+- https://businessinsights.bitdefender.com/deep-dive-into-a-backdoordiplomacy-attack-a-study-of-an-attackers-toolkit
+- https://www.documentcloud.org/documents/5743766-Global-Threat-Report-2019.html
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/cc731033(v=ws.11)
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-03-14
+tags:
+- attack.exfiltration
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_ldif:
+  - Image|endswith: '\ldifde.exe'
+  - OriginalFileName: 'ldifde.exe'
+  selection_cmd:
+    CommandLine|contains: '-f'
+  filter_import:
+    CommandLine|contains: ' -i'
+  condition: all of selection_* and not 1 of filter_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of `ldifde.exe`, a legitimate Windows command-line utility used to export and import data in Active Directory environments. Specifically, the rule looks for instances where the utility is run with a command line argument that contains the `-f` flag, indicating a file output for data export. It also ensures that the execution does not include the `-i` flag, which specifies an import operation. By monitoring process creation logs, the rule can pinpoint potential misuse of this tool, enabling analysts to investigate unauthorized or suspicious exports of the Active Directory structure.
+  The key data sources involved include standard Windows process creation logs, which provide information about the executed commands, their parameters, and the original filename. Detecting anomalies in the use of `ldifde.exe` is crucial, as attackers may leverage this utility to extract sensitive organizational data for exfiltration purposes, a tactic often observed in broader threat campaigns.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify the instances of `ldifde.exe` execution. Pay close attention to the command-line parameters to confirm the presence of the `-f` flag.
+  - Utilize the SIEM to correlate alerts involving `ldifde.exe` with user activity logs. This can help identify unusual user behavior or access patterns leading up to the export action.
+  - Examine network logs via the proxy or NDR tools for any outbound connections that occurred shortly after the execution of `ldifde.exe`. This can indicate potential data exfiltration attempts.
+  - Check Active Directory audit logs for changes in group memberships or object attributes correlated with the time of the `ldifde.exe` execution. This helps determine if sensitive data was modified or reviewed inappropriately.

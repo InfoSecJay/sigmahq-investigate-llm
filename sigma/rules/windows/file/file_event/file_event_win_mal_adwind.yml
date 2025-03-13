@@ -1,0 +1,38 @@
+title: Adwind RAT / JRAT File Artifact
+id: 0bcfabcb-7929-47f4-93d6-b33fb67d34d1
+related:
+- id: 1fac1481-2dbc-48b2-9096-753c49b4ec71
+  type: derived
+status: test
+description: Detects javaw.exe in AppData folder as used by Adwind / JRAT
+references:
+- https://www.hybrid-analysis.com/sample/ba86fa0d4b6af2db0656a88b1dd29f36fe362473ae8ad04255c4e52f214a541c?environmentId=100
+- https://www.first.org/resources/papers/conf2017/Advanced-Incident-Detection-and-Threat-Hunting-using-Sysmon-and-Splunk.pdf
+author: Florian Roth (Nextron Systems), Tom Ueltschi, Jonhnathan Ribeiro, oscd.community
+date: 2017-11-10
+modified: 2022-12-02
+tags:
+- attack.execution
+- attack.t1059.005
+- attack.t1059.007
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+  - TargetFilename|contains|all:
+    - '\AppData\Roaming\Oracle\bin\java'
+    - '.exe'
+  - TargetFilename|contains|all:
+    - '\Retrive'
+    - '.vbs'
+  condition: selection
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect malicious activities associated with Adwind and JRAT (Java Remote Access Tool) by monitoring for specific file artifacts within the Windows environment. It focuses on identifying instances of `javaw.exe` executed from the `AppData` directory, which is typically abused by these remote access tools to maintain persistence and evade detection. The rule also looks for any associated VBS scripts that may be used to launch the Java executable, indicating the potential presence of a payload or additional malicious activities. The primary technical data sources utilized include file event logs capturing executable file access and modifications in the AppData folder, particularly targeting processes related to Java.
+  ### Investigation Steps
+  - **Review EDR alerts:** Check the endpoint detection and response (EDR) logs for any alerts related to the execution of `javaw.exe` from the `AppData` directory. Pay close attention to the timestamp and the user account associated with the action.
+  - **Analyze file metadata:** Investigate the metadata of `javaw.exe` and any related VBS files found in the AppData folder. Look for unusual creation dates, the origin of the file, and any signs of obfuscation.
+  - **Correlate with other logs:** Use SIEM tools to correlate file access logs with network logs from your NDR and logs from your proxy servers. This helps identify any outbound connections related to the detected files, pointing to potential command and control (C2) communications.
+  - **Identify affected systems:** Check your inventory for all systems that exhibited the same behavior as identified in the alerts. Determine if these systems have any common vulnerabilities or exposure that may require immediate remediation efforts.

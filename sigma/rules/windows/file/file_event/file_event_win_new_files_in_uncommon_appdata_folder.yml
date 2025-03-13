@@ -1,0 +1,57 @@
+title: Suspicious File Creation In Uncommon AppData Folder
+id: d7b50671-d1ad-4871-aa60-5aa5b331fe04
+status: test
+description: Detects the creation of suspicious files and folders inside the user's
+  AppData folder but not inside any of the common and well known directories (Local,
+  Romaing, LocalLow). This method could be used as a method to bypass detection who
+  exclude the AppData folder in fear of FPs
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-05
+modified: 2023-02-23
+tags:
+- attack.defense-evasion
+- attack.execution
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|startswith: 'C:\Users\'
+    TargetFilename|contains: '\AppData\'
+    TargetFilename|endswith:
+            # Add more as needed
+    - '.bat'
+    - '.cmd'
+    - '.cpl'
+    - '.dll'
+    - '.exe'
+    - '.hta'
+    - '.iso'
+    - '.lnk'
+    - '.msi'
+    - '.ps1'
+    - '.psm1'
+    - '.scr'
+    - '.vbe'
+    - '.vbs'
+  filter_main:
+    TargetFilename|startswith: 'C:\Users\'
+    TargetFilename|contains:
+    - '\AppData\Local\'
+    - '\AppData\LocalLow\'
+    - '\AppData\Roaming\'
+  condition: selection and not filter_main
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  n
+  ### Technical Context
+  This detection rule identifies suspicious file creations within a user's AppData folder, specifically targeting files that are generated outside the common subdirectories: Local, Roaming, and LocalLow. The rule is particularly focused on file types that are often associated with malicious activity, including scripts, executables, and batch files, as they can be used to bypass traditional defenses set on the AppData directory. By monitoring the creation of these file types within lesser-known areas of AppData, analysts can uncover potential compromises that may evade standard detection measures, which typically focus solely on more frequented directories. The rule utilizes Windows file event logs, specifically monitoring the `TargetFilename` field to track potential deviations from expected user activity.
+  ### Investigation Steps
+  - Review the EDR logs to identify the user's recent activity and any anomalous processes that may correlate with the suspicious file creation.
+  - Investigate the file's properties and execution context using the SIEM tool to assess whether the creation of the file aligns with legitimate applications or expected user behavior.
+  - Analyze network traffic logs via the NDR to determine if any outbound connections were established by the process that created the suspicious file, indicating potential exfiltration or command-and-control activity.
+  - Check cloud logs (e.g., AWS CloudTrail or Azure Activity Logs) to see if there were any changes or anomalous access patterns related to the user's account that may support the investigation of possible account compromise.

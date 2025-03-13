@@ -1,0 +1,35 @@
+title: WMI Event Subscription
+id: 0f06a3a5-6a09-413f-8743-e6cf35561297
+status: test
+description: Detects creation of WMI event subscription persistence method
+references:
+- https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon#event-id-19-wmievent-wmieventfilter-activity-detected
+- https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon#event-id-20-wmievent-wmieventconsumer-activity-detected
+- https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon#event-id-21-wmievent-wmieventconsumertofilter-activity-detected
+author: Tom Ueltschi (@c_APT_ure)
+date: 2019-01-12
+modified: 2021-11-27
+tags:
+- attack.persistence
+- attack.t1546.003
+logsource:
+  product: windows
+  category: wmi_event
+detection:
+  selection:
+    EventID:
+    - 19
+    - 20
+    - 21
+  condition: selection
+falsepositives:
+- Exclude legitimate (vetted) use of WMI event subscription in your network
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule targets potential misuse of Windows Management Instrumentation (WMI) for creating event subscriptions that can be leveraged for persistence by malicious actors. The rule specifically monitors three types of WMI events: Event ID 19, which indicates the creation of a WMI filter; Event ID 20, which signifies a new WMI consumer; and Event ID 21, which documents the link between a consumer and a filter. By analyzing these events, the rule helps identify unauthorized or suspicious activity related to WMI that could enable an attacker to maintain access to a compromised system across reboots or other security controls. The underlying data sources for this detection include Windows event logs specifically categorized under WMI events, capturing these critical changes within the environment.
+  ### Investigation Steps
+  - Review recent WMI event logs to identify the specific Event IDs (19, 20, and 21) that triggered the alert, focusing on timestamps and involved users or accounts.
+  - Utilize EDR tools to investigate the affected systems for other suspicious activities, checking the processes and services that may relate to the detected WMI changes.
+  - Cross-reference the affected hosts with proxy and VPN logs to identify any unusual access patterns or connections that may indicate evasion tactics.
+  - Assess the deployment of any security tools like AV or NGFW that may have specific alerts related to WMI activity or known indicators of compromise associated with malicious persistence techniques.

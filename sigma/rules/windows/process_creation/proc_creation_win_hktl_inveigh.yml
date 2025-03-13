@@ -1,0 +1,44 @@
+title: HackTool - Inveigh Execution
+id: b99a1518-1ad5-4f65-bc95-1ffff97a8fd0
+status: test
+description: Detects the use of Inveigh a cross-platform .NET IPv4/IPv6 machine-in-the-middle
+  tool
+references:
+- https://github.com/Kevin-Robertson/Inveigh
+- https://thedfirreport.com/2020/11/23/pysa-mespinoza-ransomware/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-10-24
+modified: 2023-02-04
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\Inveigh.exe'
+  - OriginalFileName:
+    - '\Inveigh.exe'
+    - '\Inveigh.dll'
+  - Description: 'Inveigh'
+  - CommandLine|contains:
+    - ' -SpooferIP'
+    - ' -ReplyToIPs '
+    - ' -ReplyToDomains '
+    - ' -ReplyToMACs '
+    - ' -SnifferIP'
+  condition: selection
+falsepositives:
+- Very unlikely
+level: critical
+notes: |
+  ### Technical Context
+  The Sigma rule titled "HackTool 
+  - Inveigh Execution" is designed to detect the execution of the Inveigh tool, which is utilized for performing man-in-the-middle attacks, primarily targeting Windows networks. This detection rule monitors process creation events and looks for specific indicators associated with Inveigh, including the executable name "Inveigh.exe," any occurrences of file paths either ending with or containing Inveigh components, and certain command-line parameters associated with its intended functionalities. Critical fields such as `OriginalFileName`, `Description`, and flags in `CommandLine` parameters help to identify potential misuse of this tool, which can signify attempts at credential harvesting or other malicious activities.
+  The primary data sources leveraged for this detection include process creation logs, providing insights into new processes initiated on Windows systems, as well as anomalies in command-line arguments that suggest suspicious usage of the Inveigh tool. This rule holds significant relevance in detecting lateral movement attempts in enterprise networks where credential-related attacks are common.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR to identify instances where Inveigh is executed. Pay close attention to any unusual parent process relationships that could indicate malicious activity.
+  - Analyze command-line parameters associated with the Inveigh execution to determine the specific actions being attempted, such as spoofing IP addresses or redirecting traffic.
+  - Cross-reference the execution events against user account activity logs to identify any spikes in account access or authentications following the tool's execution.
+  - Check for any outbound connections or anomalies in traffic patterns captured by the NDR, especially traffic directed towards unexpected or suspicious IP addresses post-Inveigh usage.

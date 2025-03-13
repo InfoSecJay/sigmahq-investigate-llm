@@ -1,0 +1,39 @@
+title: UAC Bypass Using Iscsicpl - ImageLoad
+id: 9ed5959a-c43c-4c59-84e3-d28628429456
+status: test
+description: Detects the "iscsicpl.exe" UAC bypass technique that leverages a DLL
+  Search Order hijacking technique to load a custom DLL's from temp or a any user
+  controlled location in the users %PATH%
+references:
+- https://github.com/hackerhouse-opensource/iscsicpl_bypassUAC
+- https://twitter.com/wdormann/status/1547583317410607110
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-17
+modified: 2022-07-25
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  product: windows
+  category: image_load
+detection:
+  selection:
+    Image: C:\Windows\SysWOW64\iscsicpl.exe
+    ImageLoaded|endswith: '\iscsiexe.dll'
+  filter:
+    ImageLoaded|contains|all:
+    - 'C:\Windows\'
+    - 'iscsiexe.dll'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential UAC (User Account Control) bypass attempts that utilize the `iscsicpl.exe` executable found in the `C:\Windows\SysWOW64` directory. The bypass technique leverages DLL Search Order Hijacking by attempting to load the `iscsiexe.dll` from unsecured directories, often user-controlled paths within the user's `%PATH%`. When an application attempts to load a DLL, it follows a specific search order; if an attacker places a malicious DLL in a location that is searched before the legitimate DLL's location, the malicious version will be loaded instead. This rule monitors the execution of `iscsicpl.exe` while checking for the loading of `iscsiexe.dll` to detect anomalies where the expected secure path is bypassed.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR to confirm if `iscsicpl.exe` was executed and to gather context on the processes that initiated it. 
+  - Check the command-line parameters associated with the execution of `iscsicpl.exe` for any suspicious options that could indicate exploitation attempts.
+  - Investigate the loaded modules using EDR to validate whether `iscsiexe.dll` was loaded and identify its path to determine if it originated from a legitimate or unauthorized location.
+  - Correlate network logs from the NGFW or Proxy to identify any external connections established by the host that may indicate data exfiltration or command-and-control activity related to this event.

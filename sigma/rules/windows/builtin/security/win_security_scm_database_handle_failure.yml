@@ -1,0 +1,38 @@
+title: SCM Database Handle Failure
+id: 13addce7-47b2-4ca0-a98f-1de964d1d669
+status: test
+description: Detects non-system users failing to get a handle of the SCM database.
+references:
+- https://threathunterplaybook.com/hunts/windows/190826-RemoteSCMHandle/notebook.html
+author: Roberto Rodriguez @Cyb3rWard0g
+date: 2019-08-12
+modified: 2022-07-11
+tags:
+- attack.discovery
+- attack.t1010
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4656
+    ObjectType: 'SC_MANAGER OBJECT'
+    ObjectName: 'ServicesActive'
+    AccessMask: '0xf003f'      # is used in the reference; otherwise too many FPs
+        # Keywords: 'Audit Failure' <-> in the ref 'Keywords':-9214364837600034816
+  filter:
+    SubjectLogonId: '0x3e4'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+# triggering on many hosts in some environments
+level: medium
+notes: |
+  ### Technical Context
+  The "SCM Database Handle Failure" detection rule identifies failed attempts by non-system users to access the Service Control Manager (SCM) database within Windows environments. This rule specifically looks for event ID 4656, which logs an access request to an object—in this case, the SC_MANAGER OBJECT for active services. By examining the combination of both the object type and access mask, the rule captures abnormal access requests that may indicate unauthorized attempts to gain privileges or conduct reconnaissance. The filtering criteria exclude successful access requests from the SYSTEM account, which helps to minimize false positives often encountered in various environments.
+  This rule leverages security logs as its primary data source, specifically focusing on security event logs where these access attempts are recorded. Analysts should note that this rule is designed to catch attempts that deviate from typical operational behavior, guiding further investigation into potential security events or misconfigurations.
+  ### Investigation Steps
+  - Review logs from the EDR solution to identify the user accounts tied to the triggered events and assess their normal behavior patterns.
+  - Check for related events or patterns within the SIEM to see if other suspicious activity occurred around the same time as the SCM access failure.
+  - Examine the command-line parameters and process creation logs associated with the user account to identify any unusual executables or scripts being run.
+  - Use AV or other endpoint protection tools to scan affected systems and ensure no malicious software is exploiting this failure.

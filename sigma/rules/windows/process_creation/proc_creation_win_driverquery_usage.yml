@@ -1,0 +1,47 @@
+title: DriverQuery.EXE Execution
+id: a20def93-0709-4eae-9bd2-31206e21e6b2
+related:
+- id: 9fc3072c-dc8f-4bf7-b231-18950000fadd
+  type: similar
+status: test
+description: Detect usage of the "driverquery" utility. Which can be used to perform
+  reconnaissance on installed drivers
+references:
+- https://thedfirreport.com/2023/01/09/unwrapping-ursnifs-gifts/
+- https://www.vmray.com/cyber-security-blog/analyzing-ursnif-behavior-malware-sandbox/
+- https://www.fireeye.com/blog/threat-research/2020/01/saigon-mysterious-ursnif-fork.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-19
+modified: 2023-09-29
+tags:
+- attack.discovery
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: 'driverquery.exe'
+  - OriginalFileName: 'drvqry.exe'
+  filter_main_other:   # These are covered in 9fc3072c-dc8f-4bf7-b231-18950000fadd to avoid duplicate alerting
+  - ParentImage|endswith:
+    - '\cscript.exe'
+    - '\mshta.exe'
+    - '\regsvr32.exe'
+    - '\rundll32.exe'
+    - '\wscript.exe'
+  - ParentImage|contains:
+    - '\AppData\Local\'
+    - '\Users\Public\'
+    - '\Windows\Temp\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Legitimate use by third party tools in order to investigate installed drivers
+level: medium # Level could be reduced to low if this utility is often used in your environment
+notes: |
+  ### Technical Context
+  The "DriverQuery.EXE Execution" Sigma rule is designed to detect instances where the Windows utility `driverquery.exe` is executed, as it can be utilized for reconnaissance purposes to gather information about installed drivers on a system. This rule looks for specific attributes related to the execution of `driverquery.exe`, particularly monitoring its process creation logs. The detection focuses on instances where `driverquery.exe` is spawned by certain parent processes, such as `cscript.exe`, `mshta.exe`, or `rundll32.exe`, which may signal suspicious behavior. By filtering out common legitimate uses of this utility, the rule aims to mitigate false positives while ensuring that potentially malicious reconnaissance activities are highlighted for further investigation.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify the timestamp and context of `driverquery.exe` executions, including the user account associated with the process.
+  - Investigate the parent processes that initiated `driverquery.exe` to determine if they are legitimate or if they exhibit suspicious characteristics consistent with known attack patterns.
+  - Cross-reference execution artifacts with your AV logs and proxy logs to check for any automated or suspicious traffic generated from the machine following the execution of `driverquery.exe`.
+  - Conduct a search across cloud logs (AWS, GCP, Azure) for any related activities or alerts that could correlate with the timeline of the execution, focusing on user activities and possible lateral movement.

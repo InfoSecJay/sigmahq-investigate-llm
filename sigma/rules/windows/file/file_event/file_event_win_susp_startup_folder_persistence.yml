@@ -1,0 +1,46 @@
+title: Suspicious Startup Folder Persistence
+id: 28208707-fe31-437f-9a7f-4b1108b94d2e
+related:
+- id: 2aa0a6b4-a865-495b-ab51-c28249537b75
+  type: similar
+status: test
+description: Detects when a file with a suspicious extension is created in the startup
+  folder
+references:
+- https://github.com/last-byte/PersistenceSniper
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-10
+modified: 2023-01-06
+tags:
+- attack.persistence
+- attack.t1547.001
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|contains: '\Windows\Start Menu\Programs\Startup\'
+    TargetFilename|endswith:
+            # Add or remove suspicious extensions according to your env needs
+    - '.vbs'
+    - '.vbe'
+    - '.bat'
+    - '.ps1'
+    - '.hta'
+    - '.dll'
+    - '.jar'
+    - '.msi'
+    - '.scr'
+    - '.cmd'
+  condition: selection
+falsepositives:
+- Rare legitimate usage of some of the extensions mentioned in the rule
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potential persistence mechanisms employed by malicious actors on Windows systems. Specifically, it monitors for the creation of files with suspicious extensions in the Startup folder, which is a common method used to ensure that malware or unwanted software runs automatically whenever the system starts. The rule leverages file event logs to watch for entries where the target filename indicates the file is being created in `C:\Windows\Start Menu\Programs\Startup\` and has a file extension typically associated with scripts or executable actions, such as `.vbs`, `.bat`, and `.exe`. By tracking these activities, incident responders can quickly identify and mitigate threats that aim to establish persistence on compromised endpoints.
+  ### Investigation Steps
+  - Investigate the logs from the EDR system to identify recent file creations in the Startup folder, paying special attention to the specific extensions flagged by the rule.
+  - Cross-reference the sourced file with antivirus logs to determine if it has been previously identified as malicious or unwanted software.
+  - Review the command-line parameters used during the file creation to ascertain if they reveal any suspicious activities or intentions.
+  - Utilize Windows Event Logs to trace the associated user account actions leading to the file's creation, identifying potential human or automated triggers behind the event.

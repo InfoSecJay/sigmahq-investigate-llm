@@ -1,0 +1,32 @@
+title: PowerShell PSAttack
+id: b7ec41a4-042c-4f31-a5db-d0fcde9fa5c5
+status: test
+description: Detects the use of PSAttack PowerShell hack tool
+references:
+- https://adsecurity.org/?p=2921
+author: Sean Metcalf (source), Florian Roth (Nextron Systems)
+date: 2017-03-05
+modified: 2022-12-25
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains: 'PS ATTACK!!!'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "PowerShell PSAttack" detection rule identifies the use of the PSAttack PowerShell hacking tool by scanning for specific content within PowerShell script blocks. In particular, it looks for the presence of the string "PS ATTACK!!!" in the logs, which indicates that the tool is being executed. This detection relies on Windows PowerShell Script Block Logging, which must be enabled to capture detailed information about PowerShell activities. The rule is part of the ATT&CK framework, specifically targeting execution techniques leveraged by attackers using PowerShell scripts (T1059.001).
+  Effective investigation of this alert involves monitoring process creation logs, command-line parameters, and other relevant PowerShell activity. By identifying and investigating the execution of PSAttack, security analysts can take steps to understand the context of the potential threat and mitigate risks associated with its use.
+  ### Investigation Steps
+  - Review the EDR logs for any recent PowerShell process executions that contain the flagged string "PS ATTACK!!!" to confirm suspicious activity.
+  - Analyze command-line parameters associated with the detected process to determine the context and intent behind the use of the PSAttack tool.
+  - Check for any network connections initiated by the PowerShell process to identify any potential command and control (C2) communications.
+  - Correlate the findings with proxy and firewall logs to identify any outbound traffic patterns that may indicate data exfiltration or further malicious behavior.

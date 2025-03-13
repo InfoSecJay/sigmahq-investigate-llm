@@ -1,0 +1,43 @@
+title: VBA DLL Loaded Via Office Application
+id: e6ce8457-68b1-485b-9bdd-3c2b5d679aa9
+status: test
+description: Detects VB DLL's loaded by an office application. Which could indicate
+  the presence of VBA Macros.
+references:
+- https://medium.com/threatpunter/detecting-adversary-tradecraft-with-image-load-event-logging-and-eql-8de93338c16
+author: Antonlovesdnb
+date: 2020-02-19
+modified: 2023-02-10
+tags:
+- attack.execution
+- attack.t1204.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\excel.exe'
+    - '\mspub.exe'
+    - '\onenote.exe'
+    - '\onenoteim.exe'         # Just in case
+    - '\outlook.exe'
+    - '\powerpnt.exe'
+    - '\winword.exe'
+    ImageLoaded|endswith:
+    - '\VBE7.DLL'
+    - '\VBEUI.DLL'
+    - '\VBE7INTL.DLL'
+  condition: selection
+falsepositives:
+- Legitimate macro usage. Add the appropriate filter according to your environment
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying the loading of Visual Basic for Applications (VBA) dynamic link libraries (DLLs) by common Microsoft Office applications. The targeted applications include Excel, Outlook, OneNote, PowerPoint, Word, and Publisher, which are potential vectors for malicious VBA macro execution. The rule detects when these applications load specific DLL files associated with VBA environments, such as `VBE7.DLL`, `VBEUI.DLL`, and `VBE7INTL.DLL`. An increased frequency of such events may indicate malicious activity, as attackers often leverage these legitimate applications to run VBA macros hidden in documents, potentially leading to unauthorized access or execution of scripts.
+  Detection is based on image load events collected from Windows systems. By monitoring the loading of these DLLs, security teams can proactively identify activities that could signify the presence of malware or exploitation attempts targeting these commonly used productivity tools.
+  ### Investigation Steps
+  - Review process creation logs in EDR to trace the origin of the Office application that loaded the VBA DLL and identify any associated user actions leading to the alert.
+  - Analyze command-line parameters associated with the detected application instance using EDR to determine if suspicious arguments or abnormal execution paths are present.
+  - Query the SIEM for historical logs to look for trends in VBA DLL loading events related to the affected Office applications, helping to identify pattern anomalies.
+  - Investigate network traffic captured by the NGFW or NDR to determine if any communications occurred with known malicious IPs or domains when the alert was triggered.

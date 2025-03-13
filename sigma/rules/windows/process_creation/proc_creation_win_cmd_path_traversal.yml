@@ -1,0 +1,48 @@
+title: Potential CommandLine Path Traversal Via Cmd.EXE
+id: 087790e3-3287-436c-bccf-cbd0184a7db1
+status: test
+description: Detects potential path traversal attempt via cmd.exe. Could indicate
+  possible command/argument confusion/hijacking
+references:
+- https://hackingiscool.pl/cmdhijack-command-argument-confusion-with-path-traversal-in-cmd-exe/
+- https://twitter.com/Oddvarmoe/status/1270633613449723905
+author: xknow @xknow_infosec, Tim Shelton
+date: 2020-06-11
+modified: 2023-03-06
+tags:
+- attack.execution
+- attack.t1059.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - ParentImage|endswith: '\cmd.exe'
+  - Image|endswith: '\cmd.exe'
+  - OriginalFileName: 'cmd.exe'
+  selection_flags:
+  - ParentCommandLine|contains:
+    - '/c'
+    - '/k'
+    - '/r'
+  - CommandLine|contains:
+    - '/c'
+    - '/k'
+    - '/r'
+  selection_path_traversal:
+  - ParentCommandLine: '/../../'
+  - CommandLine|contains: '/../../'
+  filter_java:
+    CommandLine|contains: '\Tasktop\keycloak\bin\/../../jre\bin\java'
+  condition: all of selection_* and not 1 of filter_*
+falsepositives:
+- Java tools are known to produce false-positive when loading libraries
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential command-line path traversal attempts via `cmd.exe` on Windows systems, which could indicate command or argument confusion or hijacking. Path traversal attacks often occur when malicious actors attempt to navigate the file system using patterns like `../../`, which can allow unauthorized access to sensitive files or directories. The rule focuses on the process creation logs that capture instances where `cmd.exe` is invoked either as the parent or the executing image, particularly with commands containing flags like `/c`, `/k`, or `/r`. The rule analyzes both the parent command line and the direct command line to identify path traversal patterns that may indicate suspicious behavior, while also filtering out known false positives from legitimate Java tools.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR for events related to `cmd.exe` that match the specified command line patterns. Pay particular attention to any command lines containing `/../../`.
+  - Investigate the parent processes of detected `cmd.exe` instances to determine the source of the command execution and assess whether it originates from an expected or legitimate application.
+  - Cross-reference the IP addresses or user accounts associated with the detected commands against your security logs to identify any unusual access or behavior patterns that might indicate compromise.
+  - Monitor network connections related to the identified processes in the NDR and firewall logs to check for any outbound traffic that could suggest data exfiltration or other malicious activity following the command execution.

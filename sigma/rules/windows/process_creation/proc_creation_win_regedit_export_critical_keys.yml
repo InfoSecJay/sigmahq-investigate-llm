@@ -1,0 +1,50 @@
+title: Exports Critical Registry Keys To a File
+id: 82880171-b475-4201-b811-e9c826cd5eaa
+related:
+- id: f0e53e89-8d22-46ea-9db5-9d4796ee2f8a
+  type: similar
+status: test
+description: Detects the export of a crital Registry key to a file.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Regedit/
+- https://gist.github.com/api0cradle/cdd2d0d0ec9abb686f0e89306e277b8f
+author: Oddvar Moe, Sander Wiebing, oscd.community
+date: 2020-10-12
+modified: 2024-03-13
+tags:
+- attack.exfiltration
+- attack.t1012
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\regedit.exe'
+  - OriginalFileName: 'REGEDIT.EXE'
+  selection_cli_1:
+    CommandLine|contains|windash: ' -E '
+  selection_cli_2:
+    CommandLine|contains:
+    - 'hklm'
+    - 'hkey_local_machine'
+  selection_cli_3:
+    CommandLine|endswith:
+    - '\system'
+    - '\sam'
+    - '\security'
+  condition: all of selection_*
+fields:
+- ParentImage
+- CommandLine
+falsepositives:
+- Dumping hives for legitimate purpouse i.e. backup or forensic investigation
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where the `regedit.exe` utility is used to export critical Windows Registry keys to a file, which can be an indication of malicious behavior or data exfiltration. The rule focuses on specific patterns in process creation logs, particularly those involving the command line used with `regedit`. It looks for command-line arguments that signal the export of sensitive registry keys, such as those associated with the HKEY_LOCAL_MACHINE (HKLM) hive, which may contain sensitive configuration and security information. By monitoring these parameters and the game-changing `-E` flag, the rule effectively highlights potential unauthorized data exports.
+  The relevant data sources include process creation logs from Windows systems, capturing details such as the command line used to initiate the process and the parent image that launched it. These logs can provide critical context regarding the execution of registry modifications and potential exfiltration attempts.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR for instances where `regedit.exe` was executed, particularly focusing on the command line parameters used.
+  - Analyze the command line arguments for signs of exporting registry information, especially looking for the `-E` flag and references to critical registry keys.
+  - Correlate the findings with logs from your AV or NGFW to determine if any known malicious activities or patterns are associated with the detected command.
+  - Conduct a risk assessment based on the parent process that initiated `regedit.exe`, checking for any unauthorized access or manipulation attempts linked to user or system accounts.

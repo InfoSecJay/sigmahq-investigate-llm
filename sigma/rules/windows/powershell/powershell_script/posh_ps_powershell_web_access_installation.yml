@@ -1,0 +1,40 @@
+title: PowerShell Web Access Installation - PsScript
+id: 5f9c7f1a-7c21-4c39-b2f3-8d8006e0e51f
+status: test
+description: Detects the installation and configuration of PowerShell Web Access,
+  which could be used for remote access and potential abuse
+references:
+- https://docs.microsoft.com/en-us/powershell/module/powershellwebaccess/install-pswawebapplication
+- https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-241a
+- https://gist.github.com/MHaggis/7e67b659af9148fa593cf2402edebb41
+author: Michael Haag
+date: 2024-09-03
+tags:
+- attack.persistence
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_install:
+    ScriptBlockText|contains: 'Install-WindowsFeature WindowsPowerShellWebAccess'
+  selection_config:
+    ScriptBlockText|contains: 'Install-PswaWebApplication'
+  selection_auth:
+    ScriptBlockText|contains|all:
+    - 'Add-PswaAuthorizationRule'
+    - '-UserName *'
+    - '-ComputerName *'
+  condition: 1 of selection_*
+falsepositives:
+- Legitimate PowerShell Web Access installations by administrators
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying the installation and configuration of PowerShell Web Access (PSWA) through PowerShell scripts. PSWA can enable remote management and access to servers, which, if misconfigured or exploited, poses a risk to organizational security. The rule looks for specific commands in PowerShell script block logging, which must be enabled for the rule to function effectively. Key commands that trigger alerts include `Install-WindowsFeature WindowsPowerShellWebAccess`, `Install-PswaWebApplication`, and `Add-PswaAuthorizationRule`. By monitoring these commands, security teams can detect potential unauthorized installations and configurations of PSWA, aiding in the prevention of unauthorized remote access attempts.
+  ### Investigation Steps
+  - Begin the investigation by reviewing EDR logs for any recent activity associated with PowerShell script executions that include the detected commands.
+  - Check Windows Event Logs, particularly security and PowerShell logs, to gain context on user actions around the time of the alert.
+  - Utilize network logs from the NGFW to identify any suspicious incoming or outgoing connections that could indicate attempts to exploit PSWA.
+  - Search through cloud activity logs in Azure, AWS, or GCP for any relevant API calls or service deployments that coincide with the detected PowerShell activity.

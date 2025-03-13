@@ -1,0 +1,35 @@
+title: Windows Defender Virus Scanning Feature Disabled
+id: 686c0b4b-9dd3-4847-9077-d6c1bbe36fcb
+related:
+- id: fe34868f-6e0e-4882-81f6-c43aa8f15b62
+  type: obsolete
+status: stable
+description: Detects disabling of the Windows Defender virus scanning feature
+references:
+- https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus?view=o365-worldwide#event-id-5012
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1562.001/T1562.001.md
+- https://craigclouditpro.wordpress.com/2020/03/04/hunting-malicious-windows-defender-activity/
+author: Ján Trenčanský, frack113
+date: 2020-07-28
+modified: 2023-11-22
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  product: windows
+  service: windefend
+detection:
+  selection:
+    EventID: 5012     # Scanning for viruses is disabled.
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies when the Windows Defender virus scanning feature has been disabled on a Windows system, an action typically indicative of an attempted evasion of security measures by threat actors. The rule specifically monitors for the occurrence of Event ID 5012 within Windows Defender logs, which signals that the virus scanning functionality has been turned off. This change can weaken the system's defenses against malware and could be a preliminary step in a broader compromise strategy. By correlating these log entries with other security event data, analysts can determine potential malicious activities and assess whether this alteration is part of a legitimate change or an unauthorized action.
+  ### Investigation Steps
+  - Review Windows Defender logs to confirm the occurrence of Event ID 5012 and gather the timestamp and user context associated with the disabling action.
+  - Utilize an EDR tool to investigate additional related activities on the affected endpoint to determine if there are patterns of suspicious behavior leading up to the disabling of the antivirus feature.
+  - Check the timeline of changes across group policies and other security settings in your organization to verify if there were any legitimate administrative actions that correlate with this event.
+  - Query network logs to look for unusual outbound connections from the endpoint following the disabling event, which might suggest data exfiltration or other malicious activity.

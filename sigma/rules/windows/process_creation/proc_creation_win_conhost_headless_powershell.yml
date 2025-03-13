@@ -1,0 +1,40 @@
+title: Powershell Executed From Headless ConHost Process
+id: 056c7317-9a09-4bd4-9067-d051312752ea
+related:
+- id: 00ca75ab-d5ce-43be-b86c-55ff39c6abfc
+  type: derived
+status: experimental
+description: |
+  Detects the use of powershell commands from headless ConHost window.
+  The "--headless" flag hides the windows from the user upon execution.
+references:
+- https://www.huntress.com/blog/fake-browser-updates-lead-to-boinc-volunteer-computing-software
+author: Matt Anderson (Huntress)
+date: 2024-07-23
+tags:
+- attack.defense-evasion
+- attack.t1059.001
+- attack.t1059.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\conhost.exe'
+  - OriginalFileName: 'CONHOST.EXE'
+  selection_cli:
+    CommandLine|contains|all:
+    - '--headless'
+    - 'powershell'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects the execution of PowerShell commands from a headless instance of the Console Host (ConHost) process, which is identifiable by the `--headless` flag. The rule targets the execution of PowerShell scripts or commands in environments where the ConHost is usually visible to the user, thereby trying to evade detection and make the execution less noticeable. The detection relies on process creation logs that specifically look for ConHost (`conhost.exe`) and analyzes the command-line parameters to identify instances where both 'powershell' and '--headless' are present. This combination is often associated with malicious activity, as threat actors may use headless instances to run scripts quietly in the background without drawing user attention.
+  ### Investigation Steps
+  - Review the detailed process creation logs in your EDR to identify instances of `conhost.exe` being initiated with the `--headless` flag along with executing PowerShell commands.
+  - Utilize your SIEM to correlate these events with known malicious indicators or behaviors to establish if this activity is part of a larger attack scenario.
+  - Investigate user activity and system behavior around the time of the alert to determine if this execution aligns with legitimate administrative activities or if it seems suspicious.
+  - Cross-reference network traffic logs on your NGFW or NDR to ascertain if there was any unusual outbound communication from the host executing the headless PowerShell commands.

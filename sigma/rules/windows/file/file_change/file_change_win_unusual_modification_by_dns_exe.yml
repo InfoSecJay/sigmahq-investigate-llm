@@ -1,0 +1,36 @@
+title: Unusual File Modification by dns.exe
+id: 9f383dc0-fdeb-4d56-acbc-9f9f4f8f20f3
+related:
+- id: 8f0b1fb1-9bd4-4e74-8cdf-a8de4d2adfd0     # FileDelete version
+  type: similar
+status: test
+description: Detects an unexpected file being modified by dns.exe which my indicate
+  activity related to remote code execution or other forms of exploitation as seen
+  in CVE-2020-1350 (SigRed)
+references:
+- https://www.elastic.co/guide/en/security/current/unusual-file-modification-by-dns-exe.html
+author: Tim Rauch (Nextron Systems), Elastic (idea)
+date: 2022-09-27
+tags:
+- attack.initial-access
+- attack.t1133
+logsource:
+  category: file_change
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\dns.exe'
+  filter:
+    TargetFilename|endswith: '\dns.log'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule identifies unusual modification activities made by the `dns.exe` process, specifically targeting the modification of files ending with `.log`. The detection leverages file change logs from Windows systems, focusing on the `Image` field to confirm that the process involved is indeed `dns.exe`. By filtering for modifications to files that should not typically be altered by this system process, the rule helps to flag potential exploitation activities, such as those highlighted in CVE-2020-1350 (SigRed). Essentially, if `dns.exe` is found altering `.log` files, this could indicate malicious behavior like remote code execution or misuse of legitimate processes, warranting further investigation.
+  ### Investigation Steps
+  - Review the EDR logs to identify the specific modifications made by `dns.exe` to determine the nature and content of changes to any `.log` files.
+  - Utilize file integrity monitoring tools to check for previous states of the affected `.log` files, comparing them against known good baselines.
+  - Query network logs and proxy records to see if there were any corresponding suspicious outbound connections or communication patterns during the time of the file modifications.
+  - Check cloud platform logs (if applicable) for any related activities or alerts that could provide additional context surrounding the investigation and help correlate with the unusual behavior observed.

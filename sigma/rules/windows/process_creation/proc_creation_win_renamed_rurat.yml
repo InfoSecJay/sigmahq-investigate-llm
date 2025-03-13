@@ -1,0 +1,38 @@
+title: Renamed Remote Utilities RAT (RURAT) Execution
+id: 9ef27c24-4903-4192-881a-3adde7ff92a5
+status: test
+description: Detects execution of renamed Remote Utilities (RURAT) via Product PE
+  header field
+references:
+- https://redcanary.com/blog/misbehaving-rats/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-19
+modified: 2023-02-03
+tags:
+- attack.defense-evasion
+- attack.collection
+- attack.command-and-control
+- attack.discovery
+- attack.s0592
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Product: 'Remote Utilities'
+  filter:
+    Image|endswith:
+    - '\rutserv.exe'
+    - '\rfusclient.exe'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Renamed Remote Utilities RAT (RURAT) Execution" is designed to detect the execution of potentially malicious Remote Utilities software that has been renamed to obscure its true purpose. This detection relies on the analysis of process creation events, specifically targeting executions that utilize the legitimate product name "Remote Utilities" without matching the expected file names associated with it, such as `rutserv.exe` or `rfusclient.exe`. By identifying instances where the product name is intact yet the associated image filename does not align with common legitimate configurations, the rule aims to unveil possible evasion tactics employed by threat actors utilizing Remote Utilities for remote access. This allows for a proactive approach in recognizing activity indicative of remote access trojans (RATs) that might be gathered under familiar and trusted names.
+  ### Investigation Steps
+  - Examine EDR logs to identify processes associated with the execution of the Remote Utilities application, checking for any unusual command-line parameters or parent-child process relationships.
+  - Review process creation logs in the SIEM to correlate detections with timestamps, user accounts, and related network activity, assessing for any anomalies or signs of unauthorized access.
+  - Utilize AV reports to determine if the executed binaries have been flagged as malicious or if there are existing detections related to Remote Utilities running on the endpoints.
+  - Investigate network traffic using NDR capabilities to identify any external communications initiated by the suspected RAT, particularly looking for connections to known command-and-control (C2) servers.

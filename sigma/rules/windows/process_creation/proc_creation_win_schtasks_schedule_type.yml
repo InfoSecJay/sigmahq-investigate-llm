@@ -1,0 +1,48 @@
+title: Suspicious Schtasks Schedule Types
+id: 24c8392b-aa3c-46b7-a545-43f71657fe98
+related:
+- id: 7a02e22e-b885-4404-b38b-1ddc7e65258a
+  type: similar
+status: test
+description: Detects scheduled task creations or modification on a suspicious schedule
+  type
+references:
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks-change
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks-create
+- http://blog.talosintelligence.com/2022/09/lazarus-three-rats.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-09
+tags:
+- attack.execution
+- attack.t1053.005
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith: '\schtasks.exe'
+  - OriginalFileName: 'schtasks.exe'
+  selection_time:
+    CommandLine|contains:
+    - ' ONLOGON '
+    - ' ONSTART '
+    - ' ONCE '
+    - ' ONIDLE '
+  filter_privs:
+    CommandLine|contains:
+    - 'NT AUT'         # This covers the usual NT AUTHORITY\SYSTEM
+    - ' SYSTEM'         # SYSTEM is a valid value for schtasks hence it gets it's own value with space
+    - 'HIGHEST'
+  condition: all of selection_* and not 1 of filter_*
+falsepositives:
+- Legitimate processes that run at logon. Filter according to your environment
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to identify potentially suspicious scheduled tasks created or modified using the `schtasks.exe` utility on Windows systems. It specifically targets tasks scheduled to execute under conditions that may indicate malicious behavior, such as triggering on logon, idle state, or a one-time run. The rule analyzes process creation logs, focusing on the executable name `schtasks.exe` and various command-line parameters associated with the task scheduling process. By filtering out typical administrative tasks, it aims to flag unusual patterns that could signal an attempt to maintain persistence or execute malicious actions in the background. 
+  The detection logic evaluates not only the command-line parameters but also the user privileges specified in the task creation command. If the task is set to run under specific, often-abused accounts such as `NT AUTHORITY\SYSTEM` or with elevated privileges, it raises a flag for further investigation.
+  ### Investigation Steps
+  - Check recent process creation logs in your EDR solution for instances of `schtasks.exe` with the specified command-line parameters that match the rule’s criteria.
+  - Review the output of scheduled tasks using the `schtasks /query /fo LIST` command to identify any recently added or modified tasks that exhibit suspicious scheduling types.
+  - Inspect user accounts associated with these tasks to determine if they match known administrative accounts or if they are anomalies.
+  - Correlate any findings with other security tools such as AV or NGFW logs to verify if there have been associated alerts or signs of malicious activity around the same time.

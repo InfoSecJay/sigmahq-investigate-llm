@@ -1,0 +1,44 @@
+title: Powershell WMI Persistence
+id: 9e07f6e7-83aa-45c6-998e-0af26efd0a85
+status: test
+description: Adversaries may establish persistence and elevate privileges by executing
+  malicious content triggered by a Windows Management Instrumentation (WMI) event
+  subscription.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1546.003/T1546.003.md
+- https://github.com/EmpireProject/Empire/blob/08cbd274bef78243d7a8ed6443b8364acd1fc48b/data/module_source/persistence/Persistence.psm1#L545
+author: frack113
+date: 2021-08-19
+modified: 2022-12-25
+tags:
+- attack.privilege-escalation
+- attack.t1546.003
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_ioc:
+  - ScriptBlockText|contains|all:
+    - 'New-CimInstance '
+    - '-Namespace root/subscription '
+    - '-ClassName __EventFilter '
+    - '-Property '           # is a variable name
+  - ScriptBlockText|contains|all:
+    - 'New-CimInstance '
+    - '-Namespace root/subscription '
+    - '-ClassName CommandLineEventConsumer '
+    - '-Property '           # is a variable name
+  condition: selection_ioc
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Powershell WMI Persistence" detection rule is designed to identify potential malicious activity involving Windows Management Instrumentation (WMI) as a means of establishing persistence on a system. This technique is often employed by threat actors to execute arbitrary scripts triggered by specific events in the Windows ecosystem. The rule specifically looks for PowerShell script commands that create WMI event subscriptions utilizing `New-CimInstance` for both `__EventFilter` and `CommandLineEventConsumer` classes. These classes are typically associated with creating triggers that can execute payloads under certain conditions, thereby providing an attacker with a mechanism to maintain access and elevate privileges.
+  The rule relies on data sourced from PowerShell script block logging, which must be enabled on the target systems to capture these specific commands. Analysts should be vigilant of such activities, as they could indicate an underlying compromise or persistent threat actor presence within the environment.
+  ### Investigation Steps
+  - Review PowerShell logs in your EDR system to identify any suspicious script block logging events associated with WMI commands, focusing on `New-CimInstance`.
+  - Analyze recent changes to WMI event filters and consumers by querying WMI repositories using tools like PowerShell or WMI Explorer to uncover unauthorized modifications.
+  - Evaluate the context of the PowerShell command execution through the SIEM, correlating alerts with the incident timeline and user activity to detect anomalies.
+  - Check for associated process execution and parent-child relationships in the EDR that could reveal how the malicious PowerShell commands were triggered.

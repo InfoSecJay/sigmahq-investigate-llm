@@ -1,0 +1,47 @@
+title: Script Event Consumer Spawning Process
+id: f6d1dd2f-b8ce-40ca-bc23-062efb686b34
+status: test
+description: Detects a suspicious child process of Script Event Consumer (scrcons.exe).
+references:
+- https://redcanary.com/blog/child-processes/
+- https://docs.paloaltonetworks.com/cortex/cortex-xdr/cortex-xdr-analytics-alert-reference/cortex-xdr-analytics-alert-reference/scrcons-exe-rare-child-process.html
+author: Sittikorn S
+date: 2021-06-21
+modified: 2022-07-14
+tags:
+- attack.execution
+- attack.t1047
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\scrcons.exe'
+    Image|endswith:
+    - '\svchost.exe'
+    - '\dllhost.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\wscript.exe'
+    - '\cscript.exe'
+    - '\schtasks.exe'
+    - '\regsvr32.exe'
+    - '\mshta.exe'
+    - '\rundll32.exe'
+    - '\msiexec.exe'
+    - '\msbuild.exe'
+  condition: selection
+fields:
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Script Event Consumer Spawning Process" detection rule identifies potentially malicious child processes spawned by the legitimate Windows process `scrcons.exe`, which is associated with script execution and system automation tasks. The rule specifically looks for new processes created under `scrcons.exe` as a parent that match a list of known executable names including `svchost.exe`, `powershell.exe`, and `mshta.exe`, among others. These child processes are commonly abused for executing malicious scripts or initiating further harmful activities within a system. The primary data sources utilized in this detection are process creation logs, which capture relevant details such as the command line and the parent command line of processes at the time of their creation. This helps analysts differentiate between benign activity and potential exploitation attempts.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR for any instances of `scrcons.exe` as the parent process alongside the detected child process. Compare the command-line arguments to identify any malicious patterns.
+  - Check the reputation of the child processes against threat intelligence databases to confirm if any known malware or suspicious scripts are being executed.
+  - Investigate any recent modifications to `scrcons.exe` or its related files to determine if they have been tampered with or replaced with a potentially malicious version.
+  - Utilize the SIEM to correlate the alert with any previous alerts or unusual activities that may indicate an ongoing attack or earlier signs of compromise.

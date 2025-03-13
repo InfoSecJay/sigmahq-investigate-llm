@@ -1,0 +1,33 @@
+title: Suspicious CustomShellHost Execution
+id: 84b14121-9d14-416e-800b-f3b829c5a14d
+status: test
+description: Detects the execution of CustomShellHost binary where the child isn't
+  located in 'C:\Windows\explorer.exe'
+references:
+- https://github.com/LOLBAS-Project/LOLBAS/pull/180
+- https://lolbas-project.github.io/lolbas/Binaries/CustomShellHost/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-19
+tags:
+- attack.defense-evasion
+- attack.t1216
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\CustomShellHost.exe'
+  filter:
+    Image: 'C:\Windows\explorer.exe'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Suspicious CustomShellHost Execution" detection rule identifies instances where the `CustomShellHost.exe` binary is executed with a parent process other than `C:\Windows\explorer.exe`. This is a potential indicator of malicious activity, as the `CustomShellHost` process may be leveraged by threat actors to facilitate manipulations or bypass defenses. The rule specifically examines process creation logs to monitor for deviations in expected parent-child process relationships, which could signal an attempt to evade traditional detection mechanisms. By focusing on the execution context of the `CustomShellHost`, this rule helps in identifying suspicious behaviors that depart from typical execution profiles.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR platform to look for instances of `CustomShellHost.exe` and confirm the parent process that initiated its execution. 
+  - Use the SIEM to aggregate and correlate events around the timestamps of the detected alert to check for additional suspicious activity or associated processes.
+  - Investigate network communications associated with the `CustomShellHost.exe` process using NDR tools to detect any unexpected outbound connections that might indicate further compromise.
+  - Examine endpoint telemetry and any relevant logs from AV solutions to determine if `CustomShellHost.exe` has been flagged or if related indicators of compromise exist in the environment.

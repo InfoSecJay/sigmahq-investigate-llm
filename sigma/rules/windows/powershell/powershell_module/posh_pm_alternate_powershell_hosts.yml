@@ -1,0 +1,59 @@
+title: Alternate PowerShell Hosts - PowerShell Module
+id: 64e8e417-c19a-475a-8d19-98ea705394cc
+status: test
+description: Detects alternate PowerShell hosts potentially bypassing detections looking
+  for powershell.exe
+references:
+- https://threathunterplaybook.com/hunts/windows/190610-PwshAlternateHosts/notebook.html
+author: Roberto Rodriguez @Cyb3rWard0g
+date: 2019-08-11
+modified: 2022-12-13
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_module
+  definition: 0ad03ef1-f21b-4a79-8ce8-e6900c54b65b
+detection:
+  selection:
+    ContextInfo|contains: '*'
+  filter_powershell:
+        # This filter covers the following use cases
+        #   - When powershell is called directly from commandline via keyword powershell or powershell.exe
+        #   - Or called via path but not with full "".exe". Example: C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell
+    ContextInfo|contains:
+    - '= powershell'         # Host Application=...powershell.exe or Application hote=...powershell.exe in French Win10 event
+    - '= C:\Windows\System32\WindowsPowerShell\v1.0\powershell'
+    - '= C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell'
+            # In some cases powershell was invoked with inverted slashes
+    - '= C:/Windows/System32/WindowsPowerShell/v1.0/powershell'
+    - '= C:/Windows/SysWOW64/WindowsPowerShell/v1.0/powershell'
+  filter_sdiagnhost:
+    ContextInfo|contains: '= C:\WINDOWS\System32\sdiagnhost.exe -Embedding'     # When MSDT is launched for example
+  filter_citrix:
+    ContextInfo|contains: 'ConfigSyncRun.exe'
+  filter_adace:    # Active Directory Administrative Center Enhancements
+    ContextInfo|contains: 'C:\Windows\system32\dsac.exe'
+  filter_winrm:
+    ContextInfo|contains: 'C:\Windows\system32\wsmprovhost.exe -Embedding'
+  filter_help_update:
+    Payload|contains:
+    - 'Update-Help'
+    - 'Failed to update Help for the module'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Programs using PowerShell directly without invocation of a dedicated interpreter
+- MSP Detection Searcher
+- Citrix ConfigSync.ps1
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule "Alternate PowerShell Hosts 
+  - PowerShell Module" is designed to detect instances where PowerShell might be executed from non-standard hosts, potentially evading detection mechanisms that primarily look for the typical `powershell.exe` executable. This detection focuses on identifying unusual command execution patterns that involve PowerShell, specifically through alternate host applications or methods that may not trigger traditional alerts. The rule inspects logs that detail how processes are initiated, particularly looking for context where PowerShell is invoked directly or through defined paths without the full executable name.
+  Detection sources include process creation logs and other relevant system activity that captures command-line parameters, such as the ContextInfo field in the logs. The rule employs multiple filters to differentiate benign PowerShell executions from potentially malicious ones, highlighting instances where embedded commands or specific command-line arguments are being utilized.
+  ### Investigation Steps
+  - Review process creation logs in the EDR platform to identify the context around the execution of PowerShell and any associated executable like `dsac.exe` or `sdiagnhost.exe`.
+  - Cross-reference the command-line arguments within the logs against known benign instances of PowerShell usage to rule out false positives from trusted applications.
+  - Utilize your SIEM to correlate alerts with network connections or other suspicious activities that may accompany the detected PowerShell execution.
+  - Inspect logs from the proxy and VPN to see if there are any unusual outbound connections that align with the detected execution event, which may indicate data exfiltration or lateral movement.

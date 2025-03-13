@@ -1,0 +1,52 @@
+title: Potential PowerShell Execution Via DLL
+id: 6812a10b-60ea-420c-832f-dfcc33b646ba
+status: test
+description: |
+  Detects potential PowerShell execution from a DLL instead of the usual PowerShell process as seen used in PowerShdll.
+  This detection assumes that PowerShell commands are passed via the CommandLine.
+references:
+- https://github.com/p3nt4/PowerShdll/blob/62cfa172fb4e1f7f4ac00ca942685baeb88ff356/README.md
+author: Markus Neis, Nasreddine Bencherchali (Nextron Systems)
+date: 2018-08-25
+modified: 2024-03-07
+tags:
+- attack.defense-evasion
+- attack.t1218.011
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\InstallUtil.exe'
+    - '\RegAsm.exe'
+    - '\RegSvcs.exe'
+    - '\regsvr32.exe'
+    - '\rundll32.exe'
+  - OriginalFileName:
+    - 'InstallUtil.exe'
+    - 'RegAsm.exe'
+    - 'RegSvcs.exe'
+    - 'REGSVR32.EXE'
+    - 'RUNDLL32.EXE'
+  selection_cli:
+    CommandLine|contains:
+    - 'Default.GetString'
+    - 'DownloadString'
+    - 'FromBase64String'
+    - 'ICM '
+    - 'IEX '
+    - 'Invoke-Command'
+    - 'Invoke-Expression'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious PowerShell executions that occur from Dynamic Link Libraries (DLLs) rather than the typical PowerShell process. Attackers often employ DLLs to obscure their activity, and this rule specifically identifies cases where certain executables (like `InstallUtil.exe`, `RegAsm.exe`, and `rundll32.exe`) are utilized in conjunction with PowerShell command-line parameters indicative of malicious intent. The detection focuses on patterns and keywords in command line arguments—such as `Invoke-Command`, `IEX`, and `DownloadString`—that are commonly associated with nefarious PowerShell operations. By monitoring process creation logs, security teams can pinpoint these instances and act quickly to investigate potential threats before they escalate.
+  ### Investigation Steps
+  - Review the process creation logs in EDR to identify any instances of the suspicious executables (`InstallUtil.exe`, `RegAsm.exe`, etc.) launching PowerShell commands.
+  - Analyze the command-line parameters associated with the processes to check for any malicious keywords such as `IEX` or `Invoke-Expression`.
+  - Correlate the detected events with network logs from NDR or SIEM to assess if there are any unusual outbound connections initiated by the involved processes.
+  - Investigate relevant user activity and account history to determine if the processes were executed by authorized personnel or if they indicate unauthorized access or compromised accounts.

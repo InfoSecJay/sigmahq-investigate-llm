@@ -1,0 +1,69 @@
+title: Office Macro File Download
+id: 0e29e3a7-1ad8-40aa-b691-9f82ecd33d66
+related:
+- id: 91174a41-dc8f-401b-be89-7bfc140612a0
+  type: similar
+status: test
+description: Detects the creation of a new office macro files on the systems via an
+  application (browser, mail client).
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1566.001/T1566.001.md
+- https://learn.microsoft.com/en-us/deployoffice/compat/office-file-format-reference
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-01-23
+modified: 2023-04-18
+tags:
+- attack.initial-access
+- attack.t1566.001
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection_processes:
+    Image|endswith:
+            # Email clients
+    - '\RuntimeBroker.exe'         # Windows Email clients uses RuntimeBroker to create the files
+    - '\outlook.exe'
+    - '\thunderbird.exe'
+            # Browsers
+    - '\brave.exe'
+    - '\chrome.exe'
+    - '\firefox.exe'
+    - '\iexplore.exe'
+    - '\maxthon.exe'
+    - '\MicrosoftEdge.exe'
+    - '\msedge.exe'
+    - '\msedgewebview2.exe'
+    - '\opera.exe'
+    - '\safari.exe'
+    - '\seamonkey.exe'
+    - '\vivaldi.exe'
+    - '\whale.exe'
+  selection_ext:
+  - TargetFilename|endswith:
+    - '.docm'
+    - '.dotm'
+    - '.xlsm'
+    - '.xltm'
+    - '.potm'
+    - '.pptm'
+  - TargetFilename|contains:
+    - '.docm:Zone'
+    - '.dotm:Zone'
+    - '.xlsm:Zone'
+    - '.xltm:Zone'
+    - '.potm:Zone'
+    - '.pptm:Zone'
+  condition: all of selection_*
+falsepositives:
+- Legitimate macro files downloaded from the internet
+- Legitimate macro files sent as attachments via emails
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule aims to identify instances where new Office macro files are created on Windows systems through applications such as web browsers and email clients. Macro-enabled file types, specifically with extensions like .docm, .xlsm, and others, are targeted due to their potential use in executing malicious scripts that can lead to initial access threats. The rule examines process creation logs, focusing on known email clients and browsers that might facilitate the download or creation of these files. With a keen eye on file naming conventions, it looks for files either ending with macro-enabled suffixes or containing "Zone," indicating potential online origin from untrusted sources.
+  ### Investigation Steps
+  - **Review EDR logs** for process creation events related to identified email clients and browsers. Investigate the process hierarchies leading to the creation of the suspicious macro files.
+  - **Examine file properties** using file auditing logs to determine the location, creation time, and associated processes for the detected macro files. Look for anomalies, such as unexpected directories.
+  - **Analyze network traffic** through your NDR solutions to detect any unusual outgoing or incoming connections around the time the macro files were created. This may help indicate potential data exfiltration or command and control activities.
+  - **Check email logs** in the mail client to identify any incoming emails that might have contained macro-enabled attachments linked to the detected activity. Focus on the sender's reputation and context surrounding the emails.

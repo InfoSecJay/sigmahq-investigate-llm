@@ -1,0 +1,45 @@
+title: Modify Group Policy Settings
+id: ada4b0c4-758b-46ac-9033-9004613a150d
+related:
+- id: b7216a7d-687e-4c8d-82b1-3080b2ad961f
+  type: similar
+status: test
+description: Detect malicious GPO modifications can be used to implement many other
+  malicious behaviors.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/40b77d63808dd4f4eafb83949805636735a1fd15/atomics/T1484.001/T1484.001.md
+author: frack113
+date: 2022-08-19
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1484.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_reg:
+  - Image|endswith: '\reg.exe'
+  - OriginalFileName: 'reg.exe'
+  selection_path:
+    CommandLine|contains: '\SOFTWARE\Policies\Microsoft\Windows\System'
+  selection_key:
+    CommandLine|contains:
+    - GroupPolicyRefreshTimeDC
+    - GroupPolicyRefreshTimeOffsetDC
+    - GroupPolicyRefreshTime
+    - GroupPolicyRefreshTimeOffset
+    - EnableSmartScreen
+    - ShellSmartScreenLevel
+  condition: all of selection_*
+falsepositives:
+- Legitimate use
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies alterations to Group Policy Objects (GPOs) by monitoring process creation events that involve the Windows Registry Editor (`reg.exe`). The rule specifically looks for command-line parameters indicating potential malicious modifications to GPO settings, such as changes to policies related to security and execution behaviors. Key indicators include command-line entries that reference the system's Group Policy settings directory as well as specific parameters that may indicate unauthorized changes intended to bypass security features or escalate privileges. By analyzing the execution of `reg.exe`, the rule aims to flag potential threats that could compromise the integrity of system policies, facilitating further investigation into malicious activities.
+  ### Investigation Steps
+  - Review EDR logs to identify the user account associated with the command that executed `reg.exe`, looking for any signs of unauthorized access or elevated privileges.
+  - Cross-reference the detected command-line activity against recent change logs for GPOs to assess whether the changes were legitimate or aligned with known administrative tasks.
+  - Utilize the SIEM to correlate this alert with other security events, such as failed login attempts or unusual behavior from the affected user, to evaluate the possibility of a larger attack.
+  - Check the system event logs in the Windows environment for any unusual network activity or connections following the GPO modification, which could indicate an exploitation attempt.

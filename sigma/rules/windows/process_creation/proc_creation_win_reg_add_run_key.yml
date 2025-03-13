@@ -1,0 +1,38 @@
+title: Potential Persistence Attempt Via Run Keys Using Reg.EXE
+id: de587dce-915e-4218-aac4-835ca6af6f70
+status: test
+description: Detects suspicious command line reg.exe tool adding key to RUN key in
+  Registry
+references:
+- https://app.any.run/tasks/9c0f37bc-867a-4314-b685-e101566766d7/
+- https://learn.microsoft.com/en-us/windows/win32/setupapi/run-and-runonce-registry-keys
+author: Florian Roth (Nextron Systems)
+date: 2021-06-28
+modified: 2023-01-30
+tags:
+- attack.persistence
+- attack.t1547.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - 'reg'
+    - ' ADD '
+    - 'Software\Microsoft\Windows\CurrentVersion\Run'
+  condition: selection
+falsepositives:
+- Legitimate software automatically (mostly, during installation) sets up autorun
+  keys for legitimate reasons.
+- Legitimate administrator sets up autorun keys for legitimate reasons.
+- Discord
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule aims to identify potential persistence mechanisms used by malicious actors through the Windows Registry. Specifically, it looks for instances where the command-line utility `reg.exe` is used to add a key to the Run registry path, which automatically executes specified programs upon user logon. The detection focuses on monitoring process creation events, particularly those involving `reg.exe` with command-line parameters that indicate an addition to the `Software\Microsoft\Windows\CurrentVersion\Run` path. By analyzing these command-line patterns, the rule helps detect suspicious behavior that could signify attempts at unauthorized persistence on a host system.
+  ### Investigation Steps
+  - Retrieve process creation logs from the EDR solution and filter for instances of `reg.exe` with relevant command-line parameters to pinpoint potential misuse.
+  - Cross-reference the timestamps of detected events with user activity logs to determine if the actions align with legitimate administrative tasks or user behavior.
+  - Investigate associated parent processes using EDR to determine the context in which `reg.exe` was executed and ascertain if it was triggered by legitimate software or a suspicious source.
+  - For cloud platforms like AWS, GCP, or Azure, review any related user activity logs or API calls that may indicate an external influence or an unauthorized attempt to manipulate registry settings.

@@ -1,0 +1,54 @@
+title: PrinterNightmare Mimikatz Driver Name
+id: ba6b9e43-1d45-4d3c-a504-1043a64c8469
+status: test
+description: Detects static QMS 810 and mimikatz driver name used by Mimikatz as exploited
+  in CVE-2021-1675 and CVE-2021-34527
+references:
+- https://github.com/gentilkiwi/mimikatz/commit/c21276072b3f2a47a21e215a46962a17d54b3760
+- https://www.lexjansen.com/sesug/1993/SESUG93035.pdf
+- https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rprn/4464eaf0-f34f-40d5-b970-736437a21913
+- https://nvd.nist.gov/vuln/detail/cve-2021-1675
+- https://nvd.nist.gov/vuln/detail/cve-2021-34527
+author: Markus Neis, @markus_neis, Florian Roth
+date: 2021-07-04
+modified: 2023-06-12
+tags:
+- attack.execution
+- attack.t1204
+- cve.2021-1675
+- cve.2021-34527
+logsource:
+  product: windows
+  category: registry_event
+detection:
+  selection:
+    TargetObject|contains:
+    - '\Control\Print\Environments\Windows x64\Drivers\Version-3\QMS 810\'
+    - '\Control\Print\Environments\Windows x64\Drivers\Version-3\mimikatz'
+  selection_alt:
+    TargetObject|contains|all:
+    - 'legitprinter'
+    - '\Control\Print\Environments\Windows'
+  selection_print:
+    TargetObject|contains:
+    - '\Control\Print\Environments'
+    - '\CurrentVersion\Print\Printers'
+  selection_kiwi:
+    TargetObject|contains:
+    - 'Gentil Kiwi'
+    - 'mimikatz printer'
+    - 'Kiwi Legit Printer'
+  condition: selection or selection_alt or (selection_print and selection_kiwi)
+falsepositives:
+- Legitimate installation of printer driver QMS 810, Texas Instruments microLaser
+  printer (unlikely)
+level: critical
+notes: |
+  ### Technical Context
+  The provided detection rule identifies instances of malicious activity associated with the exploitation of the Windows Print Spooler service, specifically targeting the vulnerabilities detailed in CVE-2021-1675 and CVE-2021-34527. These vulnerabilities can be exploited by attackers using tools like Mimikatz to load malicious drivers, which may compromise systems and steal credentials. The rule captures events from the Windows registry where suspicious driver names and registry objects related to printers are created or modified. It looks for specific strings associated with Mimikatz and the QMS 810 printer driver within designated registry paths, including "Control\Print\Environments" and "CurrentVersion\Print\Printers," indicating potential exploitation attempts or unauthorized driver installations.
+  This comprehensive monitoring approach enables timely detection of potential threats, leveraging Windows registry event logs as a primary data source, ensuring that incident responders can take swift action against identified anomalies indicative of exploitation.
+  ### Investigation Steps
+  - Review the EDR logs for any recent process creation events that include the names "mimikatz" or "QMS 810" to identify potential attempts to exploit the Print Spooler service.
+  - Examine the Windows registry logs within the specified paths for any unauthorized modifications or additions, particularly those related to printer drivers.
+  - Analyze related network traffic logs from the NDR or firewall to determine if there are any unusual outbound connections made that coincide with the time of the suspicious registry changes.
+  - Investigate any alerts from the AV solution that may indicate the detection of known signatures or behaviors associated with Mimikatz or the exploitation of printer drivers.

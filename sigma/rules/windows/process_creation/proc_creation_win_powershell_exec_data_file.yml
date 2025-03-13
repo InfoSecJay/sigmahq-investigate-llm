@@ -1,0 +1,40 @@
+title: Powershell Inline Execution From A File
+id: ee218c12-627a-4d27-9e30-d6fb2fe22ed2
+status: test
+description: Detects inline execution of PowerShell code from a file
+references:
+- https://speakerdeck.com/heirhabarov/hunting-for-powershell-abuse?slide=50
+author: frack113
+date: 2022-12-25
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_exec:
+    CommandLine|contains:
+    - 'iex '
+    - 'Invoke-Expression '
+    - 'Invoke-Command '
+    - 'icm '
+  selection_read:
+    CommandLine|contains:
+    - 'cat '
+    - 'get-content '
+    - 'type '
+  selection_raw:
+    CommandLine|contains: ' -raw'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the inline execution of PowerShell code from a file, which is a common tactic used by attackers to execute malicious scripts or commands indirectly. The rule monitors process creation logs, specifically analyzing the command-line parameters associated with PowerShell execution. It looks for specific command-line patterns such as "iex", "Invoke-Expression", and "Invoke-Command," which indicate inline code execution, as well as commands that read from files like "cat", "get-content", and "type". By capturing these elements, the rule helps differentiate between legitimate PowerShell usage and potential abuse, providing valuable insight into an organization's security posture.
+  ### Investigation Steps
+  - Review the alert in the SIEM to gather context about the detected inline PowerShell execution, including the affected system and the user who initiated the command.
+  - Utilize EDR tools to acquire detailed process creation logs, focusing on the specific PowerShell command detected and any associated child processes that may indicate further malicious activity.
+  - Analyze relevant logs from the proxy or network security devices to identify any outbound connections that may have occurred during the time of the inline execution, which could suggest data exfiltration or command and control activity.
+  - Investigate additional system logs or alerts in the AV and firewall to determine if there are any related malicious indicators or blockages that could connect to the PowerShell activity observed.

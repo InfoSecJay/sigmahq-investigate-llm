@@ -1,0 +1,45 @@
+title: Sticky Key Like Backdoor Usage - Registry
+id: baca5663-583c-45f9-b5dc-ea96a22ce542
+status: test
+description: Detects the usage and installation of a backdoor that uses an option
+  to register a malicious debugger for built-in tools that are accessible in the login
+  screen
+references:
+- https://blogs.technet.microsoft.com/jonathantrull/2016/10/03/detecting-sticky-key-backdoors/
+- https://bazaar.abuse.ch/sample/6f3aa9362d72e806490a8abce245331030d1ab5ac77e400dd475748236a6cc81/
+author: Florian Roth (Nextron Systems), @twjackomo, Jonhnathan Ribeiro, oscd.community
+date: 2018-03-15
+modified: 2022-11-26
+tags:
+- attack.privilege-escalation
+- attack.persistence
+- attack.t1546.008
+- car.2014-11-003
+- car.2014-11-008
+logsource:
+  category: registry_event
+  product: windows
+detection:
+  selection_registry:
+    TargetObject|endswith:
+    - '\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\sethc.exe\Debugger'
+    - '\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\utilman.exe\Debugger'
+    - '\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\osk.exe\Debugger'
+    - '\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\Magnify.exe\Debugger'
+    - '\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\Narrator.exe\Debugger'
+    - '\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\DisplaySwitch.exe\Debugger'
+    - '\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\atbroker.exe\Debugger'
+    - '\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\HelpPane.exe\Debugger'
+  condition: selection_registry
+falsepositives:
+- Unlikely
+level: critical
+notes: |
+  ### Technical Context
+  This detection rule identifies potential usage of backdoor techniques exploiting Windows accessibility features, specifically via registry modifications. Attackers can create persistence mechanisms by registering a malicious debugger for legitimate Windows applications like Sticky Keys (sethc.exe) and other accessibility tools. The rule monitors changes in the registry for specific paths associated with these executables, particularly checking for the addition of a "Debugger" key. If any of these registry keys are modified, it may indicate an attempt to gain unauthorized access or control over the system during the login process, which is commonly done to evade detection and escalate privileges.
+  The data sources relevant to this detection include Windows registry event logs that track modifications to the specified registry paths. Security analysts should be familiar with the registry structure and understand how modifications to the Image File Execution Options can affect system behavior. Through this rule, analysts can proactively identify signs of malicious activity that may warrant further investigation.
+  ### Investigation Steps
+  - Review registry event logs to confirm if any of the mentioned debugger paths have been modified recently.
+  - Utilize the EDR tool to look for associated process creation logs that may indicate suspicious behavior or execution of unauthorized applications.
+  - Correlate the findings with user login events to assess if the timing aligns with any unauthorized access attempts.
+  - Check for any related alerts in the AV and NDR platforms to identify if there are detected threats or unusual network activities linked to the identified registry changes.

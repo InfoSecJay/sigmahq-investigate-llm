@@ -1,0 +1,64 @@
+title: Suspicious Child Process Of Wermgr.EXE
+id: 396f6630-f3ac-44e3-bfc8-1b161bc00c4e
+related:
+- id: 5394fcc7-aeb2-43b5-9a09-cac9fc5edcd5
+  type: similar
+status: experimental
+description: Detects suspicious Windows Error Reporting manager (wermgr.exe) child
+  process
+references:
+- https://www.trendmicro.com/en_us/research/22/j/black-basta-infiltrates-networks-via-qakbot-brute-ratel-and-coba.html
+- https://www.echotrail.io/insights/search/wermgr.exe
+- https://github.com/binderlabs/DirCreate2System
+author: Florian Roth (Nextron Systems)
+date: 2022-10-14
+modified: 2024-08-29
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1055
+- attack.t1036
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\wermgr.exe'
+    Image|endswith:
+    - '\cmd.exe'
+    - '\cscript.exe'
+    - '\ipconfig.exe'
+    - '\mshta.exe'
+    - '\net.exe'
+    - '\net1.exe'
+    - '\netstat.exe'
+    - '\nslookup.exe'
+    - '\powershell_ise.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\regsvr32.exe'
+    - '\rundll32.exe'
+    - '\systeminfo.exe'
+    - '\whoami.exe'
+    - '\wscript.exe'
+  filter_main_rundll32:
+    Image|endswith: '\rundll32.exe'
+    CommandLine|contains|all:
+    - 'C:\Windows\system32\WerConCpl.dll'
+    - 'LaunchErcApp '
+    CommandLine|contains:
+    - '-queuereporting'
+    - '-responsepester'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets suspicious child processes spawned by the Windows Error Reporting manager (wermgr.exe). The parent-child relationship is monitored to identify potentially malicious activities, particularly if wermgr.exe initiates processes that are commonly associated with Windows scripting or command execution, such as cmd.exe, powershell.exe, or rundll32.exe. This behavior could indicate privilege escalation or defense evasion attempts by threat actors trying to exploit legitimate system processes for malicious purposes.
+  The rule checks logs from process creation events, focusing on the parent process's image name, specifically those ending with `wermgr.exe`. It further scrutinizes the command-line parameters of identified child processes to filter for particular command combinations that may trigger alerts. By analyzing the context of process creation, investigators can detect anomalies that warrant further examination.
+  ### Investigation Steps
+  - Review EDR logs for detailed information about the process tree beginning with wermgr.exe and its spawned child processes to identify potentially malicious behavior.
+  - Check the command-line arguments associated with the detected processes using a SIEM to determine if any match known indicators of compromise related to privilege escalation.
+  - Analyze network traffic logs via NDR or proxy solutions to see if the suspicious child processes attempted any outbound connections or interacted with known malicious sites.
+  - Utilize AV tools to scan the affected system for any known malware signatures, particularly those associated with the detected child process names and behaviors.

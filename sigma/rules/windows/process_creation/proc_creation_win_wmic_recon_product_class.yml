@@ -1,0 +1,39 @@
+title: Potential Product Class Reconnaissance Via Wmic.EXE
+id: e568650b-5dcd-4658-8f34-ded0b1e13992
+status: test
+description: Detects the execution of WMIC in order to get a list of firewall and
+  antivirus products
+references:
+- https://github.com/albertzsigovits/malware-notes/blob/c820c7fea76cf76a861b28ebc77e06100e20ec29/Ransomware/Maze.md
+- https://www.hybrid-analysis.com/sample/4be06ecd234e2110bd615649fe4a6fa95403979acf889d7e45a78985eb50acf9?environmentId=1
+author: Michael Haag, Florian Roth (Nextron Systems), juju4, oscd.community
+date: 2023-02-14
+modified: 2023-03-07
+tags:
+- attack.execution
+- attack.t1047
+- car.2016-03-002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\wmic.exe'
+  - OriginalFileName: 'wmic.exe'
+  selection_cli:
+    CommandLine|contains:
+    - 'AntiVirusProduct'
+    - 'FirewallProduct'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule targets the execution of the Windows Management Instrumentation Command-line (WMIC) tool, which is often leveraged by threat actors to enumerate security products installed on a target system, such as antivirus and firewall solutions. The rule specifically looks for instances where WMIC is executed, either through the direct application path or specific command-line arguments that mention "AntiVirusProduct" or "FirewallProduct." By monitoring the process creation logs, including the command line parameters used during the execution, this rule aims to identify potential reconnaissance activities that could signal preparations for malicious action.
+  The primary data sources involved in this rule are Windows process creation logs, which capture information about processes that have been initiated on Windows systems. This includes details like the process image name, the full command line used to launch the process, and the original file name. Detecting suspicious usage of WMIC can help SOC teams respond proactively to potential threats against the enterprise's security posture.
+  ### Investigation Steps
+  - Review recent process creation logs in the EDR to identify instances where WMIC was executed, focusing on the command lines associated with these executions.
+  - Validate the presence of antivirus and firewall products on the affected systems by cross-referencing the WMIC executions against the software inventory.
+  - Inspect network logs from the NGFW and Proxy for unusual outbound connections made following the WMIC execution, indicating possible data exfiltration or further reconnaissance.
+  - Use the SIEM to correlate any detected WMIC activities with other indicators of compromise (IoCs) present in the environment for a broader context of the potential attack.

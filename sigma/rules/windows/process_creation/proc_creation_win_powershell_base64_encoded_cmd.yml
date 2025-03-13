@@ -1,0 +1,55 @@
+title: Suspicious Encoded PowerShell Command Line
+id: ca2092a1-c273-4878-9b4b-0d60115bf5ea
+status: test
+description: Detects suspicious powershell process starts with base64 encoded commands
+  (e.g. Emotet)
+references:
+- https://app.any.run/tasks/6217d77d-3189-4db2-a957-8ab239f3e01e
+author: Florian Roth (Nextron Systems), Markus Neis, Jonhnathan Ribeiro, Daniil Yugoslavskiy,
+  Anton Kutepov, oscd.community
+date: 2018-09-03
+modified: 2023-04-06
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+  - OriginalFileName:
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+  selection_cli_enc:
+    CommandLine|contains: ' -e'     # covers -en and -enc
+  selection_cli_content:
+    CommandLine|contains:
+    - ' JAB'
+    - ' SUVYI'
+    - ' SQBFAFgA'
+    - ' aQBlAHgA'
+    - ' aWV4I'
+    - ' IAA'
+    - ' IAB'
+    - ' UwB'
+    - ' cwB'
+  selection_standalone:
+    CommandLine|contains:
+    - '.exe -ENCOD '
+    - ' BA^J e-'         # Reversed
+  filter_optional_remote_signed:
+    CommandLine|contains: ' -ExecutionPolicy remotesigned '
+  condition: selection_img and (all of selection_cli_* or selection_standalone) and
+    not 1 of filter_optional_*
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potentially malicious PowerShell command-line executions that utilize base64 encoding, which is a common technique employed by attackers to obfuscate their commands. The rule specifically monitors for instances where PowerShell (`powershell.exe` or `pwsh.exe`) is invoked with command-line arguments indicating that encoded commands are being executed. Key indicators include the presence of the `-e` or `-enc` flags, common base64-encoded strings, and the use of specific patterns that may indicate malicious activity related to known threats like Emotet. The primary data source for this rule is process creation logs, allowing the SOC to pinpoint suspicious command executions in the environment.
+  ### Investigation Steps
+  - Review the EDR logs to identify the process creation events that triggered the alert, focusing on the command-line parameters associated with the PowerShell execution.
+  - Analyze the context of the user account that initiated the command, checking for any prior suspicious activities or compromises associated with that account.
+  - Utilize AV and endpoint protection logs to determine if there are any existing detections associated with the identified PowerShell commands or if any known malicious indicators were flagged.
+  - Inspect network logs from the NGFW and proxy to investigate any connections made by the system executing the PowerShell command, looking for communications to known malicious IP addresses or domains.

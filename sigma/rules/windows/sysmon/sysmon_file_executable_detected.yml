@@ -1,0 +1,30 @@
+title: Sysmon File Executable Creation Detected
+id: 693a44e9-7f26-4cb6-b787-214867672d3a
+status: test
+description: Triggers on any Sysmon "FileExecutableDetected" event, which triggers
+  every time a PE that is monitored by the config is created.
+references:
+- https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+- https://medium.com/@olafhartong/sysmon-15-0-file-executable-detected-40fd64349f36
+author: frack113
+date: 2023-07-20
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    EventID: 29      # this is fine, we want to match any FileExecutableDetected event
+  condition: selection
+falsepositives:
+- Unlikely
+level: medium
+notes: |
+  ### Technical Context
+  The "Sysmon File Executable Creation Detected" rule monitors for the creation of executable files on Windows systems, leveraging Sysmon's capabilities. Specifically, it looks for Sysmon Event ID 29, which signifies that a Portable Executable (PE) file has been created. By observing this event, the rule can help identify potential malicious activities such as unauthorized software installations, code injection attempts, or malware execution. The detection leverages Sysmon as a logging source, and its configuration must ensure that the events of interest are being captured accurately. Effective monitoring of this activity is essential for maintaining the integrity of the operating system and for early detection of possible threat vectors.
+  ### Investigation Steps
+  - Utilize EDR tools to investigate the context of the detected file creation, checking for associated processes and their command-line arguments to determine if they are legitimate.
+  - Review the Sysmon logs for any related Event IDs (e.g., process creation events) immediately before and after the executable creation to trace any suspicious activity.
+  - Check endpoint antivirus logs for any alerts or actions taken related to the newly created executable, as it may already be identified as a potential threat.
+  - Analyze network activity through NDR tools or Proxy logs to identify any unusual outbound connections by the created executable, which might indicate data exfiltration or command-and-control communication.

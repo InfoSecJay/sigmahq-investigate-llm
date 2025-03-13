@@ -1,0 +1,41 @@
+title: Compressed File Creation Via Tar.EXE
+id: 418a3163-3247-4b7b-9933-dcfcb7c52ea9
+status: test
+description: |
+  Detects execution of "tar.exe" in order to create a compressed file.
+  Adversaries may abuse various utilities to compress or encrypt data before exfiltration.
+references:
+- https://unit42.paloaltonetworks.com/chromeloader-malware/
+- https://lolbas-project.github.io/lolbas/Binaries/Tar/
+- https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/cicada-apt10-japan-espionage
+author: Nasreddine Bencherchali (Nextron Systems), AdmU3
+date: 2023-12-19
+tags:
+- attack.collection
+- attack.exfiltration
+- attack.t1560
+- attack.t1560.001
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith: '\tar.exe'
+  - OriginalFileName: 'bsdtar'
+  selection_create:
+    CommandLine|contains:
+    - '-c'
+    - '-r'
+    - '-u'
+  condition: all of selection_*
+falsepositives:
+- Likely
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of `tar.exe`, a utility often used for creating compressed files. Adversaries can misuse this legitimate tool to compress and potentially encrypt sensitive files before exfiltrating data from an environment. The rule focuses specifically on process creation logs, where it inspects the command line arguments associated with `tar.exe` execution. It looks for options such as `-c`, `-r`, and `-u`, which indicate that a file is being created, modified, or updated. By targeting this specific executable and its usage patterns, the rule helps identify potential unauthorized data compression activities that may signal a prelude to data exfiltration.
+  ### Investigation Steps
+  - Check the process creation logs in your EDR solution to identify instances of `tar.exe` being executed along with the relevant command-line parameters.
+  - Investigate any user accounts associated with the execution of `tar.exe` to ascertain whether they are authorized to use such utilities and if their activities align with their expected usage patterns.
+  - Review network data from your NDR solution for any connections or data transfers that coincide with the time `tar.exe` was executed, as these could indicate potential exfiltration attempts.
+  - Search cloud logs (AWS, Azure, or GCP) for any recent activities that suggest storage or file uploads occurred around the same time to correlate with the execution of the `tar.exe` process.

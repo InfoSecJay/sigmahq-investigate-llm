@@ -1,0 +1,36 @@
+title: Visual Studio NodejsTools PressAnyKey Arbitrary Binary Execution
+id: a20391f8-76fb-437b-abc0-dba2df1952c6
+related:
+- id: 65c3ca2c-525f-4ced-968e-246a713d164f
+  type: similar
+status: test
+description: Detects child processes of Microsoft.NodejsTools.PressAnyKey.exe that
+  can be used to execute any other binary
+references:
+- https://twitter.com/mrd0x/status/1463526834918854661
+- https://gist.github.com/nasbench/a989ce64cefa8081bd50cf6ad8c491b5
+author: Florian Roth (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2022-01-11
+modified: 2023-04-11
+tags:
+- attack.execution
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\Microsoft.NodejsTools.PressAnyKey.exe'
+  condition: selection
+falsepositives:
+- Legitimate use by developers as part of NodeJS development with Visual Studio Tools
+level: medium
+notes: |
+  ### Technical Context
+  The "Visual Studio NodejsTools PressAnyKey Arbitrary Binary Execution" rule is designed to detect potentially malicious activities initiated by the `Microsoft.NodejsTools.PressAnyKey.exe` process on Windows systems. This process, often utilized by developers for Node.js applications within Visual Studio, has the capability to spawn child processes that can run arbitrary binaries. The detection mechanism focuses on monitoring process creation logs to identify when a child process is initiated by this specific parent executable. By analyzing parameters passed during execution, the rule can highlight suspicious or unexpected behaviors that may indicate attempts to leverage this development tool for malicious purposes, such as executing unauthorized binaries or scripts.
+  ### Investigation Steps
+  - Query EDR logs to identify the parent process `Microsoft.NodejsTools.PressAnyKey.exe` and list all child processes spawned around the same timestamp to assess the context of the execution.
+  - Review the command-line arguments of any child processes identified, focusing on parameters that suggest unusual or unauthorized actions.
+  - Cross-reference the detected activity with proxy logs to determine if there was any suspicious outbound network traffic from the associated child processes.
+  - Check for any related alerts or incidents in the SIEM that could indicate previous malicious activity associated with the same user or system.

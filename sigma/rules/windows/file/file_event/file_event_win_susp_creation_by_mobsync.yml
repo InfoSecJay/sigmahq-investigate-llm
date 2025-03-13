@@ -1,0 +1,37 @@
+title: Created Files by Microsoft Sync Center
+id: 409f8a98-4496-4aaa-818a-c931c0a8b832
+status: test
+description: This rule detects suspicious files created by Microsoft Sync Center (mobsync)
+references:
+- https://redcanary.com/blog/intelligence-insights-november-2021/
+author: elhoim
+date: 2022-04-28
+modified: 2022-06-02
+tags:
+- attack.t1055
+- attack.t1218
+- attack.execution
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection_mobsync:
+    Image|endswith: '\mobsync.exe'
+  filter_created_file:
+    TargetFilename|endswith:
+    - '.dll'
+    - '.exe'
+  condition: selection_mobsync and filter_created_file
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious file creation activities initiated by Microsoft Sync Center, specifically the executable `mobsync.exe`. The rule focuses on monitoring file events where files created by this process have specific extensions, particularly those that could indicate malicious intent, such as `.dll` and `.exe`. By tracking the creation of these file types, this rule can help identify potential threats, as attackers may leverage legitimate applications to deploy harmful files while evading detection.
+  To effectively trigger alerts, the rule analyzes log data from Windows file event sources, specifically targeting events that track file creation activities associated with `mobsync.exe`. By correlating the process name with the file types being created, the detection logic aims to reveal behaviors consistent with tactics utilized in defense evasion and execution phase attack methods, enabling a more proactive security posture.
+  ### Investigation Steps
+  - Verify the instance of `mobsync.exe` running on the affected endpoint using the EDR tool to assess its legitimacy and corresponding process hierarchy.
+  - Utilize file integrity monitoring tools to examine the properties and metadata of the suspicious files created, noting creation times and any unusual attributes.
+  - Review the contextual logs from the Proxy to identify any unusual outbound connections or behaviors linked to the files created by `mobsync.exe`.
+  - Check cloud storage logs (if applicable) for any syncing activities that correlate with the times the suspicious files were created, assessing potential data exfiltration risks.

@@ -1,0 +1,45 @@
+title: Macro Enabled In A Potentially Suspicious Document
+id: a166f74e-bf44-409d-b9ba-ea4b2dd8b3cd
+related:
+- id: 295a59c1-7b79-4b47-a930-df12c15fc9c2
+  type: derived
+status: test
+description: Detects registry changes to Office trust records where the path is located
+  in a potentially suspicious location
+references:
+- https://twitter.com/inversecos/status/1494174785621819397
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-06-21
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection_value:
+    TargetObject|contains: '\Security\Trusted Documents\TrustRecords'
+  selection_paths:
+    TargetObject|contains:
+            # Note: add more locations where you don't expect a user to executed macro enabled docs
+    - '/AppData/Local/Microsoft/Windows/INetCache/'
+    - '/AppData/Local/Temp/'
+    - '/PerfLogs/'
+    - 'C:/Users/Public/'
+    - 'file:///D:/'
+    - 'file:///E:/'
+  condition: all of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies suspicious activities involving Microsoft Office documents that are configured to enable macros through registry changes. Specifically, it targets modifications to the Office trust records found in the `\Security\Trusted Documents\TrustRecords` registry path. The rule is designed to flag changes occurring in locations that are atypical for legitimate user file operations, such as temporary directories or common public access folders. By monitoring these changes, the rule seeks to catch potential malware or malicious behavior attempting to exploit macro functionality in Office documents, a common vector for attacks.
+  The primary data source leveraged by this rule is Windows registry logs related to document trust settings. By analyzing registry modifications, incident responders can identify unauthorized attempts to allow macros from potentially risky document sources, enabling proactive security measures against exploitation attempts.
+  ### Investigation Steps
+  - Review Windows registry logs to identify any recent changes made to the `\Security\Trusted Documents\TrustRecords` path, specifically focusing on the time and source of modification.
+  - Utilize an EDR tool to investigate the execution context of any related processes, particularly looking for unusual or unexpected Office applications that may have run in conjunction with the detected registry changes.
+  - Check the access patterns associated with the directories listed in the rule (e.g., `/AppData/Local/Microsoft/Windows/INetCache/`) using file access logs, identifying any recent document downloads or usage that could correlate with the registry modifications.
+  - Search for indicators of compromise (IOCs) in the environment, including known malicious file hashes or commands associated with the detected changes, using threat intelligence feeds and your SIEM for correlation.

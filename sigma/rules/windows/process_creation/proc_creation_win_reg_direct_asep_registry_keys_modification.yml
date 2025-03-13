@@ -1,0 +1,46 @@
+title: Direct Autorun Keys Modification
+id: 24357373-078f-44ed-9ac4-6d334a668a11
+status: test
+description: Detects direct modification of autostart extensibility point (ASEP) in
+  registry using reg.exe.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1547.001/T1547.001.md
+author: Victor Sergeev, Daniil Yugoslavskiy, oscd.community
+date: 2019-10-25
+modified: 2022-08-04
+tags:
+- attack.persistence
+- attack.t1547.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_1:
+    Image|endswith: '\reg.exe'
+    CommandLine|contains: 'add'         # to avoid intersection with discovery tactic rules
+  selection_2:
+    CommandLine|contains:               # need to improve this list, there are plenty of ASEP reg keys
+    - '\software\Microsoft\Windows\CurrentVersion\Run'         # Also covers the strings "RunOnce", "RunOnceEx", "RunServices", "RunServicesOnce"
+    - '\software\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit'
+    - '\software\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell'
+    - '\software\Microsoft\Windows NT\CurrentVersion\Windows'
+    - '\software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders'
+    - '\system\CurrentControlSet\Control\SafeBoot\AlternateShell'
+  condition: all of selection_*
+fields:
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Legitimate software automatically (mostly, during installation) sets up autorun
+  keys for legitimate reasons.
+- Legitimate administrator sets up autorun keys for legitimate reasons.
+- Discord
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect unauthorized modifications to the Autostart Extensibility Points (ASEP) in the Windows registry, specifically through the use of the `reg.exe` command-line utility. ASEP keys play a significant role in the persistence of malware, as they enable programs to run automatically when a user logs in or when the system starts. The rule triggers when `reg.exe` is used to execute an `add` command that modifies registry keys associated with autostart behaviors, such as those found under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` or `HKLM\Software\Microsoft\Windows\CurrentVersion\Run`. The detection utilizes process creation logs to gather information about the command-line parameters used, offering a clear insight into potential malicious activities.
+  ### Investigation Steps
+  - Analyze recent alerts pertaining to `reg.exe` modifications by filtering process creation logs for instances where `reg.exe` was executed with the `add` command.
+  - Review the full command line and parent command line in the EDR tool to gain context on what changes were made and the process initiating the modification.
+  - Cross-reference registry changes with endpoint logs to determine if the modifications correlate with suspicious user behavior or malicious indicators.
+  - Check for any legitimate applications or administrator actions that could explain the modifications to mitigate false positives.

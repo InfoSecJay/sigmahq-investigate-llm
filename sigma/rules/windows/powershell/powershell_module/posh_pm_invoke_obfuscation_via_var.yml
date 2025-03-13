@@ -1,0 +1,36 @@
+title: Invoke-Obfuscation VAR++ LAUNCHER OBFUSCATION - PowerShell Module
+id: f3c89218-8c3d-4ba9-9974-f1d8e6a1b4a6
+related:
+- id: e54f5149-6ba3-49cf-b153-070d24679126
+  type: derived
+status: test
+description: Detects Obfuscated Powershell via VAR++ LAUNCHER
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009     # (Task27)
+author: Timur Zinniatullin, oscd.community
+date: 2020-10-13
+modified: 2024-04-05
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_module
+  definition: 0ad03ef1-f21b-4a79-8ce8-e6900c54b65b
+detection:
+  selection_4103:
+    Payload|re: '(?i)&&set.*(\{\d\}){2,}\\"\s+?-f.*&&.*cmd.*/c'     # FPs with |\/r
+  condition: selection_4103
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify obfuscated PowerShell scripts that utilize the VAR++ LAUNCHER technique, commonly employed by threat actors to evade detection. The rule focuses on detecting specific patterns in PowerShell command execution that indicate the presence of obfuscation characterized by the use of regex expressions. It looks for command strings that contain complex syntactical elements, such as embedded sets and command-line parameters, which are typical in obfuscated scripts used for executing malicious payloads. Technical data sources involved in this detection include PowerShell module logs that record the execution of scripts and associated arguments, providing insight into potentially harmful behavior when unusual or suspicious patterns are detected.
+  ### Investigation Steps
+  - Review PowerShell logs in the EDR solution to identify the specific instances of the obfuscated PowerShell commands flagged by the detection rule.
+  - Analyze the parent processes of the detected PowerShell instances to determine the source of the execution and whether it was initiated by a known legitimate application.
+  - Utilize AV and threat intelligence to check for known malicious indicators in the detected scripts, including hashes or URLs associated with the VAR++ LAUNCHER technique.
+  - Cross-reference proxy and network logs for any unusual outbound connections or data exfiltration attempts that coincide with the execution of the obfuscated PowerShell commands.

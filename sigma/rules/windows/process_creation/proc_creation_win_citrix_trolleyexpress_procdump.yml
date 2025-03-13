@@ -1,0 +1,52 @@
+title: Process Access via TrolleyExpress Exclusion
+id: 4c0aaedc-154c-4427-ada0-d80ef9c9deb6
+status: test
+description: Detects a possible process memory dump that uses the white-listed Citrix
+  TrolleyExpress.exe filename as a way to dump the lsass process memory
+references:
+- https://twitter.com/_xpn_/status/1491557187168178176
+- https://www.youtube.com/watch?v=Ie831jF0bb0
+author: Florian Roth (Nextron Systems)
+date: 2022-02-10
+modified: 2022-05-13
+tags:
+- attack.defense-evasion
+- attack.t1218.011
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains:
+      # We assume that the lsass.exe process has a process ID that's between 700 and 999 and the dumper uses just the PID as parameter
+    - '\TrolleyExpress 7'
+    - '\TrolleyExpress 8'
+    - '\TrolleyExpress 9'
+    - '\TrolleyExpress.exe 7'
+    - '\TrolleyExpress.exe 8'
+    - '\TrolleyExpress.exe 9'
+      # Common dumpers
+    - '\TrolleyExpress.exe -ma '
+  renamed:
+    Image|endswith: '\TrolleyExpress.exe'
+  filter_renamed:
+    OriginalFileName|contains: 'CtxInstall'
+  filter_empty:
+    OriginalFileName:
+  condition: selection or ( renamed and not 1 of filter* )
+fields:
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious behaviors involving the legitimate process `TrolleyExpress.exe` used in Windows environments, particularly in Citrix applications. The rule is designed to flag instances where the TrolleyExpress process may be used to access the memory of the `lsass.exe` process, a crucial component of the Windows operating system that handles sensitive credentials. The rule specifically looks for command-line invocations that include process IDs (PIDs) indicative of `lsass.exe` memory dumps (typically between 700 and 999) or common options associated with memory dumping such as `-ma`. The technical data sources involved include process creation logs that capture command lines and parent command lines of executed processes.
+  ### Investigation Steps
+  - Examine the relevant process creation logs in your EDR solution to identify any alerts triggered by the detection rule, focusing on the command lines that involved `TrolleyExpress.exe`.
+  - Analyze the parent process of `TrolleyExpress.exe` to determine its origin and whether it was launched by a legitimate process or potentially malicious actor.
+  - Check for any prior compromised activity related to the user or system to see if there were earlier indicators of compromise that may correlate with this alert.
+  - Utilize network traffic logs from the NDR or firewall to assess any suspicious outgoing connections that may have been initiated by the processes involved, especially those associated with credential access.

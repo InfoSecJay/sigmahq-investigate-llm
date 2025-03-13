@@ -1,0 +1,39 @@
+title: Uncommon Network Connection Initiated By Certutil.EXE
+id: 0dba975d-a193-4ed1-a067-424df57570d1
+status: test
+description: |
+  Detects a network connection initiated by the certutil.exe utility.
+  Attackers can abuse the utility in order to download malware or additional payloads.
+references:
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/certutil
+author: frack113, Florian Roth (Nextron Systems)
+date: 2022-09-02
+modified: 2024-05-31
+tags:
+- attack.command-and-control
+- attack.t1105
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\certutil.exe'
+    Initiated: 'true'
+    DestinationPort:
+    - 80
+    - 135
+    - 443
+    - 445
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The detection rule identifies unusual network connections initiated by the `certutil.exe` utility, a built-in Windows command-line tool primarily used for managing certificates. Attackers may exploit this utility to covertly download malware or additional payloads from the internet, making it crucial to monitor its network activity. This rule focuses on connections where `certutil.exe` is the initiating process, specifically tracking outbound traffic on common service ports like 80 (HTTP), 443 (HTTPS), and others. Key technical data sources involved in this detection include network connection logs that capture details about process initiations, process images, and destination ports.
+  By flagging these suspicious outbound connections, incident responders can investigate potential command-and-control (C2) activities, allowing for quicker identification and mitigation of security threats associated with malware distribution.
+  ### Investigation Steps
+  - Utilize EDR solutions to search for instances of `certutil.exe` running on endpoints during the time frame of the alert and analyze the associated command-line parameters for suspicious file downloads.
+  - Review network logs in the SIEM to identify other processes that may have communicated with the same IP addresses or domains as reported by the alert to understand the full scope of the potential threat.
+  - Check firewall and proxy logs to see if the common ports (80, 443, etc.) were used for outbound traffic and whether there were any associated anomalies, such as unexpected domains or frequent requests.
+  - Cross-reference affected endpoints with AV and endpoint logs to determine if any security solutions flagged malicious activity or detections around the time the `certutil.exe` connections occurred.

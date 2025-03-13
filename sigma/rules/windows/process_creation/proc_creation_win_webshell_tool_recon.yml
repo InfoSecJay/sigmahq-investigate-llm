@@ -1,0 +1,60 @@
+title: Webshell Tool Reconnaissance Activity
+id: f64e5c19-879c-4bae-b471-6d84c8339677
+status: test
+description: |
+  Detects processes spawned from web servers (PHP, Tomcat, IIS, etc.) that perform reconnaissance looking for the existence of popular scripting tools (perl, python, wget) on the system via the help commands
+references:
+- https://ragged-lab.blogspot.com/2020/07/webshells-automating-reconnaissance.html
+author: Cian Heasley, Florian Roth (Nextron Systems)
+date: 2020-07-22
+modified: 2023-11-09
+tags:
+- attack.persistence
+- attack.t1505.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_webserver_image:
+    ParentImage|endswith:
+    - '\caddy.exe'
+    - '\httpd.exe'
+    - '\nginx.exe'
+    - '\php-cgi.exe'
+    - '\w3wp.exe'
+    - '\ws_tomcatservice.exe'
+  selection_webserver_characteristics_tomcat1:
+    ParentImage|endswith:
+    - '\java.exe'
+    - '\javaw.exe'
+    ParentImage|contains:
+    - '-tomcat-'
+    - '\tomcat'
+  selection_webserver_characteristics_tomcat2:
+    ParentImage|endswith:
+    - '\java.exe'
+    - '\javaw.exe'
+    CommandLine|contains:
+    - 'CATALINA_HOME'
+    - 'catalina.jar'
+  selection_recon:
+    CommandLine|contains:
+    - 'perl --help'
+    - 'perl -h'
+    - 'python --help'
+    - 'python -h'
+    - 'python3 --help'
+    - 'python3 -h'
+    - 'wget --help'
+  condition: 1 of selection_webserver_* and selection_recon
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious reconnaissance activities originating from web server processes, specifically those tied to popular platforms such as PHP, Tomcat, and IIS. The rule focuses on identifying processes that are spawned from a web server image and subsequently attempt to execute commands typically associated with reconnaissance tools, such as `perl`, `python`, and `wget`. It analyzes process creation logs, particularly the parent image and command-line arguments, to identify processes that fit these criteria. By monitoring the command-line parameters for help commands (e.g., `--help`), the rule aims to catch potential attackers in the early stages of exploiting web server vulnerabilities to enumerate available tools and scripts.
+  ### Investigation Steps
+  - Review EDR logs to identify the running processes and their parent processes at the time of the alert, confirming if the suspected web server process spawned any reconnaissance activities.
+  - Analyze command-line arguments associated with the flagged process in order to determine whether any malicious scripts or tools were being sought via help commands.
+  - Check for any unusual outbound connections or data exfiltration attempts in the NDR or Proxy logs at the time of the alert to further assess potential malicious activity.
+  - If applicable, consult cloud logs (AWS, GCP, Azure) to establish whether any web servers hosted in cloud environments exhibited similar behaviors, broadening the investigation's scope if necessary.

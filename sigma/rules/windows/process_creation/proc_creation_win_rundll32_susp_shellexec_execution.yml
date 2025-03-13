@@ -1,0 +1,50 @@
+title: Suspicious Usage Of ShellExec_RunDLL
+id: d87bd452-6da1-456e-8155-7dc988157b7d
+related:
+- id: 36c5146c-d127-4f85-8e21-01bf62355d5a
+  type: obsolete
+- id: 8823e85d-31d8-473e-b7f4-92da070f0fc6
+  type: similar
+status: test
+description: Detects suspicious usage of the ShellExec_RunDLL function to launch other
+  commands as seen in the the raspberry-robin attack
+references:
+- https://redcanary.com/blog/raspberry-robin/
+- https://www.microsoft.com/en-us/security/blog/2022/10/27/raspberry-robin-worm-part-of-larger-ecosystem-facilitating-pre-ransomware-activity/
+- https://github.com/SigmaHQ/sigma/issues/1009
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-01
+modified: 2022-12-30
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_openasrundll:
+    CommandLine|contains: 'ShellExec_RunDLL'
+  selection_suspcli:
+    CommandLine|contains:
+            # Note: The ordinal number may differ depending on the DLL version
+    - '\Desktop\'
+    - '\Temp\'
+    - '\Users\Public\'
+    - 'comspec'
+    - 'iex'
+    - 'Invoke-'
+    - 'msiexec'
+    - 'odbcconf'
+    - 'regsvr32'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Suspicious Usage Of ShellExec_RunDLL" detection rule identifies potential malicious behavior linked to the ShellExec_RunDLL function in Windows. This function is often exploited by attackers to execute arbitrary commands, especially in the context of the Raspberry Robin attack, which is known for pre-ransomware activities. The rule operates by scanning process creation logs for command-line arguments that specifically invoke the ShellExec_RunDLL function alongside other suspicious parameters. Key indicators include specific file paths (like `\Desktop\`, `\Temp\`, and `\Users\Public\`) or commands associated with known reconnaissance and exploitation tools (such as `msiexec`, `regsvr32`, and `Invoke-*`), which can signify malicious intents or behaviors.
+  By focusing on these specific command-line patterns, security operations teams can detect anomalous uses of legitimate system functionality while evaluating potential threats before they escalate into significant incidents.
+  ### Investigation Steps
+  - Review EDR process creation logs for instances of `ShellExec_RunDLL`, paying close attention to the command-line parameters that triggered the alert.
+  - Correlate events with other security tools such as AV logs and NGFW logs to check for known indicators of compromise related to the Raspberry Robin attack.
+  - Investigate the file paths mentioned in the command-line arguments to ensure they are legitimate and have not been tampered with or used by unauthorized entities.
+  - Utilize cloud security logs (if applicable) from AWS, GCP, or Azure to determine if any related or suspicious activities coincide with the timing of the detected event.

@@ -1,0 +1,38 @@
+title: Remote Access Tool - ScreenConnect Remote Command Execution
+id: b1f73849-6329-4069-bc8f-78a604bb8b23
+status: test
+description: Detects the execution of a system command via the ScreenConnect RMM service.
+references:
+- https://github.com/SigmaHQ/sigma/pull/4467
+author: Ali Alwashali
+date: 2023-10-10
+modified: 2024-02-26
+tags:
+- attack.execution
+- attack.t1059.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|endswith: '\ScreenConnect.ClientService.exe'
+  selection_img:
+  - Image|endswith: '\cmd.exe'
+  - OriginalFileName: 'Cmd.Exe'
+  selection_cli:
+        # Example:
+        #   CommandLine: "cmd.exe" /c "C:\Windows\TEMP\ScreenConnect\23.6.8.8644\3c41d689-bbf5-4216-b2f4-ba8fd6192c25run.cmd"
+    CommandLine|contains: '\TEMP\ScreenConnect\'
+  condition: all of selection_*
+falsepositives:
+- Legitimate use of ScreenConnect. Disable this rule if ScreenConnect is heavily used.
+# Note: Increase the level if you don't leverage ScreenConnect
+level: low
+notes: |
+  ### Technical Context
+  This Sigma detection rule identifies potential remote command execution via the ScreenConnect Remote Management and Support (RMM) service. The rule focuses on processes that are launched as subprocesses of the ScreenConnect Client Service (`ScreenConnect.ClientService.exe`) and involve the execution of the Windows command line interpreter (`cmd.exe`). It specifically monitors for command-line parameters that indicate execution attempts involving temporary files within the ScreenConnect directory. By analyzing process creation logs for these patterns, the rule helps detect potentially malicious behaviors that leverage legitimate remote access tools, specifically targeting unusual command executions that may indicate misuse.
+  ### Investigation Steps
+  - Use your EDR tool to review process creation logs, specifically looking for instances of `cmd.exe` with a parent process of `ScreenConnect.ClientService.exe`.
+  - Analyze the command-line parameters associated with the detected process to determine if any malicious activity (such as unauthorized script execution) is taking place within the ScreenConnect temporary directory.
+  - Check network traffic logs on the NGFW or NDR for any suspicious outbound connections that could be associated with the command execution.
+  - Consult the proxy logs to identify whether there were any unusual web requests or downloads related to the ScreenConnect service preceding the alert.

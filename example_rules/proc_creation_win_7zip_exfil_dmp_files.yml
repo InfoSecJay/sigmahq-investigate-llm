@@ -1,0 +1,47 @@
+title: 7Zip Compressing Dump Files
+id: ec570e53-4c76-45a9-804d-dc3f355ff7a7
+related:
+- id: 1ac14d38-3dfc-4635-92c7-e3fd1c5f5bfc
+  type: derived
+status: test
+description: Detects execution of 7z in order to compress a file with a ".dmp"/".dump"
+  extension, which could be a step in a process of dump file exfiltration.
+references:
+- https://thedfirreport.com/2022/09/26/bumblebee-round-two/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-27
+modified: 2023-09-12
+tags:
+- attack.collection
+- attack.t1560.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Description|contains: '7-Zip'
+  - Image|endswith:
+    - '\7z.exe'
+    - '\7zr.exe'
+    - '\7za.exe'
+  - OriginalFileName:
+    - '7z.exe'
+    - '7za.exe'
+  selection_extension:
+    CommandLine|contains:
+    - '.dmp'
+    - '.dump'
+    - '.hdmp'
+  condition: all of selection_*
+falsepositives:
+- Legitimate use of 7z with a command line in which ".dmp" or ".dump" appears accidentally
+- Legitimate use of 7z to compress WER ".dmp" files for troubleshooting
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule monitors the execution of the 7-Zip archiving tool on Windows systems, specifically focusing on instances where it is used to compress files with extensions such as `.dmp`, `.dump`, or `.hdmp`. These extensions are commonly associated with memory dump files that may contain sensitive information, making them a target for exfiltration. The rule captures this activity by analyzing process creation logs, looking for specific command-line parameters that indicate the presence of these file types combined with the invocation of `7z.exe`, `7zr.exe`, or `7za.exe`. By flagging these occurrences, the rule helps to identify potentially malicious behavior related to data exfiltration or unauthorized file handling.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR to identify the source of the 7-Zip execution, including user accounts, associated processes, and execution timestamps.
+  - Analyze the command-line arguments used during the execution to confirm whether the compression was legitimate or if it specifically targeted sensitive dump files.
+  - Check for any related network activities or unusual data transfers in the NDR logs to see if the compressed files were uploaded or sent externally after the 7-Zip execution.
+  - Cross-reference any user activities around the time of the alert with logs from the Proxy or VPN to identify any remote access that may indicate attempted data exfiltration.

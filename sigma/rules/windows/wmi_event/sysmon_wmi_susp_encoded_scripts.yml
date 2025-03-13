@@ -1,0 +1,38 @@
+title: Suspicious Encoded Scripts in a WMI Consumer
+id: 83844185-1c5b-45bc-bcf3-b5bf3084ca5b
+status: test
+description: Detects suspicious encoded payloads in WMI Event Consumers
+references:
+- https://github.com/RiccardoAncarani/LiquidSnake
+author: Florian Roth (Nextron Systems)
+date: 2021-09-01
+modified: 2022-10-09
+tags:
+- attack.execution
+- attack.t1047
+- attack.persistence
+- attack.t1546.003
+logsource:
+  product: windows
+  category: wmi_event
+detection:
+  selection_destination:
+    Destination|base64offset|contains:
+    - 'WriteProcessMemory'
+    - 'This program cannot be run in DOS mode'
+    - 'This program must be run under Win32'
+  condition: selection_destination
+fields:
+- User
+- Operation
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The rule titled "Suspicious Encoded Scripts in a WMI Consumer" aims to detect potentially malicious activity utilizing Windows Management Instrumentation (WMI) as a method for executing encoded scripts. Specifically, it focuses on WMI Event Consumers that contain suspicious payloads often seen in the exploitation of the WMI framework for unauthorized purposes. The detection mechanism is built to identify specific encoded strings such as 'WriteProcessMemory'—a function that is often used in code injection attacks—and other messages indicative of attempts to run scripts in unsupported environments. The primary data sources leveraged by this rule are WMI event logs, which provide visibility into executed commands and scripts spawned by WMI components, allowing analysts to pinpoint potential misuse of the WMI infrastructure for nefarious objectives.
+  ### Investigation Steps
+  - Query the EDR tool for any process creation events that have recently executed WMI scripts, especially those matching the encoded strings identified in the alert.
+  - Check for historical activity within the WMI namespace to identify if any unauthorized alterations to WMI event consumers are present.
+  - Review network traffic logs in the NDR for any outbound connections that may be initiated by suspicious processes linked to the identified WMI activity.
+  - Analyze user activity logs to establish a timeline of the user's actions leading to the alert, ensuring to correlate any anomalies with legitimate usage patterns.

@@ -1,0 +1,34 @@
+title: Data Copied To Clipboard Via Clip.EXE
+id: ddeff553-5233-4ae9-bbab-d64d2bd634be
+status: test
+description: Detects the execution of clip.exe in order to copy data to the clipboard.
+  Adversaries may collect data stored in the clipboard from users copying information
+  within or between applications.
+references:
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/clip
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1115/T1115.md
+author: frack113
+date: 2021-07-27
+modified: 2023-02-21
+tags:
+- attack.collection
+- attack.t1115
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\clip.exe'
+  - OriginalFileName: clip.exe
+  condition: selection
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the execution of `clip.exe`, a built-in Windows utility used for copying data to the clipboard. Adversaries may leverage this tool to exfiltrate sensitive information from the clipboard, such as passwords or proprietary data, which users may inadvertently copy from applications. The rule specifically looks for process creation events where the executed image ends with `\clip.exe` and verifies the original filename of the process to ensure it corresponds to `clip.exe`. The primary data source involved in this detection is the process creation log, which captures details about processes that are initiated on Windows systems.
+  ### Investigation Steps
+  - Review process creation logs using your EDR solution to find instances of `clip.exe` execution, focusing on timestamps and user accounts associated with the activity.
+  - Check any related process tree activity to identify processes that may have copied sensitive information to the clipboard prior to the execution of `clip.exe`.
+  - Analyze the clipboard contents if possible, especially when the alert coincides with sensitive application usage, to determine what data may have been collected.
+  - Correlate the identified instances with user activity logs to see if there were any unauthorized attempts to access or copy critical data around the same time.

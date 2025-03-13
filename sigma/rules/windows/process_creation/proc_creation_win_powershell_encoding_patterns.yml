@@ -1,0 +1,63 @@
+title: Potential Encoded PowerShell Patterns In CommandLine
+id: cdf05894-89e7-4ead-b2b0-0a5f97a90f2f
+related:
+- id: 5b572dcf-254b-425c-a8c5-d9af6bea35a6
+  type: similar
+status: test
+description: Detects specific combinations of encoding methods in PowerShell via the
+  commandline
+references:
+- https://speakerdeck.com/heirhabarov/hunting-for-powershell-abuse?slide=65
+author: Teymur Kheirkhabarov (idea), Vasiliy Burov (rule), oscd.community, Tim Shelton
+date: 2020-10-11
+modified: 2023-01-26
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+  - OriginalFileName:
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+  selection_to_1:
+    CommandLine|contains:
+    - 'ToInt'
+    - 'ToDecimal'
+    - 'ToByte'
+    - 'ToUint'
+    - 'ToSingle'
+    - 'ToSByte'
+  selection_to_2:
+    CommandLine|contains:
+    - 'ToChar'
+    - 'ToString'
+    - 'String'
+  selection_gen_1:
+    CommandLine|contains|all:
+    - 'char'
+    - 'join'
+  selection_gen_2:
+    CommandLine|contains|all:
+    - 'split'
+    - 'join'
+  condition: selection_img and (all of selection_to_* or 1 of selection_gen_*)
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potentially malicious use of PowerShell by analyzing command-line parameters for specific encoding patterns. The rule focuses on command-line strings associated with PowerShell executions (i.e., `powershell.exe` and `pwsh.exe`) that utilize particular functions or methods such as `ToInt`, `ToChar`, and `split`. These functions can be indicative of encoded commands, commonly used for obfuscating malicious scripts and evading detection mechanisms.
+  The primary data sources involved in this detection include process creation logs that capture the details of executed commands, along with their corresponding parameters. By focusing on how the command is constructed, the rule aims to detect suspicious patterns that may suggest an attempt to perform actions such as payload decoding or data manipulation, which are characteristic of adversarial tactics.
+  ### Investigation Steps
+  - Review recent PowerShell execution logs within the EDR to determine the context and source of the command line that triggered the alert.
+  - Analyze command-line arguments for patterns indicative of encoding techniques, and check for any associated file paths that could reveal the origin of the executed scripts.
+  - Correlate findings with network traffic logs from NDR to identify any outbound connections that may have been initiated following the suspicious command execution.
+  - Utilize the SIEM to investigate alerts related to anomalies from user accounts or devices that executed the flagged PowerShell commands, ensuring to look for previously established baselines.

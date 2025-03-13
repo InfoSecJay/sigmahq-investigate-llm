@@ -1,0 +1,39 @@
+title: Potential Amazon SSM Agent Hijacking
+id: d20ee2f4-822c-4827-9e15-41500b1fff10
+status: test
+description: Detects potential Amazon SSM agent hijack attempts as outlined in the
+  Mitiga research report.
+references:
+- https://www.mitiga.io/blog/mitiga-security-advisory-abusing-the-ssm-agent-as-a-remote-access-trojan
+- https://www.bleepingcomputer.com/news/security/amazons-aws-ssm-agent-can-be-used-as-post-exploitation-rat-malware/
+- https://www.helpnetsecurity.com/2023/08/02/aws-instances-attackers-access/
+author: Muhammad Faisal
+date: 2023-08-02
+tags:
+- attack.command-and-control
+- attack.persistence
+- attack.t1219
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\amazon-ssm-agent.exe'
+    CommandLine|contains|all:
+    - '-register '
+    - '-code '
+    - '-id '
+    - '-region '
+  condition: selection
+falsepositives:
+- Legitimate activity of system administrators
+level: medium
+notes: |
+  ### Technical Context
+  The "Potential Amazon SSM Agent Hijacking" detection rule is designed to identify suspicious activities related to the Amazon Systems Manager (SSM) Agent on Windows systems. The rule looks for instances where the SSM Agent executable (`amazon-ssm-agent.exe`) is invoked with specific command-line parameters that may indicate an attempt to hijack the agent for malicious purposes. These parameters include options to register the agent with custom codes or identifiers, which could suggest a compromise with the intention of facilitating unauthorized remote access. The primary technical data sources for this detection include process creation logs which capture details about executed processes and their associated command-line arguments.
+  By monitoring these indicators, the rule provides valuable context for analysts to differentiate between legitimate administrative actions and potential misuse of the SSM agent for executing unauthorized commands or maintaining persistence in a compromised environment.
+  ### Investigation Steps
+  - Review process creation logs within EDR tools to identify the source and behavior of the `amazon-ssm-agent.exe` process and analyze the context of when it was executed.
+  - Examine network traffic logs and connections established by the SSM agent to detect any anomalous communication patterns indicative of command-and-control operations.
+  - Check for any unauthorized configuration changes or unusual command executions associated with the SSM agent in AWS CloudTrail logs to assess the extent of potential compromise.
+  - Correlate findings with other data sources, such as AV or NDR logs, to determine if there is any evidence of malware or unusual activity on the host that could be linked to the suspicious SSM agent actions.

@@ -1,0 +1,47 @@
+title: Account Tampering - Suspicious Failed Logon Reasons
+id: 9eb99343-d336-4020-a3cd-67f3819e68ee
+status: test
+description: This method uses uncommon error codes on failed logons to determine suspicious
+  activity and tampering with accounts that have been disabled or somehow restricted.
+references:
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4625
+- https://twitter.com/SBousseaden/status/1101431884540710913
+author: Florian Roth (Nextron Systems)
+date: 2017-02-19
+modified: 2022-06-29
+tags:
+- attack.persistence
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.initial-access
+- attack.t1078
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID:
+    - 4625
+    - 4776
+    Status:
+    - '0xC0000072'          # User logon to account disabled by administrator
+    - '0xC000006F'          # User logon outside authorized hours
+    - '0xC0000070'          # User logon from unauthorized workstation
+    - '0xC0000413'          # Logon Failure: The machine you are logging onto is protected by an authentication firewall. The specified account is not allowed to authenticate to the machine
+    - '0xC000018C'          # The logon request failed because the trust relationship between the primary domain and the trusted domain failed
+    - '0xC000015B'          # The user has not been granted the requested logon type (aka logon right) at this machine
+  filter:
+    SubjectUserSid: 'S-1-0-0'
+  condition: selection and not filter
+falsepositives:
+- User using a disabled account
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious attempts to access disabled or restricted user accounts by analyzing specific error codes associated with failed logons in Windows security logs. The rule focuses on Event IDs 4625 and 4776, which record failed login attempts. It looks for certain status codes that indicate unusual circumstances under which the login failures occurred. These codes can suggest numerous red flags, such as attempts to log into an account that is disabled, logons occurring outside of allowed hours, or attempts to authenticate from unauthorized workstations. This rule helps SOC analysts detect suspicious account tampering activities that could be indicative of an ongoing attack or internal misuse.
+  The rule utilizes Windows security log data, particularly focusing on event logs that capture the details of login attempts, including error codes that provide context around the failure. By identifying these uncommon error codes, the detection mechanism can signal a higher risk of unauthorized access attempts, prompting further investigation into the affected accounts.
+  ### Investigation Steps
+  - Review the events recorded in the Windows security logs to verify the failed logon attempts and the corresponding error codes related to the flagged accounts.
+  - Utilize EDR tools to analyze the context of the failed logon attempts, such as the originating IP addresses and whether any suspicious processes were running on the endpoints involved.
+  - Check AV and NDR logs for any potential indicators of compromise or unusual network activity associated with the accounts in question around the time of the login failures.
+  - Investigate any corresponding Proxy logs or cloud authentication records to see if there has been unusual access behavior from other services or applications that might indicate an attempt to circumvent access controls.

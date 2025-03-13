@@ -1,0 +1,44 @@
+title: PowerShell Script Run in AppData
+id: ac175779-025a-4f12-98b0-acdaeb77ea85
+status: test
+description: Detects a suspicious command line execution that invokes PowerShell with
+  reference to an AppData folder
+references:
+- https://twitter.com/JohnLaTwC/status/1082851155481288706
+- https://app.any.run/tasks/f87f1c4e-47e2-4c46-9cf4-31454c06ce03
+author: Florian Roth (Nextron Systems), Jonhnathan Ribeiro, oscd.community
+date: 2019-01-09
+modified: 2022-07-14
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection1:
+    CommandLine|contains:
+    - 'powershell.exe'
+    - '\powershell'
+    - '\pwsh'
+    - 'pwsh.exe'
+  selection2:
+    CommandLine|contains|all:
+    - '/c '
+    - '\AppData\'
+    CommandLine|contains:
+    - 'Local\'
+    - 'Roaming\'
+  condition: all of selection*
+falsepositives:
+- Administrative scripts
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious behavior involving PowerShell scripts executed from the AppData directory, which can be a common method employed by attackers to evade detection. The rule looks for specific command-line executions that invoke PowerShell or its variants (like pwsh.exe) while referencing the AppData path, suggesting that the script may be designed to execute hidden or unauthorized operations. The technical data sources utilized for this rule include Windows process creation logs, which capture command-line parameters, enabling the detection of suspicious activities that deviate from typical administrative use.
+  The focus on the AppData directory is critical, as this location is often leveraged by threat actors to store and execute scripts without raising alarms. The presence of command-line arguments such as `/c` and references to the 'Local' or 'Roaming' subdirectories further narrows down the search to more likely indicators of a security incident. Monitoring for such behaviors allows security teams to quickly identify and respond to potential threats.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify instances of the executed PowerShell command with the specified parameters.
+  - Examine the related command-line arguments for each identified process to determine if they are indicative of malicious intent or typical administrative tasks.
+  - Analyze the files located in the AppData directory to ascertain the content and legitimacy of any PowerShell scripts executed from there.
+  - Cross-reference with other IAM or proxy logs to determine if any unauthorized external connections were attempted during the time of the suspicious PowerShell execution.

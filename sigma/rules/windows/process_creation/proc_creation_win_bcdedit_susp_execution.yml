@@ -1,0 +1,39 @@
+title: Potential Ransomware or Unauthorized MBR Tampering Via Bcdedit.EXE
+id: c9fbe8e9-119d-40a6-9b59-dd58a5d84429
+status: test
+description: Detects potential malicious and unauthorized usage of bcdedit.exe
+references:
+- https://learn.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set
+- https://twitter.com/malwrhunterteam/status/1372536434125512712/photo/2
+author: '@neu5ron'
+date: 2019-02-07
+modified: 2023-02-15
+tags:
+- attack.defense-evasion
+- attack.t1070
+- attack.persistence
+- attack.t1542.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\bcdedit.exe'
+  - OriginalFileName: 'bcdedit.exe'
+  selection_cli:
+    CommandLine|contains:
+    - 'delete'
+    - 'deletevalue'
+    - 'import'
+    - 'safeboot'
+    - 'network'
+  condition: all of selection_*
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Potential Ransomware or Unauthorized MBR Tampering Via Bcdedit.EXE" focuses on detecting suspicious activities involving `bcdedit.exe`, a legitimate Windows tool used for managing the Boot Configuration Data. The rule is designed to alert when potential malicious or unauthorized commands are issued through `bcdedit.exe`, such as modifying boot settings or performing operations that may indicate an attempt to tamper with the Master Boot Record (MBR), a common behavior seen in ransomware. Specifically, this detection leverages process creation logs to identify instances of `bcdedit.exe` being executed with high-risk command-line parameters such as 'delete', 'deletevalue', 'import', and variations associated with 'safeboot', which could indicate a malicious intent. By scrutinizing these parameters alongside the legitimate executable name, the rule aims to filter out benign uses from potentially harmful actions.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify occurrences of `bcdedit.exe` running with the noted command-line parameters, focusing on the user account associated with the execution.
+  - Correlate the timestamps of the detected activity with other security logs (such as Firewall or AV logs) to uncover potential related malicious behaviors or indicators of compromise.
+  - Check the system event logs for any unauthorized changes to the boot settings or any additional suspicious processes that were executed around the same time as `bcdedit.exe`.
+  - If available, analyze network traffic logs from your NDR solution for outbound connections initiated by the affected hosts shortly after the rule was triggered to identify any command-and-control communication.

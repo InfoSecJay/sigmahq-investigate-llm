@@ -1,0 +1,65 @@
+title: Potential Persistence Attempt Via Existing Service Tampering
+id: 38879043-7e1e-47a9-8d46-6bec88e201df
+status: test
+description: Detects the modification of an existing service in order to execute an
+  arbitrary payload when the service is started or killed as a potential method for
+  persistence.
+references:
+- https://pentestlab.blog/2020/01/22/persistence-modify-existing-service/
+author: Sreeman
+date: 2020-09-29
+modified: 2023-02-04
+tags:
+- attack.persistence
+- attack.t1543.003
+- attack.t1574.011
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_sc:
+  - CommandLine|contains|all:
+    - 'sc '
+    - 'config '
+    - 'binpath='
+  - CommandLine|contains|all:
+    - 'sc '
+    - 'failure'
+    - 'command='
+  selection_reg_img:
+  - CommandLine|contains|all:
+    - 'reg '
+    - 'add '
+    - 'FailureCommand'
+  - CommandLine|contains|all:
+    - 'reg '
+    - 'add '
+    - 'ImagePath'
+  selection_reg_ext:
+    CommandLine|contains:
+    - '.sh'
+    - '.exe'
+    - '.dll'
+    - '.bin$'
+    - '.bat'
+    - '.cmd'
+    - '.js'
+    - '.msh$'
+    - '.reg$'
+    - '.scr'
+    - '.ps'
+    - '.vb'
+    - '.jar'
+    - '.pl'
+  condition: selection_sc or all of selection_reg_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule aims to detect potential persistence mechanisms that involve tampering with existing Windows services. Attackers may manipulate services to execute arbitrary payloads whenever the service is started or interrupted, enabling persistent access to compromised systems. The rule specifically monitors command line arguments used with the `sc` command (for managing Windows services) and the `reg` command (for modifying the Windows registry). Key indicators include configurations that modify service binary paths or implement failure commands that trigger payload execution. In summary, this rule leverages process creation logs to identify suspicious service management activities that may indicate an attempt to establish persistence on Windows systems.
+  ### Investigation Steps
+  - Review EDR logs for the identified process creation events, focusing on the command lines associated with service modifications to determine the source and legitimacy of the commands.
+  - Analyze the Windows service configurations using the `sc query` command to confirm whether any unauthorized changes were made to service binary paths or failure commands.
+  - Check the relevant registry keys for modifications made via the `reg add` command to validate if malicious image paths or failure commands have been set.
+  - Cross-reference the command line arguments and modified services with known software and compliance standards to rule out false positives or benign activities.

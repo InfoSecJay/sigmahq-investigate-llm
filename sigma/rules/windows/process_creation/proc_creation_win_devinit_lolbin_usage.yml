@@ -1,0 +1,36 @@
+title: Arbitrary MSI Download Via Devinit.EXE
+id: 90d50722-0483-4065-8e35-57efaadd354d
+status: test
+description: Detects a certain command line flag combination used by "devinit.exe",
+  which can be abused as a LOLBIN to download arbitrary MSI packages on a Windows
+  system
+references:
+- https://twitter.com/mrd0x/status/1460815932402679809
+- https://lolbas-project.github.io/lolbas/OtherMSBinaries/Devinit/
+author: Florian Roth (Nextron Systems)
+date: 2022-01-11
+modified: 2023-04-06
+tags:
+- attack.execution
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - ' -t msi-install '
+    - ' -i http'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious behavior related to the `devinit.exe` executable, which is often found on Windows systems. The specific command-line parameters it looks for indicate an attempt to download and install a Microsoft Installer (MSI) package from an HTTP source using the flags `-t msi-install` and `-i http`. This capability can be exploited as a living off the land binary (LOLBIN), allowing threat actors to utilize legitimate tools for executing malicious payloads without raising immediate suspicion. The rule leverages process creation logs to monitor command-line activities associated with `devinit.exe`, helping to detect abnormal or unauthorized use of this utility.
+  ### Investigation Steps
+  - Use EDR tools to analyze the execution history of `devinit.exe` on affected systems, noting the context and timing of the execution.
+  - Review process creation logs to identify additional command-line arguments used with `devinit.exe` that may indicate malicious activity or other unusual patterns.
+  - Inspect network logs from the NGFW or Proxy for any HTTP requests made to the IP addresses or domains specified in the detected command line, verifying if these requests correspond to known malicious indicators.
+  - Check for the presence of newly installed MSI packages on the system using system logs or file monitoring to assess the impact of the command and whether any changes were made during the execution.

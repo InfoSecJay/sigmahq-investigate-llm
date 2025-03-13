@@ -1,0 +1,37 @@
+title: Sysmon Configuration Update
+id: 87911521-7098-470b-a459-9a57fc80bdfd
+status: test
+description: Detects updates to Sysmon's configuration. Attackers might update or
+  replace the Sysmon configuration with a bare bone one to avoid monitoring without
+  shutting down the service completely
+references:
+- https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-03-09
+modified: 2024-03-13
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_pe:
+  - Image|endswith:
+    - \Sysmon64.exe
+    - \Sysmon.exe
+  - Description: 'System activity monitor'
+  selection_cli:
+    CommandLine|contains|windash: '-c'
+  condition: all of selection_*
+falsepositives:
+- Legitimate administrators might use this command to update Sysmon configuration.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify unauthorized updates to the Sysinternals Sysmon configuration on Windows systems. Sysmon (System Monitor) is a Windows service and device driver that logs system activity, which is vital for incident detection and forensic analysis. The rule specifically looks for process creation events where the Sysmon executable (either Sysmon.exe or Sysmon64.exe) is run with a command-line argument containing `-c`. This indicates that an operator is attempting to change the current Sysmon configuration, potentially in a malicious manner to reduce visibility into system activities. The rule leverages process creation logs as its primary data source to flag unusual Sysmon configuration updates, which could signal an attempt to evade detection by security monitors.
+  ### Investigation Steps
+  - Review process creation logs in the EDR to confirm the execution of Sysmon with the `-c` parameter, noting the related user context and timestamps.
+  - Analyze command-line arguments associated with the Sysmon process to determine if the changes were made with suspicious intent or if they were legitimate administrative actions.
+  - Cross-reference the event with logs from your SIEM to identify any preceding suspicious activities or associated alerts that provide context for the Sysmon configuration change.
+  - Check the Sysmon configuration file to assess its contents and determine if it has been altered to reduce monitoring capabilities.

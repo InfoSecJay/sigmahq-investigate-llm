@@ -1,0 +1,41 @@
+title: Potentially Suspicious GoogleUpdate Child Process
+id: 84b1ecf9-6eff-4004-bafb-bae5c0e251b2
+related:
+- id: bdbab15a-3826-48fa-a1b7-723cd8f32fcc
+  type: derived
+status: test
+description: Detects potentially suspicious child processes of "GoogleUpdate.exe"
+references:
+- https://www.ncsc.gov.uk/static-assets/documents/malware-analysis-reports/goofy-guineapig/NCSC-MAR-Goofy-Guineapig.pdf
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-15
+modified: 2023-05-22
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\GoogleUpdate.exe'
+  filter_main_known_legit:
+        # Some other legit child process might exist. It's better to make a baseline before running this in production
+  - Image|contains: '\Google'       # Example: GoogleUpdate.exe, GoogleCrashHandler.exe, GoogleUpdateComRegisterShell64.exe
+  - Image|endswith:
+    - '\setup.exe'
+    - 'chrome_updater.exe'
+    - 'chrome_installer.exe'
+  filter_main_image_null:
+    Image:
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The detection rule "Potentially Suspicious GoogleUpdate Child Process" is designed to identify suspicious activities involving child processes spawned by the legitimate GoogleUpdate.exe. This rule focuses on process creation logs, monitoring for any child processes that are initiated by GoogleUpdate.exe, particularly those that do not conform to the expected behavior of legitimate updates. Specifically, it looks for child processes that could be indicative of malicious activity, such as setups or installers that the GoogleUpdate process shouldn't typically initiate. By filtering for both known legitimate processes related to Google and potentially concerning executables (like setup.exe or various installer files), this rule aims to flag atypical behaviors that warrant further investigation.
+  ### Investigation Steps
+  - Review process creation logs in your EDR to identify instances where GoogleUpdate.exe has spawned unusual child processes. Focus on those that match the rule's criteria for suspicious activity.
+  - Check the properties of the flagged child processes, including their file path, signature, and timestamp, to determine if they are associated with legitimate Google applications.
+  - Utilize a threat intelligence platform to query the filenames or hashes of the detected child processes against known malware and exploitation frameworks for any malign indicators.
+  - Analyze network traffic and proxy logs to assess whether the suspicious child processes are communicating with any unauthorized or unknown external domains or IP addresses.

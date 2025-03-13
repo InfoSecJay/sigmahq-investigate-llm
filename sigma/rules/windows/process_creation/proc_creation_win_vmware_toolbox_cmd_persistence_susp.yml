@@ -1,0 +1,48 @@
+title: Suspicious Persistence Via VMwareToolBoxCmd.EXE VM State Change Script
+id: 236d8e89-ed95-4789-a982-36f4643738ba
+related:
+- id: 7aa4e81a-a65c-4e10-9f81-b200eb229d7d
+  type: derived
+status: test
+description: Detects execution of the "VMwareToolBoxCmd.exe" with the "script" and
+  "set" flag to setup a specific script that's located in a potentially suspicious
+  location to run for a specific VM state
+references:
+- https://bohops.com/2021/10/08/analyzing-and-detecting-a-vmtools-persistence-technique/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-06-14
+tags:
+- attack.execution
+- attack.persistence
+- attack.t1059
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_bin_img:
+  - Image|endswith: '\VMwareToolBoxCmd.exe'
+  - OriginalFileName: 'toolbox-cmd.exe'
+  selection_bin_cli:
+    CommandLine|contains|all:
+    - ' script '
+    - ' set '
+  selection_susp_paths:
+    CommandLine|contains:
+    - ':\PerfLogs\'
+    - ':\Temp\'
+    - ':\Windows\System32\Tasks\'
+    - ':\Windows\Tasks\'
+    - ':\Windows\Temp\'
+    - '\AppData\Local\Temp'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of the `VMwareToolBoxCmd.exe` process with specific command-line arguments that indicate potential abusive persistence mechanisms within virtual environments. It specifically looks for the use of the "script" and "set" flags, which are utilized to run a script file that may be stored in suspicious locations known for misuse, such as temporary directories and task folders. The detection leverages Windows process creation logs to analyze commands executed within the environment, focusing on conditions that suggest malicious intent or misuse of VMware tools often associated with actor techniques in the ATT&CK framework, particularly those linked to persistence and execution vectors.
+  ### Investigation Steps
+  - Review the EDR logs for instances of `VMwareToolBoxCmd.exe` being executed and examine the accompanying command-line arguments for the presence of "script" and "set".
+  - Investigate the specified file paths (e.g., `C:\Temp\`, `C:\PerfLogs\`, etc.) in the command-line to determine if any scripts are being invoked from suspicious locations.
+  - Cross-reference process creation events with user account activity logs to identify any unusual user behavior associated with the execution of the VMware tool.
+  - Check for any scheduled tasks or startup entries that may have been created as a result of this activity to further assess persistence mechanisms in play.

@@ -1,0 +1,32 @@
+title: Potential PowerShell Obfuscation Via WCHAR
+id: e312efd0-35a1-407f-8439-b8d434b438a6
+status: test
+description: Detects suspicious encoded character syntax often used for defense evasion
+references:
+- https://twitter.com/0gtweet/status/1281103918693482496
+author: Florian Roth (Nextron Systems)
+date: 2020-07-09
+modified: 2023-01-05
+tags:
+- attack.execution
+- attack.t1059.001
+- attack.defense-evasion
+- attack.t1027
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains: '(WCHAR)0x'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The detection rule identifies potentially malicious PowerShell commands using obfuscated characters, specifically those that include the pattern '(WCHAR)0x' in their command-line arguments. This type of obfuscation often indicates an attempt to evade detection systems by employing less common encoding techniques that may mask the actual intent of the command. The primary data source for this rule is Windows process creation logs, which capture the command-line arguments passed to any executed processes. When a command matches the specified obfuscation pattern, it raises an alert, prompting further investigation to ascertain whether it is tied to legitimate administrative tasks or is indicative of an attack.
+  ### Investigation Steps
+  - Review the affected process details in the EDR system to identify the parent process and the execution context, which may provide insights into whether the command was executed by an authorized user or script.
+  - Check the command-line arguments in the process creation logs to gather additional context about what actions the suspicious PowerShell command intended to perform.
+  - Use the SIEM to correlate the time of this alert with any other anomalous activities or alerts that may indicate a broader trend in malicious behavior within the network.
+  - Examine the PowerShell logs if available, as they may contain additional information on the execution history, such as whether the script execution policy was modified or imported external scripts.

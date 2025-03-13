@@ -1,0 +1,36 @@
+title: AMSI Bypass Pattern Assembly GetType
+id: e0d6c087-2d1c-47fd-8799-3904103c5a98
+status: test
+description: Detects code fragments found in small and obfuscated AMSI bypass PowerShell
+  scripts
+references:
+- https://www.mdsec.co.uk/2018/06/exploring-powershell-amsi-and-logging-evasion/
+- https://twitter.com/cyb3rops/status/1588574518057979905?s=20&t=A7hh93ONM7ni1Rj1jO5OaA
+author: Florian Roth (Nextron Systems)
+date: 2022-11-09
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+- attack.execution
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - '[Ref].Assembly.GetType'
+    - 'SetValue($null,$true)'
+    - 'NonPublic,Static'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule focuses on detecting obfuscated PowerShell scripts that attempt to bypass the Anti-Malware Scan Interface (AMSI) by utilizing specific code patterns. The detection method involves analyzing PowerShell script block logs for certain keywords and functions indicative of malicious behavior, particularly those related to the construction of types through the `Assembly.GetType` method. By looking for script blocks containing terms like `[Ref].Assembly.GetType`, `SetValue($null,$true)`, and `NonPublic,Static`, this rule highlights potential attempts to circumvent security measures. To successfully trigger this detection, it is crucial that Script Block Logging is enabled on the Windows environment being monitored, which allows for capturing the execution of PowerShell commands and scripts.
+  ### Investigation Steps
+  - Review triggered alerts in your SIEM or EDR tool to identify any recent execution of PowerShell scripts that correspond with the AMSI bypass patterns.
+  - Check the Command Line parameters of associated PowerShell processes in your EDR to gather context on the script execution, including any arguments passed that could indicate malicious intent.
+  - Examine Proxy and web traffic logs to identify any external connections made by the PowerShell scripts, which may indicate attempts to download further malicious payloads.
+  - Investigate related logs in your AV solution to check for any detections or anomalies that could provide insights into the execution of the obfuscating PowerShell script.

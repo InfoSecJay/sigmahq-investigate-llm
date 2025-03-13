@@ -1,0 +1,39 @@
+title: Service Started/Stopped Via Wmic.EXE
+id: 0b7163dc-7eee-4960-af17-c0cd517f92da
+status: test
+description: Detects usage of wmic to start or stop a service
+references:
+- https://sushant747.gitbooks.io/total-oscp-guide/content/privilege_escalation_windows.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-20
+modified: 2023-02-14
+tags:
+- attack.execution
+- attack.t1047
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - OriginalFileName: 'wmic.exe'
+  - Image|endswith: '\WMIC.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - ' service '
+    - ' call '
+    CommandLine|contains:
+    - 'stopservice'
+    - 'startservice'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the usage of `wmic.exe` (Windows Management Instrumentation Command-line) for starting or stopping services on a Windows system. The rule focuses on process creation logs that capture details about executed commands. Specifically, it looks for instances where `wmic.exe` is invoked with command-line parameters containing keywords such as "service," "call," "startservice," or "stopservice." By monitoring these actions, the rule aims to detect potential unauthorized or malicious attempts to manipulate system services, which can be indicative of privilege escalation or other malicious activities conducted by actors seeking to gain control over system functionalities.
+  This detection relies on key technical data sources, including process creation logs that provide insights about command executions and their parameters. Investigators should be aware that while `wmic.exe` is a legitimate system tool, its misuse can signify nefarious intentions, such as service disruption or unauthorized access to system functionalities.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR tool to identify the source of the `wmic.exe` execution and the user context under which it was run.
+  - Examine command-line arguments associated with the `wmic.exe` process to determine the specific service actions performed, looking for indications of unauthorized service manipulations.
+  - Check for correlating events in the event logs (e.g., Windows System Event Logs) to see if there were any changes to the service status or if there were failed attempts that could indicate further malicious activity.
+  - Cross-reference any identified user accounts with known threat actor behavior to assess if the actions align with normal operational use or if they appear anomalous within the defined context of the enterprise environment.

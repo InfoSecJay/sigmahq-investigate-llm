@@ -1,0 +1,35 @@
+title: Potential Persistence Via Logon Scripts - Registry
+id: 9ace0707-b560-49b8-b6ca-5148b42f39fb
+status: test
+description: Detects creation of "UserInitMprLogonScript" registry value which can
+  be used as a persistence method by malicious actors
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1037.001/T1037.001.md
+author: Tom Ueltschi (@c_APT_ure)
+date: 2019-01-12
+modified: 2023-06-09
+tags:
+- attack.t1037.001
+- attack.persistence
+- attack.lateral-movement
+logsource:
+  category: registry_add
+  product: windows
+detection:
+  selection:
+    EventType: CreateKey
+    TargetObject|contains: 'UserInitMprLogonScript'
+  condition: selection
+falsepositives:
+- Investigate the contents of the "UserInitMprLogonScript" value to determine of the
+  added script is legitimate
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential persistence mechanisms employed by malicious actors through the modification of Windows registry settings. Specifically, it monitors for the creation of the `UserInitMprLogonScript` registry value, which can be leveraged by attackers to execute malicious scripts automatically during user logon. By activating such scripts, an attacker can maintain persistent access to a compromised system or execute maneuvers for lateral movement across the network. 
+  The detection mechanism utilizes registry creation logs, specifically focusing on events categorized as `CreateKey`. When a new `UserInitMprLogonScript` key is created, this rule triggers an alert, prompting further investigation of the associated script's legitimacy. Responders are encouraged to analyze process creation and command-line data to ascertain the intent behind the modification.
+  ### Investigation Steps
+  - Review the details of the alert within the SIEM to identify the user and system associated with the registry change.
+  - Utilize the EDR solution to examine the processes running at the time of the registry creation and check for unusual command-line parameters.
+  - Query process and registry logs to gather information on any scripts contained within the `UserInitMprLogonScript` value, noting any potentially malicious content.
+  - Investigate network activities through logs from the NGFW or Proxy to trace any communications initiated by the script after user logon.

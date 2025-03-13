@@ -1,0 +1,31 @@
+title: PCRE.NET Package Image Load
+id: 84b0a8f3-680b-4096-a45b-e9a89221727c
+status: test
+description: Detects processes loading modules related to PCRE.NET package
+references:
+- https://twitter.com/rbmaslen/status/1321859647091970051
+- https://twitter.com/tifkin_/status/1321916444557365248
+author: Roberto Rodriguez (Cyb3rWard0g), OTR (Open Threat Research)
+date: 2020-10-29
+modified: 2022-10-09
+tags:
+- attack.execution
+- attack.t1059
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|contains: \AppData\Local\Temp\ba9ea7344a4a5f591d6e5dc32a13494b\
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies processes that load modules associated with the PCRE.NET package, a common library for regular expression operations in .NET applications. Specifically, it looks for loaded images from a temporary directory indicating potentially malicious activity, often being a tactic employed by threat actors to execute hidden or obfuscated code. The rule targets Windows image load events by monitoring the presence of specific file paths in process load logs, particularly focusing on those containing the unique identifier “ba9ea7344a4a5f591d6e5dc32a13494b”. By streaming relevant data from image load logs, this rule is designed to capture suspicious behavior related to malware execution or attacks that use dynamically loaded libraries.
+  ### Investigation Steps
+  - Review endpoint detection and response (EDR) alerts to identify the processes loading modules from the specified PCRE.NET path, providing insight into potential malicious activity.
+  - Utilize antivirus logs to check for any identified threats associated with the PCRE.NET package, which may clarify whether the detection is a false positive or an actual compromise.
+  - Analyze command-line parameters and process creation logs related to the identified process to trace the origin and intent of the execution, helping to determine whether it was a legitimate use or part of an attack.
+  - Investigate network traffic through the network detection and response (NDR) system to spot any suspicious connections or data exfiltration attempts associated with the processes linked to the detected image loads.

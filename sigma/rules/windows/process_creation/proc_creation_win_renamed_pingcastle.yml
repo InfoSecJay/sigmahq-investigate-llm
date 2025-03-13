@@ -1,0 +1,65 @@
+title: Renamed PingCastle Binary Execution
+id: 2433a154-bb3d-42e4-86c3-a26bdac91c45
+status: test
+description: Detects the execution of a renamed "PingCastle" binary based on the PE
+  metadata fields.
+references:
+- https://thedfirreport.com/2023/10/30/netsupport-intrusion-results-in-domain-compromise/
+- https://www.pingcastle.com/documentation/scanner/
+author: Nasreddine Bencherchali (Nextron Systems), X__Junior (Nextron Systems)
+date: 2024-01-11
+tags:
+- attack.execution
+- attack.t1059
+- attack.defense-evasion
+- attack.t1202
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - OriginalFileName:
+    - 'PingCastleReporting.exe'
+    - 'PingCastleCloud.exe'
+    - 'PingCastle.exe'
+  - CommandLine|contains:
+    - '--scanner aclcheck'
+    - '--scanner antivirus'
+    - '--scanner computerversion'
+    - '--scanner foreignusers'
+    - '--scanner laps_bitlocker'
+    - '--scanner localadmin'
+    - '--scanner nullsession'
+    - '--scanner nullsession-trust'
+    - '--scanner oxidbindings'
+    - '--scanner remote'
+    - '--scanner share'
+    - '--scanner smb'
+    - '--scanner smb3querynetwork'
+    - '--scanner spooler'
+    - '--scanner startup'
+    - '--scanner zerologon'
+  - CommandLine|contains: '--no-enum-limit'
+  - CommandLine|contains|all:
+    - '--healthcheck'
+    - '--level Full'
+  - CommandLine|contains|all:
+    - '--healthcheck'
+    - '--server '
+  filter_main_img:
+    Image|endswith:
+    - '\PingCastleReporting.exe'
+    - '\PingCastleCloud.exe'
+    - '\PingCastle.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Renamed PingCastle Binary Execution" detection rule identifies potential malicious activities involving the execution of renamed PingCastle binaries, which are legitimate tools used for security assessments in enterprise environments. This rule analyzes the metadata of process creation logs to detect specific variations of these binaries based on their original file names, such as `PingCastleReporting.exe`, `PingCastleCloud.exe`, and `PingCastle.exe`. Furthermore, it checks for command-line parameters indicative of certain scanning actions, like `--scanner aclcheck` or `--healthcheck`. By focusing on both the original file names and particular command-line arguments, the rule aims to uncover instances where these binaries may have been disguised or used by attackers to perform reconnaissance or exploit vulnerabilities while evading detection.
+  ### Investigation Steps
+  - Review EDR logs for any recent process creation events that include the identified PingCastle binaries. Check if these processes were initiated from unusual or suspicious parent processes.
+  - Examine command-line arguments associated with any detected execution to assess the nature of the scans being run. Look for known malicious flags or combinations that diverge from standard operational behavior.
+  - Utilize AV and NGFW logs to identify any outbound network activity linked to the execution of the detected binaries. Look for connections to anomalous IP addresses that could indicate data exfiltration or communication with command and control servers.
+  - Assess historical access logs in relevant cloud platforms (e.g., AWS, GCP, Azure) to identify any interactions that correspond with the execution timelines of these binaries. Look for changes in user permissions or resource accessibility that may indicate potential compromise.

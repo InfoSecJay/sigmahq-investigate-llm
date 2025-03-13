@@ -1,0 +1,43 @@
+title: SyncAppvPublishingServer Execute Arbitrary PowerShell Code
+id: fbd7c32d-db2a-4418-b92c-566eb8911133
+related:
+- id: fde7929d-8beb-4a4c-b922-be9974671667
+  type: obsolete
+status: test
+description: Executes arbitrary PowerShell code using SyncAppvPublishingServer.exe.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1218/T1218.md
+- https://lolbas-project.github.io/lolbas/Binaries/Syncappvpublishingserver/
+author: frack113
+date: 2021-07-12
+modified: 2022-10-04
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\SyncAppvPublishingServer.exe'
+  - OriginalFileName: 'syncappvpublishingserver.exe'
+  selection_cli:
+    CommandLine|contains: '"n; '
+  condition: all of selection_*
+fields:
+- ComputerName
+- User
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- App-V clients
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where the SyncAppvPublishingServer.exe process is exploited to execute arbitrary PowerShell code. This is achieved by monitoring process creation logs, specifically looking for instances where the SyncAppvPublishingServer.exe executable is associated with suspicious command-line parameters indicating potential malicious activity. The rule leverages data sources such as process creation logs, capturing not only the executable name but also crucial details from the command line and its parent process, which may provide additional context for the suspicious activity. 
+  By focusing on command-line arguments that exhibit unusual patterns, this rule helps analysts distinguish between legitimate App-V client operations and potential abuse of the application to bypass standard security measures, thereby facilitating early detection of potential threats in the enterprise environment.
+  ### Investigation Steps
+  - Review the EDR solution to correlate the detection with the associated process details, including the user account and timestamp, to establish the context of the activity.
+  - Analyze the command line arguments associated with the detected execution to identify any unusual or malicious PowerShell commands, noting any obfuscation techniques used.
+  - Investigate the parent process of SyncAppvPublishingServer.exe to understand what initiated the execution, which may reveal further insights into potential lateral movement or compromise.
+  - Check network traffic logs from the NGFW or Proxy to determine if there were any connections made to suspicious external endpoints following the execution, indicating a possible data exfiltration attempt.

@@ -1,0 +1,63 @@
+title: ETW Trace Evasion Activity
+id: a238b5d0-ce2d-4414-a676-7a531b3d13d6
+status: test
+description: |
+  Detects command line activity that tries to clear or disable any ETW trace log which could be a sign of logging evasion.
+references:
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/wevtutil
+- https://abuse.io/lockergoga.txt
+- https://medium.com/palantir/tampering-with-windows-event-tracing-background-offense-and-defense-4be7ac62ac63
+author: '@neu5ron, Florian Roth (Nextron Systems), Jonhnathan Ribeiro, oscd.community'
+date: 2019-03-22
+modified: 2022-06-28
+tags:
+- attack.defense-evasion
+- attack.t1070
+- attack.t1562.006
+- car.2016-04-002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_clear_1:
+    CommandLine|contains|all:
+    - 'cl'
+    - '/Trace'
+  selection_clear_2:
+    CommandLine|contains|all:
+    - 'clear-log'
+    - '/Trace'
+  selection_disable_1:
+    CommandLine|contains|all:
+    - 'sl'
+    - '/e:false'
+  selection_disable_2:
+    CommandLine|contains|all:
+    - 'set-log'
+    - '/e:false'
+  selection_disable_3:     # ETW provider removal from a trace session
+    CommandLine|contains|all:
+    - 'logman'
+    - 'update'
+    - 'trace'
+    - '--p'
+    - '-ets'
+  selection_pwsh_remove:     # Autologger provider removal
+    CommandLine|contains: 'Remove-EtwTraceProvider'
+  selection_pwsh_set:     # Provider “Enable” property modification
+    CommandLine|contains|all:
+    - 'Set-EtwTraceProvider'
+    - '0x11'
+  condition: 1 of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "ETW Trace Evasion Activity" detection rule is designed to identify attempts to manipulate Windows Event Tracing for Windows (ETW) logs, which may indicate malicious behavior aimed at evading detection. The rule uses command-line activity involving specific keywords associated with clearing or disabling ETW traces, such as 'cl /Trace', 'clear-log /Trace', 'sl /e:false', and variations related to PowerShell commands like 'Remove-EtwTraceProvider'. By analyzing process creation logs, the rule flags potential evasion techniques employed by attackers to disable logging or remove trace captures from event logs, thereby diminishing defenders' ability to detect suspicious activities. 
+  This detection rule leverages data from Windows process creation logs, monitoring command-line parameters to identify patterns indicative of trace evasion tactics, classified under ATT&CK frameworks T1070 and T1562. The presence of these parameters in command executions suggests an intentional attempt to hinder logging mechanisms that may otherwise capture malicious actions.
+  ### Investigation Steps
+  - Review the EDR logs for the specific process creation events that triggered the alert, focusing on the complete command line used. This helps in identifying the execution context and the user account associated with the activity.
+  - Cross-reference the user account in the organization’s Identity and Access Management (IAM) system to determine if it has legitimate access rights and to investigate any recent changes to its privileges.
+  - Analyze Windows Security and Event logs to look for other suspicious activity around the same timeframe, such as failed logins or unauthorized access attempts, to build context for the incident.
+  - Check network logs via the NGFW or Proxy to track any outbound connections from the affected host, particularly if they relate to known malicious domains or indicators of compromise (IOCs).

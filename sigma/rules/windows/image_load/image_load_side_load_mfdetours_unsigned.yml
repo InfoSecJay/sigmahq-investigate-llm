@@ -1,0 +1,39 @@
+title: Unsigned Mfdetours.DLL Sideloading
+id: 948a0953-f287-4806-bbcb-3b2e396df89f
+related:
+- id: d2605a99-2218-4894-8fd3-2afb7946514d
+  type: similar
+status: test
+description: Detects DLL sideloading of unsigned "mfdetours.dll". Executing "mftrace.exe"
+  can be abused to attach to an arbitrary process and force load any DLL named "mfdetours.dll"
+  from the current directory of execution.
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-08-11
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\mfdetours.dll'
+  filter_main_legit_path:
+    ImageLoaded|contains: ':\Program Files (x86)\Windows Kits\10\bin\'
+    SignatureStatus: 'Valid'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets the unauthorized sideloading of the unsigned DLL file "mfdetours.dll," which can be exploited through the execution of "mftrace.exe." When "mftrace.exe" is run, it can attach to any active process and forcefully load the "mfdetours.dll" from the working directory, a procedure that is often leveraged by attackers to bypass security measures. The rule analyzes logs that specifically track image loads on Windows systems, looking for instances where "mfdetours.dll" is loaded without a valid digital signature, indicating potential malicious activity. The detection logic includes checks on the file path to ascertain whether it originates from a recognized and legitimate program directory, only flagging the events that meet the outlined suspicious criteria.
+  ### Investigation Steps
+  - Review the EDR logs for recent executions of "mftrace.exe" that correspond to the alert. Pay close attention to the process tree to identify any parent-child relationships that may indicate malicious behavior.
+  - Check the file path from which "mfdetours.dll" was loaded to verify if it is indeed outside of typical directories. Look for unusual or suspicious working directories that could indicate an attempt to obfuscate activity.
+  - Analyze any associated network traffic using the NDR tool for connections initiated by "mftrace.exe." Highlight any unusual communication patterns or connections to untrusted external IPs.
+  - Consult the SIEM logs to identify any other related alerts or events that occurred around the same timeframe, which may provide context or corroboration for the incident being investigated.

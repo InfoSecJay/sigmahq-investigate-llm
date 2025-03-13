@@ -1,0 +1,45 @@
+title: Pass the Hash Activity 2
+id: 8eef149c-bd26-49f2-9e5a-9b00e3af499b
+status: stable
+description: Detects the attack technique pass the hash which is used to move laterally
+  inside the network
+references:
+- https://github.com/iadgov/Event-Forwarding-Guidance/tree/master/Events
+- https://web.archive.org/web/20170909091934/https://blog.binarydefense.com/reliably-detecting-pass-the-hash-through-event-log-analysis
+- https://blog.stealthbits.com/how-to-detect-pass-the-hash-attacks/
+author: Dave Kennedy, Jeff Warren (method) / David Vassallo (rule)
+date: 2019-06-14
+modified: 2022-10-05
+tags:
+- attack.lateral-movement
+- attack.t1550.002
+logsource:
+  product: windows
+  service: security
+  definition: The successful use of PtH for lateral movement between workstations
+    would trigger event ID 4624
+detection:
+  selection_logon3:
+    EventID: 4624
+    SubjectUserSid: 'S-1-0-0'
+    LogonType: 3
+    LogonProcessName: 'NtLmSsp'
+    KeyLength: 0
+  selection_logon9:
+    EventID: 4624
+    LogonType: 9
+    LogonProcessName: 'seclogo'
+  filter:
+    TargetUserName: 'ANONYMOUS LOGON'
+  condition: 1 of selection_* and not filter
+falsepositives:
+- Administrator activity
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential "Pass the Hash" (PtH) attacks, a common lateral movement technique used by threat actors to gain unauthorized access to systems within a network. The rule specifically looks for Windows Security Event ID 4624, which indicates a successful logon attempt. It captures instances where a logon is executed using either Logon Type 3 (network logon via the NtLmSsp logon process) or Logon Type 9 (dummy logon process). Critical indicators of a potential PtH attack include the Subject User SID showing as 'S-1-0-0', indicative of an anonymous session, and a Key Length of 0, reflecting the absence of a password hash. By correlating these events with the behavior of the NTLM authentication mechanism, the rule effectively surfaces suspicious access patterns that merit further investigation.
+  ### Investigation Steps
+  - Review EDR logs for any recent processes that show suspicious activity around the timestamps of the logged event, particularly check for any lateral movement behavior.
+  - Examine Windows Security logs to correlate the identified logon events with other potentially malicious activities. Look for other related Event IDs that may indicate exploitation.
+  - Utilize network flow data to identify unexpected connections between machines after the logon event. Pay attention to any unusual destination endpoints that do not conform to standard traffic patterns.
+  - Analyze proxy logs to see if any anonymized or suspicious accesses were made after the event, which could indicate further malicious behavior stemming from the possible PtH attack.

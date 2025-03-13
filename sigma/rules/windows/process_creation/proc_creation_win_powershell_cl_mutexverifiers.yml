@@ -1,0 +1,42 @@
+title: Potential Script Proxy Execution Via CL_Mutexverifiers.ps1
+id: 1e0e1a81-e79b-44bc-935b-ddb9c8006b3d
+status: test
+description: Detects the use of the Microsoft signed script "CL_mutexverifiers" to
+  proxy the execution of additional PowerShell script commands
+references:
+- https://lolbas-project.github.io/lolbas/Scripts/CL_mutexverifiers/
+author: Nasreddine Bencherchali (Nextron Systems), oscd.community, Natalia Shornikova,
+  frack113
+date: 2022-05-21
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1216
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_pwsh:
+    ParentImage|endswith:
+            # Note: to avoid potential FPs we assume the script was launched from powershell. But in theory it can be launched by any Powershell like process
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    Image|endswith: '\powershell.exe'
+    CommandLine|contains: ' -nologo -windowstyle minimized -file '
+  selection_temp:
+        # Note: Since the function uses "env:temp" the value will change depending on the context of exec
+    CommandLine|contains:
+    - '\AppData\Local\Temp\'
+    - '\Windows\Temp\'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential proxy execution of malicious PowerShell scripts using a Microsoft signed script called "CL_mutexverifiers". The detection focuses on process creation events, specifically looking for instances where PowerShell (both `powershell.exe` and `pwsh.exe`) is invoked with specific parameters that suggest it is being used to execute a script located in temporary directories. The rule checks command line parameters for indicators such as the use of the flags `-nologo` and `-windowstyle minimized`, as well as the presence of paths typical for temporary files. Monitoring these parameters allows security teams to identify suspicious activities where trusted tools are potentially being misused to launch harmful scripts and evade detection.
+  ### Investigation Steps
+  - Review recent process creation logs in your EDR solution to identify instances of PowerShell executing the CL_mutexverifiers script. Filter the logs for `powershell.exe` and `pwsh.exe` with the specific command line arguments noted by the Sigma rule.
+  - Correlate the identified instances with other security events in your SIEM, particularly looking for related alerts that suggest additional malicious activity or communication, such as unusual outbound connections.
+  - Check the contents of any identified PowerShell scripts in the temporary folders mentioned (e.g., `C:\Users\<username>\AppData\Local\Temp\` and `C:\Windows\Temp\`) to assess if they are legitimate or exhibit suspicious behavior.
+  - Utilize your AV and endpoint security tools to perform scans on affected hosts to identify potential malware or indicators of compromise related to the execution of the suspicious PowerShell commands.

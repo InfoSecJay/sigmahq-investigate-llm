@@ -1,0 +1,40 @@
+title: Indirect Command Execution By Program Compatibility Wizard
+id: b97cd4b1-30b8-4a9d-bd72-6293928d52bc
+status: test
+description: Detect indirect command execution via Program Compatibility Assistant
+  pcwrun.exe
+references:
+- https://twitter.com/pabraeken/status/991335019833708544
+- https://lolbas-project.github.io/lolbas/Binaries/Pcwrun/
+author: A. Sungurov , oscd.community
+date: 2020-10-12
+modified: 2021-11-27
+tags:
+- attack.defense-evasion
+- attack.t1218
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\pcwrun.exe'
+  condition: selection
+fields:
+- ComputerName
+- User
+- ParentCommandLine
+- CommandLine
+falsepositives:
+- Need to use extra processing with 'unique_count' / 'filter' to focus on outliers
+  as opposed to commonly seen artifacts
+- Legit usage of scripts
+level: low
+notes: |
+  ### Technical Context
+  The detection rule for "Indirect Command Execution By Program Compatibility Wizard" targets potential misuse of the Program Compatibility Assistant (PCA) tool in Windows systems, specifically through its executable file `pcwrun.exe`. The rule looks for instances where the parent process of a command execution is identified as `pcwrun.exe`, which may signify an attempt to indirectly execute commands that could evade typical security measures. By focusing on the command lines and parent process relationships, this rule taps into process creation logs to identify suspicious behavior. Security teams can leverage this information to determine whether legitimate processes are being manipulated for malicious purposes, which is crucial for maintaining endpoint security.
+  ### Investigation Steps
+  - Use EDR tools to retrieve the process creation logs around the timestamp of the alert to identify any recent activity linked to `pcwrun.exe`.
+  - Analyze the `ParentCommandLine` and `CommandLine` fields associated with the detected alert to assess the legitimacy of the commands being executed.
+  - Cross-reference the user account associated with the alert against known user behavior to identify any anomalies that may indicate compromise.
+  - Review network logs from the NGFW and Proxy for any unusual outbound traffic correlated with the time of the alert, which may help to uncover potential data exfiltration attempts.

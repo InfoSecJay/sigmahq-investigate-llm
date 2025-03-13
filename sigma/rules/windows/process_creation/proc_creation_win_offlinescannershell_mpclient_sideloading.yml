@@ -1,0 +1,39 @@
+title: Potential Mpclient.DLL Sideloading Via OfflineScannerShell.EXE Execution
+id: 02b18447-ea83-4b1b-8805-714a8a34546a
+status: test
+description: |
+  Detects execution of Windows Defender "OfflineScannerShell.exe" from its non standard directory.
+  The "OfflineScannerShell.exe" binary is vulnerable to DLL side loading and will load any DLL named "mpclient.dll" from the current working directory.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/OfflineScannerShell/
+author: frack113
+date: 2022-03-06
+modified: 2023-08-03
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\OfflineScannerShell.exe'
+  - OriginalFileName: 'OfflineScannerShell.exe'
+  filter_main_legit_dir:
+    CurrentDirectory: 'C:\Program Files\Windows Defender\Offline\'
+  filter_main_empty:
+    CurrentDirectory: ''
+  filter_main_null:
+    CurrentDirectory:
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to identify the execution of the Windows Defender binary "OfflineScannerShell.exe" when it is launched from an atypical or non-standard directory. The rule focuses on the vulnerable nature of "OfflineScannerShell.exe," which allows for DLL sideloading, specifically targeting instances where a DLL named "mpclient.dll" may be loaded from the current working directory instead of its expected installation path. The detection logic examines process creation logs to ensure that the current directory for the executable does not match the legitimate folder of "C:\Program Files\Windows Defender\Offline\". This allows for early identification of potential malicious activity, as attackers may exploit this vulnerability to execute unauthorized code.
+  ### Investigation Steps
+  - Utilize EDR tools to retrieve the process creation logs for "OfflineScannerShell.exe" executions. Focus on identifying any execution with a current directory outside of the expected legitimate path.
+  - Cross-reference the identified instances with the environment, noting any recently modified or suspicious DLL files located in the current working directory.
+  - Check additional context from antivirus logs to see if any alerts were generated related to "mpclient.dll" or the execution of "OfflineScannerShell.exe."
+  - Review proxy logs for any outbound connections or data exfiltration activities that may have occurred simultaneously with the identified suspicious execution event.

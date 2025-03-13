@@ -1,0 +1,41 @@
+title: Potential Provisioning Registry Key Abuse For Binary Proxy Execution - REG
+id: 7021255e-5db3-4946-a8b9-0ba7a4644a69
+related:
+- id: 7f5d1c9a-3e83-48df-95a7-2b98aae6c13c     # CLI Generic
+  type: similar
+- id: f9999590-1f94-4a34-a91e-951e47bedefd     # CLI Abuse
+  type: similar
+- id: 2a4b3e61-9d22-4e4a-b60f-6e8f0cde6f25     # CLI Registry
+  type: similar
+status: test
+description: Detects potential abuse of the provisioning registry key for indirect
+  command execution through "Provlaunch.exe".
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Provlaunch/
+- https://twitter.com/0gtweet/status/1674399582162153472
+author: Swachchhanda Shrawan Poudel
+date: 2023-08-02
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: registry_set
+  product: windows
+  definition: 'Requirements: The registry key "\SOFTWARE\Microsoft\Provisioning\Commands\"
+    and its subkey must be monitored'
+detection:
+  selection:
+    TargetObject|contains: '\SOFTWARE\Microsoft\Provisioning\Commands\'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects potential abuse of the provisioning registry key in Windows, particularly targeting the capability for indirect command execution through the executable `Provlaunch.exe`. It specifically monitors changes to the registry path `\SOFTWARE\Microsoft\Provisioning\Commands\`, which is associated with command execution management in Windows environments. By observing modifications to this registry key, the rule identifies potentially malicious activities where attackers might leverage this feature to execute commands surreptitiously, circumventing traditional security mechanisms. The primary data source for this detection is the registry set logs, which provide insights into the changes made to the specified registry keys in Windows systems.
+  ### Investigation Steps
+  - Query EDR logs for any recent activity involving `Provlaunch.exe` to trace its execution context and confirm if it was initiated by any known processes.
+  - Review relevant command-line parameters associated with `Provlaunch.exe`, especially those that may indicate suspicious or unusual usage scenarios.
+  - Check SIEM and registry logs for recent changes to the key `\SOFTWARE\Microsoft\Provisioning\Commands\` to gather insights on what commands may have been executed and by whom.
+  - Utilize threat intelligence feeds and context to evaluate any associated hashes or processes that may have been flagged previously for similar registry-based abuses.

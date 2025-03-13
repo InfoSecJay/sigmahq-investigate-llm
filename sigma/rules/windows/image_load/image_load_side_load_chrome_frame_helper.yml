@@ -1,0 +1,40 @@
+title: Potential Chrome Frame Helper DLL Sideloading
+id: 72ca7c75-bf85-45cd-aca7-255d360e423c
+status: test
+description: Detects potential DLL sideloading of "chrome_frame_helper.dll"
+references:
+- https://hijacklibs.net/entries/3rd_party/google/chrome_frame_helper.html
+author: Nasreddine Bencherchali (Nextron Systems), Wietze Beukema (project and research)
+date: 2022-08-17
+modified: 2023-05-15
+tags:
+- attack.defense-evasion
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\chrome_frame_helper.dll'
+  filter_main_path:
+    ImageLoaded|startswith:
+    - 'C:\Program Files\Google\Chrome\Application\'
+    - 'C:\Program Files (x86)\Google\Chrome\Application\'
+  filter_optional_user_path:
+    ImageLoaded|contains: '\AppData\local\Google\Chrome\Application\'
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule monitors for potential DLL sideloading of the "chrome_frame_helper.dll" on Windows systems. DLL sideloading is a technique used by attackers to load malicious DLL files in place of legitimate ones, potentially leading to code execution and privilege escalation. The rule specifically checks for instances where the "chrome_frame_helper.dll" is loaded from locations that are not expected, such as user directories or outside the standard Chrome application directories. The primary data sources utilized by this rule include image load logs from Windows, which capture details about loaded DLLs and their paths during application runtime.
+  When a process attempts to load the "chrome_frame_helper.dll," the rule will trigger an alert if the loading occurs outside the designated application paths, signaling a possible malicious activity that warrants further investigation.
+  ### Investigation Steps
+  - Examine the process creation logs to identify which process initiated the DLL load and any suspicious command-line arguments associated with it.
+  - Use EDR tools to investigate the parent processes of the detected load event, focusing on any anomalies or indicators that point to malicious behavior.
+  - Analyze recent activity in the Windows Event Logs to correlate the timing of the DLL loading with other potentially malicious events, such as unusual login attempts or privilege escalations.
+  - Review network traffic through NDR solutions to detect any outbound communications from the identified process, which may indicate data exfiltration or command-and-control activities.

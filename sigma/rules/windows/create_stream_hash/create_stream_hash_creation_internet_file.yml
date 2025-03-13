@@ -1,0 +1,97 @@
+title: Creation Of a Suspicious ADS File Outside a Browser Download
+id: 573df571-a223-43bc-846e-3f98da481eca
+status: test
+description: Detects the creation of a suspicious ADS (Alternate Data Stream) file
+  by software other than browsers
+references:
+- https://www.bleepingcomputer.com/news/security/exploited-windows-zero-day-lets-javascript-files-bypass-security-warnings/
+author: frack113
+date: 2022-10-22
+modified: 2023-06-12
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: create_stream_hash
+detection:
+  selection:
+    Contents|startswith: '[ZoneTransfer]  ZoneId=3'
+    TargetFilename|endswith: ':Zone.Identifier'
+    TargetFilename|contains:
+    - '.exe'
+    - '.scr'
+    - '.bat'
+    - '.cmd'
+    - '.docx'
+    - '.hta'
+    - '.jse'
+    - '.lnk'
+    - '.pptx'
+    - '.ps'
+    - '.reg'
+    - '.sct'
+    - '.vb'
+    - '.wsc'
+    - '.wsf'
+    - '.xlsx'
+  filter_optional_brave:
+    Image|endswith: '\brave.exe'
+  filter_optional_chrome:
+    Image:
+    - 'C:\Program Files\Google\Chrome\Application\chrome.exe'
+    - 'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe'
+  filter_optional_firefox:
+    Image:
+    - 'C:\Program Files\Mozilla Firefox\firefox.exe'
+    - 'C:\Program Files (x86)\Mozilla Firefox\firefox.exe'
+  filter_optional_ie:
+    Image:
+    - 'C:\Program Files (x86)\Internet Explorer\iexplore.exe'
+    - 'C:\Program Files\Internet Explorer\iexplore.exe'
+  filter_optional_maxthon:
+    Image|endswith: '\maxthon.exe'
+  filter_optional_edge_1:
+  - Image|startswith: 'C:\Program Files (x86)\Microsoft\EdgeWebView\Application\'
+  - Image|endswith: '\WindowsApps\MicrosoftEdge.exe'
+  - Image:
+    - 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'
+    - 'C:\Program Files\Microsoft\Edge\Application\msedge.exe'
+  filter_optional_edge_2:
+    Image|startswith:
+    - 'C:\Program Files (x86)\Microsoft\EdgeCore\'
+    - 'C:\Program Files\Microsoft\EdgeCore\'
+    Image|endswith:
+    - '\msedge.exe'
+    - '\msedgewebview2.exe'
+  filter_optional_opera:
+    Image|endswith: '\opera.exe'
+  filter_optional_safari:
+    Image|endswith: '\safari.exe'
+  filter_optional_seamonkey:
+    Image|endswith: '\seamonkey.exe'
+  filter_optional_vivaldi:
+    Image|endswith: '\vivaldi.exe'
+  filter_optional_whale:
+    Image|endswith: '\whale.exe'
+  filter_optional_snipping_tool:
+    Image|startswith: 'C:\Program Files\WindowsApps\Microsoft.ScreenSketch_'
+    Image|endswith: '\SnippingTool\SnippingTool.exe'
+    TargetFilename|startswith: 'C:\Users\'
+    TargetFilename|contains|all:
+    - '\AppData\Local\Packages\Microsoft.ScreenSketch_'
+    - '\TempState\Screenshot '
+    TargetFilename|endswith: '.png:Zone.Identifier'
+  condition: selection and not 1 of filter_optional_*
+falsepositives:
+- Other legitimate browsers not currently included in the filter (please add them)
+- Legitimate downloads via scripting or command-line tools (Investigate to determine
+  if it's legitimate)
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the creation of suspicious Alternate Data Stream (ADS) files on Windows systems, specifically those that occur outside of typical web browser download scenarios. The rule looks for objects where the content begins with a zone transfer header indicating potential malicious intent (e.g., `ZoneId=3`), alongside targeting common executable or script file types. The ADS is typically associated with files downloaded from the internet and can be exploited by attackers to hide malicious code. The detection logic uses process creation logs to track which applications are generating these ADS files, while explicitly excluding recognized browser applications like Chrome, Firefox, and Edge, among others. This focus helps narrow down the detection to potentially malicious behavior that bypasses normal browser security measures.
+  ### Investigation Steps
+  - Check process creation logs in the EDR to identify which application created the suspicious ADS file and whether it falls within the exclusions for known browsers.
+  - Review recent downloads and file modifications using enterprise tools to assess whether the detected file was legitimately downloaded or created by non-browser applications.
+  - Review logs from the SIEM for any prior alerts or anomalies involving the same process that might indicate a broader attack pattern.
+  - Utilize network logs from the NGFW and Proxy to analyze any outbound connections made by the application that created the suspicious ADS file, looking for potential command-and-control activity.

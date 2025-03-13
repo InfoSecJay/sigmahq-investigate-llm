@@ -1,0 +1,33 @@
+title: Windows Defender Exclusions Added - Registry
+id: a982fc9c-6333-4ffb-a51d-addb04e8b529
+related:
+- id: 1321dc4e-a1fe-481d-a016-52c45f0c8b4f
+  type: derived
+status: test
+description: Detects the Setting of Windows Defender Exclusions
+references:
+- https://twitter.com/_nullbind/status/1204923340810543109
+author: Christian Burkard (Nextron Systems)
+date: 2021-07-06
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection2:
+    TargetObject|contains: '\Microsoft\Windows Defender\Exclusions'
+  condition: selection2
+falsepositives:
+- Administrator actions
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule monitors changes made to Windows Defender's exclusion settings in the Windows registry. Specifically, it looks for modifications to the key located at `\Microsoft\Windows Defender\Exclusions`. Adding exclusions can allow potentially harmful processes or files to bypass detection, which can be a tactic used by threat actors to evade security measures. The rule relies on registry set logs as its primary data source, capturing information about changes made to the system’s registry that could indicate suspicious behavior or misconfigurations. By detecting these changes, the rule aims to signal potential defensive evasion tactics that may compromise the integrity of the endpoint protection mechanism.
+  ### Investigation Steps
+  - Review EDR logs for any recent registry changes around the time the alert was triggered, particularly focusing on the Users or SYSTEM context that modified the Windows Defender exclusions.
+  - Cross-reference with process creation logs to identify if any processes were executed that correspond with the registry changes, thereby investigating their legitimacy.
+  - Analyze AV logs and reports to check for any previously flagged malware or unwanted software that may have prompted the addition of exclusions.
+  - Consult network logs from the NGFW or Proxy to study any corresponding outbound traffic patterns that could indicate malicious activity coinciding with the exclusion changes.

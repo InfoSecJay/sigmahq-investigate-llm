@@ -1,0 +1,31 @@
+title: PktMon.EXE Execution
+id: f956c7c1-0f60-4bc5-b7d7-b39ab3c08908
+status: test
+description: Detects execution of PktMon, a tool that captures network packets.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Pktmon/
+author: frack113
+date: 2022-03-17
+modified: 2023-06-23
+tags:
+- attack.credential-access
+- attack.t1040
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\pktmon.exe'
+  - OriginalFileName: 'PktMon.exe'
+  condition: selection
+falsepositives:
+- Legitimate use
+level: medium
+notes: |
+  ### Technical Context
+  The "PktMon.EXE Execution" detection rule focuses on identifying instances of the execution of PktMon, a legitimate Windows built-in tool used for capturing and analyzing network traffic. The rule leverages process creation logs, specifically monitoring events where the process image ends with '\pktmon.exe' and ensuring that the original filename is 'PktMon.exe'. While PktMon can be used for valid monitoring purposes, its potential misuse by adversaries for credential access or network reconnaissance makes it a relevant target for detection. By correlating these metrics, the rule provides a mechanism to flag potentially suspicious activity that warrants further investigation.
+  ### Investigation Steps
+  - Review process creation logs in your EDR system to confirm the execution of PktMon.EXE and note the associated user account and any command-line parameters provided.
+  - Cross-check network traffic logs to determine if there is any unusual or unauthorized packet capture taking place at the time of the process execution.
+  - Assess the timeline of the event to correlate it with other alerts or anomalies that may indicate malicious activity, including credential access attempts.
+  - Utilize endpoint antivirus logs to verify if any alerts or detections match the execution of PktMon, which might indicate potential misuse of the tool.

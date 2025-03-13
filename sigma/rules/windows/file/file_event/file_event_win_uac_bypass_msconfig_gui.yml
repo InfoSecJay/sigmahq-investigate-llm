@@ -1,0 +1,32 @@
+title: UAC Bypass Using MSConfig Token Modification - File
+id: 41bb431f-56d8-4691-bb56-ed34e390906f
+status: test
+description: Detects the pattern of UAC Bypass using a msconfig GUI hack (UACMe 55)
+references:
+- https://github.com/hfiref0x/UACME
+author: Christian Burkard (Nextron Systems)
+date: 2021-08-30
+modified: 2022-10-09
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|startswith: 'C:\Users\'
+    TargetFilename|endswith: '\AppData\Local\Temp\pkgmgr.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential UAC (User Account Control) bypass techniques that leverage a hidden feature within the Microsoft Windows operating system. Specifically, it targets modifications made to tokens using the MSConfig graphical user interface. The rule looks for file events where the target filename starts with "C:\Users\" and ends with "\AppData\Local\Temp\pkgmgr.exe". This pattern indicates that an executable designed to bypass UAC is being manipulated, which is a recognized technique in privilege escalation attempts. The primary technical data source for this detection is file event logs that capture file creation or modification activities on the Windows operating system.
+  ### Investigation Steps
+  - Utilize EDR tools to examine the process tree and identify any parent-child relationships involving `pkgmgr.exe`, focusing on associated processes that might indicate malicious behavior.
+  - Review command-line parameters associated with the execution of `pkgmgr.exe` to determine if they are being used in a way consistent with UAC bypass techniques.
+  - Investigate user account activities and their session tokens using logs from the Windows Event Viewer to detect any anomalies or escalations in privilege during the time of the alleged incident.
+  - Cross-reference the behavior detected with threat intelligence feeds to determine if `pkgmgr.exe` has been involved in previous UAC bypass incidents within the environment.

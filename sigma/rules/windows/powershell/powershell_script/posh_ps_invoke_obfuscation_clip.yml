@@ -1,0 +1,35 @@
+title: Invoke-Obfuscation CLIP+ Launcher - PowerShell
+id: 73e67340-0d25-11eb-adc1-0242ac120002
+status: test
+description: Detects Obfuscated use of Clip.exe to execute PowerShell
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009      # (Task 26)
+author: Jonathan Cheong, oscd.community
+date: 2020-10-13
+modified: 2024-04-05
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_4104:
+    ScriptBlockText|re: 'cmd.{0,5}(?:/c|/r).+clip(?:\.exe)?.{0,4}&&.+clipboard]::\(\s\\"\{\d\}.+-f.+"'
+  condition: selection_4104
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Invoke-Obfuscation CLIP+ Launcher 
+  - PowerShell" Sigma rule is designed to detect malicious activities where obfuscated PowerShell commands utilize `Clip.exe` to execute commands. This technique can be exploited by threat actors to bypass detection mechanisms and perform various operations without drawing attention. The rule specifically looks for patterns in PowerShell script block logging that include references to `clip` followed by command execution via `cmd /c` or `cmd /r`. For effective detection, it requires that Script Block Logging is enabled in the Windows environment, enabling the collection of detailed command execution logs.
+  The primary technical data sources involved include PowerShell script block logs, which capture the content and structure of executed scripts, allowing for the identification of suspicious patterns indicative of obfuscation and execution attempts. Analysts can leverage these logs to assess whether commands executed via `clip.exe` are legitimate or part of an evasion tactic employed by potential intruders.
+  ### Investigation Steps
+  - Review PowerShell script block logs to identify any instances of obfuscated commands targeting `clip.exe`. Check for frequent patterns or unexpected usage.
+  - Utilize EDR tools to trace the execution history of the involved processes, confirming whether legitimate applications or potentially malicious ones are making calls to `clip.exe`.
+  - Analyze system-level logs and application event logs in conjunction with network traffic monitoring to detect any unusual behavior that correlates with the timing of the PowerShell execution.
+  - Investigate user account activity in the context of the alert to determine if the commands were run under compromised permissions or unusual user accounts, indicating possible credential theft or abuse.

@@ -1,0 +1,41 @@
+title: Potential Privilege Escalation via Local Kerberos Relay over LDAP
+id: 749c9f5e-b353-4b90-a9c1-05243357ca4b
+status: test
+description: |
+  Detects a suspicious local successful logon event where the Logon Package is Kerberos, the remote address is set to localhost, and the target user SID is the built-in local Administrator account.
+  This may indicate an attempt to leverage a Kerberos relay attack variant that can be used to elevate privilege locally from a domain joined limited user to local System privileges.
+references:
+- https://twitter.com/sbousseaden/status/1518976397364056071?s=12&t=qKO5eKHvWhAP19a50FTZ7g
+- https://github.com/elastic/detection-rules/blob/5fe7833312031a4787e07893e27e4ea7a7665745/rules/_deprecated/privilege_escalation_krbrelayup_suspicious_logon.toml#L38
+author: Elastic, @SBousseaden
+date: 2022-04-27
+modified: 2024-08-13
+tags:
+- attack.privilege-escalation
+- attack.credential-access
+- attack.t1548
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4624
+    LogonType: 3
+    AuthenticationPackageName: 'Kerberos'
+    IpAddress: '127.0.0.1'
+    TargetUserSid|startswith: 'S-1-5-21-'
+    TargetUserSid|endswith: '-500'
+  filter_main_ip_null:
+    IpPort: '0'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential privilege escalation attempts via a Kerberos relay attack on a Windows system. It focuses on successful logon events (EventID 4624) where the authentication package is Kerberos, the remote address is set to localhost (127.0.0.1), and the target user is specifically the built-in local Administrator account (SID ending in '-500'). Instances of this pattern may indicate that an attacker is attempting to exploit a local vulnerability to elevate privileges from a standard user account to that of the local system administrator, which can lead to significant security risks. The primary data source for this detection is Windows Security Event Logs, specifically those pertaining to logon activities.
+  ### Investigation Steps
+  - Review the relevant Windows Security Event Logs to confirm the EventID 4624 related to the suspicious logon to identify the user and time of the event.
+  - Utilize EDR tools to examine the process tree and any commands executed by the user account at the time of the logon to uncover any malicious activity.
+  - Check for anomalous network activity or outbound connections from the affected host using NDR tools, as this may provide insight into further exploitation or lateral movement.
+  - Investigate the target user account history in Active Directory using logs from your cloud platform and examine if there have been unauthorized changes to user permissions or group memberships.

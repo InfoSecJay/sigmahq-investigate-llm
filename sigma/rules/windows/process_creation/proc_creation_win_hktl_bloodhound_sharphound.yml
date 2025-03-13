@@ -1,0 +1,62 @@
+title: HackTool - Bloodhound/Sharphound Execution
+id: f376c8a7-a2d0-4ddc-aa0c-16c17236d962
+status: test
+description: Detects command line parameters used by Bloodhound and Sharphound hack
+  tools
+references:
+- https://github.com/BloodHoundAD/BloodHound
+- https://github.com/BloodHoundAD/SharpHound
+author: Florian Roth (Nextron Systems)
+date: 2019-12-20
+modified: 2023-02-04
+tags:
+- attack.discovery
+- attack.t1087.001
+- attack.t1087.002
+- attack.t1482
+- attack.t1069.001
+- attack.t1069.002
+- attack.execution
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Product|contains: 'SharpHound'
+  - Description|contains: 'SharpHound'
+  - Company|contains:
+    - 'SpecterOps'
+    - 'evil corp'
+  - Image|contains:
+    - '\Bloodhound.exe'
+    - '\SharpHound.exe'
+  selection_cli_1:
+    CommandLine|contains:
+    - ' -CollectionMethod All '
+    - ' --CollectionMethods Session '
+    - ' --Loop --Loopduration '
+    - ' --PortScanTimeout '
+    - '.exe -c All -d '
+    - 'Invoke-Bloodhound'
+    - 'Get-BloodHoundData'
+  selection_cli_2:
+    CommandLine|contains|all:
+    - ' -JsonFolder '
+    - ' -ZipFileName '
+  selection_cli_3:
+    CommandLine|contains|all:
+    - ' DCOnly '
+    - ' --NoSaveCache '
+  condition: 1 of selection_*
+falsepositives:
+- Other programs that use these command line option and accepts an 'All' parameter
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the execution of two hack tools, Bloodhound and Sharphound, commonly used for conducting Active Directory (AD) reconnaissance. It specifically examines process creation logs for certain indicators, such as the presence of their executable names (`Bloodhound.exe` and `SharpHound.exe`) and specific command-line arguments associated with abnormal behaviors like collection methods and port scanning. The rule correlates this information against known characteristics of the tools, including their producers and expected command-line syntax. By leveraging this detection approach, security teams can identify potential malicious activity or unauthorized reconnaissance conducted within their environments.
+  ### Investigation Steps
+  - Review process creation logs in your EDR solution for instances matching the rule criteria, specifically looking for `Bloodhound.exe` and `SharpHound.exe` executions.
+  - Investigate the command-line parameters used during the executions to assess whether they align with known legitimate use cases, or if they suggest nefarious intent.
+  - Utilize network logs from your NDR or proxy tools to identify any potential data exfiltration attempts or unusual network behavior during the execution timeframe.
+  - Check for user account activity in your identity management or SIEM platforms to determine if any accounts associated with the execution have recently exhibited suspicious behavior or unauthorized access patterns.

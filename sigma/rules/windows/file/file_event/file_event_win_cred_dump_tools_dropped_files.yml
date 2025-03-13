@@ -1,0 +1,61 @@
+title: Cred Dump Tools Dropped Files
+id: 8fbf3271-1ef6-4e94-8210-03c2317947f6
+status: test
+description: Files with well-known filenames (parts of credential dump software or
+  files produced by them) creation
+references:
+- https://www.slideshare.net/heirhabarov/hunting-for-credentials-dumping-in-windows-environment
+author: Teymur Kheirkhabarov, oscd.community
+date: 2019-11-01
+modified: 2022-09-21
+tags:
+- attack.credential-access
+- attack.t1003.001
+- attack.t1003.002
+- attack.t1003.003
+- attack.t1003.004
+- attack.t1003.005
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+  - TargetFilename|contains:
+    - '\fgdump-log'
+    - '\kirbi'
+    - '\pwdump'
+    - '\pwhashes'
+    - '\wce_ccache'
+    - '\wce_krbtkts'
+  - TargetFilename|endswith:
+    - '\cachedump.exe'
+    - '\cachedump64.exe'
+    - '\DumpExt.dll'
+    - '\DumpSvc.exe'
+    - '\Dumpy.exe'
+    - '\fgexec.exe'
+    - '\lsremora.dll'
+    - '\lsremora64.dll'
+    - '\NTDS.out'
+    - '\procdump64.exe'
+    - '\pstgdump.exe'
+    - '\pwdump.exe'
+    - '\SAM.out'
+    - '\SECURITY.out'
+    - '\servpw.exe'
+    - '\servpw64.exe'
+    - '\SYSTEM.out'
+    - '\test.pwd'
+    - '\wceaux.dll'
+  condition: selection
+falsepositives:
+- Legitimate Administrator using tool for password recovery
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation of files associated with credential dumping tools, which are commonly used in attacks aimed at extracting sensitive information, such as passwords or hashes from a system. The rule specifically looks for the presence of well-known filenames that represent either the tools themselves (e.g., `pwdump.exe`, `fgdump-log`) or files produced by these tools (e.g., `NTDS.out`, `SAM.out`). The rule operates by monitoring file creation events within the Windows environment, focusing on specific filenames and suffixes that indicate potential malicious activity. The data source involved in this detection is primarily the file event logs, which record every file creation event along with its metadata.
+  ### Investigation Steps
+  - Check file creation logs in the EDR system for entries matching the filenames specified in the rule. Look for any anomalous timestamps or unusual processes associated with these file creations.
+  - Analyze the context around the file creation by investigating command-line parameters in process creation logs. This information can help determine the intent behind the file creation and if any unauthorized activity is underway.
+  - Review user account activity in the authentication logs to identify any accounts that may not typically create or work with these files. This can indicate potential misuse of credentials.
+  - Examine network traffic logs to identify any associated connections or data exfiltration attempts related to the identified credential dumping tools, particularly from endpoints where the file creations were logged.

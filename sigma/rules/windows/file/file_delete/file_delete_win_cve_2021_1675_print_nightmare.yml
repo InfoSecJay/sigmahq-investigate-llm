@@ -1,0 +1,36 @@
+title: Potential PrintNightmare Exploitation Attempt
+id: 5b2bbc47-dead-4ef7-8908-0cf73fcbecbf
+status: test
+description: Detect DLL deletions from Spooler Service driver folder. This might be
+  a potential exploitation attempt of CVE-2021-1675
+references:
+- https://web.archive.org/web/20210629055600/https://github.com/hhlxf/PrintNightmare/
+- https://github.com/cube0x0/CVE-2021-1675
+author: Bhabesh Raj
+date: 2021-07-01
+modified: 2023-02-17
+tags:
+- attack.persistence
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574
+- cve.2021-1675
+logsource:
+  category: file_delete
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\spoolsv.exe'
+    TargetFilename|contains: 'C:\Windows\System32\spool\drivers\x64\3\'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The detection rule targets potential exploitation attempts related to the PrintNightmare vulnerability (CVE-2021-1675) by monitoring for unauthorized deletions of Dynamic Link Libraries (DLLs) within the Windows Spooler Service driver folder. This folder, located at `C:\Windows\System32\spool\drivers\x64\3\`, is critical for printer-related tasks in a Windows environment. The rule specifically looks for file deletion events that originate from the `spoolsv.exe` process, which is the Windows Print Spooler service responsible for managing print jobs and related operations. By focusing on this specific process, the rule identifies suspicious behavior that could indicate an attacker is attempting to leverage the PrintNightmare vulnerability to gain unauthorized access or escalate privileges within the environment.
+  ### Investigation Steps
+  - Review EDR logs to identify the context of the file deletion, specifically looking for processes that initiated deletion requests and any command-line parameters that may indicate malicious intentions.
+  - Analyze logs in the Windows Event Viewer, particularly under the Security and System categories, to determine whether any unusual activities are associated with the Spooler Service around the time of the detected alert.
+  - Check the status and configuration of the Print Spooler Service using PowerShell or directly in the Windows Services management console to confirm if it is running and assess if any unusual settings are in place.
+  - Investigate network logs (NDR and firewall) to identify any anomalous outbound connections from the affected machine, which could indicate further exploitation or data exfiltration attempts related to the incident.

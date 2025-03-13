@@ -1,0 +1,44 @@
+title: Service Security Descriptor Tampering Via Sc.EXE
+id: 98c5aeef-32d5-492f-b174-64a691896d25
+related:
+- id: 99cf1e02-00fb-4c0d-8375-563f978dfd37     # Deny Service Access
+  type: similar
+- id: a537cfc3-4297-4789-92b5-345bfd845ad0     # Specific Technique
+  type: similar
+status: test
+description: Detection of sc.exe utility adding a new service with special permission
+  which hides that service.
+references:
+- https://blog.talosintelligence.com/2021/10/threat-hunting-in-large-datasets-by.html
+- https://www.sans.org/blog/red-team-tactics-hiding-windows-services/
+- https://twitter.com/Alh4zr3d/status/1580925761996828672
+- https://twitter.com/0gtweet/status/1628720819537936386
+- https://itconnect.uw.edu/tools-services-support/it-systems-infrastructure/msinf/other-help/understanding-sddl-syntax/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-02-28
+tags:
+- attack.persistence
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.011
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\sc.exe'
+  - OriginalFileName: 'sc.exe'
+  selection_cli:
+    CommandLine|contains: 'sdset'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying the use of the `sc.exe` utility in Windows operating systems, particularly when it is employed to create a new service with altered security descriptors that might hide the service from standard views. Such tampering typically involves the command `sdset`, which alters permissions on the service to obscure its presence or functionality, thereby evading detection mechanisms. The rule leverages process creation logs that capture details of command-line executions, specifically looking for the execution of `sc.exe` along with the presence of `sdset` in the command line parameters. By monitoring these indicators, the rule aims to flag potential malicious activity that involves unauthorized service alterations.
+  ### Investigation Steps
+  - Review process creation logs in the EDR to identify the related `sc.exe` execution and examine the timestamp and parent processes for correlating activities.
+  - Analyze command-line parameters associated with the `sc.exe` executions to determine the exact permissions being set on the newly created service and identify potential security implications.
+  - Utilize the SIEM to search for alerts related to suspicious service modifications and correlate them with user account activity during the relevant time frame.
+  - Consult Windows event logs to track any changes to service states or configurations that might provide further context to the detected activity.

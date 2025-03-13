@@ -1,0 +1,41 @@
+title: PowerShell Script With File Upload Capabilities
+id: d2e3f2f6-7e09-4bf2-bc5d-90186809e7fb
+status: test
+description: Detects PowerShell scripts leveraging the "Invoke-WebRequest" cmdlet
+  to send data via either "PUT" or "POST" method.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1020/T1020.md
+- https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html
+- https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/invoke-webrequest?view=powershell-7.4
+author: frack113
+date: 2022-01-07
+modified: 2023-05-04
+tags:
+- attack.exfiltration
+- attack.t1020
+logsource:
+  product: windows
+  category: ps_script
+  definition: bade5735-5ab0-4aa7-a642-a11be0e40872
+detection:
+  selection_cmdlet:
+    ScriptBlockText|contains:
+    - 'Invoke-WebRequest'
+    - 'iwr '
+  selection_flag:
+    ScriptBlockText|contains:
+    - '-Method Put'
+    - '-Method Post'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies potential data exfiltration activities conducted via PowerShell scripts that utilize the `Invoke-WebRequest` cmdlet. Specifically, it looks for script execution that includes the `-Method Put` or `-Method Post` parameters, indicating an upload of files or data to an external server. The rule sources the relevant data from PowerShell script logs, which capture the execution of scripts and their parameters. A successful match with this detection rule may indicate malicious activity, such as an attacker attempting to siphon off sensitive information or files.
+  PowerShell is a powerful scripting language often exploited by threat actors due to its native capabilities in Windows environments. By detecting the use of `Invoke-WebRequest` with upload methods, security teams can quickly address potential exfiltration attempts and analyze the context and intent of the scripts involved.
+  ### Investigation Steps
+  - Review PowerShell logs in your EDR tool to identify the user and system context in which the script was executed. Look for timestamps and user accounts that may indicate anomalous behavior.
+  - Examine network logs from the NGFW or NDR to track outbound connections made during the execution of the PowerShell script. Check for connections to suspicious or unrecognized external IP addresses.
+  - Utilize the SIEM to correlate this alert with other alerts or unusual activities that might indicate a broader attack pattern. Look for previous indicators of compromise associated with the same user or host.
+  - Access relevant cloud logs, especially if the environment is hybrid, to check for any data uploads to cloud storage resources linked to the user or the executed script. Analyze for large or unusual transfers that could relate to the detected activity.

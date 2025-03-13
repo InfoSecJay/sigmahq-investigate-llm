@@ -1,0 +1,31 @@
+title: Driver Load From A Temporary Directory
+id: 2c4523d5-d481-4ed0-8ec3-7fbf0cb41a75
+status: test
+description: Detects a driver load from a temporary directory
+references:
+- Internal Research
+author: Florian Roth (Nextron Systems)
+date: 2017-02-12
+modified: 2021-11-27
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1543.003
+logsource:
+  category: driver_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|contains: '\Temp\'
+  condition: selection
+falsepositives:
+- There is a relevant set of false positives depending on applications in the environment
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect instances where a driver is loaded from a temporary directory on Windows systems. Loading drivers from temporary directories can be a tactic used by threat actors to bypass standard security measures, as these locations are often not monitored as rigorously as more conventional driver directories. The rule specifically looks for loaded images (drivers) where the file path contains `\Temp\`, indicating that the driver may come from a less secure location. The primary data sources involved in this detection are driver load logs, which record the loading of drivers along with their file paths, enabling the identification of suspicious activity linked to persistence and privilege escalation attacks.
+  ### Investigation Steps
+  - Examine the EDR logs to determine the context in which the driver was loaded, including the time of the event and the process that initiated the driver load.
+  - Check for any anomalous processes that might have created or accessed files in the temporary directory prior to the driver load, using file system activity logs.
+  - Utilize anti-virus logs to scan the detected driver for known malware signatures to help assess whether it poses a threat.
+  - Review Proxy or network logs for communications originating from the process associated with the driver load, which could indicate command and control activity or data exfiltration.

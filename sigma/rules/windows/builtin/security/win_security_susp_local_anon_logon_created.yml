@@ -1,0 +1,37 @@
+title: Suspicious Windows ANONYMOUS LOGON Local Account Created
+id: 1bbf25b9-8038-4154-a50b-118f2a32be27
+status: test
+description: Detects the creation of suspicious accounts similar to ANONYMOUS LOGON,
+  such as using additional spaces. Created as an covering detection for exclusion
+  of Logon Type 3 from ANONYMOUS LOGON accounts.
+references:
+- https://twitter.com/SBousseaden/status/1189469425482829824
+author: James Pemberton / @4A616D6573
+date: 2019-10-31
+modified: 2022-10-09
+tags:
+- attack.persistence
+- attack.t1136.001
+- attack.t1136.002
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4720
+    SamAccountName|contains|all:
+    - 'ANONYMOUS'
+    - 'LOGON'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation of suspicious local accounts in Windows environments that resemble the expected format of the ANONYMOUS LOGON account, notably accounts that include additional spaces or alterations in their names. It leverages Windows Security Event ID 4720, which indicates a user account creation event, specifically targeting account names that contain both "ANONYMOUS" and "LOGON". By focusing on these patterns, the rule helps flag potentially malicious activity that could signify an attacker trying to mislead security defenses by creating deceptive user accounts, thereby aiding persistence on the target system.
+  The data sources involved in this detection primarily include Windows Security logs, which capture detailed information about user account management actions. Analysts should focus on account creation events to assess the legitimacy of newly created accounts and determine whether they pose a security risk to the organization.
+  ### Investigation Steps
+  - Query the EDR for recent Event ID 4720 occurrences and filter based on timestamps surrounding the alert list to determine any suspicious account creation events.
+  - Investigate the details of the identified accounts, specifically reviewing the creation parameters and associated user credentials to validate whether they should exist in the environment.
+  - Examine system logs and other security events for any unusual authentication patterns or activities linked to the newly created accounts, particularly logon attempts or privilege escalations.
+  - Review network logs, including Proxy and VPN records, to identify access patterns that may correlate with the suspicious account activity, noting any abnormal traffic sources or destinations.

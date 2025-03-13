@@ -1,0 +1,33 @@
+title: Disable Powershell Command History
+id: 602f5669-6927-4688-84db-0d4b7afb2150
+status: test
+description: Detects scripts or commands that disabled the Powershell command history
+  by removing psreadline module
+references:
+- https://twitter.com/DissectMalware/status/1062879286749773824
+author: Ali Alwashali
+date: 2022-08-21
+tags:
+- attack.defense-evasion
+- attack.t1070.003
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - Remove-Module
+    - psreadline
+  condition: selection
+falsepositives:
+- Legitimate script that disables the command history
+level: high
+notes: |
+  ### Technical Context
+  This detection rule aims to identify potential attempts to disable PowerShell command history by removing the `psreadline` module from a system. The `psreadline` module provides functionality for command-line editing and history in PowerShell. By monitoring the use of the `Remove-Module` command in conjunction with the targeted `psreadline` module, the rule detects malicious scripts or commands that are typically employed during reconnaissance or to evade detection by erasing command history. This rule specifically relies on PowerShell script block logs that must be enabled on Windows systems, capturing the execution of scripts in real-time for effective monitoring.
+  ### Investigation Steps
+  - Review recent PowerShell script logs in your SIEM for any instances of the `Remove-Module` command specifically targeting `psreadline`. Cross-reference timestamps with other activity logs.
+  - Use your EDR tool to examine processes that invoked PowerShell around the time the alert was triggered. Look for any unusual parent-child process relationships or elevated privileges.
+  - Analyze the context of the script by retrieving the contents, if available, through script block logging. Determine if the script appears to serve a legitimate purpose or shows signs of malicious intent.
+  - Check for any user accounts or service accounts that executed the script and evaluate their typical behaviors and roles in the environment to identify any anomalous activity.

@@ -1,0 +1,38 @@
+title: Registry Entries For Azorult Malware
+id: f7f9ab88-7557-4a69-b30e-0a8f91b3a0e7
+status: test
+description: Detects the presence of a registry key created during Azorult execution
+references:
+- https://www.trendmicro.com/vinfo/us/threat-encyclopedia/malware/trojan.win32.azoruit.a
+author: Trent Liffick
+date: 2020-05-08
+modified: 2021-11-27
+tags:
+- attack.execution
+- attack.t1112
+logsource:
+  product: windows
+  category: registry_event
+detection:
+  selection:
+    EventID:
+    - 12
+    - 13
+    TargetObject|contains: 'SYSTEM\'
+    TargetObject|endswith: '\services\localNETService'
+  condition: selection
+fields:
+- Image
+- TargetObject
+- TargetDetails
+falsepositives:
+- Unknown
+level: critical
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying registry key modifications associated with the Azorult malware, a known information-stealing Trojan. The rule specifically looks for Windows Registry events—specifically Event IDs 12 and 13—that indicate the creation or modification of a particular registry key. The presence of the key in `SYSTEM\services\localNETService` is characteristic of Azorult's execution and serves as a potential indicator of compromise. By monitoring these registry events, analysts can detect anomalous behavior relevant to malware activity, leveraging processes that log changes to the Windows Registry, which is critical for detecting some forms of malware that manipulate system configurations or install backdoors.
+  ### Investigation Steps
+  - Utilize the EDR tool to search for any processes that interacted with the registry around the time of the detected event, focusing on those that may have originated from suspicious applications.
+  - Review Windows Event Logs to correlate the timestamp of the registry modifications with other potential indicators, such as unusual logins or abnormal process behavior.
+  - Check Proxy server logs for any network communications initiated by affected endpoints that may indicate command and control (C2) activity linked to Azorult.
+  - Analyze any recent changes in system configurations or service registrations via cloud logs, particularly if the system has integrations with AWS, GCP, or Azure services.

@@ -1,0 +1,32 @@
+title: Potential Memory Dumping Activity Via LiveKD
+id: a85f7765-698a-4088-afa0-ecfbf8d01fa4
+status: test
+description: Detects execution of LiveKD based on PE metadata or image name
+references:
+- https://learn.microsoft.com/en-us/sysinternals/downloads/livekd
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-15
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith:
+    - '\livekd.exe'
+    - '\livekd64.exe'
+  - OriginalFileName: 'livekd.exe'
+  condition: selection
+falsepositives:
+- Administration and debugging activity (must be investigated)
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential memory dumping activities through the use of LiveKD, a tool from the Microsoft Sysinternals suite used for live kernel debugging. The rule identifies instances where the executable files `livekd.exe` or `livekd64.exe` are launched on a Windows system, specifically looking for specific characteristics in the process creation logs. These characteristics include the image name ending with the specified executables and the original file name being `livekd.exe`. Memory dumping tools are often employed by attackers to extract sensitive information from memory, making their detection crucial for incident response teams.
+  The detection is based on process creation logs, involved through various sources such as EDR (Endpoint Detection and Response) solutions that log the execution of processes, including details needed to verify the legitimacy or malicious intent of the executed commands. Analysts should remain cautious of any legitimate administrative activities, as the detection may yield false positives during normal system or debugging operations.
+  ### Investigation Steps
+  Review the EDR logs to identify the user account associated with the execution of `livekd.exe` or `livekd64.exe`, and assess whether it aligns with legitimate administrative activities.
+  Check the command-line parameters used during the execution of the detected process to uncover any abnormal actions or suspicious flags that may indicate malicious intent.
+  Investigate the surrounding process tree to evaluate if any additional suspicious processes were spawned around the same time, potentially indicating a broader attack vector.
+  Correlate the alert with network logs from the NGFW or Proxy to discern if there were any unusual outbound connections initiated post-execution, as attackers may attempt to exfiltrate data captured from memory.

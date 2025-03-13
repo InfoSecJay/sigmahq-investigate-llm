@@ -1,0 +1,79 @@
+title: Windows Binaries Write Suspicious Extensions
+id: b8fd0e93-ff58-4cbd-8f48-1c114e342e62
+related:
+- id: 1277f594-a7d1-4f28-a2d3-73af5cbeab43
+  type: derived
+status: test
+description: Detects Windows executables that write files with suspicious extensions
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-12
+modified: 2024-04-15
+tags:
+- attack.defense-evasion
+- attack.t1036
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection_generic:
+    Image|endswith:
+    - '\csrss.exe'
+    - '\lsass.exe'
+    - '\RuntimeBroker.exe'
+    - '\sihost.exe'
+    - '\smss.exe'
+    - '\wininit.exe'
+    - '\winlogon.exe'
+    TargetFilename|endswith:
+    - '.bat'
+    - '.dll'
+    - '.exe'
+    - '.hta'
+    - '.iso'
+    - '.ps1'
+    - '.txt'
+    - '.vbe'
+    - '.vbs'
+  selection_special:
+    Image|endswith:
+    - '\dllhost.exe'
+    - '\rundll32.exe'
+    - '\svchost.exe'
+    TargetFilename|endswith:
+    - '.bat'
+    - '.hta'
+    - '.iso'
+    - '.ps1'
+    - '.vbe'
+    - '.vbs'
+  filter_main_AppLockerPolicyTest:
+    Image: 'C:\Windows\System32\dllhost.exe'
+    TargetFilename|contains|all:
+    - ':\Users\'
+    - '\AppData\Local\Temp\__PSScriptPolicyTest_'
+    TargetFilename|endswith: '.ps1'
+  filter_main_script_gpo_machine:
+    Image: 'C:\Windows\system32\svchost.exe'
+    TargetFilename|contains|all:
+    - 'C:\Windows\System32\GroupPolicy\DataStore\'
+    - '\sysvol\'
+    - '\Policies\'
+    - '\Machine\Scripts\Startup\'
+    TargetFilename|endswith:
+    - '.ps1'
+    - '.bat'
+  condition: 1 of selection_* and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule for detecting Windows binaries that write files with suspicious extensions focuses on specific executable processes that may be involved in malicious activity. This rule monitors system events related to file creation, specifically looking for instances when recognized Windows processes—such as `csrss.exe`, `lsass.exe`, and `svchost.exe`—attempt to create files with certain extensions that are often associated with scripting, potentially harmful payloads, or execution of malicious code. The monitored extensions include `.bat`, `.ps1`, `.vbe`, and others that could indicate a security threat.
+  Data sources involved in this detection include file event logs from the Windows operating system, which capture the image of the executable creating the file and the target filename being created. By filtering out known benign instances, such as specific Group Policy scripts or AppLocker policy tests, the rule aims to isolate potentially malicious activity while minimizing false positives.
+  ### Investigation Steps
+  - Utilize EDR tools to examine the process tree for the detected executable, ensuring to review any parent or child processes associated with the suspicious file creation.
+  - Check the command-line arguments and execution context of the flagged executable to determine if there are any anomalous behaviors or indicators of compromise.
+  - Search through file event logs to track the timeline and frequency of the suspicious file writes, correlating them with other system events to uncover patterns.
+  - Review network traffic logs, particularly from the NGFW or NDR, to identify any outbound communications from the executables involved, which may indicate data exfiltration or command-and-control activity.

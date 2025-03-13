@@ -1,0 +1,34 @@
+title: Suspicious Start-Process PassThru
+id: 0718cd72-f316-4aa2-988f-838ea8533277
+status: test
+description: Powershell use PassThru option to start in background
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1036.003/T1036.003.md
+- https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/Start-Process?view=powershell-5.1&viewFallbackFrom=powershell-7
+author: frack113
+date: 2022-01-15
+tags:
+- attack.defense-evasion
+- attack.t1036.003
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - Start-Process
+    - '-PassThru '
+    - '-FilePath '
+  condition: selection
+falsepositives:
+- Legitimate PowerShell scripts
+level: medium
+notes: |
+  ### Technical Context
+  The "Suspicious Start-Process PassThru" Sigma rule detects potential misuse of PowerShell, specifically when the Start-Process command is issued with the PassThru option. This method allows malicious actors to execute commands in the background while letting them interact with the process output, which can be useful for evading detection or executing commands stealthily. The rule leverages Script Block Logging to identify instances of the Start-Process command that include the flags '-PassThru' and '-FilePath'. Data sources involved primarily include PowerShell script logs, which must have Script Block Logging enabled to capture these actions effectively. When PowerShell scripts utilize these parameters, they may indicate attempts at process injection or other evasion techniques commonly employed in attacks.
+  ### Investigation Steps
+  - Review PowerShell script logs on the affected endpoint to identify the specific command that was executed, analyzing the context and user associated with the execution.
+  - Utilize EDR tools to inspect the process tree for potential changes or anomalies that might indicate a malicious process started from the initial PowerShell command.
+  - Check for additional network activity related to the PowerShell execution by analyzing logs in your NDR or firewall to identify any outbound connections that were initiated as a result.
+  - Examine user behavior through authentication and access logs to determine whether the user executing the command exhibited unusual activity or if there are any known legitimate use cases for the command.

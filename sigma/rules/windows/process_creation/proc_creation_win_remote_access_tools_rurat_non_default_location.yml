@@ -1,0 +1,37 @@
+title: Remote Access Tool - RURAT Execution From Unusual Location
+id: e01fa958-6893-41d4-ae03-182477c5e77d
+status: test
+description: Detects execution of Remote Utilities RAT (RURAT) from an unusual location
+  (outside of 'C:\Program Files')
+references:
+- https://redcanary.com/blog/misbehaving-rats/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-19
+modified: 2023-03-05
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith:
+    - '\rutserv.exe'
+    - '\rfusclient.exe'
+  - Product: 'Remote Utilities'
+  filter:
+    Image|startswith:
+    - 'C:\Program Files\Remote Utilities'
+    - 'C:\Program Files (x86)\Remote Utilities'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying the execution of the Remote Utilities Remote Access Tool (RURAT) from locations that are deemed unusual, specifically outside of the standard installation directories such as 'C:\Program Files' or 'C:\Program Files (x86)'. The rule operates by monitoring process creation logs for instances where the executable files 'rutserv.exe' or 'rfusclient.exe' are launched. If these files are detected executing from a path that does not begin with the typical installation directory paths, the rule triggers an alert. By leveraging information from process creation logs, responders can effectively identify potential misuse of this remote access tool which may indicate malicious intent or unauthorized access.
+  ### Investigation Steps
+  - Utilize EDR tools to search for instances of 'rutserv.exe' or 'rfusclient.exe' execution and note their originating paths to confirm if they are unusual.
+  - Review the timeline of process creation events to determine if there were any preceding activities that may indicate a compromise, such as suspicious logins.
+  - Check network traffic logs to identify any connections made by the RURAT executables to external IP addresses, looking for unusual data exfiltration or command-and-control behavior.
+  - Analyze historical access logs from cloud services or VPNs to correlate with the execution times of the RURAT, validating if there were any legitimate users accessing the system from unusual locations.

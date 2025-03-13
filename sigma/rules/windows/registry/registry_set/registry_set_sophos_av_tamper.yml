@@ -1,0 +1,35 @@
+title: Tamper With Sophos AV Registry Keys
+id: 9f4662ac-17ca-43aa-8f12-5d7b989d0101
+status: test
+description: Detects tamper attempts to sophos av functionality via registry key modification
+references:
+- https://redacted.com/blog/bianlian-ransomware-gang-gives-it-a-go/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-02
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains:
+    - '\Sophos Endpoint Defense\TamperProtection\Config\SAVEnabled'
+    - '\Sophos Endpoint Defense\TamperProtection\Config\SEDEnabled'
+    - '\Sophos\SAVService\TamperProtection\Enabled'
+    Details: DWORD (0x00000000)
+  condition: selection
+falsepositives:
+- Some FP may occur when the feature is disabled by the AV itself, you should always
+  investigate if the action was legitimate
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects attempts to tamper with Sophos Anti-Virus (AV) functionality by monitoring modifications to specific Windows registry keys associated with Sophos. The rule is focused on identifying changes to keys that indicate whether tamper protection is enabled for Sophos Endpoint Defense. It specifically looks for changes made to the values of keys ending with `SAVEnabled`, `SEDEnabled`, and `Enabled` under the Sophos registry paths, where alterations are indicated by a change to a DWORD value of `0x00000000`. The data sources involved include registry logs that record these alterations, which can signify malicious intent, particularly in the context of evasion tactics used by threat actors.
+  ### Investigation Steps
+  - Check EDR logs for process activity around the time of the registry modification. Look for any suspicious processes that might indicate a tamper attempt.
+  - Review the timeline of changes to the relevant registry keys to identify patterns or repeat modifications. This can help ascertain if the actions align with typical user behavior or if they appear anomalous.
+  - Consult AV logs to determine whether Sophos reported any alerts or incidents related to the tampering event. This could provide additional context to the investigation.
+  - Examine network traffic logs via the Proxy or NDR to identify any external communications during the tamper attempt. Look for connections to known malicious IPs or domains that could suggest a coordinated attack.

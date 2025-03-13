@@ -1,0 +1,50 @@
+title: VHD Image Download Via Browser
+id: 8468111a-ef07-4654-903b-b863a80bbc95
+status: test
+description: |
+  Detects creation of ".vhd"/".vhdx" files by browser processes.
+  Malware can use mountable Virtual Hard Disk ".vhd" files to encapsulate payloads and evade security controls.
+references:
+- https://redcanary.com/blog/intelligence-insights-october-2021/
+- https://www.kaspersky.com/blog/lazarus-vhd-ransomware/36559/
+- https://securelist.com/lazarus-on-the-hunt-for-big-game/97757/
+author: frack113, Christopher Peacock '@securepeacock', SCYTHE '@scythe_io'
+date: 2021-10-25
+modified: 2023-05-05
+tags:
+- attack.resource-development
+- attack.t1587.001
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\brave.exe'
+    - '\chrome.exe'
+    - '\firefox.exe'
+    - '\iexplore.exe'
+    - '\maxthon.exe'
+    - '\MicrosoftEdge.exe'
+    - '\msedge.exe'
+    - '\msedgewebview2.exe'
+    - '\opera.exe'
+    - '\safari.exe'
+    - '\seamonkey.exe'
+    - '\vivaldi.exe'
+    - '\whale.exe'
+        # We don't use "endswith" to also match with ADS logs and ".vhdx". Example: "TargetFilename: C:\Users\xxx\Downloads\windows.vhd:Zone.Identifier"
+    TargetFilename|contains: '.vhd'
+  condition: selection
+falsepositives:
+- Legitimate downloads of ".vhd" files would also trigger this
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the download of Virtual Hard Disk (.vhd or .vhdx) files initiated by common web browser processes on Windows systems. These file types have been associated with malware that uses them to stealthily encapsulate malicious payloads, thus evading typical security measures. The rule specifically monitors for browser processes (such as Chrome, Firefox, and Edge) when they create or download files with names containing ".vhd". By analyzing file creation events from these browser processes, the detection logic alerts on potential misuse of these file types.
+  The rule leverages file event logs, focusing on attributes such as the process image name and target filename. By filtering for specific browsers, the rule aims to minimize false positives from legitimate operations while remaining vigilant for potentially harmful downloads.
+  ### Investigation Steps
+  - Review the associated file event logs in the EDR system to confirm the creation of any ".vhd" or ".vhdx" files during the time of the alert.
+  - Investigate the source of the download by checking the browser history and any proxy logs to determine if the download originated from a suspicious or untrusted website.
+  - Examine the command-line parameters of the browser process to identify any unusual or potentially harmful flags that may suggest malicious intent during the file download.
+  - Conduct a threat assessment by analyzing the downloaded VHD files with the organization's AV tools or malware analysis sandbox to check for embedded malicious payloads.

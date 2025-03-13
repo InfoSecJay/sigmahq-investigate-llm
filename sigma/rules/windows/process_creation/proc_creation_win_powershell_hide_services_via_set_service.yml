@@ -1,0 +1,50 @@
+title: Abuse of Service Permissions to Hide Services Via Set-Service
+id: 514e4c3a-c77d-4cde-a00f-046425e2301e
+related:
+- id: a537cfc3-4297-4789-92b5-345bfd845ad0
+  type: derived
+- id: 953945c5-22fe-4a92-9f8a-a9edc1e522da
+  type: similar
+status: test
+description: Detects usage of the "Set-Service" powershell cmdlet to configure a new
+  SecurityDescriptor that allows a service to be hidden from other utilities such
+  as "sc.exe", "Get-Service"...etc. (Works only in powershell 7)
+references:
+- https://twitter.com/Alh4zr3d/status/1580925761996828672
+- https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/set-service?view=powershell-7.2
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-10-17
+tags:
+- attack.persistence
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.011
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\pwsh.exe'
+  - OriginalFileName: 'pwsh.dll'
+  selection_sddl:
+        # Example would be: "D:(D;;DCLCWPDTSD;;;IU)(D;;DCLCWPDTSD;;;SU)(D;;DCLCWPDTSD;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)S:(AU;FA;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;WD)"
+    CommandLine|contains|all:
+    - 'Set-Service '
+    - 'DCLCWPDTSD'
+  selection_cmdlet:
+    CommandLine|contains:
+    - '-SecurityDescriptorSddl '
+    - '-sd '
+  condition: all of selection_*
+falsepositives:
+- Rare intended use of hidden services
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potential abuse of the PowerShell cmdlet `Set-Service`, which can be manipulated to create Security Descriptors allowing services to be hidden from common service management utilities like `sc.exe` and `Get-Service`. Specifically, the rule looks for processes initiated by PowerShell (specifically `pwsh.exe`) which leverage specific command-line arguments that modify service visibility through Security Descriptor Definition Language (SDDL) strings. The rule captures activity that uses both the SDDL syntax and the appropriate PowerShell parameters to indicate an intention to obscure a service's presence, which can be associated with malicious activities aiming to maintain persistence or evade detection. 
+  This rule applies to environments using Windows, particularly those executing PowerShell version 7 or above, and directly leverages process creation logs as its primary data source. By monitoring these command executions, the SOC can quickly identify and respond to potential security incidents before they escalate.
+  ### Investigation Steps
+  - Review recent process creation logs in the EDR for instances of `pwsh.exe` executing with the `Set-Service` command along with `DCLCWPDTSD` in the command line.
+  - Analyze the command-line arguments in the alerts to determine if the modified Security Descriptors are consistent with known benign behaviors or if they appear to be part of a suspicious pattern.
+  - Cross-reference any identified hidden services with the current list of active services using `Get-Service` and other system utilities to assess unexplained or unauthorized entries.
+  - Utilize cloud logging (if applicable) to identify any related activities across other services or systems that could indicate lateral movement or coordinated actions by the same threat actor.

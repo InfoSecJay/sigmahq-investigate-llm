@@ -1,0 +1,36 @@
+title: ETW Logging Disabled For rpcrt4.dll
+id: 90f342e1-1aaa-4e43-b092-39fda57ed11e
+status: test
+description: Detects changes to the "ExtErrorInformation" key in order to disable
+  ETW logging for rpcrt4.dll
+references:
+- http://redplait.blogspot.com/2020/07/whats-wrong-with-etw.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-12-09
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1112
+- attack.t1562
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject|endswith: '\Microsoft\Windows NT\Rpc\ExtErrorInformation'
+    Details:
+            # This is disabled by default for some reason
+    - 'DWORD (0x00000000)'         # Off
+    - 'DWORD (0x00000002)'         # Off with exceptions
+  condition: selection
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect modifications to the "ExtErrorInformation" registry key associated with the `rpcrt4.dll` Dynamic Link Library (DLL) in Windows environments. Specifically, it looks for changes that disable Event Tracing for Windows (ETW) logging for this DLL, which can be a tactic used by attackers to evade detection and conceal malicious activities. By monitoring the registry for specific values (`DWORD (0x00000000)` or `DWORD (0x00000002)`), this rule identifies potential attempts to turn off ETW logging, thereby diminishing visibility into the operations of the RPC (Remote Procedure Call) framework. The primary data source for this detection is Windows registry logs, specifically changes to the registry values.
+  ### Investigation Steps
+  - Review the registry change logs in your Windows EDR solution to identify any recent modifications to the `ExtErrorInformation` key, noting the user and process responsible for the change.
+  - Use your SIEM to correlate any suspicious activities or alerts generated around the same time as the registry modification, focusing on anomalies in user behavior or process execution.
+  - Investigate relevant process activities in your EDR tool to identify any associated processes that have interacted with `rpcrt4.dll`, checking for irregularities in command-line parameters or process chains.
+  - Search for external indicators of compromise (IoCs) related to known threats that exploit `rpcrt4.dll` or manipulate registry settings to bypass logging via your threat intelligence platforms or proxy logs.

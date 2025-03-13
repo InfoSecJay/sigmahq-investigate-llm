@@ -1,0 +1,34 @@
+title: DirLister Execution
+id: b4dc61f5-6cce-468e-a608-b48b469feaa2
+status: test
+description: Detect the usage of "DirLister.exe" a utility for quickly listing folder
+  or drive contents. It was seen used by BlackCat ransomware to create a list of accessible
+  directories and files.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/40b77d63808dd4f4eafb83949805636735a1fd15/atomics/T1083/T1083.md
+- https://news.sophos.com/en-us/2022/07/14/blackcat-ransomware-attacks-not-merely-a-byproduct-of-bad-luck/
+author: frack113
+date: 2022-08-20
+modified: 2023-02-04
+tags:
+- attack.discovery
+- attack.t1083
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - OriginalFileName: 'DirLister.exe'
+  - Image|endswith: '\dirlister.exe'
+  condition: selection
+falsepositives:
+- Legitimate use by users
+level: low
+notes: |
+  ### Technical Context
+  The "DirLister Execution" detection rule is designed to identify the execution of the tool "DirLister.exe," which is commonly used for listing folder and drive contents. This tool has been linked to the BlackCat ransomware, which utilizes it for reconnaissance by creating lists of accessible directories and files on infected systems. The rule monitors Windows process creation logs, specifically targeting logs that indicate the presence of "DirLister.exe" in the file name or image path. By focusing on the execution of this utility, the rule aims to flag potential malicious activity associated with reconnaissance efforts that could precede data exfiltration or encryption.
+  ### Investigation Steps
+  - Investigate the process creation logs in the EDR to identify the context in which "DirLister.exe" was executed, including the user account and time of execution.
+  - Cross-reference the detected instance of "DirLister.exe" with other security alerts to determine if there are additional indicators of compromise on the system.
+  - Look for any related outbound connections in the Proxy or Firewall logs that may suggest data exfiltration attempts during the time "DirLister.exe" was running.
+  - Review file access logs to see if sensitive directories or files were accessed or enumerated during the execution of the tool.

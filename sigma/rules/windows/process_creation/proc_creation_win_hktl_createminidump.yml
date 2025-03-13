@@ -1,0 +1,33 @@
+title: HackTool - CreateMiniDump Execution
+id: 36d88494-1d43-4dc0-b3fa-35c8fea0ca9d
+status: test
+description: Detects the use of CreateMiniDump hack tool used to dump the LSASS process
+  memory for credential extraction on the attacker's machine
+references:
+- https://ired.team/offensive-security/credential-access-and-credential-dumping/dumping-lsass-passwords-without-mimikatz-minidumpwritedump-av-signature-bypass
+author: Florian Roth (Nextron Systems)
+date: 2019-12-22
+modified: 2024-11-23
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\CreateMiniDump.exe'
+  - Hashes|contains: 'IMPHASH=4a07f944a83e8a7c2525efa35dd30e2f'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "HackTool 
+  - CreateMiniDump Execution" is designed to detect the execution of the CreateMiniDump tool, which is often used by attackers to extract sensitive credential information stored in the LSASS process on Windows systems. This rule identifies instances where the CreateMiniDump executable is launched, specifically focusing on its unique hash for targeted detection. By monitoring process creation logs, particularly the command line, this rule helps in identifying when an attacker attempts to use this tool for unauthorized credential access. The presence of the specified hash within the logs serves as a strong indicator of malicious intent, as CreateMiniDump is not commonly used for legitimate processes. 
+  ### Investigation Steps
+  - Review the EDR logs to identify the process creation event related to CreateMiniDump.exe, focusing on the timestamp and the user account under which it was executed.
+  - Check the command-line parameters used in the process creation event to see if any standard flags or arguments were modified, which may indicate unusual usage.
+  - Investigate the associated network activity in the NDR logs to assess any outbound connections made by the system after the execution, as this may reveal attempts to exfiltrate stolen credentials.
+  - Analyze event logs from the SIEM for any unexpected user behavior or access patterns around the time of the CreateMiniDump event to identify potential lateral movement or additional exploit attempts.

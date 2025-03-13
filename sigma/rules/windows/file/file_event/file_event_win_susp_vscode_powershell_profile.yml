@@ -1,0 +1,36 @@
+title: VsCode Powershell Profile Modification
+id: 3a9fa2ec-30bc-4ebd-b49e-7c9cff225502
+related:
+- id: b5b78988-486d-4a80-b991-930eff3ff8bf
+  type: similar
+status: test
+description: Detects the creation or modification of a vscode related powershell profile
+  which could indicate suspicious activity as the profile can be used as a mean of
+  persistence
+references:
+- https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles?view=powershell-7.2
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-24
+modified: 2023-01-06
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1546.013
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|endswith: '\Microsoft.VSCode_profile.ps1'
+  condition: selection
+falsepositives:
+- Legitimate use of the profile by developers or administrators
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation or modification of the Visual Studio Code (VSCode) PowerShell profile file, specifically named `Microsoft.VSCode_profile.ps1`. Changes to this profile file can be indicative of malicious activities, including persistence mechanisms that an attacker might use to maintain access to a compromised system. The alert triggers on events related to file activities, particularly those involving this specific PowerShell script, which can execute whenever a PowerShell session is started in VSCode. The primary technical data sources for this rule are file event logs from Windows systems, which track file operations such as creation and modification.
+  ### Investigation Steps
+  - Utilize EDR tools to examine recent file events on the affected host to confirm the creation or modification of the `Microsoft.VSCode_profile.ps1` file.
+  - Review the command-line parameters and process creation logs for any suspicious instances of PowerShell or VSCode that may indicate malicious usage.
+  - Check for anomalous network connections related to the affected host, especially around the time of the file modification, using NDR and Proxy logs.
+  - Consult cloud logs (if applicable) for any user activities or changes in the environment that coincide with the timeline of the profile modification to identify unauthorized access patterns.

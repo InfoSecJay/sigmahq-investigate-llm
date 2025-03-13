@@ -1,0 +1,39 @@
+title: UAC Bypass Using EventVwr
+id: 63e4f530-65dc-49cc-8f80-ccfa95c69d43
+status: test
+description: Detects the pattern of a UAC bypass using Windows Event Viewer
+references:
+- https://twitter.com/orange_8361/status/1518970259868626944?s=20&t=RFXqZjtA7tWM3HxqEH78Aw
+- https://twitter.com/splinter_code/status/1519075134296006662?s=12&t=DLUXH86WtcmG_AZ5gY3C6g
+- https://lolbas-project.github.io/lolbas/Binaries/Eventvwr/#execute
+author: Antonio Cocomazzi (idea), Florian Roth (Nextron Systems)
+date: 2022-04-27
+modified: 2022-11-22
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|endswith:
+            # Removed the start just in case the logging backend doesn't expand ENV variables when they're used
+    - '\Microsoft\Event Viewer\RecentViews'
+    - '\Microsoft\EventV~1\RecentViews'
+  filter:
+    Image|startswith:
+    - 'C:\Windows\System32\'
+    - 'C:\Windows\SysWOW64\'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential User Account Control (UAC) bypass attempts using Windows Event Viewer, a common tactic used by adversaries to escalate privileges. It focuses specifically on the creation or modification of files within the folder paths associated with Event Viewer (e.g., `\Microsoft\Event Viewer\RecentViews` and `\Microsoft\EventV~1\RecentViews`). The rule looks for changes to these files while ensuring that the originating process starts from legitimate Windows system directories such as `C:\Windows\System32\` or `C:\Windows\SysWOW64\`. By analyzing event logs, particularly file event logs, this rule aims to uncover activities indicative of malicious intent that bypasses standard UAC controls, which can allow unauthorized actions to be executed at higher privilege levels.
+  ### Investigation Steps
+  - Review the EDR logs to pinpoint the process that accessed or modified files within the Event Viewer folders to understand the context of the activity.
+  - Cross-reference the command-line parameters and arguments associated with the identified process to identify any unusual or suspicious commands that could indicate a UAC bypass.
+  - Examine logs from AV or Endpoint Protection tools to check for any alerts or blocks related to the observed process, which might further substantiate the potential malicious activity.
+  - Investigate the Windows Event Logs for any related security events that coincide with the timing of the activity, specifically looking for failed login attempts or privilege escalation events.

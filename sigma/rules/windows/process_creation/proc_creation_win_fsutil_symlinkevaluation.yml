@@ -1,0 +1,39 @@
+title: Fsutil Behavior Set SymlinkEvaluation
+id: c0b2768a-dd06-4671-8339-b16ca8d1f27f
+status: test
+description: |
+  A symbolic link is a type of file that contains a reference to another file.
+  This is probably done to make sure that the ransomware is able to follow shortcuts on the machine in order to find the original file to encrypt
+references:
+- https://www.cybereason.com/blog/cybereason-vs.-blackcat-ransomware
+- https://learn.microsoft.com/fr-fr/windows-server/administration/windows-commands/fsutil-behavior
+author: frack113
+date: 2022-03-02
+modified: 2023-01-19
+tags:
+- attack.execution
+- attack.t1059
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\fsutil.exe'
+  - OriginalFileName: 'fsutil.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'behavior '
+    - 'set '
+    - 'SymlinkEvaluation'
+  condition: all of selection_*
+falsepositives:
+- Legitimate use
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule identifies potentially malicious usage of the `fsutil.exe` utility on Windows systems, specifically when the command `fsutil behavior set SymlinkEvaluation` is executed. This command setting allows symbolic links to be evaluated, which can be leveraged by ransomware to follow shortcuts and encrypt original files. By monitoring process creation logs that include the execution of `fsutil.exe` with the specific command-line parameters, security teams can detect attempts to alter system behavior in ways that may facilitate unauthorized file access or encryption. The key log sources involved in this detection are process creation logs from Windows systems, specifically targeting instances where `fsutil.exe` is involved.
+  ### Investigation Steps
+  - Review recent process creation logs in your EDR tool to identify instances of `fsutil.exe` being executed with the command to change the symlink evaluation behavior.
+  - Check for associated command history in PowerShell or CMD to understand the context and intent behind the execution of the `fsutil` command.
+  - Assess any related file system activity around the time of the event to find any unexpected file modifications or ransomware-like behavior.
+  - Conduct a search in your AV/EDR for any related alerts or detections that coincide with the execution of this command to capture any potential malicious activity.

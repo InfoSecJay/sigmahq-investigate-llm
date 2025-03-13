@@ -1,0 +1,44 @@
+title: Regsvr32 Execution From Potential Suspicious Location
+id: 9525dc73-0327-438c-8c04-13c0e037e9da
+related:
+- id: 8e2b24c9-4add-46a0-b4bb-0057b4e6187d
+  type: obsolete
+status: test
+description: Detects execution of regsvr32 where the DLL is located in a potentially
+  suspicious location.
+references:
+- https://web.archive.org/web/20171001085340/https://subt0x10.blogspot.com/2017/04/bypass-application-whitelisting-script.html
+- https://app.any.run/tasks/34221348-072d-4b70-93f3-aa71f6ebecad/
+author: Florian Roth (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-26
+tags:
+- attack.defense-evasion
+- attack.t1218.010
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\regsvr32.exe'
+  - OriginalFileName: 'REGSVR32.EXE'
+  selection_cli:
+    CommandLine|contains:
+    - ':\ProgramData\'
+    - ':\Temp\'
+    - ':\Users\Public\'
+    - ':\Windows\Temp\'
+    - '\AppData\Local\Temp\'
+    - '\AppData\Roaming\'
+  condition: all of selection_*
+falsepositives:
+- Some installers might execute "regsvr32" with DLLs located in %TEMP% or in %PROGRAMDATA%.
+  Apply additional filters if necessary.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies suspicious executions of the Windows utility `regsvr32.exe`, a tool often used for registering and unregistering DLLs. The focus of the rule is on instances where `regsvr32.exe` is executed with a DLL file located in potentially harmful directories such as `%PROGRAMDATA%`, `%TEMP%`, or user-specific progress directories (e.g., `%APPDATA%`). These locations are commonly exploited by attackers to evade security mechanisms and execute malicious code. The rule utilizes process creation logs from Windows to capture the relevant execution information, including the command-line parameters provided during the invocation of `regsvr32.exe`. By analyzing this data, the rule aims to detect unusual behavior that could indicate a security incident.
+  ### Investigation Steps
+  - Review recent `process_creation` logs from the EDR to identify instances of `regsvr32.exe` execution and evaluate the associated command-line arguments.
+  - Cross-reference the detected command-line paths with known safe software installations to determine if the execution is legitimate or potentially malicious.
+  - Analyze network traffic via the NDR to check for any outbound connections made shortly after the execution of `regsvr32.exe`.
+  - Check AV logs for any alerts or threats that correlate with the timestamp of the suspicious `regsvr32.exe` execution to see if any known malware signatures were triggered.

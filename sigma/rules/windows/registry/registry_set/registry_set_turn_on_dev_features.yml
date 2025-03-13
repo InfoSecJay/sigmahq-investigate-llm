@@ -1,0 +1,40 @@
+title: Potential Signing Bypass Via Windows Developer Features - Registry
+id: b110ebaf-697f-4da1-afd5-b536fa27a2c1
+related:
+- id: a383dec4-deec-4e6e-913b-ed9249670848
+  type: similar
+status: test
+description: Detects when the enablement of developer features such as "Developer
+  Mode" or "Application Sideloading". Which allows the user to install untrusted packages.
+references:
+- https://twitter.com/malmoeb/status/1560536653709598721
+- https://www.sentinelone.com/labs/inside-malicious-windows-apps-for-malware-deployment/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-12
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains:
+    - '\Microsoft\Windows\CurrentVersion\AppModelUnlock'
+    - '\Policies\Microsoft\Windows\Appx\'
+    TargetObject|endswith:
+    - '\AllowAllTrustedApps'
+    - '\AllowDevelopmentWithoutDevLicense'
+    Details: 'DWORD (0x00000001)'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential security risks associated with Windows developer features like "Developer Mode" and "Application Sideloading." These features can allow users to install untrusted applications, potentially leading to malicious activities by bypassing standard application integrity mechanisms. The rule focuses on monitoring specific registry changes, particularly modifications to the registry paths associated with the application model unlock settings. Specifically, it looks for entries indicating that either all trusted apps are allowed or that development is permitted without a developer license. The technical data sources primarily involve registry logs, which capture changes to the Windows registry that may indicate a shift in application security posture.
+  ### Investigation Steps
+  - Review registry logs for unexpected changes related to `\Microsoft\Windows\CurrentVersion\AppModelUnlock` or `\Policies\Microsoft\Windows\Appx\`. Look for evidence of entries set to `DWORD (0x00000001)`.
+  - Utilize EDR tools to examine the process creation logs on affected systems. Investigate any unusual or non-standard applications that have been executed following the registry changes.
+  - Check the logs of the NGFW and Proxy for outbound connections made by applications installed via the developer features. Assess for any malicious traffic or communications with known bad IPs.
+  - Analyze user account activity within the cloud platforms for any unusual administrative actions or application deployments that coincide with the timing of the registry modifications.

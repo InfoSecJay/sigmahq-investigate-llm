@@ -1,0 +1,44 @@
+title: Potential Obfuscated Ordinal Call Via Rundll32
+id: 43fa5350-db63-4b8f-9a01-789a427074e1
+status: test
+description: Detects execution of "rundll32" with potential obfuscated ordinal calls
+references:
+- Internal Research
+- https://www.youtube.com/watch?v=52tAmVLg1KM&t=2070s
+author: Nasreddine Bencherchali (Nextron Systems), Swachchhanda Shrawan Poudel (Nextron
+  Systems)
+date: 2023-05-17
+modified: 2025-02-23
+tags:
+- attack.defense-evasion
+- attack.t1027.010
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\rundll32.exe'
+  - OriginalFileName: 'RUNDLL32.EXE'
+  - CommandLine|contains: 'rundll32'
+  selection_cli:
+    CommandLine|contains:
+    - '#+'
+    - '#-'
+            # ordinal can be represented by adding any number of zeros in front ordinal number, for e.g. 000000024
+    - '#0'
+            # ordinal is 16 bit ordinal, so if you make the number large enough (don't fit in 16 bit space), then it normally wraps around.
+            # for e.g ordinal 24 can be also represented by 65560 (65536+24)
+    - '#655'
+    - '#656'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects potentially malicious usage of "rundll32.exe," a legitimate Windows utility used to execute functions in DLL files. Attackers often leverage this utility to obfuscate their commands and bypass security controls, sometimes using non-standard ordinal calls, which can be a sign of evasive tactics. The rule focuses on process creation logs, particularly monitoring the command-line parameters of the rundll32 execution. Specifically, it looks for command lines that include the rundll32 invocation and contain obfuscated ordinal references, potentially indicated by specific patterns (e.g., hashtags followed by numbers or zero-padding) that are not typical for legitimate rundll32 usage.
+  ### Investigation Steps
+  - Investigate the alert in the EDR by examining the command-line parameters associated with the rundll32.exe process execution to confirm the presence of obfuscated ordinal calls.
+  - Review process tree information within the EDR to identify parent processes and other related activities that may provide context about the execution flow leading to the alert.
+  - Check proxy logs for any outbound connections made by the machine at the time of the alert, as this may indicate data exfiltration or command-and-control communication.
+  - Query AV or NGFW logs for additional detections related to the roll-out time of the rundll32.exe execution that could indicate known malware or suspicious activity associated with the same endpoint.

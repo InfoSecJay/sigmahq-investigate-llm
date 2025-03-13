@@ -1,0 +1,39 @@
+title: Remote Access Tool - Team Viewer Session Started On Windows Host
+id: ab70c354-d9ac-4e11-bbb6-ec8e3b153357
+related:
+- id: 1f6b8cd4-3e60-47cc-b282-5aa1cbc9182d
+  type: similar
+- id: f459ccb4-9805-41ea-b5b2-55e279e2424a
+  type: similar
+status: test
+description: |
+  Detects the command line executed when TeamViewer starts a session started by a remote host.
+  Once a connection has been started, an investigator can verify the connection details by viewing the "incoming_connections.txt" log file in the TeamViewer folder.
+references:
+- Internal Research
+author: Josh Nickels, Qi Nan
+date: 2024-03-11
+tags:
+- attack.initial-access
+- attack.t1133
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image: 'TeamViewer_Desktop.exe'
+    ParentImage: 'TeamViewer_Service.exe'
+    CommandLine|endswith: 'TeamViewer_Desktop.exe --IPCport 5939 --Module 1'
+  condition: selection
+falsepositives:
+- Legitimate usage of TeamViewer
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where the TeamViewer application is used to establish a remote access session on a Windows host. It specifically focuses on monitoring the command-line execution of the `TeamViewer_Desktop.exe` process, which must be initiated by its parent process, `TeamViewer_Service.exe`. The command line used in this session contains distinct parameters that signal an incoming connection, particularly the `--IPCport 5939 --Module 1` suffix. By capturing these events through process creation logs, security teams can flag potential unauthorized remote access attempts while still considering the possibility of legitimate use within the organization.
+  To further assist investigators, the rule references the `incoming_connections.txt` log file located in the TeamViewer folder. This log file provides details regarding connection timelines and the hosts involved, allowing for a more in-depth review of any suspicious activities flagged by the detection rule.
+  ### Investigation Steps
+  - Retrieve process creation logs from the EDR to identify the initiation of `TeamViewer_Desktop.exe` and check its parent process for proper context.
+  - Examine the command line parameters in the EDR logs to confirm they match the suspicious pattern (`--IPCport 5939 --Module 1`).
+  - Search the network proxy logs for any incoming connections to the relevant endpoint during the time frame of the detected event to correlate potential unauthorized access.
+  - Review the `incoming_connections.txt` file within the TeamViewer installation directory on the affected host for additional details about the connection, including source IP addresses and connection times.

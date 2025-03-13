@@ -1,0 +1,31 @@
+title: EventLog EVTX File Deleted
+id: 63c779ba-f638-40a0-a593-ddd45e8b1ddc
+status: test
+description: Detects the deletion of the event log files which may indicate an attempt
+  to destroy forensic evidence
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-02-15
+tags:
+- attack.defense-evasion
+- attack.t1070
+logsource:
+  category: file_delete
+  product: windows
+detection:
+  selection:
+    TargetFilename|startswith: 'C:\Windows\System32\winevt\Logs\'
+    TargetFilename|endswith: '.evtx'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule seeks to detect potentially malicious activity involving the deletion of Windows Event Log (.evtx) files, which can indicate an attempt to cover up or destroy forensic evidence. The rule focuses on file deletion events specifically targeted at the directory where Windows Event Logs are stored, namely `C:\Windows\System32\winevt\Logs\`. By monitoring for files with names ending in the `.evtx` extension being deleted from this directory, incident responders can identify possible evasion tactics leveraged by attackers to obscure their tracks. The data sources involved primarily include file deletion logs, which track changes made to critical system files and directories.
+  ### Investigation Steps
+  - Review EDR logs to correlate the file deletion event with other system activities that occurred around the same time, such as process creations or network connections.
+  - Check Windows Event Logs (Security and System logs) for any suspicious activity, particularly logon events or process executions by system users.
+  - Use anti-virus (AV) and Endpoint Protection logs to identify any related alerts or known indicators of compromise linked to the file deletion event.
+  - Analyze network traffic (NDR logs) during the timeframe of the deletion for any unusual outbound communications that may indicate exfiltration of data or command-and-control activity.

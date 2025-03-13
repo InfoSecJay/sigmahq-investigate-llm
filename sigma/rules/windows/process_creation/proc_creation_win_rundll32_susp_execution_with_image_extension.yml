@@ -1,0 +1,51 @@
+title: Suspicious Rundll32 Execution With Image Extension
+id: 4aa6040b-3f28-44e3-a769-9208e5feb5ec
+related:
+- id: 089fc3d2-71e8-4763-a8a5-c97fbb0a403e
+  type: similar
+status: test
+description: Detects the execution of Rundll32.exe with DLL files masquerading as
+  image files
+references:
+- https://www.zscaler.com/blogs/security-research/onenote-growing-threat-malware-distribution
+author: Hieu Tran
+date: 2023-03-13
+tags:
+- attack.defense-evasion
+- attack.t1218.011
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\rundll32.exe'
+  - OriginalFileName: 'RUNDLL32.exe'
+  selection_cli:
+    CommandLine|contains:
+    - '.bmp'
+    - '.cr2'
+    - '.eps'
+    - '.gif'
+    - '.ico'
+    - '.jpeg'
+    - '.jpg'
+    - '.nef'
+    - '.orf'
+    - '.png'
+    - '.raw'
+    - '.sr2'
+    - '.tif'
+    - '.tiff'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activity involving the execution of Rundll32.exe, a legitimate Windows process typically used to execute DLL files. The rule specifically targets instances where this process is called with command-line parameters that suggest it is being used to execute DLLs masquerading as image file formats. These formats include various popular extensions such as .bmp, .jpeg, .png, and others. By analyzing process creation logs, the rule checks for both the execution of Rundll32.exe and the appearance of common image file extensions in the command line, thereby flagging suspicious activity that could indicate an attempt at evading detection through file renaming.
+  Analysts can utilize this information to focus their investigations on potentially harmful activities that exploit trusted Windows processes. The detection employs standard logging sources from Windows processes, specifically targeting command-line parameters to identify any indications that a malware exploit is underway under the guise of legitimate application behavior.
+  ### Investigation Steps
+  - Retrieve process creation logs from the EDR solution and filter for occurrences of Rundll32.exe to assess all related activity.
+  - Examine the command-line parameters associated with these executions for signs of image file extensions, noting any that deviate from normal operational behavior.
+  - Cross-reference the identified instances against known threats or similar past incidents to evaluate potential risk and context.
+  - Check Windows Event logs for further information regarding the parent processes and user accounts associated with the executions to determine if additional investigation is warranted.

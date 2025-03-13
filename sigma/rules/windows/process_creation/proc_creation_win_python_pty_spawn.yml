@@ -1,0 +1,41 @@
+title: Python Spawning Pretty TTY on Windows
+id: 480e7e51-e797-47e3-8d72-ebfce65b6d8d
+related:
+- id: 899133d5-4d7c-4a7f-94ee-27355c879d90
+  type: derived
+status: test
+description: Detects python spawning a pretty tty
+references:
+- https://www.volexity.com/blog/2022/06/02/zero-day-exploitation-of-atlassian-confluence/
+author: Nextron Systems
+date: 2022-06-03
+tags:
+- attack.execution
+- attack.t1059
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+    Image|endswith:
+    - 'python.exe'         # no \ bc of e.g. ipython.exe
+    - 'python3.exe'
+    - 'python2.exe'
+  selection_cli_1:
+    CommandLine|contains|all:
+    - 'import pty'
+    - '.spawn('
+  selection_cli_2:
+    CommandLine|contains: 'from pty import spawn'
+  condition: selection_img and 1 of selection_cli_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects the execution of Python scripts that employ the `pty` module to spawn interactive pseudo-terminal sessions, commonly referred to as "pretty TTY." This behavior is often associated with malicious activity, such as post-exploitation tactics where attackers gain interactive shells on compromised systems. The detection is triggered when Python executables `python.exe`, `python3.exe`, or `python2.exe` are launched with command-line arguments that include specific keywords such as `import pty` and `.spawn(` or `from pty import spawn`. The primary data source involved in this detection is process creation logs from Windows, which record information about all processes initiated on the system.
+  ### Investigation Steps
+  - Investigate the process creation logs in your EDR solution to determine the origin and context of the Python process that triggered the alert. Identify the user account and whether the process was launched from a trusted application or directory.
+  - Review command-line parameters associated with the Python process to analyze any suspicious or unexpected arguments, especially those related to spawning a pseudo-terminal session.
+  - Examine network activity through your NDR or firewall logs for any outgoing connections initiated by the Python process, as this could signal communication with an external command and control server.
+  - Check for related events or indicators of compromise in your SIEM, focusing on unusual access patterns or changes in system configurations that may have occurred around the time of the alert.

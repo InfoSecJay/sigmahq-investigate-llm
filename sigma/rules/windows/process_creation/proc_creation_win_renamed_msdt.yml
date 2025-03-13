@@ -1,0 +1,32 @@
+title: Renamed Msdt.EXE Execution
+id: bd1c6866-65fc-44b2-be51-5588fcff82b9
+status: test
+description: Detects the execution of a renamed "Msdt.exe" binary
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Msdt/
+author: pH-T (Nextron Systems)
+date: 2022-06-03
+modified: 2023-02-03
+tags:
+- attack.defense-evasion
+- attack.t1036.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    OriginalFileName: 'msdt.exe'
+  filter:
+    Image|endswith: '\msdt.exe'
+  condition: selection and not filter
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects instances where a renamed version of the legitimate Windows support tool, Msdt.exe, is executed. Attackers often rename system binaries as a technique to bypass security measures, and the execution of a modified Msdt.exe can indicate potential malicious activity. The rule primarily relies on process creation logs to identify the "OriginalFileName" of the executed binary, filtering for those that still end with "msdt.exe". The rule aims to highlight cases where this executable is invoked under suspicious circumstances, alerting analysts to possible evasion tactics employed by threat actors.
+  ### Investigation Steps
+  - **Review Process Creation Logs**: Utilize EDR tools to search for processes matching the rule's criteria and collect details on parent and sibling processes.
+  - **Analyze Command-Line Arguments**: Investigate the command-line parameters associated with the renamed Msdt.exe process for any unusual or malicious flags that could indicate exploitation attempts.
+  - **Check for Known Indicators of Compromise (IoCs)**: Use threat intelligence and AV solutions to cross-reference the process execution against known malicious hashes associated with renamed binaries.
+  - **Monitor Network Activity**: Analyze NDR and Proxy logs for any related outbound connections initiated by the process that could hint at data exfiltration or command-and-control (C2) communication.

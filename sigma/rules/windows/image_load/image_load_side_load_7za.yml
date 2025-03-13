@@ -1,0 +1,42 @@
+title: Potential 7za.DLL Sideloading
+id: 4f6edb78-5c21-42ab-a558-fd2a6fc1fd57
+status: test
+description: Detects potential DLL sideloading of "7za.dll"
+references:
+- https://www.gov.pl/attachment/ee91f24d-3e67-436d-aa50-7fa56acf789d
+author: X__Junior
+date: 2023-06-09
+tags:
+- attack.defense-evasion
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\7za.dll'
+  filter_main_legit_path:
+    Image|startswith:
+    - 'C:\Program Files (x86)\'
+    - 'C:\Program Files\'
+    ImageLoaded|startswith:
+    - 'C:\Program Files (x86)\'
+    - 'C:\Program Files\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Legitimate third party application located in "AppData" may leverage this DLL to
+  offer 7z compression functionality and may generate false positives. Apply additional
+  filters as needed.
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies potential DLL sideloading of the "7za.dll" file, commonly associated with the 7-Zip file compression utility. The rule specifically monitors for instances where the "7za.dll" is loaded from paths outside the trusted directories, which typically include "C:\Program Files" and "C:\Program Files (x86)." By analyzing image load events in Windows, the rule compares the loaded image source against known legitimate paths. If "7za.dll" is found to be loaded from a suspicious location, the rule triggers an alert, indicating a possible bypass of application whitelisting or malicious activity attempting to exploit the DLL.
+  The underlying data sources leveraged for this detection include logs from image loading events, detailing the file path and source of the DLL. This provides clarity on whether the DLL was sourced from a trusted program installation or potentially manipulated by adversaries seeking to escalate privileges or maintain persistence on the system.
+  ### Investigation Steps
+  - Review EDR logs to identify the process that loaded "7za.dll" and examine its parent process for any suspicious activity or anomalies.
+  - Check the file path of the "7za.dll" load event to confirm if it originates from an untrusted location outside of the standard installation directories.
+  - Analyze associated command-line parameters in the process creation logs to determine any unusual arguments or flags that may indicate malicious intent.
+  - Investigate network logs via NDR or proxy tools to uncover any outbound connections made by the process around the time the suspicious DLL was loaded, looking for indicators of compromise.

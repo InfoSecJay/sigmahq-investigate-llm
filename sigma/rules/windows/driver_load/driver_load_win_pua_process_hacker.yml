@@ -1,0 +1,40 @@
+title: PUA - Process Hacker Driver Load
+id: 67add051-9ee7-4ad3-93ba-42935615ae8d
+related:
+- id: 10cb6535-b31d-4512-9962-513dcbc42cc1
+  type: similar
+status: test
+description: Detects driver load of the Process Hacker tool
+references:
+- https://processhacker.sourceforge.io/
+author: Florian Roth (Nextron Systems)
+date: 2022-11-16
+modified: 2024-11-23
+tags:
+- attack.privilege-escalation
+- cve.2021-21551
+- attack.t1543
+logsource:
+  category: driver_load
+  product: windows
+detection:
+  selection:
+  - ImageLoaded|endswith: '\kprocesshacker.sys'
+  - Hashes|contains:
+    - 'IMPHASH=821D74031D3F625BCBD0DF08B70F1E77'
+    - 'IMPHASH=F86759BB4DE4320918615DC06E998A39'
+    - 'IMPHASH=0A64EEB85419257D0CE32BD5D55C3A18'
+    - 'IMPHASH=6E7B34DFC017700B1517B230DF6FF0D0'
+  condition: selection
+falsepositives:
+- Legitimate use of process hacker or system informer by developers or system administrators
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the loading of the Process Hacker driver, an action often associated with privilege escalation and malicious activities in Windows environments. The detection is based on analyzing driver load events, specifically looking for the driver file named `kprocesshacker.sys` and matching specific hash values known to correspond to the Process Hacker tool. When this driver is loaded, it may indicate that an attacker is attempting to manipulate processes or escalate privileges on a system, which can lead to potential security incidents.
+  The rule relies on logs from the Windows driver load category, capturing relevant details such as the image that was loaded and its hash values. By correlating this information, security teams can identify unauthorized or suspicious usage of the Process Hacker tool, even when used in legitimate contexts by developers or system administrators. It is crucial for incident responders to be aware of both benign and malicious contexts of this activity.
+  ### Investigation Steps
+  - Use EDR tools to investigate the process tree on the affected system around the time of the alert, focusing on any suspicious processes that may have spawned new child processes.
+  - Check process creation logs for execution history, especially for any instances of the Process Hacker application running with elevated privileges.
+  - Review system logs or alerts from the NGFW to identify any unauthorized network traffic or connections made shortly after the driver load event.
+  - Consult cloud logs (if applicable) from relevant services like AWS or Azure to detect any related configuration changes or other indications of compromise linked to the suspicious activity.

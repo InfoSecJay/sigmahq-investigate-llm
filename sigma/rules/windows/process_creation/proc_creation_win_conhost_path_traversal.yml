@@ -1,0 +1,32 @@
+title: Conhost.exe CommandLine Path Traversal
+id: ee5e119b-1f75-4b34-add8-3be976961e39
+status: test
+description: detects the usage of path traversal in conhost.exe indicating possible
+  command/argument confusion/hijacking
+references:
+- https://pentestlab.blog/2020/07/06/indirect-command-execution/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-14
+tags:
+- attack.execution
+- attack.t1059.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentCommandLine|contains: 'conhost'
+    CommandLine|contains: '/../../'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The "Conhost.exe CommandLine Path Traversal" detection rule identifies potential security risks associated with the execution of the cmd.exe process via conhost.exe, specifically focusing on instances where path traversal techniques are being utilized. This can indicate attempts to execute unintended commands or manipulate command arguments, leading to unauthorized actions within the system. The rule monitors process creation logs, looking for instances where the parent command line contains "conhost" and the command line itself includes path traversal patterns such as "/../../". 
+  By analyzing these command line parameters, the detection mechanism effectively flags suspicious activities that could signify exploitation attempts or other malicious behaviors. The underlying technical data sources are primarily Windows process creation logs, providing vital information regarding which commands are executed and their respective parameters.
+  ### Investigation Steps
+  - Utilize the EDR tool to examine the process creation logs that triggered the alert, focusing on the parent and child processes involved.
+  - Check for any related alerts or previous incidents involving the same host to identify any patterns or recurring suspicious behavior.
+  - Review the command line arguments for additional context, seeing if any known benign use cases or applications might explain the flagged behavior.
+  - Analyze network traffic via NDR solutions to determine if any outbound connections were initiated following the execution, indicating further malicious activity.

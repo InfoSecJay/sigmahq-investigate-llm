@@ -1,0 +1,47 @@
+title: Important Windows Eventlog Cleared
+id: 100ef69e-3327-481c-8e5c-6d80d9507556
+related:
+- id: a62b37e0-45d3-48d9-a517-90c1a1b0186b
+  type: derived
+status: test
+description: Detects the clearing of one of the Windows Core Eventlogs. e.g. caused
+  by "wevtutil cl" command execution
+references:
+- https://twitter.com/deviouspolack/status/832535435960209408
+- https://www.hybrid-analysis.com/sample/027cc450ef5f8c5f653329641ec1fed91f694e0d229928963b30f6b0d7d3a745?environmentId=100
+author: Florian Roth (Nextron Systems), Tim Shelton, Nasreddine Bencherchali (Nextron
+  Systems)
+date: 2022-05-17
+modified: 2023-11-15
+tags:
+- attack.defense-evasion
+- attack.t1070.001
+- car.2016-04-002
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    EventID: 104
+    Provider_Name: 'Microsoft-Windows-Eventlog'
+    Channel:
+    - 'Microsoft-Windows-PowerShell/Operational'
+    - 'Microsoft-Windows-Sysmon/Operational'
+    - 'PowerShellCore/Operational'
+    - 'Security'
+    - 'System'
+    - 'Windows PowerShell'
+  condition: selection
+falsepositives:
+- Rollout of log collection agents (the setup routine often includes a reset of the
+  local Eventlog)
+- System provisioning (system reset before the golden image creation)
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the clearing of important Windows event logs, which may indicate potential malicious activity or unauthorized access attempts. Specifically, the rule targets EventID 104 from the Microsoft-Windows-Eventlog provider, capturing instances when core event logs are cleared using commands like "wevtutil cl". The monitored data sources include various operational channels such as 'Microsoft-Windows-PowerShell/Operational', 'Security', 'System', and others, which record significant system events and activities related to log operations. By recognizing the clearing of these logs, analysts can investigate further to determine if this action was carried out to conceal malicious behavior or unauthorized access.
+  ### Investigation Steps
+  - Review the EDR console for detailed process execution logs related to the triggering event. Look for command-line arguments that indicate clearing of logs or other anomalous PowerShell commands.
+  - Use SIEM tools to correlate the detected event with other security alerts in the same timeframe. This can help identify broader patterns of suspicious behavior associated with the event log clearing.
+  - Check Windows event logs for any preceding events that may provide context or clues regarding system activities prior to the event log clearing. Pay special attention to user logins and privilege escalation events.
+  - Use the AV and NDR systems to scan for any indicators of compromise or malware that may have been present on the device during the period leading up to the log clearance. This can help establish whether the activity was part of a larger attack.

@@ -1,0 +1,38 @@
+title: New Kernel Driver Via SC.EXE
+id: 431a1fdb-4799-4f3b-91c3-a683b003fc49
+status: test
+description: Detects creation of a new service (kernel driver) with the type "kernel"
+references:
+- https://www.aon.com/cyber-solutions/aon_cyber_labs/yours-truly-signed-av-driver-weaponizing-an-antivirus-driver/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-14
+modified: 2022-08-08
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1543.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\sc.exe'
+    CommandLine|contains:
+    - 'create'
+    - 'config'
+    CommandLine|contains|all:
+    - 'binPath'
+    - 'type'
+    - 'kernel'
+  condition: selection
+falsepositives:
+- Rare legitimate installation of kernel drivers via sc.exe
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation of new kernel drivers on Windows systems using the Service Control (SC) command-line utility, particularly events that could indicate malicious activity. The rule looks for the invocation of `sc.exe`, specifically focusing on command line parameters that include 'create', 'config', 'binPath', and 'type' with a value of 'kernel'. By monitoring process creation logs, SOC analysts can pinpoint suspicious activity that may involve attackers attempting to install malicious kernel-mode drivers for persistence or privilege escalation. Given that legitimate installations of kernel drivers via `sc.exe` are rare, this rule aims to help distinguish between typical and potentially harmful actions.
+  ### Investigation Steps
+  - **Review Recent Alerts:** Start by checking the SIEM for recent alerts related to `sc.exe` activity, specifically looking for instances where new kernel drivers were created.
+  - **Examine Process Creation Logs:** Utilize EDR tools to investigate the process creation logs around the time of the alert to gather additional context about the processes that invoked `sc.exe`.
+  - **Analyze Command-Line Parameters:** Focus on the command-line parameters used when creating the service, and identify whether legitimate or unusual paths or executable names are involved.
+  - **Check for Related Network Activity:** Use NDR tools to review network connections initiated by the affected host, as this can indicate whether the newly created kernel driver is attempting to communicate with external malicious servers or carry out further malicious actions.

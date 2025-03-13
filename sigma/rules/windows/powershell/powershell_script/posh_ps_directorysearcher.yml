@@ -1,0 +1,37 @@
+title: DirectorySearcher Powershell Exploitation
+id: 1f6399cf-2c80-4924-ace1-6fcff3393480
+status: test
+description: Enumerates Active Directory to determine computers that are joined to
+  the domain
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1018/T1018.md#atomic-test-15---enumerate-domain-computers-within-active-directory-using-directorysearcher
+author: frack113
+date: 2022-02-12
+tags:
+- attack.discovery
+- attack.t1018
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'New-Object '
+    - 'System.DirectoryServices.DirectorySearcher'
+    - '.PropertiesToLoad.Add'
+    - '.findall()'
+    - 'Properties.name'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "DirectorySearcher Powershell Exploitation" rule is designed to detect potential reconnaissance activities targeting an Active Directory (AD) environment. It specifically identifies the usage of PowerShell scripts that utilize the `System.DirectoryServices.DirectorySearcher` class, which can be employed by attackers to enumerate the computers in an AD domain. The rule triggers on the presence of specific command components that indicate an attempt to extract information such as computer names from the directory service. The primary technical data sources required for this detection include Windows PowerShell Script Block Logging, which must be enabled to capture relevant script execution details.
+  Monitoring for these script patterns helps organizations identify suspicious behavior that could signal reconnaissance efforts prior to a more significant attack. Given that directory enumeration can precede various types of malicious activities, timely detection is crucial for incident response teams to mitigate potential security threats. 
+  ### Investigation Steps
+  - Review PowerShell logs in your EDR tool for detailed insights into the execution of the detected script, including the execution time and user context.
+  - Check the associated process tree to determine whether the PowerShell script was spawned by a legitimate user process or potentially a compromised application.
+  - Cross-reference the alert with Active Directory logs to identify any unusual account activity or modifications that may correlate with the directory enumeration.
+  - Analyze network activity through your NDR capabilities to identify any outbound connections or data exfiltration attempts made by the same host that executed the suspicious scripts.

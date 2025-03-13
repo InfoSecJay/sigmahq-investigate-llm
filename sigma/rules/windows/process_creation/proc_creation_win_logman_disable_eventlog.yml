@@ -1,0 +1,45 @@
+title: Suspicious Windows Trace ETW Session Tamper Via Logman.EXE
+id: cd1f961e-0b96-436b-b7c6-38da4583ec00
+status: test
+description: Detects the execution of "logman" utility in order to disable or delete
+  Windows trace sessions
+references:
+- https://twitter.com/0gtweet/status/1359039665232306183?s=21
+- https://ss64.com/nt/logman.html
+author: Florian Roth (Nextron Systems)
+date: 2021-02-11
+modified: 2023-02-21
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+- attack.t1070.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\logman.exe'
+  - OriginalFileName: 'Logman.exe'
+  selection_action:
+    CommandLine|contains:
+    - 'stop '
+    - 'delete '
+  selection_service:
+    CommandLine|contains:
+    - 'Circular Kernel Context Logger'
+    - 'EventLog-'         # Cover multiple traces starting with EventLog-*
+    - 'SYSMON TRACE'
+    - 'SysmonDnsEtwSession'
+  condition: all of selection*
+falsepositives:
+- Legitimate deactivation by administrative staff
+- Installer tools that disable services, e.g. before log collection agent installation
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially malicious activities involving the Windows utility `logman.exe`, which is used for managing Event Tracing for Windows (ETW) sessions. The rule monitors process creation logs to identify when `logman.exe` is executed with specific command-line parameters indicative of an attempt to stop or delete existing trace sessions. Such actions can be a sign of evasion tactics employed by attackers who aim to impede forensic processes or eliminate traces of their activities. The detection relies on inspecting the command line for keywords like "stop" or "delete," as well as identifying the specific ETW session names, which may indicate targeted tampering of critical logging services. Understanding this can empower incident responders to identify and investigate actions that may compromise system integrity.
+  ### Investigation Steps
+  - Utilize EDR tools to review the timeline of events leading to the execution of `logman.exe`, focusing on any related process activity that occurred prior to and after the command execution.
+  - Check command-line arguments in the EDR logs to confirm if the parameters used contained "stop" or "delete" and whether they corresponded to common critical Windows trace sessions.
+  - Analyze system logs for any changes in the state of ETW sessions or logs that may indicate a legitimate administrative action versus a potential evasion attempt.
+  - Review historical data from the SIEM and correlate with other telemetry sources to identify any unusual patterns or behaviors associated with the usage of `logman.exe`, assessing whether these could indicate a broader compromise.

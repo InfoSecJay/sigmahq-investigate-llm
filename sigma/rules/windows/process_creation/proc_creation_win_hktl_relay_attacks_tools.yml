@@ -1,0 +1,67 @@
+title: Potential SMB Relay Attack Tool Execution
+id: 5589ab4f-a767-433c-961d-c91f3f704db1
+status: test
+description: Detects different hacktools used for relay attacks on Windows for privilege
+  escalation
+references:
+- https://foxglovesecurity.com/2016/09/26/rotten-potato-privilege-escalation-from-service-accounts-to-system/
+- https://pentestlab.blog/2017/04/13/hot-potato/
+- https://github.com/ohpe/juicy-potato
+- https://hunter2.gitbook.io/darthsidious/other/war-stories/domain-admin-in-30-minutes
+- https://hunter2.gitbook.io/darthsidious/execution/responder-with-ntlm-relay-and-empire
+- https://www.localpotato.com/
+author: Florian Roth (Nextron Systems)
+date: 2021-07-24
+modified: 2023-02-14
+tags:
+- attack.execution
+- attack.t1557.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_pe:
+    Image|contains:
+    - 'PetitPotam'
+    - 'RottenPotato'
+    - 'HotPotato'
+    - 'JuicyPotato'
+    - '\just_dce_'
+    - 'Juicy Potato'
+    - '\temp\rot.exe'
+    - '\Potato.exe'
+    - '\SpoolSample.exe'
+    - '\Responder.exe'
+    - '\smbrelayx'
+    - '\ntlmrelayx'
+    - '\LocalPotato'
+  selection_script:
+    CommandLine|contains:
+    - 'Invoke-Tater'
+    - ' smbrelay'
+    - ' ntlmrelay'
+    - 'cme smb '
+    - ' /ntlm:NTLMhash '
+    - 'Invoke-PetitPotam'
+    - '.exe -t * -p '          # JuicyPotatoNG pattern https://github.com/antonioCoco/JuicyPotatoNG
+  selection_juicypotato_enum:    # appears when JuicyPotatoNG is used with -b
+    CommandLine|contains: '.exe -c "{'
+    CommandLine|endswith: '}" -z'
+  filter_hotpotatoes:    # known goodware https://hotpot.uvic.ca/
+    Image|contains:
+    - 'HotPotatoes6'
+    - 'HotPotatoes7'
+    - 'HotPotatoes '         # Covers the following: 'HotPotatoes 6', 'HotPotatoes 7', 'HotPotatoes Help', 'HotPotatoes Tutorial'
+  condition: 1 of selection_* and not 1 of filter_*
+falsepositives:
+- Legitimate files with these rare hacktool names
+level: critical
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential SMB relay attack tools that may be executed on Windows systems for privilege escalation purposes. It identifies specific executable image names commonly associated with known hacking tools, such as PetitPotam, RottenPotato, and JuicyPotato, as well as command-line parameters indicative of relay attacks. The rule leverages process creation logs and command-line arguments to effectively recognize when these malicious tools are invoked or executed. This proactive detection approach helps security teams identify potential threats before they can lead to serious security incidents.
+  The rule utilizes a multi-faceted detection strategy, employing different selections for process images and command line inputs. Specific phrases and parameters associated with attack tools signal potential nefarious activities, while also incorporating a filter to exclude known goodware, reducing the risk of false positives in the detection process.
+  ### Investigation Steps
+  - Review the process creation logs from your EDR to identify instances of the flagged executable names and command lines noted in the alert.
+  - Utilize the SIEM to correlate the detected activity with other security alerts, such as unusual authentication attempts or network connections, that could indicate a coordinated attack.
+  - Investigate the source of the process execution by looking at logs from the firewall or proxy to analyze traffic patterns and see if there are suspicious outbound connections.
+  - Confirm the legitimacy of the source machine by examining user activity logs and ensuring that there are no indicators of initial compromise or compromised credentials linked to the detected tools.

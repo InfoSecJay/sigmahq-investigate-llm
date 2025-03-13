@@ -1,0 +1,32 @@
+title: Creation Exe for Service with Unquoted Path
+id: 8c3c76ca-8f8b-4b1d-aaf3-81aebcd367c9
+status: test
+description: |
+  Adversaries may execute their own malicious payloads by hijacking vulnerable file path references.
+  Adversaries can take advantage of paths that lack surrounding quotations by placing an executable in a higher level directory within the path, so that Windows will choose the adversary's executable to launch.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1574.009/T1574.009.md
+author: frack113
+date: 2021-12-30
+tags:
+- attack.persistence
+- attack.t1547.009
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+        # Feel free to add more
+    TargetFilename: 'C:\program.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule identifies the creation of an executable file (`program.exe`) in a specific directory on Windows systems, which may indicate a malicious attempt to exploit unquoted path vulnerabilities. Adversaries often seek to execute unauthorized payloads by placing their malicious executables in directories that are referenced in application paths without quotation marks. For example, if a legitimate application is configured to launch using a file path such as `C:\Program Files\Example App\program.exe` without quotes, any executable named `program.exe` within the broader directory structure could be executed instead. This rule focuses on file event logs to detect the creation of such executables, providing critical insights into potential unauthorized persistence mechanisms on systems within the network.
+  ### Investigation Steps
+  - Use EDR tools to review the file creation events around the same timestamp as the alert to analyze the context of the executable's creation and the user responsible for it.
+  - Investigate the associated process tree to determine whether the malicious executable was launched, including checking parent processes for signs of exploitation.
+  - Query historical application execution logs and service configurations to identify any other instances of unquoted paths that might be susceptible to the same exploitation technique.
+  - Check network logs from the NGFW or NDR to see if there were any outbound connections made by the identified executable, indicating further malicious activity.

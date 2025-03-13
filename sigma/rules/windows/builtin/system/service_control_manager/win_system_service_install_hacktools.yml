@@ -1,0 +1,46 @@
+title: HackTool Service Registration or Execution
+id: d26ce60c-2151-403c-9a42-49420d87b5e4
+status: test
+description: Detects installation or execution of services
+references:
+- Internal Research
+author: Florian Roth (Nextron Systems)
+date: 2022-03-21
+modified: 2023-08-07
+tags:
+- attack.execution
+- attack.t1569.002
+- attack.s0029
+logsource:
+  product: windows
+  service: system
+detection:
+  selection_eid:
+    Provider_Name: 'Service Control Manager'
+    EventID:
+    - 7045
+    - 7036
+  selection_service_name:
+    ServiceName|contains:
+    - 'cachedump'
+    - 'DumpSvc'
+    - 'gsecdump'
+    - 'pwdump'
+    - 'UACBypassedService'
+    - 'WCE SERVICE'
+    - 'WCESERVICE'
+    - 'winexesvc'
+  selection_service_image:
+    ImagePath|contains: 'bypass'     # https://gist.github.com/tyranid/c24cfd1bd141d14d4925043ee7e03c82#file-scmuacbypass-cpp-L159
+  condition: selection_eid and 1 of selection_service_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the installation or execution of potentially malicious services on Windows systems, particularly those associated with credential dumping tools or privilege escalation techniques. It monitors the Windows Service Control Manager (SCM) specifically looking for Event IDs 7045 (indicates service installation) and 7036 (indicates service state changes) that may involve suspicious service names or image paths. The rule is tuned to trigger on service names often used in hacking activities, such as 'cachedump', 'pwdump', or any service that contains the term 'bypass'. This approach helps to surface activities that could indicate the presence of unauthorized software or tools within the enterprise environment.
+  ### Investigation Steps
+  - Review the EDR logs for the affected endpoint to evaluate the execution and authentication context of the service. Look for any signs of abnormal behavior immediately preceding the registration or execution of the suspicious service.
+  - Query the Windows Event logs for Event IDs 7045 and 7036 around the time of the alert to gather more context on what actions led to the service's installation. Correlate this information with user activities and potential anomalies.
+  - Utilize the antivirus (AV) solutions to scan the affected system for known signatures or behaviors associated with the identified services. This can help determine if the technology used corresponds with malware or hacking tools.
+  - Search network logs from your NGFW or NDR solutions to look for unusual outbound connections or traffic patterns that may coincide with the service's activity. Investigate any identified instances of data exfiltration or command-and-control communications.

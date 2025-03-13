@@ -1,0 +1,37 @@
+title: Remote PowerShell Session (PS Module)
+id: 96b9f619-aa91-478f-bacb-c3e50f8df575
+status: test
+description: Detects remote PowerShell sessions
+references:
+- https://threathunterplaybook.com/hunts/windows/190511-RemotePwshExecution/notebook.html
+author: Roberto Rodriguez @Cyb3rWard0g, Tim Shelton
+date: 2019-08-10
+modified: 2023-01-20
+tags:
+- attack.execution
+- attack.t1059.001
+- attack.lateral-movement
+- attack.t1021.006
+logsource:
+  product: windows
+  category: ps_module
+  definition: 0ad03ef1-f21b-4a79-8ce8-e6900c54b65b
+detection:
+  selection:
+    ContextInfo|contains|all:
+    - ' = ServerRemoteHost '         #  HostName: 'ServerRemoteHost'  french : Nom d’hôte =
+    - 'wsmprovhost.exe'              #  HostApplication|contains: 'wsmprovhost.exe' french  Application hôte =
+  filter_pwsh_archive:
+    ContextInfo|contains: '\Windows\system32\WindowsPowerShell\v1.0\Modules\Microsoft.PowerShell.Archive\Microsoft.PowerShell.Archive.psm1'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Legitimate use remote PowerShell sessions
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify remote PowerShell sessions that utilize the `wsmprovhost.exe` host application, which is commonly associated with Windows Management Instrumentation (WMI)-based remote management tasks. The rule looks for specific contextual information in PowerShell session activity that contains indicators signifying a remote session, specifically when targeting a system identified as `ServerRemoteHost`. The rule is particularly sensitive to PowerShell modules such as `Microsoft.PowerShell.Archive`, providing an extra layer of detail in distinguishing potentially malicious PowerShell execution from legitimate administrative actions. By focusing on these indicators, the rule helps to detect typical lateral movement techniques employed by attackers leveraging PowerShell for unauthorized access or system manipulation.
+  ### Investigation Steps
+  - Review EDR logs for any instances of `wsmprovhost.exe` running in conjunction with PowerShell commands, and extract the command-line parameters used during execution.
+  - Correlate the timestamp of the alert with logs from the VPN and Proxy to determine whether any unexpected remote connections were established during the same period.
+  - Search network traffic logs in the NDR for unusual outbound connections to external IP addresses that align with the timing of the PowerShell session.
+  - Analyze cloud logs from AWS, GCP, or Azure for any user activity that corresponds to the detected PowerShell execution, focusing on any unauthorized changes or access patterns.

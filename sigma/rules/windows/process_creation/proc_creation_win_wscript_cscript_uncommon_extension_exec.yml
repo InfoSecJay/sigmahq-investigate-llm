@@ -1,0 +1,52 @@
+title: Cscript/Wscript Uncommon Script Extension Execution
+id: 99b7460d-c9f1-40d7-a316-1f36f61d52ee
+status: test
+description: Detects Wscript/Cscript executing a file with an uncommon (i.e. non-script)
+  extension
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-15
+modified: 2023-06-19
+tags:
+- attack.execution
+- attack.t1059.005
+- attack.t1059.007
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - OriginalFileName:
+    - 'wscript.exe'
+    - 'cscript.exe'
+  - Image|endswith:
+    - '\wscript.exe'
+    - '\cscript.exe'
+  selection_extension:
+    CommandLine|contains:
+            # Note: add additional potential suspicious extension
+            # We could specify the "//E:" flag to avoid typos by admin. But since that's prone to blind spots via the creation of assoc it's better not to include it
+    - '.csv'
+    - '.dat'
+    - '.doc'
+    - '.gif'
+    - '.jpeg'
+    - '.jpg'
+    - '.png'
+    - '.ppt'
+    - '.txt'
+    - '.xls'
+    - '.xml'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious use of Windows Script Host (WSH) utilities, specifically `wscript.exe` and `cscript.exe`, which are commonly used to execute scripts. The rule looks for instances where these executables are used to launch files with uncommon extensions that are not typically associated with scripting, such as `.csv`, `.doc`, `.jpg`, and others listed. This could indicate an attempt to execute malicious payloads disguised as benign files. The primary data source for this rule is process creation logs, which provide insights into command-line parameters, including executed files and their extensions, allowing for the identification of suspicious activity.
+  ### Investigation Steps
+  - Utilize EDR tools to investigate the process creation events associated with `wscript.exe` and `cscript.exe`, focusing on the command lines to understand what files were executed and their contexts.
+  - Check the file paths of the executed files against your organization's legitimate software inventory to determine if the file extensions are unusual for your environment.
+  - Review network traffic logs via NDR tools to look for any communications related to the execution of these uncommon script extensions, which may indicate data exfiltration or command/control activity.
+  - Analyze endpoint antivirus logs to see if any alerts correlate with the execution of these scripts, as this may provide further evidence of malicious activity.

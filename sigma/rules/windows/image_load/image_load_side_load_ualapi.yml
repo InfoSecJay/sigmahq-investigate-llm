@@ -1,0 +1,36 @@
+title: Fax Service DLL Search Order Hijack
+id: 828af599-4c53-4ed2-ba4a-a9f835c434ea
+status: test
+description: The Fax service attempts to load ualapi.dll, which is non-existent. An
+  attacker can then (side)load their own malicious DLL using this service.
+references:
+- https://windows-internals.com/faxing-your-way-to-system/
+author: NVISO
+date: 2020-05-04
+modified: 2022-06-02
+tags:
+- attack.persistence
+- attack.defense-evasion
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\fxssvc.exe'
+    ImageLoaded|endswith: 'ualapi.dll'
+  filter:
+    ImageLoaded|startswith: 'C:\Windows\WinSxS\'
+  condition: selection and not filter
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies a potential security risk associated with the Windows Fax service, particularly when it attempts to load the `ualapi.dll` library. The rule specifically looks for instances where the Fax service executable (`fxssvc.exe`) tries to load the `ualapi.dll` file, which is a non-existent legitimate DLL in typical Windows environments. If an attacker has placed a malicious version of `ualapi.dll` in a location that the Fax service can access, it may inadvertently load this malicious DLL, leading to possible system compromises. The rule leverages image load logs to monitor process behavior, specifically targeting the file-path patterns and conditions that would suggest DLL hijacking attempts. 
+  ### Investigation Steps
+  - Review EDR logs for `fxssvc.exe` process activities to identify execution times and any associated user accounts that may indicate unauthorized access.
+  - Check for any abnormal command-line parameters or execution contexts surrounding the `fxssvc.exe` process that might suggest malicious intent.
+  - Analyze the directory where `ualapi.dll` was loaded from, ensuring it aligns with expected paths and does not originate from unusual locations that may indicate a threat.
+  - Cross-reference the event with network security logs to assess any outbound connections made by the Fax service that may align with data exfiltration or C2 communications.

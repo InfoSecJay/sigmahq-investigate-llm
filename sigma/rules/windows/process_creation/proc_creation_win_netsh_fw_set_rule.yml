@@ -1,0 +1,37 @@
+title: Firewall Rule Update Via Netsh.EXE
+id: a70dcb37-3bee-453a-99df-d0c683151be6
+status: test
+description: Detects execution of netsh with the "advfirewall" and the "set" option
+  in order to set new values for properties of a existing rule
+references:
+- https://ss64.com/nt/netsh.html
+author: X__Junior (Nextron Systems)
+date: 2023-07-18
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\netsh.exe'
+  - OriginalFileName: 'netsh.exe'
+  selection_cli:
+    CommandLine|contains|all:
+            # Example 1: netsh advfirewall firewall set rule "group=\"Network Discovery\" " new enable=Yes"
+            # Example 2: netsh advfirewall firewall set rule "group=\"File and Printer Sharing\" " new enable=Yes"
+    - ' firewall '
+    - ' set '
+  condition: all of selection_*
+falsepositives:
+- Legitimate administration activity
+- Software installations and removal
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect instances where the Windows command-line tool `netsh.exe` is executed with specific parameters involving the `advfirewall` category and the `set` option. This activity typically indicates an attempt to modify firewall rules, potentially signifying a defensive evasion tactic by malicious actors. The rule triggers when `netsh.exe` is executed with command-line arguments containing both "firewall" and "set," indicating changes to existing firewall properties. It relies primarily on process creation logs from Windows, capturing details such as the executable name and command-line parameters to identify suspicious configurations effectively. 
+  ### Investigation Steps
+  - Review the EDR logs to identify the source of the `netsh.exe` execution and any related processes that might have run concurrently, providing context around the event.
+  - Analyze the command-line parameters associated with the `netsh.exe` execution to understand which firewall rules were altered, looking for potential indicators of unauthorized changes.
+  - Check firewall logs and records to assess whether the modifications made by `netsh.exe` align with expected administrative practices, or if they indicate a malicious activity requiring further investigation.
+  - Utilize the SIEM to correlate this event with other suspicious activities occurring within the same timeframe, which may provide additional insights into a broader attack strategy.

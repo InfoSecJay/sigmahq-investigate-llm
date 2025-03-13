@@ -1,0 +1,48 @@
+title: Credential Dumping Tools Service Execution - System
+id: 4976aa50-8f41-45c6-8b15-ab3fc10e79ed
+status: test
+description: Detects well-known credential dumping tools execution via service execution
+  events
+references:
+- https://www.slideshare.net/heirhabarov/hunting-for-credentials-dumping-in-windows-environment
+author: Florian Roth (Nextron Systems), Teymur Kheirkhabarov, Daniil Yugoslavskiy,
+  oscd.community
+date: 2017-03-05
+modified: 2022-11-29
+tags:
+- attack.credential-access
+- attack.execution
+- attack.t1003.001
+- attack.t1003.002
+- attack.t1003.004
+- attack.t1003.005
+- attack.t1003.006
+- attack.t1569.002
+- attack.s0005
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7045
+    ImagePath|contains:
+    - 'cachedump'
+    - 'dumpsvc'
+    - 'fgexec'
+    - 'gsecdump'
+    - 'mimidrv'
+    - 'pwdump'
+    - 'servpw'
+  condition: selection
+falsepositives:
+- Legitimate Administrator using credential dumping tool for password recovery
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of credential dumping tools through the Windows Service Control Manager logs, specifically focusing on Event ID 7045. It looks for the presence of known tools associated with credential dumping, such as "cachedump," "pwdump," and "mimidrv," among others, indicating that these tools are being executed as a system service. By monitoring these specific indicators, the rule aims to uncover potentially malicious activities where an attacker may attempt to compromise credentials stored on a Windows system. The primary data source involved in this detection is the Event Log from the Windows Operating System, which captures critical system events, including the creation of services that may involve credential theft tools.
+  ### Investigation Steps
+  - Review recent Service Control Manager logs for Event ID 7045 to confirm the execution of suspicious services identified in the alert.
+  - Utilize the Endpoint Detection and Response (EDR) solution to investigate the processes and command-line arguments associated with the detected services for further context.
+  - Check for any user accounts executing those services to determine if they are legitimate administrators or potentially compromised accounts.
+  - Analyze network traffic logs from the Network Detection and Response (NDR) solution to uncover any unusual outbound connections associated with the service execution.

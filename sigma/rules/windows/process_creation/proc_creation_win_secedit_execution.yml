@@ -1,0 +1,60 @@
+title: Potential Suspicious Activity Using SeCEdit
+id: c2c76b77-32be-4d1f-82c9-7e544bdfe0eb
+status: test
+description: Detects potential suspicious behaviour using secedit.exe. Such as exporting
+  or modifying the security policy
+references:
+- https://blueteamops.medium.com/secedit-and-i-know-it-595056dee53d
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/secedit
+author: Janantha Marasinghe
+date: 2022-11-18
+modified: 2022-12-30
+tags:
+- attack.discovery
+- attack.persistence
+- attack.defense-evasion
+- attack.credential-access
+- attack.privilege-escalation
+- attack.t1562.002
+- attack.t1547.001
+- attack.t1505.005
+- attack.t1556.002
+- attack.t1562
+- attack.t1574.007
+- attack.t1564.002
+- attack.t1546.008
+- attack.t1546.007
+- attack.t1547.014
+- attack.t1547.010
+- attack.t1547.002
+- attack.t1557
+- attack.t1082
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\secedit.exe'
+  - OriginalFileName: 'SeCEdit'
+  selection_flags_discovery:
+    CommandLine|contains|all:
+    - '/export'
+    - '/cfg'
+  selection_flags_configure:
+    CommandLine|contains|all:
+    - '/configure'
+    - '/db'
+    # filter:
+    #     SubjectUserName|endswith: '$'  SubjectUserName is from event ID 4719 in the Windows Security log
+  condition: selection_img and (1 of selection_flags_*)
+falsepositives:
+- Legitimate administrative use
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule focuses on detecting potentially suspicious activities involving `secedit.exe`, a Windows tool used for managing security configurations. The rule triggers when `secedit.exe` is executed with specific command-line parameters, particularly those involving the exporting or modifying of security policies. The technical data sources involved in this detection primarily include process creation logs, which capture information such as the command-line arguments used, the image file path, and the original file name associated with the process. By analyzing these logs, the SOC can identify uncommon or unauthorized use of `secedit.exe` that may indicate attempts from attackers to alter system security settings, for various purposes including privilege escalation or lateral movement within the network.
+  ### Investigation Steps
+  - Review the process creation logs for instances of `secedit.exe` executing with command-line arguments that include `/export`, `/cfg`, `/configure`, or `/db`. 
+  - Utilize EDR tools to trace any parent or child processes related to the detected instance of `secedit.exe` for a comprehensive view of the execution context.
+  - Check the Windows Security logs for Event ID 4719 to identify any changes made to the system security policy, focusing on unusual user accounts or sessions.
+  - Investigate the timeline of the incident by correlating logs from various sources, such as VPN and Proxy logs, to determine any related network activity or access patterns.

@@ -1,0 +1,48 @@
+title: Uncommon One Time Only Scheduled Task At 00:00
+id: 970823b7-273b-460a-8afc-3a6811998529
+status: test
+description: Detects scheduled task creation events that include suspicious actions,
+  and is run once at 00:00
+references:
+- https://www.trendmicro.com/vinfo/us/security/news/ransomware-spotlight/ransomware-spotlight-blackbyte
+author: pH-T (Nextron Systems)
+date: 2022-07-15
+modified: 2023-02-03
+tags:
+- attack.execution
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1053.005
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|contains: '\schtasks.exe'
+  - OriginalFileName: 'schtasks.exe'
+  selection_cli:
+    CommandLine|contains:
+    - 'wscript'
+    - 'vbscript'
+    - 'cscript'
+    - 'wmic '
+    - 'wmic.exe'
+    - 'regsvr32.exe'
+    - 'powershell'
+    - '\AppData\'
+  selection_time:
+    CommandLine|contains|all:
+    - 'once'
+    - '00:00'
+  condition: all of selection_*
+falsepositives:
+- Software installation
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation of suspicious scheduled tasks that occur precisely once at midnight (00:00). It focuses specifically on event logs related to process creation on Windows systems, looking for instances where the `schtasks.exe` executable is used in conjunction with certain command-line parameters. The rule watches for command triggers typically associated with script hosting (such as `wscript`, `vbscript`, and `cscript`), as well as less common tools like `wmic`, `regsvr32.exe`, and `powershell`, particularly if they include references to execution modifiers like "once." Due to the precise nature of the scheduled task's timing, this can indicate potential malicious behavior, particularly in the context of privilege escalation and execution techniques used in various attack scenarios, including ransomware.
+  ### Investigation Steps
+  - Use the EDR solution to review the list of scheduled tasks created around midnight. Look specifically for tasks that utilize `schtasks.exe` and match the suspicious command-line parameters.
+  - Check process creation logs to correlate with the timing of the detected scheduled task and identify any other related processes that may have been spawned.
+  - Analyze logs from the Proxy and any firewall (NGFW) to observe for any outgoing network connections that may correspond with the execution time of the scheduled task, which could indicate potential data exfiltration.
+  - Validate the legitimacy of the task by reviewing the user account that created it. Investigate any anomalies or unauthorized use of accounts against your identity and access management logs.

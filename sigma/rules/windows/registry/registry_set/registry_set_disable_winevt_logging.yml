@@ -1,0 +1,56 @@
+title: Disable Windows Event Logging Via Registry
+id: 2f78da12-f7c7-430b-8b19-a28f269b77a3
+status: test
+description: Detects tampering with the "Enabled" registry key in order to disable
+  Windows logging of a Windows event channel
+references:
+- https://twitter.com/WhichbufferArda/status/1543900539280293889
+- https://github.com/DebugPrivilege/CPP/blob/c39d365617dbfbcb01fffad200d52b6239b2918c/Windows%20Defender/RestoreDefenderConfig.cpp
+author: frack113, Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-04
+modified: 2024-03-25
+tags:
+- attack.defense-evasion
+- attack.t1562.002
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\Microsoft\Windows\CurrentVersion\WINEVT\Channels\'
+    TargetObject|endswith: '\Enabled'
+    Details: 'DWORD (0x00000000)'
+  filter_main_wevutil:
+    Image: 'C:\Windows\system32\wevtutil.exe'     # FP generated during installation of manifests via wevtutil
+  filter_main_iis:
+    Image|startswith: 'C:\Windows\winsxs\'
+    Image|endswith: '\TiWorker.exe'      # Many different TargetObjects
+  filter_main_svchost:
+    Image: 'C:\Windows\System32\svchost.exe'
+    TargetObject|contains:
+    - '\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-FileInfoMinifilter'
+    - '\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-ASN1\'
+    - '\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-Kernel-AppCompat\'
+    - '\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-Runtime\Error\'
+    - '\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-CAPI2/Operational\'
+  filter_main_trusted_installer:
+    Image: C:\Windows\servicing\TrustedInstaller.exe
+    TargetObject|contains: '\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-Compat-Appraiser'
+  filter_optional_empty:   # This filter is related to aurora. Should be removed when fix is deployed. # TODO: Remove later
+    Image: ''
+  filter_optional_null:   # This filter is related to aurora. Should be removed when fix is deployed. # TODO: Remove later
+    Image:
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- Rare falsepositives may occur from legitimate administrators disabling specific
+  event log for troubleshooting
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects unauthorized modifications to Windows Event Logging settings via registry changes, specifically targeting the "Enabled" key associated with event channels. Adversaries often disable logging to hide their activities, making detection crucial for identifying potential security breaches. The rule monitors changes in the registry under the path `\Microsoft\Windows\CurrentVersion\WINEVT\Channels\`, specifically looking for instances where the DWORD value for "Enabled" is set to zero (0x00000000). The primary data source for this detection is the registry set logs, which provide insight into changes made to system configurations.
+  To reduce false positives, the rule applies several filters that exclude legitimate system processes, such as `wevtutil.exe`, `svchost.exe`, and `TrustedInstaller.exe`, which may also interact with these registry keys but are not necessarily indicative of malicious activity. By focusing on unauthorized changes, this detection rule serves as an important tool for SOC analysts to identify and respond to potential defense evasion tactics employed by attackers.
+  ### Investigation Steps
+  - Review the registry change logs related to `\Microsoft\Windows\CurrentVersion\WINEVT\Channels\` for modifications to the "Enabled" key to confirm if this action was taken without authorization.
+  - Utilize EDR to track the process activity around the time of the registry modification, checking for any suspicious or unknown processes that may have initiated the changes.
+  - Analyze any associated parent processes to determine the context of the registry change, including command-line arguments and user actions leading up to the modification.
+  - Correlate the event with other security alerts or incidents within the SIEM to assess if this registry tampering is part of a broader attack campaign or behavior, enabling a more comprehensive incident response.

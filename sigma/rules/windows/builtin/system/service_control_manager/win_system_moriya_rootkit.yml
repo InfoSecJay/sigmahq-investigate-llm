@@ -1,0 +1,35 @@
+title: Moriya Rootkit - System
+id: 25b9c01c-350d-4b95-bed1-836d04a4f324
+status: test
+description: Detects the use of Moriya rootkit as described in the securelist's Operation
+  TunnelSnake report
+references:
+- https://securelist.com/operation-tunnelsnake-and-moriya-rootkit/101831
+author: Bhabesh Raj
+date: 2021-05-06
+modified: 2022-11-29
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1543.003
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7045
+    ServiceName: ZzNetSvc
+  condition: selection
+falsepositives:
+- Unknown
+level: critical
+notes: |
+  ### Technical Context
+  The "Moriya Rootkit 
+  - System" detection rule aims to identify the presence and activity of the Moriya rootkit on Windows systems as described in Securelist's Operation TunnelSnake report. It specifically monitors for the creation of a new service named "ZzNetSvc" registered through the Service Control Manager, indicated by Event ID 7045. This service is linked to malicious persistence mechanisms that allow attackers to maintain access and execute further operations on compromised systems. By analyzing logs focused on the Windows System event channel, analysts can detect unauthorized service installations that may be indicative of rootkit behavior, supporting timely incident response and remediation efforts.
+  ### Investigation Steps
+  - Review the Windows system event logs for Event ID 7045 to confirm the creation of the "ZzNetSvc" service.
+  - Utilize the EDR to perform a thorough analysis of the processes and services running on the affected host, cross-referencing with known good service names.
+  - Check the AV logs for any detections or alerts associated with the service or related processes that could indicate malicious activity.
+  - Investigate network traffic through the NGFW or NDR systems for any unusual outbound connections or patterns linked to the compromised service that might suggest command and control communication.

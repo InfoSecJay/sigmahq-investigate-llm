@@ -1,0 +1,34 @@
+title: UAC Bypass Using Consent and Comctl32 - File
+id: 62ed5b55-f991-406a-85d9-e8e8fdf18789
+status: test
+description: Detects the pattern of UAC Bypass using consent.exe and comctl32.dll
+  (UACMe 22)
+references:
+- https://github.com/hfiref0x/UACME
+author: Christian Burkard (Nextron Systems)
+date: 2021-08-23
+modified: 2022-10-09
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|startswith: 'C:\Windows\System32\consent.exe.@'
+    TargetFilename|endswith: '\comctl32.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies instances of User Account Control (UAC) bypass attempts through the manipulation of the `consent.exe` process and the `comctl32.dll` library in Windows environments. Specifically, the rule looks for file events where a file path starts with `C:\Windows\System32\consent.exe.@`, indicating a potential tampering with the consent utility, and ends with `\comctl32.dll`, which is commonly used in UAC bypass techniques. By monitoring these file interaction patterns, security teams can effectively detect when malicious actors attempt to escalate privileges without appropriate user consent, which is a key indicator of privilege escalation attacks.
+  The primary data sources involved in this detection include file event logs from Windows systems, which capture details about file operations, directory access, and specific process interactions. This intelligence can help analysts determine if potentially harmful actions are being taken to circumvent critical security features like UAC.
+  ### Investigation Steps
+  - Review EDR logs for the process creation events associated with `consent.exe` and `comctl32.dll` to identify any anomalies or unusual behaviors.
+  - Check endpoint activity logs for any recent changes or file manipulations involving these binaries, especially around the time of the alert.
+  - Utilize AV and endpoint protection tools to run a scan on the affected system to identify any known threats or indicators of compromise linked to UAC bypass techniques.
+  - Analyze network traffic through the proxy logs to trace any external communication or suspicious connections made by the compromised endpoint during the timeframe of the alert.

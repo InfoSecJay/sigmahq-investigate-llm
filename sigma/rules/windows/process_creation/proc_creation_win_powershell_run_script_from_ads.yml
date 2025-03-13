@@ -1,0 +1,38 @@
+title: Run PowerShell Script from ADS
+id: 45a594aa-1fbd-4972-a809-ff5a99dd81b8
+status: test
+description: Detects PowerShell script execution from Alternate Data Stream (ADS)
+references:
+- https://github.com/p0shkatz/Get-ADS/blob/1c3a3562e713c254edce1995a7d9879c687c7473/Get-ADS.ps1
+author: Sergey Soldatov, Kaspersky Lab, oscd.community
+date: 2019-10-30
+modified: 2022-07-14
+tags:
+- attack.defense-evasion
+- attack.t1564.004
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    CommandLine|contains|all:
+    - 'Get-Content'
+    - '-Stream'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of PowerShell scripts via Alternate Data Streams (ADS), a method that allows attackers to hide malicious scripts within seemingly innocuous files on Windows systems. The rule specifically looks for process creation events where the parent process is either `powershell.exe` or `pwsh.exe` and the command line includes the `Get-Content` cmdlet along with the `-Stream` parameter. By leveraging these specific indicators, the rule aims to detect attempts to utilize ADS to evade traditional detection mechanisms, as it can allow scripts to run unnoticed while residing within alternate streams of files. This detection relies primarily on process creation logs as the key data source.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR tool to locate instances of `powershell.exe` or `pwsh.exe` where the command line includes `Get-Content -Stream`.
+  - Cross-reference the flagged processes with historical data to determine if they are associated with known malicious behavior or if they are legitimate business applications.
+  - Analyze the file system for any files with alternate data streams that could have been used to execute the detected commands.
+  - Check the network connections initiated by the identified PowerShell processes for any unusual or unauthorized traffic that could indicate exfiltration or further malicious activity.

@@ -1,0 +1,44 @@
+title: Access To Windows DPAPI Master Keys By Uncommon Applications
+id: 46612ae6-86be-4802-bc07-39b59feb1309
+status: experimental
+description: |
+  Detects file access requests to the the Windows Data Protection API Master keys by an uncommon application.
+  This can be a sign of credential stealing. Example case would be usage of mimikatz "dpapi::masterkey" function
+references:
+- http://blog.harmj0y.net/redteaming/operational-guidance-for-offensive-user-dpapi-abuse/
+- https://book.hacktricks.xyz/windows-hardening/windows-local-privilege-escalation/dpapi-extracting-passwords
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-10-17
+modified: 2024-07-29
+tags:
+- attack.credential-access
+- attack.t1555.004
+logsource:
+  category: file_access
+  product: windows
+  definition: 'Requirements: Microsoft-Windows-Kernel-File ETW provider'
+detection:
+  selection:
+    FileName|contains:
+    - '\Microsoft\Protect\S-1-5-18\'         # For System32
+    - '\Microsoft\Protect\S-1-5-21-'         # For Users
+  filter_system_folders:
+    Image|startswith:
+    - 'C:\Program Files\'
+    - 'C:\Program Files (x86)\'
+    - 'C:\Windows\system32\'
+    - 'C:\Windows\SysWOW64\'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Unknown
+# Increase level after false positives filters are good enough
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect unauthorized attempts by uncommon applications to access Windows Data Protection API (DPAPI) master keys, indicative of possible credential theft. The DPAPI is fundamentally used by Windows to securely store and retrieve sensitive data such as passwords and cryptographic keys. The rule focuses on file access attempts to directories where DPAPI master keys are stored, specifically under Microsoft’s Protected directories, including both system and user-specific locations. By filtering out common applications that typically access these files, the rule aims to highlight suspicious behavior that may align with known malicious activities, such as the use of the Mimikatz tool to extract credentials.
+  The technical data sources for this detection are file access logs captured through the Microsoft-Windows-Kernel-File ETW provider. Relevant indicators of compromise include the names and paths of files being accessed along with the identities of the applications attempting this access, which provide insight into whether the access attempts are legitimate or nefarious.
+  ### Investigation Steps
+  Identify and review recent file access logs related to the DPAPI master keys in the specified directories using EDR tools to pinpoint when and by which uncommon applications these accesses occurred.
+  Cross-reference the applications that attempted access with baseline application usage data to determine if those applications are legitimate tools used within the environment or if they are potentially malicious.
+  Examine endpoint security solutions (such as AV or EDR alerts) for any prior alerts relating to suspicious behavior by the identified applications that may correlate with the attempts to access DPAPI master keys.
+  Check Network-based logs (NDR or Proxy) for any unusual outbound connections from the affected systems that correspond with the timing of the detected access attempts, which may indicate data exfiltration activities.

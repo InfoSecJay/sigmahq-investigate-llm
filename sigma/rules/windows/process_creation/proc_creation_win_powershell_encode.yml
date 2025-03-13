@@ -1,0 +1,46 @@
+title: Suspicious Execution of Powershell with Base64
+id: fb843269-508c-4b76-8b8d-88679db22ce7
+status: test
+description: Commandline to launch powershell with a base64 payload
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1059.001/T1059.001.md#atomic-test-20---powershell-invoke-known-malicious-cmdlets
+- https://unit42.paloaltonetworks.com/unit42-pulling-back-the-curtains-on-encodedcommand-powershell-attacks/
+- https://mikefrobbins.com/2017/06/15/simple-obfuscation-with-powershell-using-base64-encoding/
+author: frack113
+date: 2022-01-02
+modified: 2023-01-05
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - \powershell.exe
+    - \pwsh.exe
+    CommandLine|contains:
+    - ' -e '
+    - ' -en '
+    - ' -enc '
+    - ' -enco'
+    - ' -ec '
+  filter_encoding:
+    CommandLine|contains: ' -Encoding '
+  filter_azure:
+    ParentImage|contains:
+    - 'C:\Packages\Plugins\Microsoft.GuestConfiguration.ConfigurationforWindows\'
+    - '\gc_worker.exe'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potentially malicious PowerShell executions that utilize Base64 encoding to obfuscate commands. The rule triggers an alert when it detects process creation logs, specifically for `powershell.exe` or `pwsh.exe`, paired with command-line arguments that include references to Base64 encoding such as `-e`, `-enc`, or related parameters. The use of Base64 encoding is frequently employed by attackers to bypass security measures and conceal the intent behind their commands, making it a favored tactic in numerous exploits. The detection mechanism compares the command-line parameters in process creation events against known patterns while filtering out benign cases that involve certain legitimate parent processes, such as Azure's guest configuration or known system processes.
+  ### Investigation Steps
+  - Utilize EDR tools to review the complete command-line arguments of the identified PowerShell processes to confirm the nature of the encoded payload.
+  - Analyze process parent/child relationships to determine if this suspicious activity correlates with any known legitimate applications or processes that might explain the execution.
+  - Review proxy logs for subsequent network connections initiated by the PowerShell processes to identify any communications with known malicious IP addresses or domains.
+  - Check for any related logs in cloud platforms like AWS or Azure that may have additional insights on the context of the execution, such as user authentication and resource modifications related to the incident.

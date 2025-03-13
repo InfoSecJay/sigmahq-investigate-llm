@@ -1,0 +1,37 @@
+title: WinSxS Executable File Creation By Non-System Process
+id: 34746e8c-5fb8-415a-b135-0abc167e912a
+related:
+- id: 64827580-e4c3-4c64-97eb-c72325d45399
+  type: derived
+status: test
+description: Detects the creation of binaries in the WinSxS folder by non-system processes
+references:
+- https://media.defense.gov/2023/May/09/2003218554/-1/-1/0/JOINT_CSA_HUNTING_RU_INTEL_SNAKE_MALWARE_20230509.PDF
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-11
+tags:
+- attack.execution
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|startswith: 'C:\Windows\WinSxS\'
+    TargetFilename|endswith: '.exe'
+  filter_main_system_location:
+    Image|startswith:
+    - 'C:\Windows\Systems32\'
+    - 'C:\Windows\SysWOW64\'
+    - 'C:\Windows\WinSxS\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule aims to identify potentially malicious behaviors associated with executable file creations in the Windows Side-by-Side (WinSxS) folder by processes that are not native to the system. The WinSxS folder is crucial for storing multiple versions of Windows components, and its integrity is essential for system stability. By monitoring the creation of executables (.exe files) in this folder, the rule can help detect suspicious activities that may signify an attempt by unauthorized software or processes to place malware or malicious binaries within a system's core directories. Key data sources involved include file event logs that capture relevant information such as the target filename and the image path of the process that initiated the file creation. The rule focuses on entries with target filenames beginning with 'C:\Windows\WinSxS\' and specifically looks at instances where non-system processes are detected, thus providing a vital means to catch potential exploitation or compromise.
+  ### Investigation Steps
+  - Review the process creation logs within your EDR to identify the non-system processes associated with the flagged executable creation events in the WinSxS directory.
+  - Investigate the command-line parameters used by the detected processes to determine if any suspicious or uncommon flags were employed during the executable creation.
+  - Access file integrity monitoring logs to see if there have been any unusual modifications or creations in critical directories surrounding the WinSxS folder.
+  - Correlate findings with network logs from the NDR to identify any outbound communications that may stem from the compromised executable, signifying potential data exfiltration or command and control activity.

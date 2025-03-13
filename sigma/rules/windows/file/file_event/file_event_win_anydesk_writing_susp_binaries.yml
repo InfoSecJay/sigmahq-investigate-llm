@@ -1,0 +1,41 @@
+title: Suspicious Binary Writes Via AnyDesk
+id: 2d367498-5112-4ae5-a06a-96e7bc33a211
+status: test
+description: |
+  Detects AnyDesk writing binary files to disk other than "gcapi.dll".
+  According to RedCanary research it is highly abnormal for AnyDesk to write executable files to disk besides gcapi.dll,
+  which is a legitimate DLL that is part of the Google Chrome web browser used to interact with the Google Cloud API. (See reference section for more details)
+references:
+- https://redcanary.com/blog/misbehaving-rats/
+- https://thedfirreport.com/2025/02/24/confluence-exploit-leads-to-lockbit-ransomware/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-28
+modified: 2025-02-24
+tags:
+- attack.command-and-control
+- attack.t1219
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    Image|endswith:
+    - '\AnyDesk.exe'
+    - '\AnyDeskMSI.exe'
+    TargetFilename|endswith:
+    - '.dll'
+    - '.exe'
+  filter_dlls:
+    TargetFilename|endswith: '\gcapi.dll'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Suspicious Binary Writes Via AnyDesk" detection rule identifies potentially malicious behavior involving AnyDesk, a remote desktop application. Specifically, it looks for instances where AnyDesk attempts to write executable or dynamic link library (DLL) files to disk, excluding the legitimate "gcapi.dll" file typically associated with Google's Cloud API. The rule operates by monitoring Windows file event logs, focusing on executable files and DLLs created by AnyDesk processes. Given that the writing of such files is abnormal behavior for AnyDesk, this rule aims to flag activities that may indicate the presence of malware leveraging the software for unauthorized purposes, such as data exfiltration or establishing persistence.
+  ### Investigation Steps
+  - Review EDR logs for any instances of AnyDesk writing DLL or EXE files, particularly around the time of the alert to understand the context of the write operation.
+  - Investigate the process tree and command-line parameters associated with the AnyDesk processes to identify any suspicious behavior, such as unusual parent processes.
+  - Validate the integrity of the written files by comparing their checksums against known safe and malicious file signatures.
+  - Check network traffic logs from your NDR tool to identify any unusual outbound connections initiated by AnyDesk during the timeframe in question.

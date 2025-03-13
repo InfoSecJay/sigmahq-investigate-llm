@@ -1,0 +1,32 @@
+title: CodeIntegrity - Revoked Image Loaded
+id: 881b7725-47cc-4055-8000-425823344c59
+status: test
+description: Detects image load events with revoked certificates by code integrity.
+references:
+- https://learn.microsoft.com/en-us/windows/security/application-security/application-control/windows-defender-application-control/operations/event-id-explanations
+- https://learn.microsoft.com/en-us/windows/security/application-security/application-control/windows-defender-application-control/operations/event-tag-explanations
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-06-06
+tags:
+- attack.privilege-escalation
+logsource:
+  product: windows
+  service: codeintegrity-operational
+detection:
+  selection:
+    EventID:
+    - 3032         # Code Integrity determined a revoked image %2 is loaded into the system. Check with the publisher to see if a new signed version of the image is available.
+    - 3035         # Code Integrity determined a revoked image %2 is loaded into the system. The image is allowed to load because kernel mode debugger is attached.
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect incidents where code integrity on Windows systems identifies a revoked image being loaded into memory. Specifically, the rule monitors event IDs 3032 and 3035 from the Code Integrity Operational log, which indicate that an executable or driver has been loaded despite its certificate being revoked. The presence of a revoked image may signal potential malicious activity, as it could indicate that an attacker is attempting to bypass security mechanisms by loading untrustworthy software. The first event (3032) highlights the detection of a revoked image, while the second event (3035) allows a potentially harmful image to load if a kernel mode debugger is attached. Analysts should consider these alerts indicative of potential privilege escalation or unauthorized access.
+  ### Investigation Steps
+  - Correlate the alert with recent process creation logs using EDR to identify the originating process that loaded the revoked image.
+  - Check for any related alerts or anomalies in the firewall and network traffic logs (NDR) to discern if the loaded image is communicating with external malicious entities.
+  - Review the application and security logs on the target endpoint for any unusual behavior or modifications made to security configurations around the time of the event.
+  - Verify the certificate revocation status and publisher information to determine if a valid version of the image exists, and escalate the finding if a malicious alternative is confirmed.

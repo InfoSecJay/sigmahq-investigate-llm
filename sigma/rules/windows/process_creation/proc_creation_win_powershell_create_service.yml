@@ -1,0 +1,36 @@
+title: New Service Creation Using PowerShell
+id: c02e96b7-c63a-4c47-bd83-4a9f74afcfb2
+related:
+- id: 85ff530b-261d-48c6-a441-facaa2e81e48     # Using Sc.EXE
+  type: similar
+status: test
+description: Detects the creation of a new service using powershell.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1543.003/T1543.003.md
+author: Timur Zinniatullin, Daniil Yugoslavskiy, oscd.community
+date: 2023-02-20
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1543.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - 'New-Service'
+    - '-BinaryPathName'
+  condition: selection
+falsepositives:
+- Legitimate administrator or user creates a service for legitimate reasons.
+- Software installation
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation of new services through PowerShell, a common action that could indicate unauthorized persistence mechanisms for attackers. It specifically watches for PowerShell command-line executions containing the keywords `New-Service` and `-BinaryPathName`, filtering for potential malicious activity related to service creation. The primary data source utilized for this detection is Windows process creation logs, which capture details about executed processes, their command-line parameters, and the context in which they were initiated. By focusing on these parameters, SOC analysts can discern whether the creation of a service was legitimate or indicative of potential compromise.
+  ### Investigation Steps
+  - Review the EDR logs for the process creation event that triggered the alert, focusing on the details surrounding the PowerShell activity and its command-line arguments.
+  - Correlate the timing of the alert with other logs, such as authentication records or network activity, to determine if there are any related suspicious activities.
+  - Check the AV or EDR solutions for any flagged behavior associated with the newly created service, as this could provide insights into the nature of the service.
+  - Investigate whether similar commands have been executed recently by the same user or system account, as repeated use may indicate abnormal behavior that warrants further scrutiny.

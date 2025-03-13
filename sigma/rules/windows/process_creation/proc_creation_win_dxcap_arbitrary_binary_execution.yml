@@ -1,0 +1,36 @@
+title: New Capture Session Launched Via DXCap.EXE
+id: 60f16a96-db70-42eb-8f76-16763e333590
+status: test
+description: |
+  Detects the execution of "DXCap.EXE" with the "-c" flag, which allows a user to launch any arbitrary binary or windows package through DXCap itself. This can be abused to potentially bypass application whitelisting.
+references:
+- https://lolbas-project.github.io/lolbas/OtherMSBinaries/Dxcap/
+- https://twitter.com/harr0ey/status/992008180904419328
+author: Beyu Denis, oscd.community, Nasreddine Bencherchali (Nextron Systems)
+date: 2019-10-26
+modified: 2022-06-09
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\DXCap.exe'
+  - OriginalFileName: 'DXCap.exe'
+  selection_cli:
+    CommandLine|contains: ' -c '     # The ".exe" is not required to run the binary
+  condition: all of selection*
+falsepositives:
+- Legitimate execution of dxcap.exe by legitimate user
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying the execution of the Windows binary "DXCap.EXE" specifically when it is invoked with the "-c" command-line flag. This flag allows users to run arbitrary binaries or Windows packages through DXCap, presenting a risk for potential abuse that could bypass application whitelisting mechanisms. The rule works by monitoring process creation logs for the execution of "DXCap.EXE" and evaluating the command-line parameters used during execution. If the specified criteria are met, the system generates an alert, signaling a possible security incident that warrant further investigation.
+  The technical data sources leveraged by this rule include Windows process creation logs, which provide critical details regarding the binary's execution context, including its file name and command-line arguments. Analysts should be equipped to analyze this data to discern between legitimate use and potential malicious activity.
+  ### Investigation Steps
+  - Query EDR logs for instances of "DXCap.EXE" execution, filtering for command-line arguments to identify any that include the "-c" flag.
+  - Review the user and machine context associated with the alert to determine whether the execution of "DXCap.EXE" aligns with known applications and user behavior.
+  - Examine other process creation logs to check for any subsequent commands or processes spawned from the execution of "DXCap.EXE" which could indicate further malicious activity.
+  - Analyze any network traffic associated with the event, particularly looking for unusual outbound connections that may correlate with the execution of arbitrary binaries facilitated by the alert.

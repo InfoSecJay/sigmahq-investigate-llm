@@ -1,0 +1,36 @@
+title: PUA - 3Proxy Execution
+id: f38a82d2-fba3-4781-b549-525efbec8506
+status: test
+description: Detects the use of 3proxy, a tiny free proxy server
+references:
+- https://github.com/3proxy/3proxy
+- https://blog.talosintelligence.com/2022/09/lazarus-three-rats.html
+author: Florian Roth (Nextron Systems)
+date: 2022-09-13
+modified: 2023-02-21
+tags:
+- attack.command-and-control
+- attack.t1572
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+    Image|endswith: '\3proxy.exe'
+  selection_pe:
+    Description: '3proxy - tiny proxy server'
+  selection_params:   # param combos seen in the wild
+    CommandLine|contains: '.exe -i127.0.0.1 -p'
+  condition: 1 of selection_*
+falsepositives:
+- Administrative activity
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "PUA 
+  - 3Proxy Execution" is designed to detect the execution of 3proxy, a lightweight proxy server commonly used for tunneling and network traffic management. This rule identifies potentially malicious instances where 3proxy is executed on Windows systems. It does so by monitoring process creation logs for specific attributes associated with 3proxy, such as the file name `3proxy.exe`, the process description indicating it is a proxy server, and certain command-line parameters that are commonly used when starting the application (like `-i127.0.0.1 -p`). This detection helps in identifying unauthorized or suspicious usage of proxy servers that could facilitate command-and-control activities or other malicious actions within an enterprise environment.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR platform to identify any instances of `3proxy.exe` being executed, focusing on the associated user accounts and timestamps.
+  - Analyze the command-line parameters used during the execution of 3proxy to determine if they indicate potentially malicious intent, especially any unusual bind IPs or ports.
+  - Cross-reference network traffic logs from the NGFW or NDR tools to see if there are any outgoing connections from the system using 3proxy that may suggest data exfiltration or command-and-control communication.
+  - Check for any recent changes in user behavior or system configuration in the environment that may coincide with the execution of 3proxy, utilizing logs from AV, proxy, or cloud platforms for additional context.

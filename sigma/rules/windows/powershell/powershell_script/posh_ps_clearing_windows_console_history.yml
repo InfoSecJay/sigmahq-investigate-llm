@@ -1,0 +1,44 @@
+title: Clearing Windows Console History
+id: bde47d4b-9987-405c-94c7-b080410e8ea7
+status: test
+description: Identifies when a user attempts to clear console history. An adversary
+  may clear the command history of a compromised account to conceal the actions undertaken
+  during an intrusion.
+references:
+- https://stefanos.cloud/blog/kb/how-to-clear-the-powershell-command-history/
+- https://www.shellhacks.com/clear-history-powershell/
+- https://community.sophos.com/sophos-labs/b/blog/posts/powershell-command-history-forensics
+author: Austin Songer @austinsonger
+date: 2021-11-25
+modified: 2022-12-25
+tags:
+- attack.defense-evasion
+- attack.t1070
+- attack.t1070.003
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection1:
+    ScriptBlockText|contains: Clear-History
+  selection2a:
+    ScriptBlockText|contains:
+    - Remove-Item
+    - rm
+  selection2b:
+    ScriptBlockText|contains:
+    - ConsoleHost_history.txt
+    - (Get-PSReadlineOption).HistorySavePath
+  condition: selection1 or selection2a and selection2b
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where a user attempts to clear the command history in Windows PowerShell, a common tactic used by adversaries to obfuscate their activities during a compromise. The rule looks for specific PowerShell commands, such as `Clear-History` and `Remove-Item`, that indicate a potential effort to delete logs associated with the user's actions. Additionally, it inspects for references to `ConsoleHost_history.txt` and related PowerShell options that dictate where command history is stored. For this rule to be effective, Script Block Logging must be enabled on Windows systems, which captures the details of script execution, including the actual commands run by users.
+  ### Investigation Steps
+  - Review endpoint detection and response (EDR) logs to trace the execution of PowerShell commands on the affected system, focusing on timestamps and user accounts involved in the clear history actions.
+  - Analyze Windows event logs, specifically looking for security and PowerShell logs that capture user activities around the time of the event for further context.
+  - Check for related alerts in the Security Information and Event Management (SIEM) system that might indicate prior suspicious activities by the same user account.
+  - Investigate network traffic via a Network Detection and Response (NDR) solution to determine if there were any unusual external connections initiated from the same workstation during the timeframe of the detection.

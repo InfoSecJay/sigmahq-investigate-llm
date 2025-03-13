@@ -1,0 +1,36 @@
+title: Deleted Data Overwritten Via Cipher.EXE
+id: 4b046706-5789-4673-b111-66f25fe99534
+status: test
+description: |
+  Detects usage of the "cipher" built-in utility in order to overwrite deleted data from disk.
+  Adversaries may destroy data and files on specific systems or in large numbers on a network to interrupt availability to systems, services, and network resources.
+  Data destruction is likely to render stored data irrecoverable by forensic techniques through overwriting files or data on local and remote drives
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1485/T1485.md#atomic-test-3---overwrite-deleted-data-on-c-drive
+author: frack113
+date: 2021-12-26
+modified: 2023-02-21
+tags:
+- attack.impact
+- attack.t1485
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - OriginalFileName: 'CIPHER.EXE'
+  - Image|endswith: '\cipher.exe'
+  selection_cli:
+    CommandLine|contains: ' /w:'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Deleted Data Overwritten Via Cipher.EXE" detection rule identifies potentially malicious activities involving the built-in Windows utility, "cipher.exe." This command-line tool is primarily used for managing encrypted files and folders, but it can also overwrite deleted data, making it irrecoverable. Attackers may exploit this functionality to destroy critical data, thus impacting the availability of systems and services. The detection rule specifically monitors process creation logs for instances where "cipher.exe" is invoked and checks the command-line parameters for the presence of the overwrite switch ("/w:"). This approach allows security teams to detect unauthorized attempts to erase or overwrite deleted data across local and networked drives.
+  ### Investigation Steps
+  - Review process creation logs in your EDR to identify instances where "cipher.exe" was executed, paying close attention to the timestamps and associated user accounts.
+  - Analyze any generated command-line arguments to verify if the "/w:" switch was included, which indicates an attempt to overwrite deleted data.
+  - Correlate the identified events with other security alerts or anomalies in your SIEM, especially those related to data destruction or unusual file deletions.
+  - Assess network activity and file access logs on affected systems to determine the extent of the data overwritten and whether sensitive information was involved.

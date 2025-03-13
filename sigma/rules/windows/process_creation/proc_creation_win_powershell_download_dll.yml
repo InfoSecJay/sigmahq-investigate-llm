@@ -1,0 +1,39 @@
+title: Potential DLL File Download Via PowerShell Invoke-WebRequest
+id: 0f0450f3-8b47-441e-a31b-15a91dc243e2
+status: test
+description: Detects potential DLL files being downloaded using the PowerShell Invoke-WebRequest
+  cmdlet
+references:
+- https://www.zscaler.com/blogs/security-research/onenote-growing-threat-malware-distribution
+author: Florian Roth (Nextron Systems), Hieu Tran
+date: 2023-03-13
+tags:
+- attack.command-and-control
+- attack.execution
+- attack.t1059.001
+- attack.t1105
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    CommandLine|contains:
+    - 'Invoke-WebRequest '
+    - 'IWR '
+    CommandLine|contains|all:
+    - 'http'
+    - 'OutFile'
+    - '.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential malicious activity where a Dynamic Link Library (DLL) file is being downloaded through the PowerShell `Invoke-WebRequest` cmdlet. This cmdlet is often leveraged by attackers to fetch files from HTTP sources, and when combined with specific command-line parameters, it can indicate attempts to execute malicious payloads. The rule specifically looks for command-line invocations that include references to `Invoke-WebRequest`, `IWR`, URLs that contain 'http,' output redirection via `OutFile`, and file extensions ending in '.dll'. The primary data sources for this detection are process creation logs, which provide information about command executions and their parameters.
+  By detecting these patterns, the rule aids in flagging suspicious download behavior that could be indicative of a broader command-and-control (C2) strategy or exploitation attempt. Once an alert is triggered, further investigation is warranted to determine the intent and potential impact of the downloaded DLL files.
+  ### Investigation Steps
+  - Examine the specific process creation logs in your EDR solution to identify the user and system context of the PowerShell command execution, including timestamps.
+  - Verify the URL associated with the `Invoke-WebRequest` command in the command line to assess its legitimacy and identify any known malicious indicators.
+  - Conduct a file analysis on the downloaded DLL file, if accessible, using AV tools to check for any known malware signatures or unusual behaviors.
+  - Review network activity captured by the NDR and Proxy solutions to identify any additional connections made by the host after the DLL download, which could suggest further malicious actions.

@@ -1,0 +1,41 @@
+title: Windows Internet Hosted WebDav Share Mount Via Net.EXE
+id: 7e6237fe-3ddb-438f-9381-9bf9de5af8d0
+status: test
+description: Detects when an internet hosted webdav share is mounted using the "net.exe"
+  utility
+references:
+- https://drive.google.com/file/d/1lKya3_mLnR3UQuCoiYruO3qgu052_iS_/view
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-02-21
+modified: 2023-07-25
+tags:
+- attack.lateral-movement
+- attack.t1021.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\net.exe'
+    - '\net1.exe'
+  - OriginalFileName:
+    - 'net.exe'
+    - 'net1.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - ' use '
+    - ' http'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  n
+  ### Technical Context
+  The detection rule identifies potential lateral movement activities by monitoring the use of the `net.exe` utility in Windows to mount Internet-hosted WebDAV shares. This activity can indicate malicious behavior, as attackers may exploit this method to access and manipulate files on remote servers. The rule specifically looks for the process creation logs of `net.exe` or `net1.exe`, assessing both the image path and the command-line arguments used. It targets instances where the command line contains specific keywords, such as "use" followed by "http," indicating an attempt to connect to a WebDAV service over the Internet. By leveraging process creation logs, the rule enhances the visibility of suspicious command executions typically indicative of lateral movement tactics.
+  ### Investigation Steps
+  - Review the alerts in the SIEM related to `net.exe` or `net1.exe` processes to identify the source machine and user account involved in the activity.
+  - Utilize EDR solutions to analyze the process tree and determine if additional suspicious processes were spawned from the same parent process.
+  - Check the command-line arguments associated with the detected `net.exe` executions, specifically looking for illegitimate WebDAV connections.
+  - Access proxy logs to see if the IP addresses contacted during the WebDAV mount correspond to known malicious entities or unexpected external domains.

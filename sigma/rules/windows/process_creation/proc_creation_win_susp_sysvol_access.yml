@@ -1,0 +1,33 @@
+title: Suspicious SYSVOL Domain Group Policy Access
+id: 05f3c945-dcc8-4393-9f3d-af65077a8f86
+status: test
+description: Detects Access to Domain Group Policies stored in SYSVOL
+references:
+- https://adsecurity.org/?p=2288
+- https://www.hybrid-analysis.com/sample/f2943f5e45befa52fb12748ca7171d30096e1d4fc3c365561497c618341299d5?environmentId=100
+author: Markus Neis, Jonhnathan Ribeiro, oscd.community
+date: 2018-04-09
+modified: 2022-01-07
+tags:
+- attack.credential-access
+- attack.t1552.006
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - '\SYSVOL\'
+    - '\policies\'
+  condition: selection
+falsepositives:
+- Administrative activity
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify suspicious access to Domain Group Policies stored in the SYSVOL directory on Windows systems. The SYSVOL folder is crucial for Active Directory environments, as it contains scripts, policies, and other data required for domain-wide settings. This rule analyzes process creation logs, specifically focusing on the command line parameters related to processes that access the SYSVOL directory. By searching for command lines that contain both `\SYSVOL\` and `\policies\`, the rule aims to flag potential unauthorized access to sensitive group policies, which may indicate a credential access attack or other malicious activity in the environment.
+  ### Investigation Steps
+  - Review recent process creation logs from the EDR solution to identify processes accessing the SYSVOL directory and evaluate their legitimacy.
+  - Correlate identified events with authentication logs in the SIEM to check for unusual user behavior or access patterns surrounding the time of the alert.
+  - Examine file access logs in the Active Directory environment to see if there were any changes made to group policies or scripts in the SYSVOL directory.
+  - Utilize the network traffic logs from NDR to assess if there were any suspicious outbound connections from the affected endpoint around the same time the access was logged.

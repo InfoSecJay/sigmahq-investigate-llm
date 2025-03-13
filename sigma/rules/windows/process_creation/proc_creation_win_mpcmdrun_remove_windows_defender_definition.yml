@@ -1,0 +1,42 @@
+title: Windows Defender Definition Files Removed
+id: 9719a8aa-401c-41af-8108-ced7ec9cd75c
+status: test
+description: Adversaries may disable security tools to avoid possible detection of
+  their tools and activities by removing Windows Defender Definition Files
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1562.001/T1562.001.md
+- https://unit42.paloaltonetworks.com/unit42-gorgon-group-slithering-nation-state-cybercrime/
+author: frack113
+date: 2021-07-07
+modified: 2023-07-18
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\MpCmdRun.exe'
+  - OriginalFileName: MpCmdRun.exe
+  selection_cli:
+    CommandLine|contains|all:
+    - ' -RemoveDefinitions'
+    - ' -All'
+  condition: all of selection_*
+fields:
+- ComputerName
+- User
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify when an adversary attempts to disable Windows Defender by removing its definition files. Specifically, it looks for the execution of the `MpCmdRun.exe` process, which is the command-line utility for Windows Defender. The rule focuses on the command line used to invoke this process, particularly when it contains flags indicating the removal of all definitions (e.g., `-RemoveDefinitions -All`). By monitoring for this specific process execution in conjunction with the targeted command-line parameters, the rule significantly increases the likelihood of detecting potential security threats and adversarial tactics aimed at evading endpoint defenses. The primary data source used for this detection is process creation logs from Windows systems.
+  ### Investigation Steps
+  - Review the EDR logs for the specific event involving `MpCmdRun.exe` and confirm if the command line arguments include `-RemoveDefinitions` and `-All`.
+  - Check the user context under which the command was executed to determine if it aligns with normal operational patterns or if it appears anomalous.
+  - Analyze any preceding process and parent command line associated with this event to establish a potential attack chain or intent.
+  - Cross-reference with Windows Defender logs and alerts to understand if there were any subsequent security measures triggered or if the Defender was compromised.

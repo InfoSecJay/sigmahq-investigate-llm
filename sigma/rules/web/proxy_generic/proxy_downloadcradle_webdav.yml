@@ -1,0 +1,32 @@
+title: Windows WebDAV User Agent
+id: e09aed7a-09e0-4c9a-90dd-f0d52507347e
+status: test
+description: Detects WebDav DownloadCradle
+references:
+- https://mgreen27.github.io/posts/2018/04/02/DownloadCradle.html
+author: Florian Roth (Nextron Systems)
+date: 2018-04-06
+modified: 2021-11-27
+tags:
+- attack.command-and-control
+- attack.t1071.001
+logsource:
+  category: proxy
+detection:
+  selection:
+    c-useragent|startswith: 'Microsoft-WebDAV-MiniRedir/'
+    cs-method: 'GET'
+  condition: selection
+falsepositives:
+- Administrative scripts that download files from the Internet
+- Administrative scripts that retrieve certain website contents
+- Legitimate WebDAV administration
+level: high
+notes: |
+  ### Technical Context
+  The "Windows WebDAV User Agent" Sigma rule is designed to detect suspicious HTTP GET requests originating from a WebDAV client, particularly those using the Microsoft WebDAV Mini Redirector user agent. This rule identifies instances where a WebDAV session is established to potentially download files from external sources, which could indicate command-and-control (C2) activities or other nefarious actions. The detection focuses on specific user agent strings and HTTP methods logged by proxy servers that manage network traffic. By analyzing these logs, the rule can flag potentially malignant behavior corresponding to the ATT&CK technique T1071.001, which involves application layer protocols.
+  ### Investigation Steps
+  - Review the proxy logs for the flagged WebDAV requests and corroborate with the source IP to determine the origin of the request.
+  - Analyze related EDR alerts for any suspicious processes that may have initiated WebDAV sessions and assess their command-line parameters for indicators of compromise.
+  - Investigate network traffic logs for unusual patterns or connections to known malicious domains associated with the flagged user agent.
+  - Conduct a review of system audit logs to identify any administrative scripts that may have triggered legitimate WebDAV activities, ensuring context on the alert.

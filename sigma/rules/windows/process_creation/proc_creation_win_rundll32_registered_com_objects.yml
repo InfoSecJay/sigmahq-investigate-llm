@@ -1,0 +1,41 @@
+title: Rundll32 Registered COM Objects
+id: f1edd233-30b5-4823-9e6a-c4171b24d316
+status: test
+description: load malicious registered COM objects
+references:
+- https://nasbench.medium.com/a-deep-dive-into-rundll32-exe-642344b41e90
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1546.015/T1546.015.md
+author: frack113
+date: 2022-02-13
+modified: 2023-02-09
+tags:
+- attack.privilege-escalation
+- attack.persistence
+- attack.t1546.015
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\rundll32.exe'
+  - OriginalFileName: 'RUNDLL32.EXE'
+  selection_cli:
+    CommandLine|contains:
+    - '-sta '
+    - '-localserver '
+    CommandLine|contains|all:
+    - '{'
+    - '}'
+  condition: all of selection_*
+falsepositives:
+- Legitimate use
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects potentially malicious use of the `rundll32.exe` Windows process, which is often exploited by attackers to execute arbitrary code hidden in registered COM objects. The rule specifically looks for instances where `rundll32.exe` is called with command-line arguments containing specific flags (`-sta` and `-localserver`) and syntax that includes curly braces (`{}`), indicative of a COM object. By monitoring process creation logs, the rule aims to identify patterns that deviate from typical operational behavior, allowing SOC analysts to flag possible privilege escalation or persistence mechanisms employed by malicious actors.
+  The core data sources for this detection include process creation logs, focusing on particular characteristics of the `rundll32.exe` invocation. The combination of the process name, command-line parameters, and the presence of registered COM object references makes this rule effective in identifying potentially harmful activities on Windows systems.
+  ### Investigation Steps
+  - Utilize EDR tools to review process creation logs for instances of `rundll32.exe` that match the detection criteria, paying close attention to the command-line arguments used.
+  - Check for any registered COM objects interacting with `rundll32.exe` in the Windows Registry to determine if they are known to be malicious or if their usage is legitimate.
+  - Correlate the event with network activity logs from NGFW or Proxy to see if there are any outbound connections related to the detected `rundll32.exe` execution.
+  - Conduct a threat intelligence lookup to assess if the command-line patterns, associated files, or processes have been reported in the wild for malicious activities, linking them to known malware or threat actors.

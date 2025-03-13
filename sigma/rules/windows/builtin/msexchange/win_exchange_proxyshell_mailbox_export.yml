@@ -1,0 +1,42 @@
+title: Mailbox Export to Exchange Webserver
+id: 516376b4-05cd-4122-bae0-ad7641c38d48
+status: test
+description: Detects a successful export of an Exchange mailbox to untypical directory
+  or with aspx name suffix which can be used to place a webshell or the needed role
+  assignment for it
+references:
+- https://blog.orange.tw/2021/08/proxylogon-a-new-attack-surface-on-ms-exchange-part-1.html
+author: Florian Roth (Nextron Systems), Rich Warren, Christian Burkard (Nextron Systems)
+date: 2021-08-09
+modified: 2023-04-30
+tags:
+- attack.persistence
+- attack.t1505.003
+logsource:
+  service: msexchange-management
+  product: windows
+detection:
+  export_command:
+    '|all':
+    - 'New-MailboxExportRequest'
+    - ' -Mailbox '
+  export_params:
+  - '-FilePath "\\\\'       # We care about any share location.
+  - '.aspx'
+  role_assignment:
+    '|all':
+    - 'New-ManagementRoleAssignment'
+    - ' -Role "Mailbox Import Export"'
+    - ' -User '
+  condition: (export_command and export_params) or role_assignment
+falsepositives:
+- Unlikely
+level: critical
+notes: |
+  ### Technical Context
+  This detection rule identifies suspicious activities related to the export of Exchange mailboxes to potentially malicious locations, specifically targeting exports to atypical directories or filenames with an `.aspx` suffix. The rule analyzes logs from the Microsoft Exchange management interface, monitoring for the command `New-MailboxExportRequest` that initiates mailbox exports, along with parameters that specify unconventional file paths and filenames. Additionally, it checks for management role assignments that could grant users excessive permissions, particularly the `Mailbox Import Export` role, which could be misused for unauthorized access or malicious activities like web shell placement. The detection logic captures both the mailbox export requests and any role assignments that might facilitate this type of unauthorized action.
+  ### Investigation Steps
+  - Utilize the EDR platform to investigate the endpoint associated with the mailbox export command, checking for recent process creation events and any anomalous file activity in directories relevant to Exchange.
+  - Review Exchange server logs to correlate the timestamps of the export and role assignment actions, determining if these actions coincided with any other suspicious activities.
+  - Use SIEM to analyze historical logs to identify any previous occurrences of mailbox exports by the same user or from the same IP address, possibly indicating a pattern.
+  - Examine firewall and proxy logs to assess if any external connections were made to or from the identified export destination, which could provide context on potential data exfiltration or external threat activity.

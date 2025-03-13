@@ -1,0 +1,78 @@
+title: Rare Remote Thread Creation By Uncommon Source Image
+id: 02d1d718-dd13-41af-989d-ea85c7fab93f
+related:
+- id: 66d31e5f-52d6-40a4-9615-002d3789a119
+  type: derived
+status: experimental
+description: Detects uncommon processes creating remote threads.
+references:
+- Personal research, statistical analysis
+- https://lolbas-project.github.io
+author: Perez Diego (@darkquassar), oscd.community
+date: 2019-10-27
+modified: 2024-07-15
+tags:
+- attack.privilege-escalation
+- attack.defense-evasion
+- attack.t1055
+logsource:
+  product: windows
+  category: create_remote_thread
+detection:
+  selection:
+    SourceImage|endswith:
+    - '\bash.exe'
+    - '\cscript.exe'
+    - '\cvtres.exe'
+    - '\defrag.exe'
+    - '\dialer.exe'
+    - '\dnx.exe'
+    - '\esentutl.exe'
+    - '\excel.exe'
+    - '\expand.exe'
+    - '\find.exe'
+    - '\findstr.exe'
+    - '\forfiles.exe'
+    - '\gpupdate.exe'
+    - '\hh.exe'
+    - '\installutil.exe'
+    - '\lync.exe'
+    - '\makecab.exe'
+    - '\mDNSResponder.exe'
+    - '\monitoringhost.exe'         # Loads .NET CLR by default and thus a favorite for process injection for .NET in-memory offensive tools.
+    - '\msbuild.exe'
+    - '\mshta.exe'
+    - '\mspaint.exe'
+    - '\outlook.exe'
+    - '\ping.exe'
+    - '\provtool.exe'
+    - '\python.exe'
+    - '\regsvr32.exe'
+    - '\robocopy.exe'
+    - '\runonce.exe'
+    - '\sapcimc.exe'
+    - '\smartscreen.exe'
+    - '\spoolsv.exe'
+    - '\tstheme.exe'
+    - '\userinit.exe'
+    - '\vssadmin.exe'
+    - '\vssvc.exe'
+    - '\w3wp.exe'
+    - '\winscp.exe'
+    - '\winword.exe'
+    - '\wmic.exe'
+    - '\wscript.exe'
+  condition: selection
+falsepositives:
+- This rule is best put in testing first in order to create a baseline that reflects
+  the data in your environment.
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect instances of uncommon processes executing remote thread creation, a technique often used in privilege escalation and defense evasion scenarios. It specifically looks for executables that are not typically associated with legitimate behavior when they initiate remote threads. The rule analyzes logs related to process creation, focusing on the "SourceImage" field to identify the source of the process attempting to create remote threads. By monitoring for these suspicious activities, the SOC can potentially uncover malicious behaviors that involve process injection tactics employed by attackers.
+  The key data sources involved in this detection are primarily Windows event logs that provide information on the execution of processes and their subsequent behaviors. Analyzing these logs allows incident responders to pinpoint processes that exhibit unusual behavior, enabling swift investigation and response to potential threats.
+  ### Investigation Steps
+  - Utilize EDR solutions to investigate the specific processes identified by the rule, examining their execution paths and any parent-child relationships to understand the context of the thread creation event.
+  - Review command-line arguments associated with the flagged processes in order to discern any attempts at launching additional scripts or remote commands that could indicate malicious intent.
+  - Correlate findings with recent events in the SIEM, looking for other indicators of compromise, such as unusual login patterns or network activity linked to the same timeframe.
+  - Check the system and application logs in the affected Windows environment for any anomalies or warnings that might provide additional insights into the behavior of the suspicious processes.

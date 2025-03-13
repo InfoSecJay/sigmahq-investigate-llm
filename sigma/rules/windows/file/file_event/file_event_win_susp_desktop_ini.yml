@@ -1,0 +1,43 @@
+title: Suspicious desktop.ini Action
+id: 81315b50-6b60-4d8f-9928-3466e1022515
+status: test
+description: Detects unusual processes accessing desktop.ini, which can be leveraged
+  to alter how Explorer displays a folder's content (i.e. renaming files) without
+  changing them on disk.
+references:
+- https://isc.sans.edu/forums/diary/Desktopini+as+a+postexploitation+tool/25912/
+author: Maxime Thiebaut (@0xThiebaut), Tim Shelton (HAWK.IO)
+date: 2020-03-19
+modified: 2022-10-07
+tags:
+- attack.persistence
+- attack.t1547.009
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|endswith: '\desktop.ini'
+  filter_generic:
+    Image|startswith:
+    - 'C:\Windows\'
+    - 'C:\Program Files\'
+    - 'C:\Program Files (x86)\'
+  filter_jetbrains:
+    Image|endswith: '\AppData\Local\JetBrains\Toolbox\bin\7z.exe'
+    TargetFilename|contains: '\JetBrains\apps\'
+  filter_upgrade:
+    TargetFilename|startswith: 'C:\$WINDOWS.~BT\NewOS\'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Operations performed through Windows SCCM or equivalent
+- Read only access list authority
+level: medium
+notes: |
+  ### Technical Context
+  The "Suspicious desktop.ini Action" Sigma rule is designed to detect abnormal interactions with the `desktop.ini` file on Windows systems. This file is commonly used to control the display of folder contents in Windows Explorer. Malicious actors may exploit it to alter folder views or manipulate how files are represented without actually modifying the files on disk, which can serve as a post-exploitation tool for techniques related to persistence. The rule specifically looks for processes attempting to access `desktop.ini` with a focus on those originating from standard system directories like `C:\Windows\` and `C:\Program Files`, as well as specific JetBrains application paths. By monitoring file events tied to `desktop.ini`, the rule aims to highlight potentially malicious behavior while excluding benign operations commonly associated with system management tools like SCCM.
+  ### Investigation Steps
+  - Review process logs in your EDR solution to identify the processes that triggered the alert, focusing on the executing context and parent-child relationships.
+  - Check for any related command-line parameters that might provide insight into the intent behind accessing `desktop.ini`, which could indicate suspicious activities.
+  - Utilize file event logs to verify recent changes to `desktop.ini`, including timestamps and user account activity, to assess whether the access was legitimate or part of a larger malicious context.
+  - Analyze network traffic and proxy logs to determine if any outbound connections were made by the involved processes, potentially indicating data exfiltration or command and control communication.

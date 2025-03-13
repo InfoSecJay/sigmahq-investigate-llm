@@ -1,0 +1,39 @@
+title: CMSTP Execution Process Creation
+id: 7d4cdc5a-0076-40ca-aac8-f7e714570e47
+status: stable
+description: Detects various indicators of Microsoft Connection Manager Profile Installer
+  execution
+references:
+- https://web.archive.org/web/20190720093911/http://www.endurant.io/cmstp/detecting-cmstp-enabled-code-execution-and-uac-bypass-with-sysmon/
+author: Nik Seetharaman
+date: 2018-07-16
+modified: 2020-12-23
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1218.003
+- attack.g0069
+- car.2019-04-001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+    # CMSTP Spawning Child Process
+  selection:
+    ParentImage|endswith: '\cmstp.exe'
+  condition: selection
+fields:
+- CommandLine
+- ParentCommandLine
+- Details
+falsepositives:
+- Legitimate CMSTP use (unlikely in modern enterprise environments)
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of processes spawned by the Microsoft Connection Manager Profile Installer (CMSTP). CMSTP can be exploited by attackers to execute malicious scripts or commands under the guise of a legitimate Windows component, leveraging its ability to run configuration files with elevated privileges. The detection focuses specifically on the creation of child processes where the parent image ends with `cmstp.exe`. This approach identifies potential unauthorized executions that may indicate attempts to bypass user account controls (UAC) or other forms of defense evasion. The primary data sources utilized for this rule include process creation logs and command-line parameters, which provide critical context about the execution environment and the commands being run.
+  ### Investigation Steps
+  - Review EDR logs for any recent executions of `cmstp.exe` and identify the associated child processes to ascertain if the behavior aligns with typical usage.
+  - Examine command-line parameters provided to `cmstp.exe` to determine if they indicate any unusual or potentially malicious activity.
+  - Utilize SIEM to correlate alerts related to the process creation with other security events or anomalous behavior patterns from the user’s account or device.
+  - Check for any related network activities in the NDR and Proxy logs that might corroborate the presence of a malicious payload or external command-and-control communications.

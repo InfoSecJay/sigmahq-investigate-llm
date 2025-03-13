@@ -1,0 +1,37 @@
+title: DHCP Callout DLL Installation
+id: 9d3436ef-9476-4c43-acca-90ce06bdf33a
+status: test
+description: Detects the installation of a Callout DLL via CalloutDlls and CalloutEnabled
+  parameter in Registry, which can be used to execute code in context of the DHCP
+  server (restart required)
+references:
+- https://blog.3or.de/mimilib-dhcp-server-callout-dll-injection.html
+- https://technet.microsoft.com/en-us/library/cc726884(v=ws.10).aspx
+- https://msdn.microsoft.com/de-de/library/windows/desktop/aa363389(v=vs.85).aspx
+author: Dimitrios Slamaris
+date: 2017-05-15
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1574.002
+- attack.t1112
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith:
+    - '\Services\DHCPServer\Parameters\CalloutDlls'
+    - '\Services\DHCPServer\Parameters\CalloutEnabled'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule monitors the Windows Registry for potential malicious modifications related to the DHCP (Dynamic Host Configuration Protocol) server. Specifically, it looks for the installation of a Callout DLL through the parameters `CalloutDlls` and `CalloutEnabled`. The presence of these parameters signifies that a DLL capable of executing code within the DHCP server context may have been installed, indicating a possible attack vector that could compromise the server's functionality. The rule utilizes registry set logs, which provide visibility into changes made to the system's configuration settings. Detecting such alterations is crucial, as they could lead to unauthorized code execution upon a server restart.
+  ### Investigation Steps
+  - Review the registry logs using an EDR tool to check for recent modifications to the `CalloutDlls` and `CalloutEnabled` keys in the DHCP server parameters.
+  - Utilize a log analysis tool to extract historical changes to these registry keys and identify any unauthorized access or modifications.
+  - Investigate related process creation logs to determine if any suspicious processes were initiated that correspond to the timing of the registry changes.
+  - Check network traffic logs from the NDR or firewall to see if there have been unexpected outbound connections initiated by the DHCP server, which may indicate data exfiltration attempts.

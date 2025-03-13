@@ -1,0 +1,62 @@
+title: LOLBIN Execution From Abnormal Drive
+id: d4ca7c59-e9e4-42d8-bf57-91a776efcb87
+related:
+- id: 5b80cf53-3a46-4adc-960b-05ec19348d74
+  type: similar
+status: test
+description: Detects LOLBINs executing from an abnormal or uncommon drive such as
+  a mounted ISO.
+references:
+- https://thedfirreport.com/2021/12/13/diavol-ransomware/
+- https://www.scythe.io/library/threat-emulation-qakbot
+- https://sec-consult.com/blog/detail/bumblebee-hunting-with-a-velociraptor/
+author: Christopher Peacock '@securepeacock', SCYTHE '@scythe_io', Angelo Violetti
+  - SEC Consult '@angelo_violetti', Aaron Herman
+date: 2022-01-25
+modified: 2023-08-29
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+        # Note: add more lolbins for additional coverage
+  - Image|endswith:
+    - '\calc.exe'
+    - '\certutil.exe'
+    - '\cmstp.exe'
+    - '\cscript.exe'
+    - '\installutil.exe'
+    - '\mshta.exe'
+    - '\regsvr32.exe'
+    - '\rundll32.exe'
+    - '\wscript.exe'
+  - OriginalFileName:
+    - 'CALC.EXE'
+    - 'CertUtil.exe'
+    - 'CMSTP.EXE'
+    - 'cscript.exe'
+    - 'installutil.exe'
+    - 'MSHTA.EXE'
+    - 'REGSVR32.EXE'
+    - 'RUNDLL32.EXE'
+    - 'wscript.exe'
+  filter_main_currentdirectory:
+    CurrentDirectory|contains: 'C:\'
+  filter_main_empty:
+    CurrentDirectory: ''
+  filter_main_null:
+    CurrentDirectory:
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Rare false positives could occur on servers with multiple drives.
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects the execution of living-off-the-land binaries (LOLBINs) from unusual or non-standard drives, such as mounted ISO images. Typically, these binaries, including `calc.exe`, `certutil.exe`, and `wscript.exe`, are benign applications that can be exploited by attackers to bypass security measures and execute commands or scripts in an inconspicuous manner. The rule specifically looks for these binaries being launched from a current directory that does not conform to typical Windows paths (such as `C:\`), identifying potentially malicious activity. The primary data sources utilized for this detection are process creation logs, which provide details about the execution context, including the image path and current directory of the process.
+  ### Investigation Steps
+  - Review EDR alerts to identify the process creation event associated with the detected LOLBIN and examine the command-line arguments used during execution. 
+  - Search the executed binaries' file paths to confirm whether the current directory belongs to a mounted or unusual drive, which may warrant further scrutiny.
+  - Cross-reference the timestamps of the alerts and the affected systems with proxy logs to identify any inbound or outbound network connections that could indicate command and control communications.
+  - Analyze the broader context using cloud logs, if applicable, to check for any suspicious activities related to the drive usage or other systems within the network.

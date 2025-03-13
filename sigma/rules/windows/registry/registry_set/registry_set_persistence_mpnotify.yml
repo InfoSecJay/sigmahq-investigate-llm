@@ -1,0 +1,33 @@
+title: Potential Persistence Via Mpnotify
+id: 92772523-d9c1-4c93-9547-b0ca500baba3
+status: test
+description: Detects when an attacker register a new SIP provider for persistence
+  and defense evasion
+references:
+- https://persistence-info.github.io/Data/mpnotify.html
+- https://www.youtube.com/watch?v=ggY3srD9dYs&ab_channel=GrzegorzTworek
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-21
+modified: 2023-08-17
+tags:
+- attack.persistence
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\mpnotify'
+  condition: selection
+falsepositives:
+- Might trigger if a legitimate new SIP provider is registered. But this is not a
+  common occurrence in an environment and should be investigated either way
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Potential Persistence Via Mpnotify" is designed to identify potential malicious activity related to the registration of a new Session Initiation Protocol (SIP) provider within the Windows registry. Specifically, it targets entries in the `\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\mpnotify` path, which can be manipulated by attackers as a means to establish persistence and evade detection. The rule analyzes registry set events, capturing changes that could indicate nefarious intentions behind the registration of SIP providers. By monitoring these registry modifications, the rule helps detect unauthorized actions that may facilitate continued access to a compromised system.
+  Investigators should note that while the presence of a new SIP provider could hint at attacker activity, it might also occur due to legitimate software installations, leading to potential false positives. Therefore, thorough examination of the context is necessary for accurate incident response.
+  ### Investigation Steps
+  - Utilize your EDR solution to check for any abnormal processes or behaviors associated with the time frame of the registry modification to see if there are other signs of compromise.
+  - Review relevant Windows Event Logs for additional context, particularly looking at security logs around process creation that could correlate with the registry change.
+  - Cross-reference any user accounts involved in the registry modification against user activity logs to determine if the change aligns with normal user behavior.
+  - Analyze network connections using your NDR tool to identify any traffic patterns or connections to known malicious IP addresses that may correlate with the registered SIP provider.

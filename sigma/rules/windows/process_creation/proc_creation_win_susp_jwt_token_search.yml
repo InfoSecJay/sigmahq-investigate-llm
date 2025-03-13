@@ -1,0 +1,41 @@
+title: Potentially Suspicious JWT Token Search Via CLI
+id: 6d3a3952-6530-44a3-8554-cf17c116c615
+status: test
+description: |
+  Detects possible search for JWT tokens via CLI by looking for the string "eyJ0eX" or "eyJhbG".
+  This string is used as an anchor to look for the start of the JWT token used by microsoft office and similar apps.
+references:
+- https://mrd0x.com/stealing-tokens-from-office-applications/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-10-25
+modified: 2024-10-06
+tags:
+- attack.credential-access
+- attack.t1528
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains:
+    - 'eyJ0eXAiOi'         # {"typ":
+    - 'eyJhbGciOi'         # {"alg":
+    - ' eyJ0eX'
+    - ' "eyJ0eX"'
+    - " 'eyJ0eX'"
+    - ' eyJhbG'
+    - ' "eyJhbG"'
+    - " 'eyJhbG'"
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the potential misuse of command-line interfaces (CLI) to search for JSON Web Tokens (JWT) by monitoring process creation logs on Windows systems. JWTs are often used for authentication in applications, including Microsoft Office. The rule specifically looks for strings that are characteristic of JWTs, notably the prefixes "eyJ0eX" and "eyJhbG", which are typically found at the beginning of these tokens. When processes are created with command lines containing these specific strings, it may indicate an attempt to locate or enumerate sensitive tokens, triggering an alert for investigation. 
+  The detection relies on parsing process creation logs to identify any command-line activity that includes these markers, allowing SOC analysts to identify potentially suspicious behaviors indicative of credential access attempts.
+  ### Investigation Steps
+  - Utilize the EDR solution to analyze the process creation logs for the timestamps of the alerts to identify the specific processes that invoked the command-line containing JWT strings.
+  - Review the command-line arguments of the elevated processes to understand the context around the token search and whether it aligns with legitimate usage patterns of applications.
+  - Check network traffic logs via the NDR to see if there were any outbound requests made by the implicated processes, which may indicate exfiltration attempts related to the JWT tokens.
+  - Search the AV and Proxy logs for any additional signs of unwanted or malicious activity from the same source IP or user account to assess the scope of the incident and potential involvement in credential theft.

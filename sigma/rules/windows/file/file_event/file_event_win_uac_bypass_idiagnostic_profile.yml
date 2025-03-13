@@ -1,0 +1,35 @@
+title: UAC Bypass Using IDiagnostic Profile - File
+id: 48ea844d-19b1-4642-944e-fe39c2cc1fec
+status: test
+description: Detects the creation of a file by "dllhost.exe" in System32 directory
+  part of "IDiagnosticProfileUAC" UAC bypass technique
+references:
+- https://github.com/Wh04m1001/IDiagnosticProfileUAC
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-03
+tags:
+- attack.execution
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    Image|endswith: '\DllHost.exe'
+    TargetFilename|startswith: 'C:\Windows\System32\'
+    TargetFilename|endswith: '.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious actions related to User Account Control (UAC) bypass techniques, specifically focusing on file creation events linked to the "dllhost.exe" process. The rule targets instances where "dllhost.exe" attempts to create a .dll file within the System32 directory, as this behavior may be indicative of unauthorized privilege escalation attempts. By monitoring events such as file creation logs, the rule leverages technical data sources like file events from Windows to flag suspicious activity that could bypass UAC protections.
+  The underlying mechanism of this detection involves examining file system events where the "TargetFilename" pattern indicates a .dll file creation by "dllhost.exe." The combination of these criteria suggests a possible exploitation of the IDiagnosticProfile UAC bypass technique, which may be employed by attackers seeking elevated privileges without user consent.
+  ### Investigation Steps
+  - Review the file creation events related to "dllhost.exe" in the Windows event logs to confirm the timestamp and context of the activity.
+  - Utilize EDR tools to analyze the behavior of "dllhost.exe" during the event, including checking for any associated process creation, file modifications, or suspicious network activity.
+  - Investigate related file systems changes within the System32 directory to identify any other potentially malicious .dll files that may have been created around the same timeframe.
+  - Search through proxy logs to check for unusual internet activity or outbound connections that may correlate with the suspicious creation of the .dll file, indicating further potential compromise.

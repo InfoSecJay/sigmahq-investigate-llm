@@ -1,0 +1,38 @@
+title: HackTool - SharpChisel Execution
+id: cf93e05e-d798-4d9e-b522-b0248dc61eaf
+related:
+- id: 8b0e12da-d3c3-49db-bb4f-256703f380e5
+  type: similar
+status: test
+description: Detects usage of the Sharp Chisel via the commandline arguments
+references:
+- https://github.com/shantanu561993/SharpChisel
+- https://www.sentinelone.com/labs/wading-through-muddy-waters-recent-activity-of-an-iranian-state-sponsored-threat-actor/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-05
+modified: 2023-02-13
+tags:
+- attack.command-and-control
+- attack.t1090.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\SharpChisel.exe'
+  - Product: 'SharpChisel'
+    # See rule 8b0e12da-d3c3-49db-bb4f-256703f380e5 for Chisel.exe coverage
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The "HackTool 
+  - SharpChisel Execution" rule is designed to detect the execution of the SharpChisel tool, which is often utilized in command-and-control (C2) operations by threat actors. This detection mechanism focuses on monitoring process creation events specifically for the `SharpChisel.exe` executable on Windows systems. It inspects command-line arguments associated with the executable to identify notable characteristics indicative of its usage. Once the relevant patterns are matched, alerts are generated to inform security analysts about potential misuse of this tool, emphasizing the significance of context in detecting unauthorized or anomalous behavior.
+  This detection relies on capturing data from process creation logs, specifically looking for entries that contain the filename `SharpChisel.exe`. Given its application in both legitimate and malicious settings, proper contextual analysis is essential for differentiating between benign and nefarious activities.
+  ### Investigation Steps
+  - Review the EDR console for alert-related process creation logs involving `SharpChisel.exe`, focusing on the user context and the parent processes to determine the legitimacy of the execution.
+  - Analyze command line parameters associated with the `SharpChisel.exe` execution to identify any suspicious flags or configurations that could indicate its use in a malicious context.
+  - Consult firewall logs to check for unusual outbound connections from the machine where SharpChisel was executed, especially connections to unfamiliar or blacklisted IP addresses.
+  - Examine any relevant user activity logs or historical logs from proxy servers that may show prior access to known malicious domains or resources linked to the use of SharpChisel.

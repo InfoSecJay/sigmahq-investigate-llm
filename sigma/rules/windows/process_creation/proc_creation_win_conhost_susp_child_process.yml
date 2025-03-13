@@ -1,0 +1,39 @@
+title: Uncommon Child Process Of Conhost.EXE
+id: 7dc2dedd-7603-461a-bc13-15803d132355
+status: test
+description: Detects uncommon "conhost" child processes. This could be a sign of "conhost"
+  usage as a LOLBIN or potential process injection activity.
+references:
+- http://www.hexacorn.com/blog/2020/05/25/how-to-con-your-host/
+author: omkar72
+date: 2020-10-25
+modified: 2023-12-11
+tags:
+- attack.defense-evasion
+- attack.t1202
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\conhost.exe'
+  filter_main_conhost:
+    Image|endswith: ':\Windows\System32\conhost.exe'
+  filter_main_null:
+    Image:
+  filter_main_empty:
+    Image: ''
+  filter_optional_provider:
+    Provider_Name: 'SystemTraceProvider-Process'      # Race condition with SystemTrace doesn't provide all fields.
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially malicious child processes spawned by `conhost.exe`, a legitimate Windows process responsible for hosting console windows. The rule focuses on identifying uncommon child processes that deviate from the expected usage pattern of `conhost.exe`, which can indicate misuse as a "living off the land" binary (LOLBIN) or possible process injection events. The detection leverages process creation logs, analyzing attributes such as the parent image to identify processes that have been launched from `conhost.exe`. It employs filtering criteria to rule out processes that originate from known, legitimate instances of `conhost.exe`, effectively minimizing false positives and enhancing the accuracy of the alerts generated.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify the child processes spawned by `conhost.exe`, noting any that are unexpected or suspicious. 
+  - Analyze the command line arguments of the detected child processes for signs of unusual activity or techniques often employed in lateral movement or privilege escalation.
+  - Correlate alerts with network traffic data from your NDR tools to check for any outbound connections initiated by the suspicious child processes, especially to known malicious IPs or domains.
+  - Assess any antivirus or endpoint protection logs for alerts or detections related to the identified child processes to understand whether any mitigation actions were taken.

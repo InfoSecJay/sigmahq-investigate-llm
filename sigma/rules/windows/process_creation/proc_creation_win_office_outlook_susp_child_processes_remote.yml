@@ -1,0 +1,38 @@
+title: Suspicious Remote Child Process From Outlook
+id: e212d415-0e93-435f-9e1a-f29005bb4723
+related:
+- id: 208748f7-881d-47ac-a29c-07ea84bf691d     # Outlook Child Processes
+  type: similar
+status: test
+description: Detects a suspicious child process spawning from Outlook where the image
+  is located in a remote location (SMB/WebDav shares).
+references:
+- https://github.com/sensepost/ruler
+- https://www.fireeye.com/blog/threat-research/2018/12/overruled-containing-a-potentially-destructive-adversary.html
+- https://speakerdeck.com/heirhabarov/hunting-for-persistence-via-microsoft-exchange-server-or-outlook?slide=49
+author: Markus Neis, Nasreddine Bencherchali (Nextron Systems)
+date: 2018-12-27
+modified: 2023-02-09
+tags:
+- attack.execution
+- attack.t1059
+- attack.t1202
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\outlook.exe'
+    Image|startswith: '\\\\'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential security threats by monitoring for suspicious child processes spawned from Microsoft Outlook. Specifically, it looks for cases where a child process is initiated by Outlook (with the parent image ending in `\outlook.exe`) and whose executable is located on a remote network share (as indicated by paths beginning with `\\`). The technique can be indicative of malicious activity, as attackers may exploit Outlook to execute malicious payloads located on remote servers, evading traditional security measures. The key data sources involved in this detection include process creation logs that provide details on process hierarchy, the source of the executable files, and the command-line parameters used during execution.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to verify the instances of `outlook.exe` spawning remote child processes. Focus on timestamps, process execution paths, and command-line arguments to assess legitimacy.
+  - Analyze the network logs from your NGFW or NDR platform to check for any suspicious outbound connections to remote SMB/WebDav shares at the same time the child processes were created.
+  - Utilize your AV tools to scan the identified child processes for known malware signatures or anomalous behavior that may indicate malicious intent, especially those originating from remote locations.
+  - Investigate any relevant user account activities in the proxy or cloud logs to understand the context of the actions around the time of the alert, focusing on user behavior and accessed resources.

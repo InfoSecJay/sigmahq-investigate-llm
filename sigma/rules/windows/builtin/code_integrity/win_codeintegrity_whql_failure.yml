@@ -1,0 +1,40 @@
+title: CodeIntegrity - Unmet WHQL Requirements For Loaded Kernel Module
+id: 2f8cd7a0-9d5a-4f62-9f8b-2c951aa0dd1f
+status: test
+description: Detects loaded kernel modules that did not meet the WHQL signing requirements.
+references:
+- https://learn.microsoft.com/en-us/windows/security/application-security/application-control/windows-defender-application-control/operations/event-id-explanations
+- https://learn.microsoft.com/en-us/windows/security/application-security/application-control/windows-defender-application-control/operations/event-tag-explanations
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-06-06
+modified: 2023-06-14
+tags:
+- attack.privilege-escalation
+logsource:
+  product: windows
+  service: codeintegrity-operational
+detection:
+  selection:
+    EventID:
+    - 3082         # Code Integrity determined kernel module %2 that did not meet the WHQL requirements is loaded into the system. However, due to code integrity auditing policy, the image was allowed to load
+    - 3083         # Code Integrity determined kernel module %2 that did not meet the WHQL requirements is loaded into the system. Check with the publisher to see if a WHQL compliant kernel module is available
+  filter_optional_vmware:
+    FileNameBuffer:
+    - 'system32\drivers\vsock.sys'
+    - 'System32\drivers\vmci.sys'
+  condition: selection and not 1 of filter_optional_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect instances where kernel modules that have not met Windows Hardware Quality Labs (WHQL) signing requirements are loaded into a system. The rule specifically focuses on Windows operating systems, monitoring the Windows Code Integrity operational logs for Event IDs 3082 and 3083. Event ID 3082 indicates that a non-compliant kernel module has been loaded but was allowed due to policy settings, while Event ID 3083 serves as a warning to check with the publisher for a compliant version of the module. These events could signify potential security risks, including privilege escalation or the presence of malicious software masquerading as a legitimate driver, making timely detection crucial for safeguarding system integrity.
+  ### Investigation Steps
+  - Utilize EDR tools to search for the specific Event IDs (3082 and 3083) in the Code Integrity operational logs to identify instances of loaded non-compliant kernel modules.
+    
+  - Correlate the flagged kernel module names with known threat intelligence databases to confirm whether they are associated with known malware or untrusted sources.
+    
+  - Inspect the system for any unauthorized changes to the kernel or suspicious behavior correlated with the times these events were logged using system monitoring tools.
+    
+  - Analyze system driver lists and configurations via the command line or Windows management tools to ensure that no unauthorized kernel modules persist in your environment.

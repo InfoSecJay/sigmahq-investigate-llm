@@ -1,0 +1,44 @@
+title: Potential Data Exfiltration Via Audio File
+id: e4f93c99-396f-47c8-bb0f-201b1fa69034
+status: test
+description: Detects potential exfiltration attempt via audio file using PowerShell
+references:
+- https://github.com/gtworek/PSBits/blob/e97cbbb173b31cbc4d37244d3412de0a114dacfb/NoDLP/bin2wav.ps1
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-16
+tags:
+- attack.exfiltration
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_main:
+    ScriptBlockText|contains|all:
+    - '[System.Math]::'
+    - '[IO.FileMode]::'
+    - 'BinaryWriter'
+  selection_header_wav:
+    ScriptBlockText|contains|all:
+            # Byte chunks from the WAV header used in the example POC
+            # You can extend this for different audio formats by adding different selections
+    - '0x52'
+    - '0x49'
+    - '0x46'
+    - '0x57'
+    - '0x41'
+    - '0x56'
+    - '0x45'
+    - '0xAC'
+  condition: selection_main and 1 of selection_header_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential data exfiltration attempts via audio files created through PowerShell scripts. The rule identifies PowerShell script blocks that include specific code constructs indicating the manipulation of file data, particularly those that suggest the creation of WAV audio files. It looks for characteristic byte sequences associated with WAV file headers within the script's content, combined with references to the System.Math and IO.FileMode classes, which are typically used in file handling operations. To effectively utilize this detection rule, Script Block Logging must be enabled on the Windows systems being monitored as this enables visibility into PowerShell executions, illuminating potential malicious activities.
+  ### Investigation Steps
+  - Review the relevant PowerShell script block logs in your EDR to identify executions matching the detection criteria, focusing on the presence of the specified keywords and byte sequences.
+  - Check for additional indicators of compromise (IoCs) such as unusual file creations or command executions on endpoints that may correlate with this detection.
+  - Utilize your NGFW and Proxy logs to detect any suspicious outbound traffic, specifically looking for unusual connections that could indicate attempts to transmit audio files externally.
+  - Analyze any associated alerts from your antivirus for detections on the relevant endpoints, as they may indicate known malicious behaviors associated with data exfiltration attempts.

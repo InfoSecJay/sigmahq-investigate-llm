@@ -1,0 +1,36 @@
+title: Setup16.EXE Execution With Custom .Lst File
+id: 99c8be4f-3087-4f9f-9c24-8c7e257b442e
+status: experimental
+description: |
+  Detects the execution of "Setup16.EXE" and old installation utility with a custom ".lst" file.
+  These ".lst" file can contain references to external program that "Setup16.EXE" will execute.
+  Attackers and adversaries might leverage this as a living of the land utility.
+references:
+- https://www.hexacorn.com/blog/2024/10/12/the-sweet16-the-oldbin-lolbin-called-setup16-exe/
+author: frack113
+date: 2024-12-01
+tags:
+- attack.defense-evasion
+- attack.t1574.005
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage: 'C:\Windows\SysWOW64\setup16.exe'
+    ParentCommandLine|contains: ' -m '
+  filter_optional_valid_path:
+    Image|startswith: 'C:\~MSSETUP.T\'
+  condition: selection and not 1 of filter_optional_*
+falsepositives:
+- On modern Windows system, the "Setup16" utility is practically never used, hence
+  false positive should be very rare.
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Setup16.EXE Execution With Custom .Lst File" is designed to detect the execution of the legacy installation utility "Setup16.EXE" alongside a custom .lst file, which can be utilized to reference and execute external programs. The detection mechanism focuses on the process creation logs, specifically looking for instances where "Setup16.EXE" is launched with a command line that includes the flag '-m'. Furthermore, it ensures that the executable is initiated from a specific temporary path, indicating potentially suspicious behavior involving an older and rarely-used utility. This rule is particularly relevant as attackers may leverage such legacy tools for living-off-the-land (LOL) tactics, often to bypass security measures and execute unwanted operations. 
+  ### Investigation Steps
+  - Examine the process creation logs in the EDR to identify instances of "Setup16.EXE" execution and review the command line parameters for any presence of the '-m' flag.
+  - Investigate the parent process associated with "Setup16.EXE" to determine if it originated from any known legitimate applications or if it seems suspicious.
+  - Cross-reference the execution paths using the SIEM or log management tools to verify that "Setup16.EXE" was launched from the atypical directory 'C:\~MSSETUP.T\', which could indicate malicious activity.
+  - Utilize the threat intelligence database to assess whether the identified installation utility has been reported in connection with other malicious behaviors or tools, guiding further analysis on the findings.

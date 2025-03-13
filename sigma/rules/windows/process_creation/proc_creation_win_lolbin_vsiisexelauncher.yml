@@ -1,0 +1,36 @@
+title: Use of VSIISExeLauncher.exe
+id: 18749301-f1c5-4efc-a4c3-276ff1f5b6f8
+status: test
+description: The "VSIISExeLauncher.exe" binary part of the Visual Studio/VS Code can
+  be used to execute arbitrary binaries
+references:
+- https://lolbas-project.github.io/lolbas/OtherMSBinaries/VSIISExeLauncher/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-09
+tags:
+- attack.defense-evasion
+- attack.t1127
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\VSIISExeLauncher.exe'
+  - OriginalFileName: 'VSIISExeLauncher.exe'
+  selection_cli:
+    CommandLine|contains:
+    - ' -p '
+    - ' -a '
+  condition: all of selection*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule identifies the use of the `VSIISExeLauncher.exe` binary, which is part of Microsoft's Visual Studio and Visual Studio Code environments. This executable has the potential to execute arbitrary binaries, making it a target for misuse in evading detection mechanisms during malicious activities. The rule monitors process creation logs specifically looking for instances where `VSIISExeLauncher.exe` is invoked, checking both the original file name and the command-line parameters for key indicators like ` -p ` or ` -a `. These command-line flags are often used in execution patterns that could signify suspicious behavior, leading analysts to deepen their investigations.
+  This detection relies primarily on process creation logs from Windows-based systems, which provide insight into what processes are running, their command-line arguments, and their origins. By tracking these patterns, anomaly detection can be effectively employed to flag potentially malicious usage of a trusted binary.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify instances of `VSIISExeLauncher.exe` being executed, noting any unusual command-line arguments.
+  - Examine network activity with your NDR tools to see if any malicious outbound connections were made following the execution of the binary.
+  - Utilize your SIEM to correlate alerts triggered by this detection rule with other security events occurring around the same time for a broader context.
+  - Check relevant endpoint antivirus logs to determine if any detections or blocks occurred related to `VSIISExeLauncher.exe` or associated processes.

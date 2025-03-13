@@ -1,0 +1,41 @@
+title: Suspicious Scan Loop Network
+id: f8ad2e2c-40b6-4117-84d7-20b89896ab23
+status: test
+description: Adversaries may attempt to get a listing of other systems by IP address,
+  hostname, or other logical identifier on a network that may be used for Lateral
+  Movement from the current system
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1018/T1018.md
+- https://ss64.com/nt/for.html
+- https://ss64.com/ps/foreach-object.html
+author: frack113
+date: 2022-03-12
+tags:
+- attack.execution
+- attack.t1059
+- attack.discovery
+- attack.t1018
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_loop:
+    CommandLine|contains:
+    - 'for '
+    - 'foreach '
+  selection_tools:
+    CommandLine|contains:
+    - 'nslookup'
+    - 'ping'
+  condition: all of selection_*
+falsepositives:
+- Legitimate script
+level: medium
+notes: |
+  ### Technical Context
+  The "Suspicious Scan Loop Network" detection rule identifies potential adversarial activity related to network discovery and lateral movement within a Windows environment. It focuses on process creation events where the command line includes specific looping constructs, namely "for" or "foreach," paired with network diagnostic commands like "nslookup" or "ping." This combination often indicates that an attacker is attempting to gather information such as IP addresses and hostnames of other systems on the network, which can facilitate further malicious activities. The rule relies primarily on process creation logs from Windows systems, tracking command-line parameters to flag suspicious behaviors indicative of scanning operations.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR to identify instances where the command line contains "for" or "foreach" along with "nslookup" or "ping." Pay special attention to unusual execution contexts or sources.
+  - Analyze the timing of the alerts in correlation with other suspicious activities within the environment, as multiple alerts in a short time frame may indicate an extensive scanning operation.
+  - Utilize network logs from your NDR and firewall to determine if the IPs involved in the scans match any known internal systems, and assess whether they are expected network communications.
+  - Check endpoint protection logs for any related alerts or behavioral flags that may provide additional context surrounding the execution of the flagged commands.

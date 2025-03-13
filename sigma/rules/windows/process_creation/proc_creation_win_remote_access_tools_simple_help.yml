@@ -1,0 +1,36 @@
+title: Remote Access Tool - Simple Help Execution
+id: 95e60a2b-4705-444b-b7da-ba0ea81a3ee2
+status: test
+description: |
+  An adversary may use legitimate desktop support and remote access software, such as Team Viewer, Go2Assist, LogMein, AmmyyAdmin, etc, to establish an interactive command and control channel to target systems within networks.
+  These services are commonly used as legitimate technical support software, and may be allowed by application control within a target environment.
+  Remote access tools like VNC, Ammyy, and Teamviewer are used frequently when compared with other legitimate software commonly used by adversaries. (Citation: Symantec Living off the Land)
+references:
+- https://www.huntress.com/blog/slashandgrab-screen-connect-post-exploitation-in-the-wild-cve-2024-1709-cve-2024-1708
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2024-02-23
+tags:
+- attack.command-and-control
+- attack.t1219
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|contains:
+    - '\JWrapper-Remote Access\'
+    - '\JWrapper-Remote Support\'
+    Image|endswith: '\SimpleService.exe'
+  condition: selection
+falsepositives:
+- Legitimate usage of the tool
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of specific remote access tools that may be exploited by adversaries for command and control (C2) activities. It focuses on process creation events within Windows environments and looks for indicators associated with software paths that reference remote access applications, specifically targeting executables likely involved in unauthorized remote connectivity, such as `'SimpleService.exe'`. The rule leverages process creation logs to monitor these activities and identifies instances where users might employ legitimate software in unintended ways, often overlooked in typical application monitoring.
+  By flagging instances where the executable appears in specific folders like `\JWrapper-Remote Access\` and `\JWrapper-Remote Support\`, the rule aims to identify unauthorized usage patterns that could lead to compromised systems. Since these tools can be utilized legitimately, analysts must take care to confirm the context of the alerts before concluding potential malice.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify the execution timestamp, user context, and related processes involved during the alert.
+  - Utilize application visibility logs from your NGFW or proxy systems to check if there was any external remote access activity from the flagged software during the alert timeframe.
+  - Investigate any outgoing network connections established by the detected process to identify potential C2 communications or links to known malicious infrastructure.
+  - Analyze user activity logs to determine whether the individual executing the remote access tool had legitimate reasons for its use or if there are signs of unauthorized access attempts.

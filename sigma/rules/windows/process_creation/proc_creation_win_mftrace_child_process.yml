@@ -1,0 +1,31 @@
+title: Potential Mftrace.EXE Abuse
+id: 3d48c9d3-1aa6-418d-98d3-8fd3c01a564e
+status: test
+description: Detects child processes of the "Trace log generation tool for Media Foundation
+  Tools" (Mftrace.exe) which can abused to execute arbitrary binaries.
+references:
+- https://lolbas-project.github.io/lolbas/OtherMSBinaries/Mftrace/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-09
+modified: 2023-08-03
+tags:
+- attack.defense-evasion
+- attack.t1127
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\mftrace.exe'
+  condition: selection
+falsepositives:
+- Legitimate use for tracing purposes
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule targets the potential misuse of **Mftrace.EXE**, a tool associated with the Media Foundation framework, which can be exploited to execute arbitrary binaries. The rule focuses on identifying *process creation events* where a child process is initiated from **Mftrace.EXE**, indicating that the tool could be leveraged maliciously, potentially leading to defense evasion tactics employed by attackers. It primarily utilizes data from process creation logs, examining the parent image to determine whether it has the suffix *mftrace.exe*. Given that this utility has legitimate use cases, it’s crucial for incident responders to discern between normal operations and potentially malicious activity.
+  ### Investigation Steps
+  - Review EDR alerts to identify recent instances where **mftrace.exe** has launched child processes, noting any associated command-line arguments that may indicate unusual behavior.
+  - Cross-reference any identified child processes with known malicious indicators using threat intelligence sources to establish their legitimacy.
+  - Analyze the timeline of the events in relevant process creation logs to assess the context and sequence of activities surrounding the **mftrace.exe** invocation.
+  - Investigate user activity and network traffic logs to identify any external communications or data transfers initiated by the suspicious child processes.

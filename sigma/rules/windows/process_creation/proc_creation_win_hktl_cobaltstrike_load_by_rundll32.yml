@@ -1,0 +1,42 @@
+title: CobaltStrike Load by Rundll32
+id: ae9c6a7c-9521-42a6-915e-5aaa8689d529
+status: test
+description: Rundll32 can be use by Cobalt Strike with StartW function to load DLLs
+  from the command line.
+references:
+- https://www.cobaltstrike.com/help-windows-executable
+- https://redcanary.com/threat-detection-report/
+- https://thedfirreport.com/2020/10/18/ryuk-in-5-hours/
+author: Wojciech Lesicki
+date: 2021-06-01
+modified: 2022-09-16
+tags:
+- attack.defense-evasion
+- attack.t1218.011
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_rundll:
+  - Image|endswith: '\rundll32.exe'
+  - OriginalFileName: RUNDLL32.EXE
+  - CommandLine|contains:
+    - 'rundll32.exe'
+    - 'rundll32 '
+  selection_params:
+    CommandLine|contains: '.dll'
+    CommandLine|endswith:
+    - ' StartW'
+    - ',StartW'
+  condition: all of selection*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies suspicious use of the `rundll32.exe` executable, which is commonly utilized by attackers to load dynamic link libraries (DLLs) for malicious activities, particularly by tools like Cobalt Strike. The rule searches for process creation events where `rundll32.exe` is launched with command-line parameters indicating the loading of a DLL and the presence of specific keywords, notably ‘StartW.’ Such patterns can suggest that attackers are leveraging valid system functionality to evade detection while executing payloads. The primary data sources utilized in this detection are process creation logs from Windows systems, which provide detailed information about executing processes, their command-line parameters, and the original file names.
+  ### Investigation Steps
+  - Review recent process creation logs in EDR to identify instances of `rundll32.exe` that match the alert criteria, paying particular attention to the command line used.
+  - Investigate the DLL files loaded by the `rundll32.exe` process to determine their origin, and check if they are commonly associated with legitimate applications or known malicious activity.
+  - Cross-reference the event with endpoint logs from antivirus tools to see if any associated files were flagged as malicious or have a previous detection history.
+  - Analyze network traffic logs to track any outbound connections or unusual communication patterns initiated by the process invoking `rundll32.exe`, especially if they correspond to known malicious IPs or domains.

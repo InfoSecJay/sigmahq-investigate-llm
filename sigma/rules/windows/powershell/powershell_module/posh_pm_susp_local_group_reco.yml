@@ -1,0 +1,46 @@
+title: Suspicious Get Local Groups Information
+id: cef24b90-dddc-4ae1-a09a-8764872f69fc
+status: test
+description: |
+  Adversaries may attempt to find local system groups and permission settings.
+  The knowledge of local system permission groups can help adversaries determine which groups exist and which users belong to a particular group.
+  Adversaries may use this information to determine which users have elevated permissions, such as the users found within the local administrators group.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1069.001/T1069.001.md
+author: frack113
+date: 2021-12-12
+modified: 2022-12-25
+tags:
+- attack.discovery
+- attack.t1069.001
+logsource:
+  product: windows
+  category: ps_module
+  definition: 0ad03ef1-f21b-4a79-8ce8-e6900c54b65b
+detection:
+  test_3:
+  - Payload|contains:
+    - 'get-localgroup'
+    - 'Get-LocalGroupMember'
+  - ContextInfo|contains:
+    - 'get-localgroup'
+    - 'Get-LocalGroupMember'
+  test_6:
+  - Payload|contains|all:
+    - 'Get-WMIObject'
+    - 'Win32_Group'
+  - ContextInfo|contains|all:
+    - 'Get-WMIObject'
+    - 'Win32_Group'
+  condition: 1 of test_*
+falsepositives:
+- Administrator script
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious attempts to query local group information on Windows systems, which can indicate reconnaissance by adversaries. It specifically looks for commands that involve the PowerShell cmdlets `Get-LocalGroup` and `Get-LocalGroupMember`, as well as the WMI class `Win32_Group`. Adversaries often utilize this information to identify users with elevated permissions, such as those within the local administrators group, to plan further attacks. The rule analyzes logs related to PowerShell module activity, where both the command payloads and associated context information are inspected for indicative strings, signaling potential unauthorized inquiries about local user and group configurations.
+  ### Investigation Steps
+  - Review recent PowerShell execution logs in your EDR solution to identify the source of the suspicious commands related to `get-localgroup` and `Get-LocalGroupMember`.
+  - Correlate findings with process creation logs to track any parent processes that invoked the PowerShell commands to ascertain if they stem from a legitimate or anomalous application.
+  - Check user access rights and group memberships using Active Directory logs to identify if any user credentials associated with the query are compromised or if unusual accounts were involved.
+  - Utilize network logs from the NGFW or NDR to determine if there is any suspicious outbound traffic from the affected host following the execution of these commands, which could indicate exfiltration or further malicious activity.

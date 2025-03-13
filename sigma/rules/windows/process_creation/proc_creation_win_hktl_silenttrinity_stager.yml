@@ -1,0 +1,34 @@
+title: HackTool - SILENTTRINITY Stager Execution
+id: 03552375-cc2c-4883-bbe4-7958d5a980be
+related:
+- id: 75c505b1-711d-4f68-a357-8c3fe37dbf2d     # DLL Load
+  type: derived
+status: test
+description: Detects SILENTTRINITY stager use via PE metadata
+references:
+- https://github.com/byt3bl33d3r/SILENTTRINITY
+author: Aleksey Potapov, oscd.community
+date: 2019-10-22
+modified: 2023-02-13
+tags:
+- attack.command-and-control
+- attack.t1071
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Description|contains: 'st2stager'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The "HackTool 
+  - SILENTTRINITY Stager Execution" Sigma rule is designed to detect the execution of the SILENTTRINITY stager, a known tool used for command and control by threat actors. The rule works by analyzing the metadata of PE (Portable Executable) files for any entries that contain the string 'st2stager'. This detection primarily relies on Windows process creation logs, which capture information about processes being executed, including command-line parameters and process descriptions. By focusing on this specific identifier, the rule aims to identify suspicious activity indicative of evasion tactics employed by malicious actors using the SILENTTRINITY framework.
+  ### Investigation Steps
+  - Utilize your EDR solution to search for recent process creation events that include the description 'st2stager' and analyze the process tree to identify any parent-child relationships.
+  - Correlate the identified process with any outbound network connections using Network Detection and Response (NDR) tools to determine if there is any suspicious command-and-control activity.
+  - Review any associated antivirus logs to check for previous detections or alerts related to SILENTTRINITY, which may provide additional context on the behavior of the tool.
+  - Investigate logs from your NGFW and Proxy to track any related web requests or domains that may suggest further indicators of compromise linked to the identified stager execution.

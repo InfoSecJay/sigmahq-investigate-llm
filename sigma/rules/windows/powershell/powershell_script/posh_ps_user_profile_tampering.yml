@@ -1,0 +1,45 @@
+title: Potential Persistence Via PowerShell User Profile Using Add-Content
+id: 05b3e303-faf0-4f4a-9b30-46cc13e69152
+status: test
+description: Detects calls to "Add-Content" cmdlet in order to modify the content
+  of the user profile and potentially adding suspicious commands for persistence
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1546.013/T1546.013.md
+author: frack113, Nasreddine Bencherchali (Nextron Systems)
+date: 2021-08-18
+modified: 2023-05-04
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1546.013
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_add:
+    ScriptBlockText|contains: 'Add-Content $profile'
+  selection_options:
+    ScriptBlockText|contains:
+            # Note: You can add more suspicious values
+    - '-Value "IEX '
+    - '-Value "Invoke-Expression'
+    - '-Value "Invoke-WebRequest'
+    - '-Value "Start-Process'
+    - "-Value 'IEX "
+    - "-Value 'Invoke-Expression"
+    - "-Value 'Invoke-WebRequest"
+    - "-Value 'Start-Process"
+  condition: all of selection_*
+falsepositives:
+- Legitimate administration and tuning scripts that aim to add functionality to a
+  user PowerShell session
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially malicious use of the PowerShell cmdlet `Add-Content`, which can be leveraged to modify the user profile in order to insert suspicious commands that aid in persistence on Windows systems. The rule specifically looks for instances where the `Add-Content` command is used in PowerShell scripts, with a focus on specific parameters that indicate potentially harmful actions, such as `Invoke-Expression`, `Invoke-WebRequest`, and `Start-Process`. The rule relies on data captured through Windows Script Block Logging, which must be enabled for effective detection. The detection works by analyzing the ScriptBlockText for these specific command patterns, alerting SOC analysts to potential abuse that falls under the categories of persistence and privilege escalation.
+  ### Investigation Steps
+  - Use the EDR to gather data on PowerShell executions around the time of the alert, focusing on processes that invoked `Add-Content` and reviewing their parent-child relationships for context. 
+  - Review PowerShell log files to identify any script execution logs related to the detected command, specifically the content modifications made and the commands appended to the user profile.
+  - Check for any anomalous outbound connections flagged by the NDR that align with the suspicious commands detected, especially those involving `Invoke-WebRequest`.
+  - Assess user activity logs and group memberships to determine if the account used for executing these commands has elevated privileges or is exhibiting unusual behavior indicative of a potential compromise.

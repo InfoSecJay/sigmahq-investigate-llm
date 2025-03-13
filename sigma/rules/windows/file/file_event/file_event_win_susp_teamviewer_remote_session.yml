@@ -1,0 +1,35 @@
+title: TeamViewer Remote Session
+id: 162ab1e4-6874-4564-853c-53ec3ab8be01
+status: test
+description: Detects the creation of log files during a TeamViewer remote session
+references:
+- https://www.teamviewer.com/en-us/
+author: Florian Roth (Nextron Systems)
+date: 2022-01-30
+tags:
+- attack.command-and-control
+- attack.t1219
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection1:
+    TargetFilename|endswith:
+    - '\TeamViewer\RemotePrinting\tvprint.db'
+    - '\TeamViewer\TVNetwork.log'
+  selection2:
+    TargetFilename|contains|all:
+    - '\TeamViewer'
+    - '_Logfile.log'
+  condition: 1 of selection*
+falsepositives:
+- Legitimate uses of TeamViewer in an organisation
+level: medium
+notes: |
+  ### Technical Context
+  The "TeamViewer Remote Session" detection rule is designed to identify the creation of log files associated with TeamViewer sessions on Windows systems. It specifically looks for the presence of specific known log file names, such as `tvprint.db` and `TVNetwork.log`, or any log files designated with the suffix `_Logfile.log` within the TeamViewer directory. The rule utilizes file event logs that track changes and activities within file systems to detect these events, indicating possible remote access activity. By monitoring these file creations, the rule can help security teams uncover unauthorized or suspicious remote access sessions that could represent a threat to the organization's security posture.
+  ### Investigation Steps
+  - Review EDR logs to identify additional context around the detected file creations, including process IDs and user activity at the time of the alert.
+  - Check for any related network connections or traffic patterns in NDR logs that may indicate remote access or command-and-control behavior.
+  - Investigate user activity via authentication logs in Active Directory or other identity management systems to determine if the accounts involved were compromised or used for legitimate purposes.
+  - Validate the usage of TeamViewer in your organization by consulting internal change management logs or policy documentation to establish whether the detected activity aligns with authorized remote support processes.

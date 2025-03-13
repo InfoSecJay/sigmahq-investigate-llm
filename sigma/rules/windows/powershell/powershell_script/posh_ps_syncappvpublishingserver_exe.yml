@@ -1,0 +1,37 @@
+title: SyncAppvPublishingServer Execution to Bypass Powershell Restriction
+id: dddfebae-c46f-439c-af7a-fdb6bde90218
+related:
+- id: fde7929d-8beb-4a4c-b922-be9974671667
+  type: derived
+- id: 9f7aa113-9da6-4a8d-907c-5f1a4b908299
+  type: derived
+status: test
+description: Detects SyncAppvPublishingServer process execution which usually utilized
+  by adversaries to bypass PowerShell execution restrictions.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Syncappvpublishingserver/
+author: 'Ensar Şamil, @sblmsrsn, OSCD Community'
+date: 2020-10-05
+modified: 2022-12-25
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains: 'SyncAppvPublishingServer.exe'
+  condition: selection
+falsepositives:
+- App-V clients
+level: medium
+notes: |
+  ### Technical Context
+  This rule is designed to detect the execution of the `SyncAppvPublishingServer.exe` process, which is often leveraged by attackers to circumvent restrictions on PowerShell execution. By monitoring script block logs, the rule looks for instances where the process name appears in script activities. This can indicate potential malicious attempts to utilize application virtualization as a means to execute unauthorized scripts or commands. To ensure proper detection, it is vital that Script Block Logging is enabled in the Windows environment. The primary data sources involved include Windows PowerShell script logs, specifically focusing on commands that contain the `SyncAppvPublishingServer.exe` string.
+  ### Investigation Steps
+  - Review the PowerShell Script Block logging on the affected systems to identify any recent executions of `SyncAppvPublishingServer.exe`.
+  - Utilize the EDR tool to analyze the timeline of the process execution and any associated suspicious activities or processes that may have occurred concurrently.
+  - Inspect the system's event logs for any anomalies or additional indicators of compromise around the time of the detected execution to correlate with other threats.
+  - Check network traffic logs, through tools like NDR or NGFW, for unusual outbound connections that might indicate data exfiltration or command-and-control communications initiated by the process in question.

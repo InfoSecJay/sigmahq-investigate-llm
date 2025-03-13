@@ -1,0 +1,35 @@
+title: Suspicious IO.FileStream
+id: 70ad982f-67c8-40e0-a955-b920c2fa05cb
+status: test
+description: Open a handle on the drive volume via the \\.\ DOS device path specifier
+  and perform direct access read of the first few bytes of the volume.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1006/T1006.md
+author: frack113
+date: 2022-01-09
+modified: 2022-03-05
+tags:
+- attack.defense-evasion
+- attack.t1070.003
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - New-Object
+    - IO.FileStream
+    - '\\\\.\\'
+  condition: selection
+falsepositives:
+- Legitimate PowerShell scripts
+level: medium
+notes: |
+  ### Technical Context
+  The "Suspicious IO.FileStream" detection rule identifies anomalous PowerShell activity that involves opening a handle to a drive volume using the \\.\ DOS device path specifier and performing direct access reads of the volume's first few bytes. This technique may be used by malicious actors to evade detection or gather information about the file system without raising typical red flags that come with more conventional file access methods. The rule looks for specific PowerShell script blocks containing 'New-Object', 'IO.FileStream', and the '\\.\' path indicator, which collectively suggest an intent to interact with the drive in a potentially harmful manner. For this rule to function effectively, Script Block Logging must be enabled on the Windows endpoints, allowing for the capture of detailed PowerShell script execution data and making it possible to identify this type of suspicious behavior.
+  ### Investigation Steps
+  - Use EDR tools to examine the context of the PowerShell execution, looking for unusual parent processes or timestamps that coincide with the alert.
+  - Analyze PowerShell logs for the specific command that triggered the alert, focusing on any Command-Line arguments that provide additional context for the execution.
+  - Review file access logs to determine if any unusual file activities occurred around the same time as the detection event, indicating potential data exfiltration or manipulation.
+  - Check network logs for any outbound connections that may correlate with the suspicious PowerShell activity, which could indicate an attempt to communicate with a command and control server.

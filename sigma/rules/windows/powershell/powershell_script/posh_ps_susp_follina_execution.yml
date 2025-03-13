@@ -1,0 +1,36 @@
+title: Troubleshooting Pack Cmdlet Execution
+id: 03409c93-a7c7-49ba-9a4c-a00badf2a153
+status: test
+description: Detects execution of "TroubleshootingPack" cmdlets to leverage CVE-2022-30190
+  or action similar to "msdt" lolbin (as described in LOLBAS)
+references:
+- https://twitter.com/nas_bench/status/1537919885031772161
+- https://lolbas-project.github.io/lolbas/Binaries/Msdt/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-21
+tags:
+- attack.defense-evasion
+- attack.t1202
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'Invoke-TroubleshootingPack'
+    - 'C:\Windows\Diagnostics\System\PCW'
+    - '-AnswerFile'
+    - '-Unattended'
+  condition: selection
+falsepositives:
+- Legitimate usage of "TroubleshootingPack" cmdlet for troubleshooting purposes
+level: medium
+notes: |
+  ### Technical Context
+  This rule is designed to detect the invocation of "TroubleshootingPack" cmdlets, specifically aimed at identifying potentially malicious actor activity leveraging the CVE-2022-30190 vulnerability, commonly associated with the “msdt” Living Off The Land Binary (LOLBIN). The detection focuses on parsing PowerShell script block logs from Windows systems, particularly by looking for specific keywords and parameters that are associated with the misuse of the Troubleshooting Pack functionality. Key elements checked in the script include 'Invoke-TroubleshootingPack', file paths related to Windows diagnostics, and command-line parameters like '-AnswerFile' and '-Unattended'. It is important to note that legitimate troubleshooting activities may occasionally trigger this rule, which can lead to false positives in an operational environment.
+  ### Investigation Steps
+  - Review the PowerShell script block logs for events that triggered this alert, paying close attention to the script block text for any unusual commands or parameters.
+  - Analyze associated process creation logs to identify the parent process of the "TroubleshootingPack" cmdlet execution and determine the context in which it was invoked.
+  - Check EDR and AV alerts for any detection of malicious behavior or known malware signatures that may have coincided with the execution of the cmdlet.
+  - Search through network logs (NDR) for any outbound connections or command and control (C2) traffic executed shortly after the cmdlet was run, which could indicate further compromise.

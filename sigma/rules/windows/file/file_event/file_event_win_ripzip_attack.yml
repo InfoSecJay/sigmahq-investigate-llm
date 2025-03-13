@@ -1,0 +1,36 @@
+title: Potential RipZip Attack on Startup Folder
+id: a6976974-ea6f-4e97-818e-ea08625c52cb
+status: test
+description: |
+  Detects a phishing attack which expands a ZIP file containing a malicious shortcut.
+  If the victim expands the ZIP file via the explorer process, then the explorer process expands the malicious ZIP file and drops a malicious shortcut redirected to a backdoor into the Startup folder.
+  Additionally, the file name of the malicious shortcut in Startup folder contains {0AFACED1-E828-11D1-9187-B532F1E9575D} meaning the folder shortcut operation.
+references:
+- https://twitter.com/jonasLyk/status/1549338335243534336?t=CrmPocBGLbDyE4p6zTX1cg&s=19
+author: Greg (rule)
+date: 2022-07-21
+modified: 2023-01-05
+tags:
+- attack.persistence
+- attack.t1547
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:   # %APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\target.lnk.{0AFACED1-E828-11D1-9187-B532F1E9575D}\target.lnk
+    TargetFilename|contains|all:
+    - '\Microsoft\Windows\Start Menu\Programs\Startup'
+    - '.lnk.{0AFACED1-E828-11D1-9187-B532F1E9575D}'
+    Image|endswith: '\explorer.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Potential RipZip Attack on Startup Folder" is designed to detect a specific phishing attack vector involving ZIP files and Windows shortcut files (.lnk). In this attack, a victim expands a malicious ZIP file using the explorer process, which results in the creation of a malicious shortcut in the Windows Startup folder. This shortcut is intended to redirect users to a backdoor when the system starts up. The rule particularly looks for shortcut files in the Startup folder that contain the specific identifier `{0AFACED1-E828-11D1-9187-B532F1E9575D}` in their filenames, as this signifies the presence of the shortcut created by the exploit. The primary data source for this detection includes file event logs on Windows systems, specifically monitoring actions performed by the `explorer.exe` process.
+  ### Investigation Steps
+  - Utilize EDR tools to review the process creation logs related to `explorer.exe` to confirm the expansion of the malicious ZIP file.
+  - Check the contents of the Startup folder for any shortcuts matching the pattern `.lnk.{0AFACED1-E828-11D1-9187-B532F1E9575D}` to identify potentially malicious entries.
+  - Analyze the command-line parameters used by the `explorer.exe` process to track the source and method of the ZIP file expansion.
+  - Investigate any network communications initiated by the identified shortcut to determine if a backdoor was successfully established.

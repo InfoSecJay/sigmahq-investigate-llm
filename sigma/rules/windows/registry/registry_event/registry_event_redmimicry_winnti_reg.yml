@@ -1,0 +1,30 @@
+title: RedMimicry Winnti Playbook Registry Manipulation
+id: 5b175490-b652-4b02-b1de-5b5b4083c5f8
+status: test
+description: Detects actions caused by the RedMimicry Winnti playbook
+references:
+- https://redmimicry.com
+author: Alexander Rausch
+date: 2020-06-24
+modified: 2021-11-27
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  product: windows
+  category: registry_event
+detection:
+  selection:
+    TargetObject|contains: HKLM\SOFTWARE\Microsoft\HTMLHelp\data
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "RedMimicry Winnti Playbook Registry Manipulation" Sigma rule is designed to identify suspicious activity related to registry manipulations that may indicate the use of the RedMimicry toolset by threat actors leveraging the Winnti framework. Specifically, it focuses on registry events that target the path `HKLM\SOFTWARE\Microsoft\HTMLHelp\data`, which is commonly associated with system configurations that adversaries may alter to achieve their objectives. The rule operates on Windows registry event logs, monitoring changes to critical registry keys to detect potentially malicious configurations or persistence mechanisms employed by attackers. By identifying these changes, SOC analysts can initiate investigations into any associated malicious activities or risks to the enterprise environment.
+  ### Investigation Steps
+  - Utilize EDR tools to examine the process creation logs around the time of the registry modification to identify any suspicious processes that may have initiated the activity.
+  - Check the command-line parameters of the identified processes for unusual or unexpected arguments that could indicate malicious intent.
+  - Review historical and current registry changes using a registry monitoring tool to track back any previous alterations leading up to this event.
+  - Analyze network traffic logs from the NGFW or NDR solutions for any outbound connections made by the implicated processes to identify potential exfiltration or command and control communications.

@@ -1,0 +1,34 @@
+title: PowerShell Write-EventLog Usage
+id: 35f41cd7-c98e-469f-8a02-ec4ba0cc7a7e
+status: test
+description: Detects usage of the "Write-EventLog" cmdlet with 'RawData' flag. The
+  cmdlet can be levreage to write malicious payloads to the EventLog and then retrieve
+  them later for later use
+references:
+- https://www.blackhillsinfosec.com/windows-event-logs-for-red-teams/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-16
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'Write-EventLog'
+    - '-RawData '
+  condition: selection
+falsepositives:
+- Legitimate applications writing events via this cmdlet. Investigate alerts to determine
+  if the action is benign
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule targets the use of the PowerShell cmdlet "Write-EventLog" when the 'RawData' flag is employed. PowerShell is a powerful scripting language often used for automation and administration tasks. However, the 'Write-EventLog' cmdlet can be exploited by an attacker to write malicious payloads into Windows Event Logs, making it possible for them to retrieve and manipulate these logs later for nefarious purposes. The rule relies on the availability of Script Block Logging, which must be enabled to capture these event logs effectively. The relevant data sources include PowerShell script execution logs, ensuring that any usage of the cmdlet with 'RawData' is logged and flagged for further investigation.
+  ### Investigation Steps
+  - Utilize your EDR solution to investigate recent PowerShell executions and identify any instances of the "Write-EventLog" cmdlet being used with the 'RawData' argument.
+  - Review Windows Event Logs for unusual log entries that correlate with the timing of the detected command execution to understand the context and potential impact.
+  - Cross-reference with proxy logs to determine if there were any unusual external connections or data exfiltration that may correlate with suspicious PowerShell activity.
+  - Analyze user behavior and access patterns around the time of the alert, focusing on whether the user or account executing the command is atypical or has elevated privileges that warrant further scrutiny.

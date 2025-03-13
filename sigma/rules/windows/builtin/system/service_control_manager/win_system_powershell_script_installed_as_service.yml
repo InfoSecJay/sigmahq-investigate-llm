@@ -1,0 +1,34 @@
+title: PowerShell Scripts Installed as Services
+id: a2e5019d-a658-4c6a-92bf-7197b54e2cae
+status: test
+description: Detects powershell script installed as a Service
+references:
+- https://speakerdeck.com/heirhabarov/hunting-for-powershell-abuse
+author: oscd.community, Natalia Shornikova
+date: 2020-10-06
+modified: 2022-12-25
+tags:
+- attack.execution
+- attack.t1569.002
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7045
+    ImagePath|contains:
+    - 'powershell'
+    - 'pwsh'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying instances where PowerShell scripts are installed as Windows services, an approach often leveraged by malicious actors to maintain persistence on compromised systems. The rule is triggered by monitoring event logs, specifically targeting the Windows Event ID 7045, which indicates a new service has been created. The criteria for detection include the presence of "powershell" or "pwsh" within the service's ImagePath, suggesting that these scripts are set to execute as services. The data source for this detection primarily involves the Service Control Manager logs from Windows systems, allowing for the identification of potentially unwanted or malicious service installations.
+  ### Investigation Steps
+  - Examine the details of the service identified in the alert by querying EDR tools for service properties, such as the service name, status, and any associated descriptions.
+  - Investigate the command-line parameters used during the service creation by checking Windows Event Logs and related process creation logs through the EDR environment, which may reveal additional context on the executed script.
+  - Analyze network traffic patterns using NDR tools to discover any outbound connections made by the identified service, providing insights into possible data exfiltration or communications with command and control servers.
+  - Review proxy logs for any suspicious activity initiated by the PowerShell service, including any URLs accessed or files downloaded that may have been triggered by the service execution.

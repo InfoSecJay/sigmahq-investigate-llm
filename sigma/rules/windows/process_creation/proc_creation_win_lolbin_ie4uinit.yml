@@ -1,0 +1,39 @@
+title: Ie4uinit Lolbin Use From Invalid Path
+id: d3bf399f-b0cf-4250-8bb4-dfc192ab81dc
+status: test
+description: Detect use of ie4uinit.exe to execute commands from a specially prepared
+  ie4uinit.inf file from a directory other than the usual directories
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Ie4uinit/
+- https://bohops.com/2018/03/10/leveraging-inf-sct-fetch-execute-techniques-for-bypass-evasion-persistence-part-2/
+author: frack113
+date: 2022-05-07
+modified: 2022-05-16
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  lolbin:
+  - Image|endswith: '\ie4uinit.exe'
+  - OriginalFileName: 'IE4UINIT.EXE'
+  filter_correct:
+    CurrentDirectory:
+    - 'c:\windows\system32\'
+    - 'c:\windows\sysWOW64\'
+  filter_missing:
+    CurrentDirectory:
+  condition: lolbin and not 1 of filter_*
+falsepositives:
+- ViberPC updater calls this binary with the following commandline "ie4uinit.exe -ClearIconCache"
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying the use of **ie4uinit.exe**, a legitimate Windows binary, being executed from invalid or unusual directories instead of its standard locations (i.e., `C:\Windows\System32\` or `C:\Windows\SysWOW64\`). Attackers may exploit this binary as part of living-off-the-land techniques to execute harmful commands without raising immediate suspicion. In this context, the rule monitors process creation logs to flag instances where **ie4uinit.exe** is launched from unexpected paths, especially when accompanied by command-line parameters from an **ie4uinit.inf** file. Detecting this behavior is crucial for addressing potential evasion tactics and ensuring the integrity of the system.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify instances of **ie4uinit.exe** executed from non-standard directories.
+  - Examine the command-line parameters used during these executions to identify potential malicious activity or unusual commands.
+  - Correlate additional logs, such as Windows Event Logs, to understand the context around the execution of **ie4uinit.exe**, including any related processes spawned.
+  - Check for any associated network activity using your NDR solution to detect potential outbound connections to known malicious addresses triggered by the execution.

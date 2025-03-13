@@ -1,0 +1,60 @@
+title: Potential Binary Or Script Dropper Via PowerShell
+id: 7047d730-036f-4f40-b9d8-1c63e36d5e62
+status: test
+description: Detects PowerShell creating a binary executable or a script file.
+references:
+- https://www.zscaler.com/blogs/security-research/onenote-growing-threat-malware-distribution
+author: frack113, Nasreddine Bencherchali (Nextron Systems)
+date: 2023-03-17
+modified: 2023-05-09
+tags:
+- attack.persistence
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    TargetFilename|endswith:
+    - '.bat'
+    - '.chm'
+    - '.cmd'
+    - '.com'
+    - '.dll'
+    - '.exe'
+    - '.hta'
+    - '.jar'
+    - '.js'
+    - '.ocx'
+    - '.scr'
+    - '.sys'
+    - '.vbe'
+    - '.vbs'
+    - '.wsf'
+  filter_main_user_temp:
+    TargetFilename|startswith: 'C:\Users\'
+    TargetFilename|contains: '\AppData\Local\Temp\'
+    TargetFilename|endswith:
+    - '.dll'
+    - '.exe'
+  filter_main_admin_temp:
+        # Example: C:\Windows\Temp\0DA9758B-4649-4969-9409-5CBDF193FB53\TransmogProvider.dll
+    TargetFilename|startswith: 'C:\Windows\Temp\'
+    TargetFilename|endswith:
+    - '.dll'
+    - '.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- False positives will differ depending on the environment and scripts used. Apply
+  additional filters accordingly.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify instances where PowerShell, a powerful scripting language and command-line shell on Windows, creates executable or script files that could be indicative of potentially malicious activity. The rule specifically looks for execution of `powershell.exe` or `pwsh.exe`, focusing on output files that have certain extensions (e.g., `.exe`, `.dll`, `.vbs`, `.js`, etc.) typically associated with executable binaries and scripts. The primary data sources involved in this detection are file event logs that track process creation and file manipulation activities on Windows systems. Additionally, the rule applies filters to narrow down the detection to files created in user or system temporary directories, which are common locations for malicious file drops.
+  ### Investigation Steps
+  - Query the EDR logs for any recent execution of `powershell.exe` or `pwsh.exe`, noting the command-line parameters used to understand the context of the execution.
+  - Check the file event logs to identify any newly created files in user and system temp directories, focusing on the specific file types listed in the rule.
+  - Review the access logs of the systems involved, using network detection tools to identify any external connections correlating with the time of the PowerShell activity.
+  - Analyze the contents of any detected files for potential indicators of compromise, including malicious scripts or binaries, using an AV solution or sandboxing approach to assess their behavior.

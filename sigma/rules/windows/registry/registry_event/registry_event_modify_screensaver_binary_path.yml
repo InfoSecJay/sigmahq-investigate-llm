@@ -1,0 +1,37 @@
+title: Path To Screensaver Binary Modified
+id: 67a6c006-3fbe-46a7-9074-2ba3b82c3000
+status: test
+description: Detects value modification of registry key containing path to binary
+  used as screensaver.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1546.002/T1546.002.md
+- https://www.welivesecurity.com/wp-content/uploads/2017/08/eset-gazer.pdf
+author: Bartlomiej Czyz @bczyz1, oscd.community
+date: 2020-10-11
+modified: 2021-11-27
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1546.002
+logsource:
+  category: registry_event
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: '\Control Panel\Desktop\SCRNSAVE.EXE'     # HKEY_CURRENT_USER\Control Panel\Desktop\SCRNSAVE.EXE
+  filter:
+    Image|endswith:
+    - '\rundll32.exe'
+    - '\explorer.exe'
+  condition: selection and not filter
+falsepositives:
+- Legitimate modification of screensaver
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies modifications to the registry key that specifies the path to the executable file used as the screensaver on Windows systems. The specific registry key of interest is located at `HKEY_CURRENT_USER\Control Panel\Desktop\SCRNSAVE.EXE`, which can indicate potential misuse when changed by unauthorized applications. The rule looks for events related to registry modifications, particularly those that alter this key, and filters out changes made by common system processes like `rundll32.exe` and `explorer.exe`, which may represent legitimate behavior. By focusing on changes made by other processes, the rule helps uncover potential malicious activities, such as an attacker attempting to use a screensaver as a means to achieve persistence or escalate privileges.
+  ### Investigation Steps
+  - Start by querying EDR logs to identify the processes that made modifications to the `HKEY_CURRENT_USER\Control Panel\Desktop\SCRNSAVE.EXE` registry key.  
+  - Check for any associated command-line parameters or unusual behavior from the identified processes to contextualize their actions during the time of the modification.
+  - Review Proxy and AV logs for any indicators of suspicious downloads or known malicious file signatures that could relate to the detected event.
+  - Search relevant cloud platform logs (if applicable) for any unusual user access or actions around the time of modification to ascertain if it aligns with other suspicious activities across the enterprise.

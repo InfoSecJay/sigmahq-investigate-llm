@@ -1,0 +1,47 @@
+title: Potential Persistence Via Microsoft Office Add-In
+id: 8e1cb247-6cf6-42fa-b440-3f27d57e9936
+status: test
+description: Detects potential persistence activity via startup add-ins that load
+  when Microsoft Office starts (.wll/.xll are simply .dll fit for Word or Excel).
+references:
+- Internal Research
+- https://labs.withsecure.com/publications/add-in-opportunities-for-office-persistence
+- https://github.com/redcanaryco/atomic-red-team/blob/4ae9580a1a8772db87a1b6cdb0d03e5af231e966/atomics/T1137.006/T1137.006.md
+author: NVISO
+date: 2020-05-11
+modified: 2023-02-08
+tags:
+- attack.persistence
+- attack.t1137.006
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection_wlldropped:
+    TargetFilename|contains: '\Microsoft\Word\Startup\'
+    TargetFilename|endswith: '.wll'
+  selection_xlldropped:
+    TargetFilename|contains: '\Microsoft\Excel\Startup\'
+    TargetFilename|endswith: '.xll'
+  selection_xladropped:
+    TargetFilename|contains: 'Microsoft\Excel\XLSTART\'
+    TargetFilename|endswith: '.xlam'
+  selection_generic:
+    TargetFilename|contains: '\Microsoft\Addins\'
+    TargetFilename|endswith:
+    - '.xlam'
+    - '.xla'
+    - '.ppam'
+  condition: 1 of selection_*
+falsepositives:
+- Legitimate add-ins
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule identifies potential persistence mechanisms abused by attackers through Microsoft Office add-ins. Specifically, it looks for files with extensions associated with Office add-ins such as `.wll`, `.xll`, and `.xlam`, which can be installed in specific startup directories for Word and Excel. The rule analyzes Windows file event logs to detect the placement of these add-ins in locations like the Microsoft Word or Excel Startup folders, as well as the Microsoft Addins directory. Such files can enable malicious code to run every time a user opens Word or Excel, providing a means for attackers to maintain persistence on a compromised system.
+  The detection logic is based on identifying filenames and paths that match typical behavioral patterns associated with these add-ins. This alert is crucial for SOC analysts to identify anomalous activities that could signify an ongoing attack or a previously compromised system.
+  ### Investigation Steps
+  - Review file event logs in the EDR to confirm the creation or modification timestamps of the detected add-in files, correlating them with user activity to spot any anomalies.
+  - Investigate the command-line arguments and processes associated with the loading of the identified add-ins to determine if they exhibit any malicious behavior.
+  - Leverage the organization's AV solutions to perform a scan on the identified add-in files, checking for known signatures of malware or any obfuscation techniques.
+  - Check proxy logs for unusual outbound connections or data exfiltration attempts from systems where these add-ins were detected, providing insight into potential further compromise.

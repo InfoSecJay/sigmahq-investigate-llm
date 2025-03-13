@@ -1,0 +1,36 @@
+title: Suspicious Execution of InstallUtil Without Log
+id: d042284c-a296-4988-9be5-f424fadcc28c
+status: test
+description: Uses the .NET InstallUtil.exe application in order to execute image without
+  log
+references:
+- https://securelist.com/moonbounce-the-dark-side-of-uefi-firmware/105468/
+- https://learn.microsoft.com/en-us/dotnet/framework/tools/installutil-exe-installer-tool
+author: frack113
+date: 2022-01-23
+modified: 2022-02-04
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\InstallUtil.exe'
+    Image|contains: 'Microsoft.NET\Framework'
+    CommandLine|contains|all:
+    - '/logfile= '
+    - '/LogToConsole=false'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies suspicious executions of the `InstallUtil.exe` application in Windows environments. `InstallUtil.exe` is a tool primarily used for installing and uninstalling applications that are built using .NET Framework. This rule specifically looks for command-line executions of `InstallUtil.exe` that do not generate logs, as indicated by the presence of the parameters `/logfile= ` and `/LogToConsole=false`. The absence of intended logging makes such executions concerning, as they can be employed by attackers to run malicious applications without maintaining detailed records, effectively evading detection.
+  To facilitate this detection, the rule primarily monitors process creation logs from Windows systems. It checks for instances where the image ends with `InstallUtil.exe` and is located within the .NET Framework installation path. By focusing on command-line arguments that suppress logging, the rule helps flag potentially malicious activities that can lead to further compromises within the environment.
+  ### Investigation Steps
+  - **Review Process Creation Logs:** Utilize EDR tools to analyze the process creation logs for occurrences of `InstallUtil.exe`. Pay attention to the timestamps and the parent processes that initiated these executions.
+  - **Inspect Command-Line Parameters:** Check the command-line arguments associated with the instances of `InstallUtil.exe`. Confirm whether the `/logfile= ` and `/LogToConsole=false` flags were used to ensure there’s no legitimate logging method active.
+  - **Correlate with User Activities:** Examine user activity logs to identify whether the execution aligns with typical user behavior or scheduled tasks. Evaluate whether the executing user had legitimate reasons for using `InstallUtil.exe`.
+  - **Analyze Network Activity:** If applicable, leverage NDR or firewall logs to detect any outbound connections made around the time of the suspicious execution. Look for connections to known malicious IPs or domains that could indicate a larger compromise.

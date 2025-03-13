@@ -1,0 +1,46 @@
+title: Suspicious Service Installed
+id: f2485272-a156-4773-82d7-1d178bc4905b
+status: test
+description: |
+  Detects installation of NalDrv or PROCEXP152 services via registry-keys to non-system32 folders.
+  Both services are used in the tool Ghost-In-The-Logs (https://github.com/bats3c/Ghost-In-The-Logs), which uses KDU (https://github.com/hfiref0x/KDU)
+references:
+- https://web.archive.org/web/20200419024230/https://blog.dylan.codes/evading-sysmon-and-windows-event-logging/
+author: xknow (@xknow_infosec), xorxes (@xor_xes)
+date: 2019-04-08
+modified: 2023-08-17
+tags:
+- attack.t1562.001
+- attack.defense-evasion
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject:
+    - 'HKLM\System\CurrentControlSet\Services\NalDrv\ImagePath'
+    - 'HKLM\System\CurrentControlSet\Services\PROCEXP152\ImagePath'
+  filter:
+    Image|endswith:
+            # Please add the full paths that you use in your environment to tighten the rule
+    - '\procexp64.exe'
+    - '\procexp.exe'
+    - '\procmon64.exe'
+    - '\procmon.exe'
+    - '\handle.exe'
+    - '\handle64.exe'
+    Details|contains: '\WINDOWS\system32\Drivers\PROCEXP152.SYS'
+  condition: selection and not filter
+falsepositives:
+- Other legimate tools using this service names and drivers. Note - clever attackers
+  may easily bypass this detection by just renaming the services. Therefore just Medium-level
+  and don't rely on it.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule targets the installation of suspicious Windows services, specifically 'NalDrv' and 'PROCEXP152', that are commonly associated with the tool Ghost-In-The-Logs. The rule identifies modifications to the Windows registry keys related to these services, looking for entries indicating that the services are installed outside of standard directories such as 'C:\Windows\System32'. The technical data sources involved include registry modification logs, which record changes to the Windows registry, specifically the paths of service executables. By detecting unusual paths for service installations, this rule aims to uncover potential evasion techniques employed by attackers who may seek to hide their activities.
+  ### Investigation Steps
+  - Utilize EDR to identify the file paths associated with the NalDrv and PROCEXP152 services, focusing on any deviations from standard locations.
+  - Examine the process execution logs in your SIEM to track the execution history of 'procexp64.exe', 'procmon.exe', and similar binaries that may indicate abnormal behavior.
+  - Review alerts from AV solutions for any associated detections related to the installed services or their paths, correlating this information with the registry changes.
+  - Investigate proxy logs and network activity to identify any communications or operations initiated by the suspicious services, particularly if they are reaching out to known malicious domains.

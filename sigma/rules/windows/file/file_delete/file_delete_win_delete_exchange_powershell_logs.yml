@@ -1,0 +1,32 @@
+title: Exchange PowerShell Cmdlet History Deleted
+id: a55349d8-9588-4c5a-8e3b-1925fe2a4ffe
+status: test
+description: Detects the deletion of the Exchange PowerShell cmdlet History logs which
+  may indicate an attempt to destroy forensic evidence
+references:
+- https://m365internals.com/2022/10/07/hunting-in-on-premises-exchange-server-logs/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-10-26
+modified: 2022-12-30
+tags:
+- attack.defense-evasion
+- attack.t1070
+logsource:
+  category: file_delete
+  product: windows
+detection:
+  selection:
+    TargetFilename|startswith: '\Logging\CmdletInfra\LocalPowerShell\Cmdlet\'
+    TargetFilename|contains: '_Cmdlet_'
+  condition: selection
+falsepositives:
+- Possible FP during log rotation
+level: high
+notes: |
+  ### Technical Context
+  This detection rule monitors the deletion of Exchange PowerShell cmdlet history logs on Windows systems, which are crucial for forensic analysis. Specifically, it looks for file deletions within the directory `\Logging\CmdletInfra\LocalPowerShell\Cmdlet\` that contain the substring `_Cmdlet_`. The primary goal of this rule is to identify potential attempts to destroy evidence that could be valuable during an investigation, as the deletion of such logs may indicate malicious activity or an actor's effort to cover their tracks. Events generated from Windows file deletions are essential data sources for this rule, providing insights into unexpected log clearance actions that warrant further scrutiny.
+  ### Investigation Steps
+  - Review the EDR for any recent deletions within the specified PowerShell cmdlet history directory to confirm the event and assess its context.
+  - Check for related log entries in the Windows Event Logs to identify the user and process responsible for the deletion, as this may help establish intent.
+  - Utilize the SIEM to correlate this activity with other suspicious behaviors or indicators of compromise occurring around the same time, providing a broader context for the incident.
+  - Investigate any unusual account activity or access patterns leading up to the deletion using Active Directory logs, which may indicate unauthorized access or privilege escalation.

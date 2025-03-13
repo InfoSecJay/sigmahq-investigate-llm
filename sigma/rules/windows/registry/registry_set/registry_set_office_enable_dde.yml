@@ -1,0 +1,39 @@
+title: Enable Microsoft Dynamic Data Exchange
+id: 63647769-326d-4dde-a419-b925cc0caf42
+status: test
+description: Enable Dynamic Data Exchange protocol (DDE) in all supported editions
+  of Microsoft Word or Excel.
+references:
+- https://msrc.microsoft.com/update-guide/vulnerability/ADV170021
+author: frack113
+date: 2022-02-26
+modified: 2023-08-17
+tags:
+- attack.execution
+- attack.t1559.002
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection_word:
+    TargetObject|endswith: '\Word\Security\AllowDDE'
+    Details:
+    - 'DWORD (0x00000001)'
+    - 'DWORD (0x00000002)'
+  selection_excel:
+    TargetObject|endswith:
+    - '\Excel\Security\DisableDDEServerLaunch'
+    - '\Excel\Security\DisableDDEServerLookup'
+    Details: 'DWORD (0x00000000)'
+  condition: 1 of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule aims to detect the enabling of the Dynamic Data Exchange (DDE) protocol within Microsoft Word and Excel applications, which can be exploited by adversaries for executing malicious code. The rule specifically monitors Windows registry changes that indicate DDE settings have been altered. The two key states being monitored include the settings that allow DDE in Word (`\Word\Security\AllowDDE`) and settings related to disabling DDE in Excel (`\Excel\Security\DisableDDEServerLaunch` and `\Excel\Security\DisableDDEServerLookup`). The detection relies on registry set logs, and it flags any alterations that shift these values, potentially indicating a security misconfiguration or exploitation attempt.
+  ### Investigation Steps
+  - Review recent registry set logs using your EDR tool to identify the specific user and system involved in enabling DDE. Cross-reference this with known user behaviors to assess legitimacy.
+  - Utilize your SIEM to investigate any recent file operations involving Microsoft Word or Excel that coincide with the registry changes, looking for suspicious file execution patterns.
+  - Check the proxy logs for any outgoing connections made by Office applications during and after the DDE settings were changed, to identify potential command-and-control communications.
+  - Analyze endpoint protection logs for alerts and detections associated with Microsoft Office processes following the DDE modification, as this might highlight malicious activity or payload executions.

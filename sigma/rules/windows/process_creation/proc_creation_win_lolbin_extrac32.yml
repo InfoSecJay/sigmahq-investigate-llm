@@ -1,0 +1,39 @@
+title: Suspicious Extrac32 Execution
+id: aa8e035d-7be4-48d3-a944-102aec04400d
+status: test
+description: Download or Copy file with Extrac32
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Extrac32/
+author: frack113
+date: 2021-11-26
+modified: 2022-08-13
+tags:
+- attack.command-and-control
+- attack.t1105
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_lolbas:
+  - CommandLine|contains: extrac32.exe
+  - Image|endswith: '\extrac32.exe'
+  - OriginalFileName: 'extrac32.exe'
+  selection_archive:
+    CommandLine|contains: '.cab'
+  selection_options:
+    CommandLine|contains:
+    - /C
+    - /Y
+    - ' \\\\'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Suspicious Extrac32 Execution" detection rule is designed to identify potentially malicious use of the `Extrac32.exe` utility on Windows systems. This utility, which is often utilized for extracting files from cabinet (.cab) archives, can be abused as a part of a broader command and control (C2) strategy, especially when used in conjunction with certain command-line arguments. The rule specifically looks for process creation events where `extrac32.exe` is invoked, checking for its presence in the command line, the executable path, and the original file name. It also flags the presence of specific archive file manipulations, which may indicate the extraction of payloads from compressed files as part of a malicious operation. The primary data sources for this detection include Windows process creation logs, particularly focusing on command-line arguments and image paths.
+  ### Investigation Steps
+  - Review recent process creation logs in the EDR platform to identify instances of `extrac32.exe` execution and examine the parameters used in each instance.
+  - Analyze the command-line arguments to detect the presence of suspicious options like `/C`, `/Y`, or instances involving cabinet files (`.cab`) and network paths (e.g., `\\`).
+  - Cross-reference the identified `extrac32.exe` activities against known indicators of compromise (IOCs) or benign usage in your organization's environment to filter out false positives.
+  - Investigate network logs and proxies for any unusual outbound connections that coincide with the timing of `extrac32.exe` executions, which may indicate communication with a C2 server.

@@ -1,0 +1,73 @@
+title: Suspicious Scheduled Task Update
+id: 614cf376-6651-47c4-9dcc-6b9527f749f4
+related:
+- id: 1c0e41cd-21bb-4433-9acc-4a2cd6367b9b     # ProcCreation schtasks change
+  type: similar
+status: test
+description: Detects update to a scheduled task event that contain suspicious keywords.
+references:
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4698
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-12-05
+tags:
+- attack.execution
+- attack.privilege-escalation
+- attack.persistence
+- attack.t1053.005
+logsource:
+  product: windows
+  service: security
+  definition: 'The Advanced Audit Policy setting Object Access > Audit Other Object
+    Access Events has to be configured to allow this detection. We also recommend
+    extracting the Command field from the embedded XML in the event data.'
+detection:
+  selection_eid:
+    EventID: 4702
+  selection_paths:
+    TaskContentNew|contains:
+    - '\AppData\Local\Temp\'
+    - '\AppData\Roaming\'
+    - '\Users\Public\'
+    - '\WINDOWS\Temp\'
+    - 'C:\Temp\'
+    - '\Desktop\'
+    - '\Downloads\'
+    - '\Temporary Internet'
+    - 'C:\ProgramData\'
+    - 'C:\Perflogs\'
+  selection_commands:
+    TaskContentNew|contains:
+    - 'regsvr32'
+    - 'rundll32'
+    - 'cmd.exe</Command>'
+    - 'cmd</Command>'
+    - '<Arguments>/c '
+    - '<Arguments>/k '
+    - '<Arguments>/r '
+    - 'powershell'
+    - 'pwsh'
+    - 'mshta'
+    - 'wscript'
+    - 'cscript'
+    - 'certutil'
+    - 'bitsadmin'
+    - 'bash.exe'
+    - 'bash '
+    - 'scrcons'
+    - 'wmic '
+    - 'wmic.exe'
+    - 'forfiles'
+    - 'scriptrunner'
+    - 'hh.exe'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Suspicious Scheduled Task Update" detection rule is designed to identify potentially malicious changes to scheduled tasks in Windows environments. Scheduled tasks are often used by attackers to maintain persistence or execute malicious commands at specified intervals or system restarts. This Sigma rule detects Event ID 4702, which pertains to modifications of existing scheduled tasks. It specifically looks for changes that involve certain suspicious file paths (e.g., AppData, Temp folders) and command-line executables often associated with malicious activity (e.g., `cmd.exe`, `powershell`, `wmic`). The rule pulls from security logs configured to fully audit object access in Windows, ensuring that any pertinent details about task updates are captured for analysis.
+  ### Investigation Steps
+  - Review EDR logs to identify recent modifications to scheduled tasks, paying close attention to any tasks that have been altered with suspicious parameters or paths.
+  - Query command execution logs for the processes flagged by the rule, such as `cmd.exe` or `powershell`, to track any related user actions preceding the scheduled task update.
+  - Analyze Windows security logs for Event ID 4702 to gather contextual information, such as the user account that made the change and the exact command that was executed.
+  - Cross-reference findings with AV and NDR alerts that may indicate further signs of compromise, looking for correlated indicators or adversarial behaviors.

@@ -1,0 +1,37 @@
+title: Code Execution via Pcwutl.dll
+id: 9386d78a-7207-4048-9c9f-a93a7c2d1c05
+status: test
+description: Detects launch of executable by calling the LaunchApplication function
+  from pcwutl.dll library.
+references:
+- https://lolbas-project.github.io/lolbas/Libraries/Pcwutl/
+- https://twitter.com/harr0ey/status/989617817849876488
+author: Julia Fomina, oscd.community
+date: 2020-10-05
+modified: 2023-02-09
+tags:
+- attack.defense-evasion
+- attack.t1218.011
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\rundll32.exe'
+  - OriginalFileName: 'RUNDLL32.EXE'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'pcwutl'
+    - 'LaunchApplication'
+  condition: all of selection_*
+falsepositives:
+- Use of Program Compatibility Troubleshooter Helper
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule aims to identify potentially malicious code execution that utilizes the `pcwutl.dll` library, specifically through the `LaunchApplication` function. By monitoring Windows process creation logs, the rule focuses on instances where `rundll32.exe` is invoked with command-line arguments referencing `pcwutl`. The underlying idea is that attackers may leverage the legitimate functionality provided by `pcwutl.dll` for defensive evasion or as part of a larger attack strategy. Investigation can be further supported by analyzing how commonly this library is used in support of legitimate applications, aiding in distinguishing between benign and suspicious activity.
+  ### Investigation Steps
+  - Utilize EDR tools to review recent process creation logs and confirm instances of `rundll32.exe` invoking `pcwutl.dll` with the `LaunchApplication` parameter.
+  - Analyze command-line parameters associated with the detected processes to determine if they are consistent with known safe operations or indicative of potential malicious activity.
+  - Check for any unusual network connections or file activities stemming from the process, as this could signify an exploitation attempt or data exfiltration.
+  - Review related logs from your SIEM, NDR, and NGFW for any network traffic or behaviors that correlate with the execution of `pcwutl.dll`, helping to contextualize the alert within broader observed activity.

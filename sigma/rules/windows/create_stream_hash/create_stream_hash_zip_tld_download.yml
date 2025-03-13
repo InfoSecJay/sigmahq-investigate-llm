@@ -1,0 +1,53 @@
+title: Potentially Suspicious File Download From ZIP TLD
+id: 0bb4bbeb-fe52-4044-b40c-430a04577ebe
+status: test
+description: Detects the download of a file with a potentially suspicious extension
+  from a .zip top level domain.
+references:
+- https://twitter.com/cyb3rops/status/1659175181695287297
+- https://fabian-voith.de/2020/06/25/sysmon-v11-1-reads-alternate-data-streams/
+author: Florian Roth (Nextron Systems)
+date: 2023-05-18
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: create_stream_hash
+detection:
+  selection:
+    Contents|contains: '.zip/'
+    TargetFilename|contains:
+    - '.bat:Zone'
+    - '.dat:Zone'
+    - '.dll:Zone'
+    - '.doc:Zone'
+    - '.docm:Zone'
+    - '.exe:Zone'
+    - '.hta:Zone'
+    - '.pptm:Zone'
+    - '.ps1:Zone'
+    - '.rar:Zone'
+    - '.rtf:Zone'
+    - '.sct:Zone'
+    - '.vbe:Zone'
+    - '.vbs:Zone'
+    - '.ws:Zone'
+    - '.wsf:Zone'
+    - '.xll:Zone'
+    - '.xls:Zone'
+    - '.xlsm:Zone'
+    - '.zip:Zone'
+  condition: selection
+falsepositives:
+- Legitimate file downloads from a websites and web services that uses the ".zip"
+  top level domain.
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially suspicious file downloads originating from websites with the `.zip` top-level domain (TLD). It targets specific file types that are often associated with malicious behavior, including executable files (`.exe`, `.bat`) and scripts (`.ps1`, `.vbs`). When a file is downloaded from a `.zip` TLD and bears one of these extensions labeled with a `Zone.Identifier` alternate data stream, this may indicate that the file has been flagged as potentially harmful, which often occurs in environments that enforce security measures against potentially unwanted applications or malware.
+  The detection leverages logs related to the creation of stream hashes on Windows systems. This allows the rule to monitor and investigate instances when a file download event occurs with a suspicious extension from a `.zip` TLD. Incident responders should be alerted to these events to evaluate if they represent genuine threats or benign activities.
+  ### Investigation Steps
+  - Review EDR logs to examine process creation events related to the detected file download, focusing on command-line parameters and the parent process to assess the context of execution.
+  - Check antivirus logs for any alerts or blocking incidents associated with the downloaded file, looking for any indications that the file has been flagged as malicious.
+  - Analyze network proxy logs to identify the source of the download request, ensuring that the domain is assessed for its reputation and any known malicious activities.
+  - Consult relevant cloud platform logs (if applicable) to check for any suspicious user activities or prior investigations involving the same domain or file types.

@@ -1,0 +1,39 @@
+title: Potential PSFactoryBuffer COM Hijacking
+id: 243380fa-11eb-4141-af92-e14925e77c1b
+status: test
+description: Detects changes to the PSFactory COM InProcServer32 registry. This technique
+  was used by RomCom to create persistence storing a malicious DLL.
+references:
+- https://blogs.blackberry.com/en/2023/06/romcom-resurfaces-targeting-ukraine
+- https://strontic.github.io/xcyclopedia/library/clsid_C90250F3-4D7D-4991-9B69-A5C5BC1C2AE6.html
+- https://www.virustotal.com/gui/file/6d3ab9e729bb03ae8ae3fcd824474c5052a165de6cb4c27334969a542c7b261d/detection
+- https://www.trendmicro.com/en_us/research/23/e/void-rabisu-s-use-of-romcom-backdoor-shows-a-growing-shift-in-th.html
+author: BlackBerry Threat Research and Intelligence Team - @Joseliyo_Jstnk
+date: 2023-06-07
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.t1546.015
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: '\CLSID\{c90250f3-4d7d-4991-9b69-a5c5bc1c2ae6}\InProcServer32\(Default)'
+  filter_main:
+    Details:
+    - '%windir%\System32\ActXPrxy.dll'
+    - 'C:\Windows\System32\ActXPrxy.dll'
+  condition: selection and not filter_main
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Potential PSFactoryBuffer COM Hijacking" detection rule focuses on identifying suspicious modifications to the Windows Registry specifically targeting the InProcServer32 entry associated with the COM object identified by the CLSID `{c90250f3-4D7D-4991-9B69-A5C5BC1C2AE6}`. This entry is crucial as it specifies which dynamic link library (DLL) is to be loaded when the COM object is invoked. The rule is designed to identify instances where this registry value is altered to point to a malicious DLL, such as `ActXPrxy.dll`, which is known to be associated with persistence mechanisms used by advanced persistent threats (APTs) like RomCom. The data sources leveraged by this rule include Windows Registry logs that capture changes to specific registry paths and their values.
+  By monitoring these registry modifications, security analysts can identify potential instances of COM hijacking, a common tactic used by attackers to maintain persistence and enable malicious activities on compromised systems. 
+  ### Investigation Steps
+  - Review recent changes in the Windows Registry, specifically focusing on the InProcServer32 entry for the CLSID `{c90250f3-4D7D-4991-9B69-A5C5BC1C2AE6}` to confirm any unauthorized modifications.
+  - Utilize EDR tools to analyze any processes that accessed the `ActXPrxy.dll` file and investigate if they are part of a known malicious campaign.
+  - Check the Security Information and Event Management (SIEM) for any correlating alerts that may indicate suspicious activity or lateral movement associated with the detected registry change.
+  - Review file integrity and behavior logs from the antivirus and endpoint protection systems to detect any related malware activity or attempts to leverage the hijacked COM object.

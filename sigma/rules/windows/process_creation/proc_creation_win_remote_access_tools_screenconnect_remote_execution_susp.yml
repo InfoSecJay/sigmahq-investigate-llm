@@ -1,0 +1,52 @@
+title: Remote Access Tool - ScreenConnect Potential Suspicious Remote Command Execution
+id: 7b582f1a-b318-4c6a-bf4e-66fe49bf55a5
+related:
+- id: d1a401ab-8c47-4e86-a7d8-2460b6a53e4a
+  type: derived
+status: test
+description: |
+  Detects potentially suspicious child processes launched via the ScreenConnect client service.
+references:
+- https://www.mandiant.com/resources/telegram-malware-iranian-espionage
+- https://docs.connectwise.com/ConnectWise_Control_Documentation/Get_started/Host_client/View_menu/Backstage_mode
+- https://www.huntress.com/blog/slashandgrab-screen-connect-post-exploitation-in-the-wild-cve-2024-1709-cve-2024-1708
+- https://www.trendmicro.com/en_us/research/24/b/threat-actor-groups-including-black-basta-are-exploiting-recent-.html
+author: Florian Roth (Nextron Systems), Nasreddine Bencherchali (Nextron Systems),
+  @Kostastsale
+date: 2022-02-25
+modified: 2024-02-28
+tags:
+- attack.command-and-control
+- attack.t1219
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    ParentCommandLine|contains|all:
+    - ':\Windows\TEMP\ScreenConnect\'
+    - 'run.cmd'
+    Image|endswith:
+    - '\bitsadmin.exe'
+    - '\cmd.exe'
+    - '\curl.exe'
+    - '\dllhost.exe'
+    - '\net.exe'
+    - '\nltest.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\rundll32.exe'
+    - '\wevtutil.exe'
+  condition: selection
+falsepositives:
+- If the script being executed make use of any of the utilities mentioned in the detection
+  then they should filtered out or allowed.
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially suspicious child processes that are spawned by the ScreenConnect client service, which is often utilized for remote access to user machines. Specifically, it monitors for command-line operations that involve executable files such as `cmd.exe`, `powershell.exe`, and `bitsadmin.exe` when they are initiated from a parent process related to ScreenConnect, particularly ones found in the `C:\Windows\TEMP\ScreenConnect\` directory. By correlating the parent command line with the known executable names associated with remote command execution, the rule identifies abnormal behavior that may indicate malicious activity, such as exploitation by threat actors. This detection leverages Windows process creation logs as its primary data source.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to obtain details about the detected processes and their command-line parameters, ensuring that you verify the context of the parent process.
+  - Cross-reference the timestamps of the alert with user activity logs to ascertain whether legitimate users were using ScreenConnect during the time of the suspicious execution.
+  - Utilize network traffic analysis tools to check for any outbound connections made by the identified processes, particularly to unauthorized or unusual IP addresses.
+  - Investigate the logs from your NGFW and Proxy to identify any potentially malicious URL accesses associated with the ScreenConnect application or related executables.

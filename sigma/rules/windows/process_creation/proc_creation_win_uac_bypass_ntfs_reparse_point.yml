@@ -1,0 +1,50 @@
+title: UAC Bypass Using NTFS Reparse Point - Process
+id: 39ed3c80-e6a1-431b-9df3-911ac53d08a7
+status: test
+description: Detects the pattern of UAC Bypass using NTFS reparse point and wusa.exe
+  DLL hijacking (UACMe 36)
+references:
+- https://github.com/hfiref0x/UACME
+author: Christian Burkard (Nextron Systems)
+date: 2021-08-30
+modified: 2024-12-01
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection1:
+    CommandLine|startswith: '"C:\Windows\system32\wusa.exe"  /quiet C:\Users\'
+    CommandLine|endswith: '\AppData\Local\Temp\update.msu'
+    IntegrityLevel:
+    - 'High'
+    - 'System'
+    - 'S-1-16-16384'         # System
+    - 'S-1-16-12288'         # High
+  selection2:
+    ParentCommandLine: '"C:\Windows\system32\dism.exe" /online /quiet /norestart /add-package
+      /packagepath:"C:\Windows\system32\pe386" /ignorecheck'
+    IntegrityLevel:
+    - 'High'
+    - 'System'
+    CommandLine|contains|all:
+    - 'C:\Users\'
+    - '\AppData\Local\Temp\'
+    - '\dismhost.exe {'
+    Image|endswith: '\DismHost.exe'
+  condition: 1 of selection*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets potential User Account Control (UAC) bypass attempts utilizing Microsoft’s Windows Update Standalone Installer (wusa.exe) alongside NTFS reparse points. The rule identifies malicious executions where `wusa.exe` is used with a command line that indicates a package is being executed from a user profile’s Temp directory, specifically looking for commands starting or ending with defined paths indicative of compromise. High or System integrity levels further suggest that the process may be attempting to escalate privileges without proper authorization. The rule also examines instances where the `dism.exe` (Deployment Image Service and Management Tool) is involved, especially in configurations that leverage reparse points for hijacking DLLs, indicative of techniques outlined in security frameworks.
+  The primary data sources leveraged for this detection include process creation logs (to capture command lines and parent processes) and integrity levels associated with the processes to determine the context of execution. By correlating these elements, the rule aims to identify malicious behavior aiming to bypass security controls.
+  ### Investigation Steps
+  - Examine the process creation logs through your EDR system to identify processes matching the `wusa.exe` command line pattern, specifically looking for entries with high or system integrity levels.
+  - Cross-reference the identified processes with logs from the Windows Event Viewer to determine if any unusual ParentCommandLine entries are present that indicate potential misuse of `dism.exe`.
+  - Analyze any associated file activity in the user’s Temp directory to check for the creation or modification of the `update.msu` file and any other potentially malicious files.
+  - If suspicious activity is confirmed, check relevant network logs for unusual communication patterns or connections from the affected endpoint to external sources that may indicate exfiltration or further malicious actions.

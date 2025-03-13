@@ -1,0 +1,42 @@
+title: Potential AutoLogger Sessions Tampering
+id: f37b4bce-49d0-4087-9f5b-58bffda77316
+status: test
+description: Detects tampering with autologger trace sessions which is a technique
+  used by attackers to disable logging
+references:
+- https://twitter.com/MichalKoczwara/status/1553634816016498688
+- https://thedfirreport.com/2021/10/18/icedid-to-xinglocker-ransomware-in-24-hours/
+- https://i.blackhat.com/EU-21/Wednesday/EU-21-Teodorescu-Veni-No-Vidi-No-Vici-Attacks-On-ETW-Blind-EDRs.pdf
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-01
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection_main:
+    TargetObject|contains: '\System\CurrentControlSet\Control\WMI\Autologger\'
+  selection_values:
+    TargetObject|contains:     # We only care about some autologger to avoid FP. Add more if you need
+    - '\EventLog-'
+    - '\Defender'
+    TargetObject|endswith:
+    - '\Enable'
+    - '\Start'
+    Details: DWORD (0x00000000)
+  filter_wevtutil:
+    Image: 'C:\Windows\system32\wevtutil.exe'
+  condition: all of selection_* and not 1 of filter_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Potential AutoLogger Sessions Tampering" Sigma rule is designed to detect unauthorized modifications to Windows Autologger trace sessions, which attackers may exploit to disable crucial logging functionalities and evade detection. The rule primarily monitors registry changes within the path `\System\CurrentControlSet\Control\WMI\Autologger\`, looking for specific actions where the `TargetObject` indicates an attempt to modify the `EventLog` or `Defender` Autologger settings. Filters ensure that modifications via the legitimate command-line tool `wevtutil.exe` are excluded from triggering alerts, reducing the likelihood of false positives. When an alert is generated, it signals potential tampering activity that warrants further investigation to protect organizational security.
+  ### Investigation Steps
+  - Review recent modifications to the registry under `HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger` using EDR tools to identify which processes initiated these changes.
+  - Analyze process creation logs to determine if `wevtutil.exe` was executed prior to the alert, including examining its command-line parameters for any suspicious actions.
+  - Check for unusual network connections or communications originating from the affected system around the time of the alert using NDR or NGFW logs.
+  - Utilize endpoint logs to assess the behavior of user accounts involved, looking for any anomalies or signs of privilege escalation that may correlate with the tampering event.

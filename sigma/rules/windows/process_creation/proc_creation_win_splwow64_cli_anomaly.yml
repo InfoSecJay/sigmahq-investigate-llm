@@ -1,0 +1,32 @@
+title: Suspicious Splwow64 Without Params
+id: 1f1a8509-2cbb-44f5-8751-8e1571518ce2
+status: test
+description: Detects suspicious Splwow64.exe process without any command line parameters
+references:
+- https://twitter.com/sbousseaden/status/1429401053229891590?s=12
+author: Florian Roth (Nextron Systems)
+date: 2021-08-23
+modified: 2022-12-25
+tags:
+- attack.defense-evasion
+- attack.t1202
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\splwow64.exe'
+    CommandLine|endswith: 'splwow64.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The rule "Suspicious Splwow64 Without Params" is designed to detect the execution of the Windows process `splwow64.exe` that occurs without any accompanying command-line parameters. The specific focus is on instances where this process, which serves as a bridge for 32-bit applications running on 64-bit versions of Windows, is initiated without additional arguments typically associated with legitimate use cases. This behavior can indicate attempts to exploit the process for evasion tactics or other malicious activities. The primary data sources for this rule come from process creation logs, which capture information about newly spawned processes, including the image name and command-line parameters.
+  By monitoring process execution and identifying instances of `splwow64.exe` without parameters, the SOC analysts can proactively detect potential unauthorized activities. Given that this process is commonly used in legitimate applications, it is crucial to analyze its execution context to distinguish between normal behavior and potential threats requiring further investigation.
+  ### Investigation Steps
+  - Verify the presence of the `splwow64.exe` process in endpoint detection and response (EDR) tools to confirm its execution time and associated user account.
+  - Examine the process creation logs for any other related activities around the same timestamp to identify potential anomalies or patterns.
+  - Check for network connections initiated by the `splwow64.exe` process using network detection and response (NDR) tools to determine if any suspicious external communications were made.
+  - Review firewall and proxy logs for any attempted connections made by `splwow64.exe`, especially to known malicious IPs or domains, to assess the threat level.

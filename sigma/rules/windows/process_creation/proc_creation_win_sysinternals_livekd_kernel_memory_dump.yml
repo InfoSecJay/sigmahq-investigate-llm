@@ -1,0 +1,37 @@
+title: Kernel Memory Dump Via LiveKD
+id: c7746f1c-47d3-43d6-8c45-cd1e54b6b0a2
+status: test
+description: Detects execution of LiveKD with the "-m" flag to potentially dump the
+  kernel memory
+references:
+- https://learn.microsoft.com/en-us/sysinternals/downloads/livekd
+- https://4sysops.com/archives/creating-a-complete-memory-dump-without-a-blue-screen/
+- https://kb.acronis.com/content/60892
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-16
+modified: 2024-03-13
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\livekd.exe'
+    - '\livekd64.exe'
+  - OriginalFileName: 'livekd.exe'
+  selection_cli:
+    CommandLine|contains|windash: ' -m'
+  condition: all of selection_*
+falsepositives:
+- Unlikely in production environment
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets the execution of the LiveKD utility, specifically when it is invoked with the "-m" flag, which is used to create a kernel memory dump. The rule monitors process creation events on Windows systems, looking for the presence of the LiveKD executable files (livekd.exe or livekd64.exe). The detection focuses on identifying specific characteristics of the command-line arguments that include the “-m” option, signalling an intent to dump kernel memory, a potential indication of malicious activity aimed at evading detection or extracting sensitive information. By correlating these logs, the SOC can identify potential misuse of tools that are typically benign in certain environments, but could be leveraged by threat actors for nefarious purposes.
+  ### Investigation Steps
+  - Review process creation logs in your EDR tool to check for recent executions of livekd.exe or livekd64.exe, particularly those with the "-m" flag in the command-line parameters.
+  - Validate the authenticity and origin of the LiveKD executables found, checking against known hashes to determine if they have been altered or are running from unexpected locations.
+  - Investigate other related logs from the SIEM, focusing on user activities and network connections made during the timeframe of the suspicious process execution for any additional indicators of compromise.
+  - Conduct a review of cloud platform logs (if applicable) to identify any user accounts or services that may have invoked LiveKD, especially in environments where such activities would be atypical.

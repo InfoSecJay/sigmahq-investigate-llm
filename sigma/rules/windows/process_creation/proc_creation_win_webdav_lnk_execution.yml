@@ -1,0 +1,43 @@
+title: Potentially Suspicious WebDAV LNK Execution
+id: 1412aa78-a24c-4abd-83df-767dfb2c5bbe
+related:
+- id: f0507c0f-a3a2-40f5-acc6-7f543c334993
+  type: similar
+status: test
+description: Detects possible execution via LNK file accessed on a WebDAV server.
+references:
+- https://www.trellix.com/en-us/about/newsroom/stories/research/beyond-file-search-a-novel-method.html
+- https://micahbabinski.medium.com/search-ms-webdav-and-chill-99c5b23ac462
+author: Micah Babinski
+date: 2023-08-21
+tags:
+- attack.execution
+- attack.t1059.001
+- attack.t1204
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\explorer.exe'
+    Image|endswith:
+    - '\cmd.exe'
+    - '\cscript.exe'
+    - '\mshta.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\wscript.exe'
+    CommandLine|contains: '\DavWWWRoot\'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Potentially Suspicious WebDAV LNK Execution" detection rule aims to identify potentially malicious activity involving the execution of Windows LNK files accessed from a WebDAV server. This rule focuses on process creation logs, specifically evaluating instances where such processes are initiated by `explorer.exe` as their parent process. The target processes include command-line scripting engines like `cmd.exe`, `powershell.exe`, and others that could be used for executing scripts or commands. The detection criteria also look for specific command-line parameters that reference the `DavWWWRoot`, indicating that the LNK files are being executed from a WebDAV location, a common tactic leveraged by threat actors to execute malware.
+  The implementation of this rule leverages standard data sources including Windows process creation logs, which allow for monitoring the parent-child relationship of processes, as well as command-line arguments that can provide insight into the context of execution. By concentrating on these elements, the rule helps in recognizing potential execution paths that could stem from a malicious or unauthorized access to data over WebDAV.
+  ### Investigation Steps
+  - Utilize EDR tools to analyze the process tree for the reported event to confirm whether the parent-child relationships match those outlined in the rule, specifically looking for executions initiated by `explorer.exe`.
+  - Investigate the command-line arguments associated with the detected processes to identify any suspicious parameters or paths containing `DavWWWRoot`, which may indicate malicious intentions.
+  - Check for any WebDAV connections in proxy logs that correspond to the timestamps of alerts to understand if there was unusual external access to resources that could have triggered this execution.
+  - Review any associated alerts or logs from the AV and NGFW systems to identify if there were prior warnings or detections related to the same files or network activities leading up to the execution event.

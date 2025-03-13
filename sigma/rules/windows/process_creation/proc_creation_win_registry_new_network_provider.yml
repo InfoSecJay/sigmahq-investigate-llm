@@ -1,0 +1,44 @@
+title: Potential Credential Dumping Attempt Using New NetworkProvider - CLI
+id: baef1ec6-2ca9-47a3-97cc-4cf2bda10b77
+related:
+- id: 0442defa-b4a2-41c9-ae2c-ea7042fc4701
+  type: similar
+status: test
+description: Detects when an attacker tries to add a new network provider in order
+  to dump clear text credentials, similar to how the NPPSpy tool does it
+references:
+- https://learn.microsoft.com/en-us/troubleshoot/windows-client/setup-upgrade-and-drivers/network-provider-settings-removed-in-place-upgrade
+- https://github.com/gtworek/PSBits/tree/master/PasswordStealing/NPPSpy
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-23
+modified: 2023-02-02
+tags:
+- attack.credential-access
+- attack.t1003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - '\System\CurrentControlSet\Services\'
+    - '\NetworkProvider'
+    # filter:
+    #     CommandLine|contains:
+    #         - '\System\CurrentControlSet\Services\WebClient\NetworkProvider'
+    #         - '\System\CurrentControlSet\Services\LanmanWorkstation\NetworkProvider'
+    #         - '\System\CurrentControlSet\Services\RDPNP\NetworkProvider'
+    #         - '\System\CurrentControlSet\Services\P9NP\NetworkProvider' # Related to WSL remove the comment if you use WSL in your ENV
+  condition: selection
+falsepositives:
+- Other legitimate network providers used and not filtred in this rule
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential credential dumping attempts by monitoring process creation events on Windows systems. Specifically, it looks for instances where a command line contains references to adding new network providers within the Windows Services directory. Attackers may exploit this functionality, similar to tools like NPPSpy, to retrieve clear text credentials from systems. The key technical data sources involved in this detection include process creation logs that capture command-line parameters—making it possible to identify suspicious activity that may indicate credential theft.
+  By specifically filtering for command line entries that include paths to `\System\CurrentControlSet\Services\` and `\NetworkProvider`, the rule can isolate attempts that deviate from normal process behavior. This focused approach helps minimize false positives by excluding known legitimate network providers, ensuring that security teams can respond effectively to genuine threats.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR to identify the specific instances where the alert was triggered, focusing on the command line arguments used.
+  - Correlate the alerts with other logs from your AV and NGFW to identify any concurrent suspicious activities or known indicators of compromise.
+  - Check for any unusual network traffic patterns or connections originating from the affected systems by analyzing NDR and Proxy logs.
+  - Investigate user account activity in the cloud environments for any unauthorized access attempts or other credential-related anomalies that may correspond with the alert timeframe.

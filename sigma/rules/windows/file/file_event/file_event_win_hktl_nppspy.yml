@@ -1,0 +1,34 @@
+title: HackTool - NPPSpy Hacktool Usage
+id: cad1fe90-2406-44dc-bd03-59d0b58fe722
+status: test
+description: Detects the use of NPPSpy hacktool that stores cleartext passwords of
+  users that logged in to a local file
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1003/T1003.md#atomic-test-2---credential-dumping-with-nppspy
+- https://twitter.com/0gtweet/status/1465282548494487554
+author: Florian Roth (Nextron Systems)
+date: 2021-11-29
+modified: 2024-06-27
+tags:
+- attack.credential-access
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|endswith:
+    - '\NPPSpy.txt'
+    - '\NPPSpy.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "HackTool 
+  - NPPSpy Hacktool Usage" is designed to detect the usage of the NPPSpy tool, which is known for storing user credentials in a local file, typically named `NPPSpy.txt` or `NPPSpy.dll`. The detection mechanism focuses on file events and looks for the creation or modification of these specific files. This rule leverages Windows file event logs, which capture details related to file handling. When an alert is generated, it indicates a potential incident involving credential theft or unauthorized access, prompting immediate investigation. Responders should be aware that NPPSpy is associated with credential dumping activities, making its detection critical for maintaining the security posture of the organization.
+  ### Investigation Steps
+  - Utilize EDR tools to check for any recent processes or activities that correlate with the creation or modification of the `NPPSpy.txt` or `NPPSpy.dll` files.
+  - Review system logs to identify any related user logins or suspicious account activities around the time of the file creation, which could indicate unauthorized access.
+  - Analyze network traffic logs via NDR tools to detect any unusual outbound connections from the host that might indicate data exfiltration following the use of the hacktool.
+  - Check AV logs for any detections or alerts related to NPPSpy, as this may provide additional context regarding the tool's execution and any potential related malware activities.

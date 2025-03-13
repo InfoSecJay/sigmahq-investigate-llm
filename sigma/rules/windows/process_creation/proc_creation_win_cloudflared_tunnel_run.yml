@@ -1,0 +1,43 @@
+title: Cloudflared Tunnel Execution
+id: 9a019ffc-3580-4c9d-8d87-079f7e8d3fd4
+status: test
+description: Detects execution of the "cloudflared" tool to connect back to a tunnel.
+  This was seen used by threat actors to maintain persistence and remote access to
+  compromised networks.
+references:
+- https://blog.reconinfosec.com/emergence-of-akira-ransomware-group
+- https://github.com/cloudflare/cloudflared
+- https://developers.cloudflare.com/cloudflare-one/connections/connect-apps
+author: Janantha Marasinghe, Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-17
+modified: 2023-12-20
+tags:
+- attack.command-and-control
+- attack.t1102
+- attack.t1090
+- attack.t1572
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - ' tunnel '
+    - ' run '
+    CommandLine|contains:
+    - '-config '
+    - '-credentials-contents '
+    - '-credentials-file '
+    - '-token '
+  condition: selection
+falsepositives:
+- Legitimate usage of Cloudflared tunnel.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of the "cloudflared" tool, which is commonly used to create secure tunnels for remote access to applications within a compromised environment. The rule specifically looks for command-line parameters associated with the tool, such as "run" and "tunnel," alongside the presence of configuration or credential-related arguments. Data sources involved in this detection primarily stem from process creation logs on Windows systems, which log the initiation of processes along with their command-line arguments. The rule is particularly salient in identifying potential misuse of the tool by threat actors aiming to establish persistence in compromised networks, highlighting its dual-use nature for both legitimate and malicious activities.
+  ### Investigation Steps
+  - Review process creation logs in the EDR solution to find instances of the "cloudflared" tool execution, focusing on the command-line arguments used.
+  - Investigate associated network traffic logs (NDR) for unusual outbound connections corresponding to the time of the cloudflared execution to identify potential command-and-control communication.
+  - Analyze user activity logs from the identity and access management system to check for unauthorized access patterns leading up to the use of cloudflared.
+  - Refer to historical logs in cloud platforms (AWS, GCP, Azure) for any suspicious resource access or changes that may correlate with the tunnel's establishment.

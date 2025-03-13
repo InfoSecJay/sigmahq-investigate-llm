@@ -1,0 +1,35 @@
+title: HackTool - Dumpert Process Dumper Default File
+id: 93d94efc-d7ad-4161-ad7d-1638c4f908d8
+related:
+- id: 2704ab9e-afe2-4854-a3b1-0c0706d03578
+  type: derived
+status: test
+description: Detects the creation of the default dump file used by Outflank Dumpert
+  tool. A process dumper, which dumps the lsass process memory
+references:
+- https://github.com/outflanknl/Dumpert
+- https://unit42.paloaltonetworks.com/actors-still-exploiting-sharepoint-vulnerability/
+author: Florian Roth (Nextron Systems)
+date: 2020-02-04
+modified: 2023-05-09
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|endswith: 'dumpert.dmp'
+  condition: selection
+falsepositives:
+- Very unlikely
+level: critical
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the creation of a default dump file used by the Dumpert tool, which is specifically employed to extract memory contents from the LSASS (Local Security Authority Subsystem Service) process. LSASS holds sensitive information such as user credentials, making it a prime target for credential theft. The rule monitors file event logs for any creation of a file ending with 'dumpert.dmp', indicating that Dumpert is likely being used to capture process memory. The primary data sources leveraged for detection include file event logs from the Windows operating system, which will capture file creation activities relevant to the Dumpert tool's operations.
+  ### Investigation Steps
+  - Utilize EDR tools to investigate the process tree at the time of the alert to identify any suspicious parent processes that may have spawned the Dumpert utility.
+  - Review Windows event logs for user logins around the time the dumpert.dmp file was created to correlate with known accounts or unauthorized access.
+  - Inspect process memory and behavior using forensic tools to determine if malicious activity, such as credential dumping, occurred around the same time frame as the alert.
+  - Check network logs from your NGFW or proxy to see if any unusual outbound connections were made shortly after the dump file creation, potentially indicating data exfiltration.

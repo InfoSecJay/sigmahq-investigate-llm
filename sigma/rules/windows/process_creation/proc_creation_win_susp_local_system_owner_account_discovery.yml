@@ -1,0 +1,68 @@
+title: Local Accounts Discovery
+id: 502b42de-4306-40b4-9596-6f590c81f073
+status: test
+description: Local accounts, System Owner/User discovery using operating systems utilities
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1033/T1033.md
+author: Timur Zinniatullin, Daniil Yugoslavskiy, oscd.community
+date: 2019-10-21
+modified: 2023-01-03
+tags:
+- attack.discovery
+- attack.t1033
+- attack.t1087.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_other_img:
+    Image|endswith:
+    - '\whoami.exe'
+    - '\quser.exe'
+    - '\qwinsta.exe'
+  selection_other_wmi:
+    Image|endswith: '\wmic.exe'
+    CommandLine|contains|all:
+    - 'useraccount'
+    - 'get'
+  selection_other_cmdkey:
+    Image|endswith: '\cmdkey.exe'
+    CommandLine|contains: ' /l'
+  selection_cmd:
+    Image|endswith: '\cmd.exe'
+    CommandLine|contains|all:
+    - ' /c'
+    - 'dir '
+    - '\Users\'
+  filter_cmd:
+    CommandLine|contains: ' rmdir '     # don't match on 'dir'   "C:\Windows\System32\cmd.exe" /q /c rmdir /s /q "C:\Users\XX\AppData\Local\Microsoft\OneDrive\19.232.1124.0005"
+  selection_net:
+    Image|endswith:
+    - '\net.exe'
+    - '\net1.exe'
+    CommandLine|contains: 'user'
+  filter_net:
+    CommandLine|contains:
+    - '/domain'               # local account discovery only
+    - '/add'                  # discovery only
+    - '/delete'               # discovery only
+    - '/active'               # discovery only
+    - '/expires'              # discovery only
+    - '/passwordreq'          # discovery only
+    - '/scriptpath'           # discovery only
+    - '/times'                # discovery only
+    - '/workstations'         # discovery only
+  condition: (selection_cmd and not filter_cmd) or (selection_net and not filter_net)
+    or 1 of selection_other_*
+falsepositives:
+- Legitimate administrator or user enumerates local users for legitimate reason
+level: low
+notes: |
+  n
+  ### Technical Context
+  This detection rule identifies potential enumeration of local user accounts on Windows systems, which often signifies reconnaissance activities by threat actors. The rule focuses on various command-line utilities that can be used to retrieve local account information, such as `net.exe`, `whoami.exe`, `wmic.exe`, and `cmd.exe`. Specifically, it looks for certain command line patterns and executable names that indicate commands are being run to list user accounts, filtering out benign uses that do not pertain to local account discovery. By analyzing process creation logs, the rule helps detect suspicious user account enumeration that could indicate preparation for further malicious activities.
+  ### Investigation Steps
+  - Review EDR logs for instances of `net.exe`, `whoami.exe`, `wmic.exe`, or `cmd.exe` running with the identified command-line patterns, paying close attention to the user's identity and context of the execution.
+  - Analyze the command input and output from the corresponding processes to determine if there were unexpected user enumeration requests or if legitimate administrative tasks were performed.
+  - Query proxy logs to detect any unusual or suspicious external connections made by the user following the account discovery attempts.
+  - Investigate account activity in your identity and access management system (IAM), looking for any changes or inconsistencies in user roles or permissions related to the times of potential enumeration.

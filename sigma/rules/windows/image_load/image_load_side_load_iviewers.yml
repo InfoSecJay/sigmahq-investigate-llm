@@ -1,0 +1,36 @@
+title: Potential Iviewers.DLL Sideloading
+id: 4c21b805-4dd7-469f-b47d-7383a8fcb437
+status: test
+description: Detects potential DLL sideloading of "iviewers.dll" (OLE/COM Object Interface
+  Viewer)
+references:
+- https://www.secureworks.com/research/shadowpad-malware-analysis
+author: X__Junior (Nextron Systems)
+date: 2023-03-21
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\iviewers.dll'
+  filter:
+    ImageLoaded|startswith:
+    - 'C:\Program Files (x86)\Windows Kits\'
+    - 'C:\Program Files\Windows Kits\'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential malicious activity involving the DLL sideloading technique, specifically targeting the "iviewers.dll" file associated with the OLE/COM Object Interface Viewer. DLL sideloading is a method attackers can use to execute arbitrary code by placing a malicious DLL in a trusted application’s directory, leading to privilege escalation and evasion of security measures. The rule analyzes image load events on Windows systems to detect instances where the "iviewers.dll" file is loaded, but only if it does not originate from known safe directories, such as the Windows Kits folders. The primary data sources leveraged for this detection include Windows image load logs, capturing the paths of loaded DLLs to assess their legitimacy based on their load origins.
+  ### Investigation Steps
+  - Utilize your EDR platform to review process creation logs for any suspicious applications that loaded "iviewers.dll" and correlate these events with user activity.
+  - Check the command-line parameters of the processes involved to identify any unusual arguments that may indicate malicious intent or behavior.
+  - Query the AV logs for detections related to "iviewers.dll" to determine if any known signatures were triggered during this activity.
+  - Analyze relevant proxy logs for any outbound connections made by the processes suspect for "iviewers.dll" loading to identify potential communications with command-and-control servers.

@@ -1,0 +1,45 @@
+title: Invoke-Obfuscation Via Stdin - Security
+id: 80b708f3-d034-40e4-a6c8-d23b7a7db3d1
+related:
+- id: 487c7524-f892-4054-b263-8a0ace63fc25
+  type: derived
+status: test
+description: Detects Obfuscated Powershell via Stdin in Scripts
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009     # (Task28)
+author: Nikita Nazarov, oscd.community
+date: 2020-10-12
+modified: 2022-11-29
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  service: security
+  definition: The 'System Security Extension' audit subcategory need to be enabled
+    to log the EID 4697
+detection:
+  selection:
+    EventID: 4697
+    ServiceFileName|contains|all:
+    - 'set'
+    - '&&'
+    ServiceFileName|contains:
+    - 'environment'
+    - 'invoke'
+    - '${input)'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying the use of obfuscated PowerShell scripts executed via standard input (stdin). Specifically, it looks for Event ID 4697, which logs the creation of a service, and checks for specific patterns in the service file name that could indicate suspicious activity. The presence of keywords such as "set", "&&", "environment", and "invoke" in combination with the `${input}` variable suggests an attempt to execute obfuscated commands that aim to evade detection mechanisms. This type of behavior is often associated with malicious actors trying to execute PowerShell commands in a stealthy manner to bypass security controls and maintain persistence on compromised systems.
+  The primary data sources for this detection include Windows security logs that must have the 'System Security Extension' audit subcategory enabled. Analysts should focus on the context around the service creation event to determine the legitimacy of the behavior observed.
+  ### Investigation Steps
+  - Review the details of Event ID 4697 in the Windows logs, focusing on the timestamp, user account, and service file name to establish context around the potential obfuscated PowerShell execution.
+  - Use EDR tools to investigate the running processes on the affected system at the time of the event to identify any suspicious PowerShell processes that may correlate with the observed service creation.
+  - Check network activity logs for any unusual outbound connections made by the PowerShell execution to rule out potential data exfiltration or communication with command and control servers.
+  - Analyze related logs, such as proxy and VPN logs, to identify any anomalies in user behavior or access patterns that may suggest a wider compromise involving the impacted account.

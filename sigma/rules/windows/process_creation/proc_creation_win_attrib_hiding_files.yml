@@ -1,0 +1,42 @@
+title: Hiding Files with Attrib.exe
+id: 4281cb20-2994-4580-aa63-c8b86d019934
+status: test
+description: Detects usage of attrib.exe to hide files from users.
+references:
+- https://unit42.paloaltonetworks.com/unit42-sure-ill-take-new-combojack-malware-alters-clipboards-steal-cryptocurrency/
+- https://www.uptycs.com/blog/lolbins-are-no-laughing-matter
+author: Sami Ruohonen
+date: 2019-01-16
+modified: 2023-03-14
+tags:
+- attack.defense-evasion
+- attack.t1564.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\attrib.exe'
+  - OriginalFileName: 'ATTRIB.EXE'
+  selection_cli:
+    CommandLine|contains: ' +h '
+  filter_main_msiexec:
+    CommandLine|contains: '\desktop.ini '
+  filter_optional_intel:
+    ParentImage|endswith: '\cmd.exe'
+    CommandLine: '+R +H +S +A \\\*.cui'
+    ParentCommandLine: 'C:\\WINDOWS\\system32\\\*.bat'
+  condition: all of selection_* and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- IgfxCUIService.exe hiding *.cui files via .bat script (attrib.exe a child of cmd.exe
+  and igfxCUIService.exe is the parent of the cmd.exe)
+- Msiexec.exe hiding desktop.ini
+level: medium
+notes: |
+  ### Technical Context
+  The detection rule titled "Hiding Files with Attrib.exe" is designed to identify potential malicious activities involving the command-line tool `attrib.exe`, which is commonly used in Windows environments to alter file attributes, including marking files as hidden. This rule specifically looks for instances where `attrib.exe` is executed with command-line parameters that set certain file attributes (hidden, read-only, system, and archive) in a suspicious manner, such as targeting a wildcard (`\*.cui`) or the `desktop.ini` file. The key data sources include process creation logs that capture the execution details of `attrib.exe`, including its command-line arguments and the parent process information, which helps to contextualize how and why `attrib.exe` is being utilized. The intent is to minimize alert fatigue by filtering out common legitimate usages while targeting potentially malicious behavior.
+  ### Investigation Steps
+  - Utilize EDR tools to examine process creation logs and identify the execution path of `attrib.exe`, along with its command-line arguments and parent processes to determine the context of the activity.
+  - Check for the presence of hidden files in the directories around the infected host using file system scanning tools to identify any files marked with hidden or system attributes.
+  - Review network logs and proxy connections to understand any unusual outbound connections that may correlate with the execution of the suspicious `attrib.exe` command to gain insight into potential data exfiltration or additional malicious activity.
+  - Investigate machine images using AV or threat intelligence platforms to confirm whether the identified behavior has been associated with known malware or threat actors based on previous incidents.

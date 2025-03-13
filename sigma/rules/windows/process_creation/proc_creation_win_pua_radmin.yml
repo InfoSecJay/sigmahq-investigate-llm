@@ -1,0 +1,36 @@
+title: PUA - Radmin Viewer Utility Execution
+id: 5817e76f-4804-41e6-8f1d-5fa0b3ecae2d
+status: test
+description: Detects the execution of Radmin which can be abused by an adversary to
+  remotely control Windows machines
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1072/T1072.md
+- https://www.radmin.fr/
+author: frack113
+date: 2022-01-22
+modified: 2023-12-11
+tags:
+- attack.execution
+- attack.lateral-movement
+- attack.t1072
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Description: 'Radmin Viewer'
+  - Product: 'Radmin Viewer'
+  - OriginalFileName: 'Radmin.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule identifies the execution of the Radmin Viewer utility, which is a remote access tool that can be exploited by malicious actors for unauthorized access to Windows machines. The rule specifically looks for process creation logs that contain key identifiers including the process description, product name, and original file name associated with Radmin Viewer, namely 'Radmin.exe'. By monitoring these parameters, security operations can detect potentially malicious activity initiated by adversaries attempting to gain control over systems within the enterprise network.
+  Detection of Radmin Viewer execution can be critical in identifying lateral movement strategies employed by attackers. The inclusion of process creation logs as a data source allows the SOC to assess user behavior and system interactions, aiding in the differentiation between legitimate usage of the tool and unauthorized access attempts.
+  ### Investigation Steps
+  - Check EDR logs for additional details on the execution of 'Radmin.exe', including timestamps and the user account that initiated the process.
+  - Query process creation logs for unusual parent-child process relationships to determine how Radmin Viewer was launched and if it was triggered by other suspicious activities.
+  - Analyze network traffic logs from the NDR to see if there are any outbound connections made to suspicious IP addresses following the execution of Radmin Viewer.
+  - Review user access logs in identity and access management systems to verify if the user account associated with the execution has any history of anomalous behavior or unauthorized access requests.

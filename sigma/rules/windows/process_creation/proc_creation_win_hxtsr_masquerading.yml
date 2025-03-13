@@ -1,0 +1,37 @@
+title: Potential Fake Instance Of Hxtsr.EXE Executed
+id: 4e762605-34a8-406d-b72e-c1a089313320
+status: test
+description: |
+  HxTsr.exe is a Microsoft compressed executable file called Microsoft Outlook Communications.
+  HxTsr.exe is part of Outlook apps, because it resides in a hidden "WindowsApps" subfolder of "C:\Program Files".
+  Any instances of hxtsr.exe not in this folder may be malware camouflaging itself as HxTsr.exe
+references:
+- Internal Research
+author: Sreeman
+date: 2020-04-17
+modified: 2024-02-08
+tags:
+- attack.defense-evasion
+- attack.t1036
+logsource:
+  product: windows
+  category: process_creation
+detection:
+    # TODO: Link this to the more generic system process rule
+  selection:
+    Image|endswith: '\hxtsr.exe'
+  filter_main_hxtsr:
+    Image|contains: ':\program files\windowsapps\microsoft.windowscommunicationsapps_'
+    Image|endswith: '\hxtsr.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Potential Fake Instance Of Hxtsr.EXE Executed" is designed to detect instances of the HxTsr.exe process that do not originate from the legitimate location associated with Microsoft Outlook Communications. HxTsr.exe, when executed from its normal directory in the hidden "WindowsApps" subfolder, is considered safe. However, if this executable is found running from any other directory, it may signify a security threat, such as malware masquerading under a legitimate name. This detection relies primarily on process creation logs that capture relevant process details, including the image path associated with HxTsr.exe. The rule uses a logical condition to identify suspicious instances of the executable, filtering out benign executions based on their source location.
+  ### Investigation Steps
+  - Review process creation logs using your EDR tool to identify all instances of HxTsr.exe, noting the executable file paths where they are launched from.
+  - Conduct a correlation with command-line arguments and parent processes in the EDR to determine whether any unusual behavior is associated with these HxTsr.exe instances.
+  - Check for additional indicators of compromise in the system using antivirus logs, specifically looking for any detections related to malware or unauthorized software.
+  - Query the network logs (NDR) to identify any outbound traffic correlated with the suspicious instances of HxTsr.exe, which may indicate data exfiltration or communication with malicious infrastructures.

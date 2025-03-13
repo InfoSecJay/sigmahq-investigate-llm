@@ -1,0 +1,36 @@
+title: Hardware Model Reconnaissance Via Wmic.EXE
+id: 3e3ceccd-6c06-48b8-b5ff-ab1d25db8c1d
+status: test
+description: Detects the execution of WMIC with the "csproduct" which is used to obtain
+  information such as hardware models and vendor information
+references:
+- https://jonconwayuk.wordpress.com/2014/01/31/wmic-csproduct-using-wmi-to-identify-make-and-model-of-hardware/
+- https://www.uptycs.com/blog/kuraystealer-a-bandit-using-discord-webhooks
+author: Florian Roth (Nextron Systems)
+date: 2023-02-14
+tags:
+- attack.execution
+- attack.t1047
+- car.2016-03-002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\wmic.exe'
+  - OriginalFileName: 'wmic.exe'
+  selection_cli:
+    CommandLine|contains: 'csproduct'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify instances of malicious reconnaissance activity within a Windows environment, specifically targeting the execution of the Windows Management Instrumentation Command-line (WMIC) tool. The WMIC tool can be leveraged by both system administrators and attackers. When executed with the command line parameter "csproduct," WMIC reveals critical information about the system's hardware, including the manufacturer and model. By monitoring process creation logs, this rule captures instances where WMIC is launched with this potentially invasive parameter, which could indicate an attempt to gather intelligence about the targeted environment. 
+  The detection process relies on analyzing data sources such as process creation logs that record details of every new process initiated on the system, alongside specific command-line parameters associated with those processes. A successful match against the criteria outlined will generate an alert, advising SOC analysts to review the execution context of WMIC for any malicious intent.
+  ### Investigation Steps
+  - Query your EDR solution for any instances of `wmic.exe` running on endpoints around the time of the alert to identify the initiating user and process relationships.
+  - Investigate the command line parameters passed to `wmic.exe` in the process creation logs to confirm the presence of "csproduct" and assess the scope of the hardware details accessed.
+  - Review the endpoint's event logs to assess any corresponding network activity or suspicious behaviors following the WMIC command execution, which may indicate further reconnaissance or exploitation attempts.
+  - Consult historical logs from the AV or NDR solutions for any alerts or malware detections on the concerned endpoint, providing insight into the potential threat actor's behavior or prior engagements.

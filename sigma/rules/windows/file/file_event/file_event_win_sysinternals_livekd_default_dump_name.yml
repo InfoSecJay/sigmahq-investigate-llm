@@ -1,0 +1,33 @@
+title: LiveKD Kernel Memory Dump File Created
+id: 814ddeca-3d31-4265-8e07-8cc54fb44903
+status: test
+description: Detects the creation of a file that has the same name as the default
+  LiveKD kernel memory dump.
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-16
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename: 'C:\Windows\livekd.dmp'
+  condition: selection
+falsepositives:
+- In rare occasions administrators might leverage LiveKD to perform live kernel debugging.
+  This should not be allowed on production systems. Investigate and apply additional
+  filters where necessary.
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "LiveKD Kernel Memory Dump File Created" is designed to detect the creation of a specific file, `livekd.dmp`, which is associated with LiveKD, a Windows utility for creating kernel memory dumps. Kernel memory dumps can provide detailed insights into system state, memory contents, and active processes, making them a powerful tool for both legitimate debugging and potential misuse by attackers seeking to analyze or manipulate the operating system at a low level. 
+  In this rule, the detection focuses on file event logs from Windows, specifically monitoring for the creation of the `livekd.dmp` file. This file name is significant as it is typically not created intentionally in a production environment unless troubleshooting is being conducted. Unauthorized creation of this file might indicate an attempt at privilege escalation or evasion of security controls by adversaries.
+  ### Investigation Steps
+  - Query the EDR console for any process activity related to `livekd.dmp` creation, noting the associated user account and process context.
+  - Review file access and modification logs to determine the origin of the file creation, including any abnormal processes or services that may have been involved.
+  - Analyze command-line parameters and parent processes of any suspicious executables linked to the `livekd.dmp` creation to identify potentially malicious usage.
+  - Check system and application logs for other signs of privilege escalation or abnormal behavior in conjunction with the file creation, focusing on the timeframe of the alert.

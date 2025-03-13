@@ -1,0 +1,36 @@
+title: OpenSSH Server Listening On Socket
+id: 3ce8e9a4-bc61-4c9b-8e69-d7e2492a8781
+status: test
+description: Detects scenarios where an attacker enables the OpenSSH server and server
+  starts to listening on SSH socket.
+references:
+- https://github.com/mdecrevoisier/EVTX-to-MITRE-Attack/tree/master/TA0008-Lateral%20Movement/T1021.004-Remote%20Service%20SSH
+- https://winaero.com/enable-openssh-server-windows-10/
+- https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse
+- https://virtualizationreview.com/articles/2020/05/21/ssh-server-on-windows-10.aspx
+- https://medium.com/threatpunter/detecting-adversary-tradecraft-with-image-load-event-logging-and-eql-8de93338c16
+author: mdecrevoisier
+date: 2022-10-25
+tags:
+- attack.lateral-movement
+- attack.t1021.004
+logsource:
+  product: windows
+  service: openssh
+detection:
+  selection:
+    EventID: 4
+    process: sshd
+    payload|startswith: 'Server listening on '
+  condition: selection
+falsepositives:
+- Legitimate administrator activity
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where the OpenSSH server (sshd) is enabled and starts listening on an SSH socket. The rule specifically looks for Windows Event ID 4, which is generated when a new SSH server session is initiated, indicated by the log message format "Server listening on." This behavior may be indicative of unauthorized access or lateral movement attempts by an attacker. By monitoring such events, security teams can quickly respond to potential misuse of the SSH service, which may have been enabled without proper authorization or oversight. The primary data sources involved in this detection include Windows Event Logs, specifically around the OpenSSH service on Windows systems.
+  ### Investigation Steps
+  - Review the logs from the OpenSSH service and confirm the Event ID 4 occurrences in conjunction with the associated timestamps to determine when the SSH server was enabled.
+  - Utilize EDR tools to identify any unusual or unexpected process executions that occurred around the same time as the OpenSSH server was enabled to ascertain if malicious activity was involved.
+  - Examine firewall logs to check for inbound and outbound SSH connections to and from the affected host, looking for any unfamiliar IP addresses or anomalies.
+  - Assess user account activity in the environment to ensure that the triggering event aligns with legitimate administrative actions, and investigate any suspicious or unauthorized user account access.

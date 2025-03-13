@@ -1,0 +1,43 @@
+title: Execute Code with Pester.bat as Parent
+id: 18988e1b-9087-4f8a-82fe-0414dce49878
+related:
+- id: 59e938ff-0d6d-4dc3-b13f-36cc28734d4e
+  type: similar
+status: test
+description: Detects code execution via Pester.bat (Pester - Powershell Modulte for
+  testing)
+references:
+- https://twitter.com/Oddvarmoe/status/993383596244258816
+- https://twitter.com/_st0pp3r_/status/1560072680887525378
+author: frack113, Nasreddine Bencherchali
+date: 2022-08-20
+tags:
+- attack.execution
+- attack.t1059.001
+- attack.defense-evasion
+- attack.t1216
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_module:
+    ParentImage|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    ParentCommandLine|contains: '\WindowsPowerShell\Modules\Pester\'
+  selection_cli:
+    ParentCommandLine|contains:
+    - '{ Invoke-Pester -EnableExit ;'
+    - '{ Get-Help "'
+  condition: all of selection_*
+falsepositives:
+- Legitimate use of Pester for writing tests for Powershell scripts and modules
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential malicious code execution that utilizes `Pester.bat` as the parent process. Specifically, it looks for instances where either `powershell.exe` or `pwsh.exe` is the parent image and is running commands associated with the Pester module—a testing tool for PowerShell scripts. The detection is triggered when the parent command line contains specific references to Pester functions like `Invoke-Pester` or `Get-Help`. The rule relies on process creation logs, which capture the creation of new processes and the associated command-line parameters, allowing it to detect suspicious execution patterns that may indicate an attempt to evade security measures.
+  ### Investigation Steps
+  - Identify the process creation logs related to the alert using your EDR solution to confirm the execution context and command-line parameters of the detected process.
+  - Investigate the parent process (`powershell.exe` or `pwsh.exe`) to determine its legitimacy and examine its execution history for any anomalies or unusual behavior.
+  - Review logs from the network and proxy to see if there was any external communication initiated by the detected process, which could suggest lateral movement or data exfiltration.
+  - Assess the environment for any legitimate use of Pester scripts or modules to rule out false positives, especially in development or testing environments, by checking user roles and activities around the timestamp of the alert.

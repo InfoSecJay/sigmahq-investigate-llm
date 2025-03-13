@@ -1,0 +1,45 @@
+title: .RDP File Created by Outlook Process
+id: f748c45a-f8d3-4e6f-b617-fe176f695b8f
+related:
+- id: fccfb43e-09a7-4bd2-8b37-a5a7df33386d
+  type: derived
+status: experimental
+description: |
+  Detects the creation of files with the ".rdp" extensions in the temporary directory that Outlook uses when opening attachments.
+  This can be used to detect spear-phishing campaigns that use RDP files as attachments.
+references:
+- https://thecyberexpress.com/rogue-rdp-files-used-in-ukraine-cyberattacks/
+- https://www.microsoft.com/en-us/security/blog/2024/10/29/midnight-blizzard-conducts-large-scale-spear-phishing-campaign-using-rdp-files/
+- https://www.linkedin.com/feed/update/urn:li:ugcPost:7257437202706493443?commentUrn=urn%3Ali%3Acomment%3A%28ugcPost%3A7257437202706493443%2C7257522819985543168%29&dashCommentUrn=urn%3Ali%3Afsd_comment%3A%287257522819985543168%2Curn%3Ali%3AugcPost%3A7257437202706493443%29
+author: Florian Roth
+date: 2024-11-01
+modified: 2024-11-03
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection_extension:
+    TargetFilename|endswith: '.rdp'
+  selection_location:
+  - TargetFilename|contains:
+    - '\AppData\Local\Packages\Microsoft.Outlook_'           # New Outlook
+    - '\AppData\Local\Microsoft\Olk\Attachments\'           # New Outlook
+  - TargetFilename|contains|all:
+    - '\AppData\Local\Microsoft\Windows\'
+    - '\Content.Outlook\'
+  condition: all of selection_*
+falsepositives:
+- Whenever someone receives an RDP file as an email attachment and decides to save
+  or open it right from the attachments
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation of Remote Desktop Protocol (RDP) files in temporary directory locations utilized by Microsoft Outlook when handling attachments. RDP files can serve as vehicles for spear-phishing campaigns, enabling malicious actors to gain unauthorized access to systems. The rule specifically looks for file events where the target filename ends with the ".rdp" extension and checks for specific paths associated with Outlook's file management. By monitoring these file creation events, the rule can help detect and deter potentially harmful interactions stemming from unexpected email attachments.
+  To implement this detection, the rule relies primarily on Windows file event logs that capture file operations, including creation and modification events. This information is essential for understanding the context in which an RDP file was generated, primarily focusing on instances where Outlook processes are involved in handling those files in the specified temporary directory structures.
+  ### Investigation Steps
+  - Review EDR logs for any recent Outlook process activity around the time the RDP file was created to establish if it was initiated by a legitimate user or through a suspicious process.
+  - Analyze the user's email activity via the email gateway or proxy logs to determine if there were any recent spear-phishing attempts containing RDP file attachments.
+  - Conduct a deeper investigation into the contents of the RDP file, including any configurations or embedded credentials, which may reveal whether it has been manipulated for malicious use.
+  - Correlate the detection with threat intelligence feeds or known malicious indicators related to RDP file exploits from recent cyberattack campaigns to assess the potential severity.

@@ -1,0 +1,40 @@
+title: SAM Registry Hive Handle Request
+id: f8748f2c-89dc-4d95-afb0-5a2dfdbad332
+status: test
+description: Detects handles requested to SAM registry hive
+references:
+- https://threathunterplaybook.com/hunts/windows/190725-SAMRegistryHiveHandleRequest/notebook.html
+author: Roberto Rodriguez @Cyb3rWard0g
+date: 2019-08-12
+modified: 2021-11-27
+tags:
+- attack.discovery
+- attack.t1012
+- attack.credential-access
+- attack.t1552.002
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4656
+    ObjectType: 'Key'
+    ObjectName|endswith: '\SAM'
+  condition: selection
+fields:
+- ComputerName
+- SubjectDomainName
+- SubjectUserName
+- ProcessName
+- ObjectName
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on monitoring access requests to the Security Accounts Manager (SAM) registry hive in Windows systems. The SAM hive stores user account information, including passwords in hashed format, making unauthorized access to this data a significant security risk. The rule triggers an alert when Windows Event ID 4656 indicates a handle request specifically for objects of type 'Key' that matches the SAM registry hive path. This event typically captures information about the user and process making the request, allowing analysts to correlate activity with potential suspicious behavior. Key data sources included in this detection are Windows security logs, specifically those that monitor registry access attempts.
+  ### Investigation Steps
+  - Review EDR telemetry for the process specified in the alert to assess its behavior, including its parent processes and any associated network activity.
+  - Cross-reference the subject user name and domain from the alert with user login patterns to determine if the access request aligns with expected user behavior.
+  - Query Windows security logs for additional instances of Event ID 4656 or related registry access events to identify potential ongoing suspicious activity targeting the SAM hive.
+  - Check the AV and threat intelligence feed to see if the process or the user has been flagged for malicious activity in the recent past, providing context for the event.

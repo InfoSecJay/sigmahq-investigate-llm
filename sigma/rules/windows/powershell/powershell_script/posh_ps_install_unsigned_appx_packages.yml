@@ -1,0 +1,42 @@
+title: Unsigned AppX Installation Attempt Using Add-AppxPackage - PsScript
+id: 975b2262-9a49-439d-92a6-0709cccdf0b2
+related:
+- id: 37651c2a-42cd-4a69-ae0d-22a4349aa04a
+  type: similar
+status: test
+description: Detects usage of the "Add-AppxPackage" or it's alias "Add-AppPackage"
+  to install unsigned AppX packages
+references:
+- https://learn.microsoft.com/en-us/windows/msix/package/unsigned-package
+- https://twitter.com/WindowsDocs/status/1620078135080325122
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-31
+tags:
+- attack.persistence
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: ps_script
+  definition: Script Block Logging must be enable
+detection:
+  selection_cmdlet:
+    ScriptBlockText|contains:
+    - 'Add-AppPackage '
+    - 'Add-AppxPackage '
+  selection_flag:
+    ScriptBlockText|contains: ' -AllowUnsigned'
+  condition: all of selection_*
+falsepositives:
+- Installation of unsigned packages for testing purposes
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying attempts to install unsigned AppX packages on Windows systems using PowerShell commands. Specifically, it looks for the execution of the `Add-AppxPackage` cmdlet or its alias `Add-AppPackage`, particularly when accompanied by the `-AllowUnsigned` flag, which enables the installation of packages that do not have a valid signature. By monitoring Script Block Logging, the rule captures the relevant PowerShell command executions, enabling visibility into potential unauthorized software installations that could be indicative of malicious activity or circumvention of security measures. Analysts should prioritize reviewing instances related to this rule due to its implications on system integrity and security.
+  ### Investigation Steps
+  - Review the PowerShell execution logs in the EDR to confirm the usage of `Add-AppxPackage` or `Add-AppPackage`, including the parameters used during the execution.
+    
+  - Check for any associated process execution by analyzing command-line arguments in the EDR to identify if the source of the invocation is legitimate or suspicious.
+    
+  - Investigate the endpoints for any recently installed AppX applications by querying the application inventory in the system, paying special attention to unsigned packages.
+    
+  - Assess any other security logs (e.g., Windows Security logs) for additional anomalies or alerts around the time the installation was attempted, which could indicate broader malicious actor activity.

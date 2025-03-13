@@ -1,0 +1,34 @@
+title: Wmiprvse Wbemcomn DLL Hijack
+id: 7707a579-e0d8-4886-a853-ce47e4575aaa
+status: test
+description: Detects a threat actor creating a file named `wbemcomn.dll` in the `C:\Windows\System32\wbem\`
+  directory over the network and loading it for a WMI DLL Hijack scenario.
+references:
+- https://threathunterplaybook.com/hunts/windows/201009-RemoteWMIWbemcomnDLLHijack/notebook.html
+author: Roberto Rodriguez (Cyb3rWard0g), OTR (Open Threat Research)
+date: 2020-10-12
+modified: 2022-10-09
+tags:
+- attack.execution
+- attack.t1047
+- attack.lateral-movement
+- attack.t1021.002
+logsource:
+  product: windows
+  category: image_load
+detection:
+  selection:
+    Image|endswith: '\wmiprvse.exe'
+    ImageLoaded|endswith: '\wbem\wbemcomn.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect instances where a malicious actor executes a DLL hijacking technique using the Windows Management Instrumentation (WMI) service. Specifically, it monitors for the creation of a file named `wbemcomn.dll` in the `C:\Windows\System32\wbem\` directory and its subsequent loading by the WMI provider host process `wmiprvse.exe`. The detection leverages image load events, which provide insights into processes and the dynamic-link libraries (DLLs) they are utilizing. By correlating these events, the rule aims to identify unauthorized modifications in the security-sensitive WMI environment, which can indicate lateral movement or exploitation attempts in the enterprise network.
+  ### Investigation Steps
+  - Review EDR logs for the execution of `wmiprvse.exe` and the loading of `wbemcomn.dll` to confirm suspicious activity.
+  - Analyze process creation logs to identify the source of the command that initiated the creation of the DLL and any related processes that were spawned.
+  - Check network logs to determine if any unusual external connections were made prior to the DLL creation, indicating a potential attacker presence.
+  - Search for any relevant alerts from the AV solution that may have detected or blocked the suspicious file, providing further context for the investigation.

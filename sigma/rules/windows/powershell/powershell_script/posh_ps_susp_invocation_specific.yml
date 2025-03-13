@@ -1,0 +1,85 @@
+title: Suspicious PowerShell Invocations - Specific
+id: ae7fbf8e-f3cb-49fd-8db4-5f3bed522c71
+related:
+- id: fce5f582-cc00-41e1-941a-c6fabf0fdb8c
+  type: obsolete
+- id: 8ff28fdd-e2fa-4dfa-aeda-ef3d61c62090
+  type: similar
+- id: 536e2947-3729-478c-9903-745aaffe60d2
+  type: similar
+status: test
+description: Detects suspicious PowerShell invocation command parameters
+references:
+- Internal Research
+author: Florian Roth (Nextron Systems), Jonhnathan Ribeiro
+date: 2017-03-05
+modified: 2023-01-05
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_convert_b64:
+    ScriptBlockText|contains|all:
+    - '-nop'
+    - ' -w '
+    - 'hidden'
+    - ' -c '
+    - '[Convert]::FromBase64String'
+  selection_iex_selection:
+    ScriptBlockText|contains|all:
+    - ' -w '
+    - 'hidden'
+    - '-noni'
+    - '-nop'
+    - ' -c '
+    - 'iex'
+    - 'New-Object'
+  selection_enc_selection:
+    ScriptBlockText|contains|all:
+    - ' -w '
+    - 'hidden'
+    - '-ep'
+    - 'bypass'
+    - '-Enc'
+  selection_reg_selection:
+    ScriptBlockText|contains|all:
+    - 'powershell'
+    - 'reg'
+    - 'add'
+    - 'HKCU\software\microsoft\windows\currentversion\run'
+  selection_webclient_selection:
+    ScriptBlockText|contains|all:
+    - 'bypass'
+    - '-noprofile'
+    - '-windowstyle'
+    - 'hidden'
+    - 'new-object'
+    - 'system.net.webclient'
+    - '.download'
+  selection_iex_webclient:
+    ScriptBlockText|contains|all:
+    - 'iex'
+    - 'New-Object'
+    - 'Net.WebClient'
+    - '.Download'
+  filter_chocolatey:
+    ScriptBlockText|contains:
+    - "(New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1"
+    - "(New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1')"
+    - 'Write-ChocolateyWarning'
+  condition: 1 of selection_* and not 1 of filter_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious PowerShell invocations that may indicate potentially harmful activities, such as executing obfuscated commands, downloading files, or altering system configurations. The rule focuses on specific command parameters commonly associated with malicious behavior, such as `-nop` (no profile), `-windowstyle`, and encoded commands using `[Convert]::FromBase64String`. The detection leverages data sources associated with Windows, specifically PowerShell script block logging, which must be enabled for the rule to function properly. By analyzing the content of script blocks, the rule identifies various invocation patterns that suggest misuse of PowerShell, highlighting its capability to act as a vector for execution of malicious scripts or commands.
+  ### Investigation Steps
+  - Review the PowerShell script block logs in your EDR tool to identify the specific instance of the suspicious invocation. Pay attention to the parameters and any unusual strings found in the command.
+  - Cross-reference the timestamps with firewall logs to check for any outbound connections made during or directly after the suspicious PowerShell execution. Look for connections to known Command and Control (C2) servers.
+  - Check the system's registry using your EDR or another forensic tool to see if any modifications were made, particularly those pertaining to autorun entries like `HKCU\software\microsoft\windows\currentversion\run`.
+  - Examine Proxy logs or web access logs for connections to external URLs executed during the PowerShell command, especially those containing `Net.WebClient` or `DownloadString` methods, as these may indicate attempts to download malicious payloads.

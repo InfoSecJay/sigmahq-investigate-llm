@@ -1,0 +1,40 @@
+title: Suspicious Screensaver Binary File Creation
+id: 97aa2e88-555c-450d-85a6-229bcd87efb8
+status: test
+description: |
+  Adversaries may establish persistence by executing malicious content triggered by user inactivity.
+  Screensavers are programs that execute after a configurable time of user inactivity and consist of Portable Executable (PE) files with a .scr file extension
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1546.002/T1546.002.md
+author: frack113
+date: 2021-12-29
+modified: 2022-11-08
+tags:
+- attack.persistence
+- attack.t1546.002
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|endswith: '.scr'
+  filter_generic:
+    Image|endswith:
+    - '\Kindle.exe'
+    - '\Bin\ccSvcHst.exe'         # Symantec Endpoint Protection
+  filter_tiworker:
+        # ParentCommandLine: C:\WINDOWS\system32\svchost.exe -k DcomLaunch -p
+    Image|endswith: '\TiWorker.exe'
+    TargetFilename|endswith: '\uwfservicingscr.scr'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious screensaver binary file creations on Windows systems, specifically focusing on files with a `.scr` extension. Adversaries may leverage screensavers as a method of persistence by executing harmful content after a period of user inactivity. The rule inspects file event logs to detect any new screensaver (.scr) files being created, while also applying filters to exclude known benign applications like `Kindle.exe` and `ccSvcHst.exe` associated with legitimate services. Additionally, it filters out instances related to `TiWorker.exe`, which is a Windows process used for system maintenance tasks. By focusing on unusual screensaver file creation, this rule helps highlight potential adversary activity that might compromise system integrity.
+  ### Investigation Steps
+  - Check the endpoint using your EDR tool to review the activity around the time the suspicious `.scr` file was created, noting any unusual process behavior or network activity.
+  - Query logs in your SIEM for any recent changes to user account access or abnormal login patterns that could correlate with the screensaver file creation.
+  - Utilize your antivirus solution to scan the identified `.scr` file and any related files for known malware signatures or unusual behaviors.
+  - Review historical data from proxy logs for any unusual web requests that might have led to the download of the malicious script or executable before the screensaver creation event.

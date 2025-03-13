@@ -1,0 +1,71 @@
+title: Suspicious Appended Extension
+id: e3f673b3-65d1-4d80-9146-466f8b63fa99
+status: test
+description: Detects file renames where the target filename uses an uncommon double
+  extension. Could indicate potential ransomware activity renaming files and adding
+  a custom extension to the encrypted files, such as ".jpg.crypted", ".docx.locky",
+  etc.
+references:
+- https://app.any.run/tasks/d66ead5a-faf4-4437-93aa-65785afaf9e5/
+- https://blog.cyble.com/2022/08/10/onyx-ransomware-renames-its-leak-site-to-vsop/
+author: frack113
+date: 2022-07-16
+modified: 2023-11-11
+tags:
+- attack.impact
+- attack.t1486
+logsource:
+  product: windows
+  category: file_rename
+  definition: 'Requirements: Microsoft-Windows-Kernel-File Provider with at least
+    the KERNEL_FILE_KEYWORD_RENAME_SETLINK_PATH keyword'
+detection:
+  selection:
+    SourceFilename|endswith:
+    - '.doc'
+    - '.docx'
+    - '.jpeg'
+    - '.jpg'
+    - '.lnk'
+    - '.pdf'
+    - '.png'
+    - '.pst'
+    - '.rtf'
+    - '.xls'
+    - '.xlsx'
+    TargetFilename|contains:
+    - '.doc.'
+    - '.docx.'
+    - '.jpeg.'
+    - '.jpg.'
+    - '.lnk.'
+    - '.pdf.'
+    - '.png.'
+    - '.pst.'
+    - '.rtf.'
+    - '.xls.'
+    - '.xlsx.'
+  filter_main_generic:
+    TargetFilename|endswith:
+            # Note: Please add more used extensions by backup or recovery software
+    - '.backup'
+    - '.bak'
+    - '.old'
+    - '.orig'
+    - '.temp'
+    - '.tmp'
+  filter_optional_anaconda:
+    TargetFilename|contains: ':\ProgramData\Anaconda3\'
+    TargetFilename|endswith: '.c~'
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- Backup software
+level: medium
+notes: |
+  ### Technical Context
+  The "Suspicious Appended Extension" detection rule is designed to identify potentially malicious file renaming activity that is typical of ransomware behavior. This rule monitors file renames on Windows systems, specifically looking for target filenames that incorporate an uncommon double extension. For instance, a file like "document.docx" might be renamed to "document.docx.crypted", a behavior indicative of ransomware encrypting files and appending its own extensions. The rule leverages data sourced from file rename logs, specifically requiring the presence of the KERNEL_FILE_KEYWORD_RENAME_SETLINK_PATH keyword from the Microsoft-Windows-Kernel-File provider. By focusing on common document and image file types, this rule aims to quickly identify possible ransomware activities without overwhelming false positive alerts, particularly excluding legitimate backup and recovery file extensions.
+  ### Investigation Steps
+  - Utilize EDR to query for file rename events matching the detected patterns and correlate them with process creation logs to establish the context of the activity.
+  - Check historical logs for similar renaming actions prior to the alert to determine if this behavior is part of a larger trend or a one-off incident.
+  - Inspect the originating processes that initiated the file renames to assess if they relate to known ransomware techniques or malicious applications.
+  - Review alerts from other security tools, such as AV and NDR, during the same timeframe to identify any associated suspicious behavior or known threats that may provide additional context.

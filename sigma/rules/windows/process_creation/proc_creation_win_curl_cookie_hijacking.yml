@@ -1,0 +1,33 @@
+title: Potential Cookies Session Hijacking
+id: 5a6e1e16-07de-48d8-8aae-faa766c05e88
+status: test
+description: Detects execution of "curl.exe" with the "-c" flag in order to save cookie
+  data.
+references:
+- https://curl.se/docs/manpage.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-07-27
+tags:
+- attack.execution
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith: '\curl.exe'
+  - OriginalFileName: 'curl.exe'
+  selection_cli:
+  - CommandLine|re: '\s-c\s'
+  - CommandLine|contains: '--cookie-jar'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential session hijacking attempts through the misuse of the `curl.exe` command-line tool, specifically when it is executed with options that involve saving cookie data. The rule focuses on process creation logs from Windows systems to capture instances of `curl.exe` being run with the `-c` flag or `--cookie-jar` command-line parameter. When an attacker utilizes these options, they are typically attempting to capture and store session cookies that could facilitate unauthorized access to web sessions. By monitoring this specific usage of `curl.exe`, security teams can pinpoint potentially malicious behavior related to cookie maneuvering, allowing for timely incident response and threat remediation.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR to confirm the execution of `curl.exe` along with the associated command-line parameters to assess the context of its use.
+  - Cross-reference user accounts tied to the process execution with authentication logs to identify any suspicious user activities around the time of the incident.
+  - Check network traffic logs (NDR) for outbound connections made by the `curl.exe` process, particularly looking for connections to unusual or known malicious domains on the network.
+  - Analyze any related AV logs to see if there are previous detections linked to similar command-line activities or the use of `curl.exe` that might indicate a pattern of misuse.

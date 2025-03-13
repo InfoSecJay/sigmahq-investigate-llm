@@ -1,0 +1,29 @@
+title: NTDS.DIT Created
+id: 0b8baa3f-575c-46ee-8715-d6f28cc7d33c
+status: test
+description: Detects creation of a file named "ntds.dit" (Active Directory Database)
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-05
+tags:
+- attack.credential-access
+- attack.t1003.003
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|endswith: 'ntds.dit'
+  condition: selection
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the creation of a critical Active Directory file, specifically "ntds.dit," which contains the Active Directory database. The rule monitors file event logs on Windows systems, specifically focusing on the creation events where the target filename ends with "ntds.dit." The presence of this file can indicate potentially unauthorized access or attempts to exfiltrate sensitive Active Directory information. By leveraging file creation logs, the rule aims to flag any instances of this file's appearance, allowing SOC analysts to initiate timely investigations into the context and legitimacy of these occurrences.
+  ### Investigation Steps
+  - Review the file creation logs in the EDR to determine the source process that created "ntds.dit," including any unusual parent-child relationships.
+  - Check for any associated command-line parameters that may have been used during the creation of the file to gather more context around the action.
+  - Utilize the NGFW logs to see if there are any outbound connections made immediately after the file creation event, which might indicate data exfiltration attempts.
+  - Search through recent authentication logs in Active Directory to identify any anomalous logins or privilege escalation events leading up to the file creation.

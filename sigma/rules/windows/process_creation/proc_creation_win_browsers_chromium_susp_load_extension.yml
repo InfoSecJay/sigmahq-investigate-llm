@@ -1,0 +1,52 @@
+title: Suspicious Chromium Browser Instance Executed With Custom Extension
+id: 27ba3207-dd30-4812-abbf-5d20c57d474e
+related:
+- id: 88d6e60c-759d-4ac1-a447-c0f1466c2d21
+  type: similar
+status: test
+description: Detects a suspicious process spawning a Chromium based browser process
+  with the 'load-extension' flag to start an instance with a custom extension
+references:
+- https://redcanary.com/blog/chromeloader/
+- https://emkc.org/s/RJjuLa
+- https://www.mandiant.com/resources/blog/lnk-between-browsers
+author: Aedan Russell, frack113, X__Junior (Nextron Systems)
+date: 2022-06-19
+modified: 2023-11-28
+tags:
+- attack.persistence
+- attack.t1176
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith:
+    - '\cmd.exe'
+    - '\cscript.exe'
+    - '\mshta.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\regsvr32.exe'
+    - '\rundll32.exe'
+    - '\wscript.exe'
+    Image|endswith:
+    - '\brave.exe'
+    - '\chrome.exe'
+    - '\msedge.exe'
+    - '\opera.exe'
+    - '\vivaldi.exe'
+    CommandLine|contains: '--load-extension='
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious behavior related to Chromium-based browsers by monitoring for processes initialized with the "load-extension" command-line argument. Specifically, it targets instances where processes such as Chrome, Edge, Brave, and others are executed with a parent process like `cmd.exe`, `powershell.exe`, or `wscript.exe`. The detection focuses on the CommandLine parameter to capture scenarios where an unapproved or suspicious extension is loaded, which may indicate an attempt to bypass browser security or inject malicious functionality.
+  To effectively monitor this activity, the rule leverages Windows process creation logs. By analyzing the command-line arguments and the parent-child process relationships within the designated browsers, the rule can help SOC analysts pinpoint potentially nefarious attempts to exploit browser extensions, which are often used in attacks to establish persistence or exfiltrate data.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR solution to identify the parent processes that spawned the browser instances flagged by this rule. 
+  - Examine the command-line parameters of the reported browser processes to verify the presence of the 'load-extension' flag and determine the specific extensions being loaded.
+  - Investigate the associated network traffic using NDR tools to assess whether there are any outbound connections linked to the suspicious browser activity.
+  - Cross-reference any detected extensions against known malicious lists or threat intelligence sources to establish if they have a history of being used in attacks.

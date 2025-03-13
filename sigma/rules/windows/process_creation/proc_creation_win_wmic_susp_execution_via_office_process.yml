@@ -1,0 +1,74 @@
+title: Suspicious WMIC Execution Via Office Process
+id: e1693bc8-7168-4eab-8718-cdcaa68a1738
+related:
+- id: 438025f9-5856-4663-83f7-52f878a70a50
+  type: derived
+- id: 518643ba-7d9c-4fa5-9f37-baed36059f6a
+  type: obsolete
+- id: 9d1c72f5-43f0-4da5-9320-648cf2099dd0
+  type: obsolete
+- id: c0e1c3d5-4381-4f18-8145-2583f06a1fe5
+  type: obsolete
+- id: 04f5363a-6bca-42ff-be70-0d28bf629ead
+  type: obsolete
+status: test
+description: Office application called wmic to proxye execution through a LOLBIN process.
+  This is often used to break suspicious parent-child chain (Office app spawns LOLBin).
+references:
+- https://thedfirreport.com/2021/03/29/sodinokibi-aka-revil-ransomware/
+- https://github.com/vadim-hunter/Detection-Ideas-Rules/blob/02bcbfc2bfb8b4da601bb30de0344ae453aa1afe/Threat%20Intelligence/The%20DFIR%20Report/20210329_Sodinokibi_(aka_REvil)_Ransomware.yaml
+author: Vadim Khrykov, Cyb3rEng
+date: 2021-08-23
+modified: 2023-02-14
+tags:
+- attack.t1204.002
+- attack.t1047
+- attack.t1218.010
+- attack.execution
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_parent:
+    ParentImage|endswith:
+    - '\WINWORD.EXE'
+    - '\EXCEL.EXE'
+    - '\POWERPNT.exe'
+    - '\MSPUB.exe'
+    - '\VISIO.exe'
+    - '\MSACCESS.EXE'
+    - '\EQNEDT32.EXE'
+    - '\ONENOTE.EXE'
+    - '\wordpad.exe'
+    - '\wordview.exe'
+  selection_wmic_img:
+  - Image|endswith: '\wbem\WMIC.exe'
+  - OriginalFileName: 'wmic.exe'
+  selection_wmic_cli:
+    CommandLine|contains|all:
+    - 'process'
+    - 'create'
+    - 'call'
+    CommandLine|contains:
+            # Add more suspicious LOLBINs as you see fit
+    - 'regsvr32'
+    - 'rundll32'
+    - 'msiexec'
+    - 'mshta'
+    - 'verclsid'
+    - 'wscript'
+    - 'cscript'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious executions of the Windows Management Instrumentation Command-line (WMIC) tool initiated by Microsoft Office applications, such as Word or Excel. The rule looks for instances where an Office application (e.g., WINWORD.EXE, EXCEL.EXE) spawns WMIC.exe, which is often a technique used by attackers to evade detection by breaking the typical parent-child process chain. The rule captures critical indicators, including the parent processes associated with Office applications and the command-line parameters supplied to WMIC that suggest potentially malicious intent, such as the creation of new processes or the invocation of other legitimate tools commonly used in attacks.
+  The detection relies on Windows process creation logs, focusing on the parent process name and examining the command-line arguments used in WMIC executions. This combination of source and behavior helps analysts identify potentially malicious activity that deviates from typical operational usage of these applications.
+  ### Investigation Steps
+  - Examine process creation logs in the EDR tool to identify instances where WMIC was invoked by Office applications. Review the timestamps and impacted endpoints for further context.
+  - Analyze command-line parameters associated with the detected WMIC executions to determine if they include suspicious keywords such as 'process,' 'create,' or 'call,' which may indicate malicious activity.
+  - Investigate network traffic logs in your NDR solution to see if the Office application or WMIC execution correlated with any unexpected outbound connections or data exfiltration attempts.
+  - Check application logs in the SIEM for any concurrent anomalous behaviors, such as unusual file access or changes made by the Office applications around the time of the WMIC execution.

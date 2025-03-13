@@ -1,0 +1,37 @@
+title: New PDQDeploy Service - Server Side
+id: ee9ca27c-9bd7-4cee-9b01-6e906be7cae3
+status: test
+description: |
+  Detects a PDQDeploy service installation which indicates that PDQDeploy was installed on the machines.
+  PDQDeploy can be abused by attackers to remotely install packages or execute commands on target machines
+references:
+- https://documentation.pdq.com/PDQDeploy/13.0.3.0/index.html?windows-services.htm
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-22
+tags:
+- attack.privilege-escalation
+- attack.t1543.003
+logsource:
+  product: windows
+  service: system
+detection:
+  selection_root:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7045
+  selection_service:
+  - ImagePath|contains: 'PDQDeployService.exe'
+  - ServiceName:
+    - 'PDQDeploy'
+    - 'PDQ Deploy'
+  condition: all of selection_*
+falsepositives:
+- Legitimate use of the tool
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the installation of the PDQDeploy service on Windows systems, which can indicate the unauthorized or unwarranted use of this software to manage package deployment and command execution remotely. PDQDeploy is a management tool often used for administrative purposes, but it has the potential for misuse in privilege escalation attacks. The rule focuses on monitoring system logs, particularly the Service Control Manager (SCM) events, specifically Event ID 7045 that logs service installations. By identifying specific indicators such as the image path containing "PDQDeployService.exe" and the service names "PDQDeploy" or "PDQ Deploy", this detection rule aims to flag potential incidents that require further investigation.
+  ### Investigation Steps
+  - Review EDR alerts to identify processes that were initiated around the same time as the service installation to ascertain if any suspicious activity correlates with the new PDQDeploy service.
+  - Check the event logs for other related service or process creation events that could indicate a larger compromise or unauthorized access to the systems involved.
+  - Query the SIEM for any lateral movement indicators or unusual network traffic that might suggest the PDQDeploy service is being misused to deploy malicious packages.
+  - Consult cloud logs (if applicable) to analyze any management actions taken via PDQDeploy in the context of user behavior and access rights to verify legitimate usage against organizational policies.

@@ -1,0 +1,35 @@
+title: Change the Fax Dll
+id: 9e3357ba-09d4-4fbd-a7c5-ad6386314513
+status: test
+description: Detect possible persistence using Fax DLL load when service restart
+references:
+- https://twitter.com/dottor_morte/status/1544652325570191361
+- https://raw.githubusercontent.com/RiccardoAncarani/talks/master/F-Secure/unorthodox-lateral-movement.pdf
+author: frack113
+date: 2022-07-17
+modified: 2022-12-30
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject|contains|all:
+    - '\Software\Microsoft\Fax\Device Providers\'
+    - '\ImageName'
+  filter:
+    Details: '%systemroot%\system32\fxst30.dll'     # Windows 10
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Change the Fax Dll" Sigma rule detects potential persistence mechanisms by monitoring changes to the Windows registry, specifically in the Fax device providers section. It looks for operations that involve loading the `fxst30.dll` (a Fax service DLL) without the expected conditions, which may indicate unauthorized modifications made by threat actors. When this rule triggers, it suggests that a potential malicious actor may have manipulated the registry to ensure the execution of their payload during service restarts, thus maintaining persistence in the system. The rule utilizes registry set logs as its primary data source, focusing on entries related to the Fax service on Windows systems.
+  ### Investigation Steps
+  - Review the EDR logs for any recent process creation events that involve the `fxst30.dll` or changes to the corresponding registry keys, particularly around the time the alert was generated.
+  - Check for additional indications of compromise in the environment, such as unusual network connections, associated with the identifier noted in the alert.
+  - Query the AV logs for any detections related to the registry modifications or the loading of the `fxst30.dll`, to determine if it has been flagged previously as malicious.
+  - Inquire and analyze log data from Windows Event Viewer for application and service logs that correlate with the timing of the registry changes to identify any abnormal behavior.

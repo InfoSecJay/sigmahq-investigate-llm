@@ -1,0 +1,36 @@
+title: HackTool - SharpLDAPmonitor Execution
+id: 9f8fc146-1d1a-4dbf-b8fd-dfae15e08541
+status: test
+description: Detects execution of the SharpLDAPmonitor. Which can monitor the creation,
+  deletion and changes to LDAP objects.
+references:
+- https://github.com/p0dalirius/LDAPmonitor
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-12-30
+modified: 2023-02-14
+tags:
+- attack.discovery
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith: '\SharpLDAPmonitor.exe'
+  - OriginalFileName: 'SharpLDAPmonitor.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - '/user:'
+    - '/pass:'
+    - '/dcip:'
+  condition: 1 of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of the SharpLDAPmonitor, a tool that can monitor changes in LDAP objects, which can be indicative of reconnaissance activities or malicious actions within an active directory environment. The rule looks for specific traits associated with SharpLDAPmonitor, including its executable name ('SharpLDAPmonitor.exe') and certain command-line parameters that suggest it may be used to connect to an LDAP server with specified credentials. The rule examines process creation logs to detect instances where this executable is run, capturing key elements such as the image name and its original file name, as well as any command-line parameters that include user credentials and domain controller IP addresses.
+  ### Investigation Steps
+  - Review process creation logs in the EDR system for any instances of `SharpLDAPmonitor.exe` execution to establish a timeline of the activity.
+  - Examine the command-line parameters used during execution, paying particular attention to any instances of `/user:`, `/pass:`, and `/dcip:` to determine if valid credentials were used and to which domain controller the connection was made.
+  - Cross-reference any identified IP addresses and user accounts with historical logs from the Proxy and AV solutions to check for previous suspicious activities or related alerts.
+  - Consult with the incident response team to analyze potential impacts on the environment, especially if the execution was tied to unauthorized access to sensitive LDAP information.

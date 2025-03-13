@@ -1,0 +1,38 @@
+title: File Download via CertOC.EXE
+id: 70ad0861-d1fe-491c-a45f-fa48148a300d
+related:
+- id: b86f6dea-0b2f-41f5-bdcc-a057bd19cd6a
+  type: similar
+status: test
+description: Detects when a user downloads a file by using CertOC.exe
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Certoc/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-05-16
+modified: 2023-10-18
+tags:
+- attack.command-and-control
+- attack.t1105
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\certoc.exe'
+  - OriginalFileName: 'CertOC.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - '-GetCACAPS'
+    - 'http'
+  condition: all of selection*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule "File Download via CertOC.EXE" is designed to identify potential unauthorized file downloads initiated by the CertOC.exe executable, which is often misused in command-and-control (C2) scenarios. This rule focuses particularly on instances where CertOC.exe is executed with command-line parameters that include both the `-GetCACAPS` flag and the presence of an HTTP link, indicating that a file is being downloaded from the internet. Technical data sources leveraged by this detection include process creation logs that capture the execution of processes and their associated command-line arguments, allowing analysts to scrutinize the behavior of CertOC.exe in their environment. The identification of such behaviors is critical in thwarting data exfiltration and other malicious activities.
+  ### Investigation Steps
+  - Review EDR logs to find execution logs related to CertOC.exe, noting the execution time and user context to assess legitimacy.
+  - Analyze the command-line parameters associated with CertOC.exe executions to identify any links to suspicious or untrusted domains.
+  - Check network traffic logs for outbound requests made to the URL identified in the command line, paying particular attention to amounts of data transferred.
+  - Search through Proxy logs to determine if any downloads originating from CertOC.exe were logged, correlating them with user activity for further investigation.

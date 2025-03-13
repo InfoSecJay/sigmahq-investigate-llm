@@ -1,0 +1,42 @@
+title: Remote Thread Creation Via PowerShell In Uncommon Target
+id: 99b97608-3e21-4bfe-8217-2a127c396a0e
+related:
+- id: eeb2e3dc-c1f4-40dd-9bd5-149ee465ad50
+  type: similar
+status: test
+description: Detects the creation of a remote thread from a Powershell process in
+  an uncommon target process
+references:
+- https://www.fireeye.com/blog/threat-research/2018/06/bring-your-own-land-novel-red-teaming-technique.html
+author: Florian Roth (Nextron Systems)
+date: 2018-06-25
+modified: 2023-11-10
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1218.011
+- attack.t1059.001
+logsource:
+  product: windows
+  category: create_remote_thread
+detection:
+  selection:
+    SourceImage|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    TargetImage|endswith:
+            # Note: Please add additional potential interesting targets to increase coverage
+    - '\rundll32.exe'
+    - '\regsvr32.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies instances of remote thread creation initiated by PowerShell processes targeting uncommon or suspicious processes such as `rundll32.exe` or `regsvr32.exe`. Remote thread creation is a technique often utilized by attackers to execute malicious code within the context of another process, thereby evading security measures and potentially carrying out unauthorized actions. The rule monitors Windows event logs specifically related to the creation of remote threads, allowing the SOC team to identify and respond to potentially malicious behavior. By focusing on PowerShell, a common tool in both legitimate administrative activity and adversarial exploitation, this rule helps detect possible abuse of PowerShell in executing malware or performing lateral movement within the enterprise environment.
+  ### Investigation Steps
+  - Review the related PowerShell execution logs from the EDR solution to confirm the legitimacy of the PowerShell command that initiated the remote thread creation.
+  - Analyze the context of the target processes (`rundll32.exe` and `regsvr32.exe`) using process trees in the endpoint monitoring tool to understand their activity leading up to the detected event.
+  - Check Network Firewall logs to identify any unusual outbound connections that coincide with the timing of the remote thread creation, which may indicate exfiltration or communication with a command and control server.
+  - Consult the Antivirus (AV) logs for any detections or alerts related to the PowerShell process or the target processes to potentially corroborate malicious behavior or infection.

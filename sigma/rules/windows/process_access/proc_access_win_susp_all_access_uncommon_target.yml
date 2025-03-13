@@ -1,0 +1,41 @@
+title: Uncommon Process Access Rights For Target Image
+id: a24e5861-c6ca-4fde-a93c-ba9256feddf0
+status: experimental
+description: |
+  Detects process access request to uncommon target images with a "PROCESS_ALL_ACCESS" access mask.
+references:
+- https://learn.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights
+author: Nasreddine Bencherchali (Nextron Systems), frack113
+date: 2024-05-27
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1055.011
+logsource:
+  category: process_access
+  product: windows
+detection:
+  selection:
+    TargetImage|endswith:
+            # Note: Add additional uncommon targets to increase coverage.
+    - '\calc.exe'
+    - '\calculator.exe'
+    - '\mspaint.exe'
+    - '\notepad.exe'
+    - '\ping.exe'
+    - '\wordpad.exe'
+    - '\write.exe'
+    GrantedAccess: '0x1FFFFF'     # PROCESS_ALL_ACCESS - All possible access rights for a process object.
+  condition: selection
+falsepositives:
+- Unknown
+# Note: please upgrade to a higher level after an initial test/tuning.
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect unusual process access requests that utilize a "PROCESS_ALL_ACCESS" access mask for certain uncommon target images on Windows systems. Specifically, it monitors for applications such as `calc.exe`, `mspaint.exe`, and `notepad.exe`, which typically do not require such extensive access rights. The rule triggers when there is an attempt to access these target images with the highest level of access permissions, indicating potential malicious activity such as privilege escalation or evasion techniques. The primary data sources for this detection include alerts generated from Windows process access logs, which capture the processes being accessed and the type of access requested.
+  ### Investigation Steps
+  - Utilize EDR solutions to review process access logs and identify any legitimate user activity involving the uncommon target images during the alert timeframe.
+  - Examine command-line parameters associated with the identified processes to establish whether the context of the access request aligns with legitimate usage patterns.
+  - Check for any anomalies in user authentication logs via the SIEM to determine if the requests were made by expected users or under unusual circumstances.
+  - Review network traffic logs through the NDR to identify any outbound connections from processes at the time of the alert, which may indicate exfiltration attempts or command-and-control communications.

@@ -1,0 +1,44 @@
+title: PUA - NPS Tunneling Tool Execution
+id: 68d37776-61db-42f5-bf54-27e87072d17e
+status: test
+description: Detects the use of NPS, a port forwarding and intranet penetration proxy
+  server
+references:
+- https://github.com/ehang-io/nps
+author: Florian Roth (Nextron Systems)
+date: 2022-10-08
+modified: 2024-11-23
+tags:
+- attack.command-and-control
+- attack.t1090
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+    Image|endswith: '\npc.exe'
+  selection_cli_1:
+    CommandLine|contains|all:
+    - ' -server='
+    - ' -vkey='
+    - ' -password='
+  selection_cli_2:
+    CommandLine|contains: ' -config=npc'
+  selection_hashes:
+        # v0.26.10
+    Hashes|contains:
+    - "MD5=AE8ACF66BFE3A44148964048B826D005"
+    - "SHA1=CEA49E9B9B67F3A13AD0BE1C2655293EA3C18181"
+    - "SHA256=5A456283392FFCEEEACA3D3426C306EB470304637520D72FED1CC1FEBBBD6856"
+  condition: 1 of selection_*
+falsepositives:
+- Legitimate use
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of `npc.exe`, a component of the NPS (Nat Tunnel Proxy Server) software, known for facilitating port forwarding and enabling internal network access from external locations. The rule focuses on specific indicators, including the process creation logs for Windows that show any instance of `npc.exe` being executed, particularly with command-line arguments that suggest it's being used as a tunneling tool, such as `-server=`, `-vkey=`, and `-password=`. Additionally, hashes of known malicious versions of the software are checked to confirm the integrity of the file. By correlating these criteria, the rule aims to identify potential unauthorized use of this tool for tunneling and command-and-control activities within the enterprise environment.
+  ### Investigation Steps
+  - Verify the process creation logs in your EDR to confirm whether `npc.exe` was executed and capture the associated command-line parameters used during that execution.
+  - Utilize your SIEM to check historical logs for any instances of the specific hashes related to `npc.exe`, and determine if there are any multiple or unusual instances of this software running in parallel.
+  - Check network traffic logs on the NGFW or NDR to identify any unusual outbound connections that may indicate data tunneling or communication with external IP addresses following the execution of `npc.exe`.
+  - Review user activity logs and access patterns within cloud environments (AWS, GCP, Azure) to detect any anomalies that coincide with the execution of the tunneling tool, especially focusing on sensitive resources or data.

@@ -1,0 +1,35 @@
+title: Hidden Powershell in Link File Pattern
+id: 30e92f50-bb5a-4884-98b5-d20aa80f3d7a
+status: test
+description: Detects events that appear when a user click on a link file with a powershell
+  command in it
+references:
+- https://www.x86matthew.com/view_post?id=embed_exe_lnk
+author: frack113
+date: 2022-02-06
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage: C:\Windows\explorer.exe
+    Image: C:\Windows\System32\cmd.exe
+    CommandLine|contains|all:
+    - 'powershell'
+    - '.lnk'
+  condition: selection
+falsepositives:
+- Legitimate commands in .lnk files
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activities involving Windows link files (.lnk) that contain embedded PowerShell commands. The rule monitors process creation events specifically looking for instances where the command prompt (cmd.exe), executed by Windows Explorer (explorer.exe), is invoked with a command line that includes references to both PowerShell and a .lnk file. Link files can be used as vectors for executing hidden scripts or commands, making this detection crucial for identifying possible misuse.
+  By leveraging process creation logs, the rule analyzes the parent-child relationship between Windows processes and looks for suspicious patterns indicative of an exploited link file. When linked with PowerShell execution, malicious actors can execute instructions without user awareness, which is why this rule is essential for mitigation and incident response.
+  ### Investigation Steps
+  - Inspect the process creation logs in your EDR for instances where cmd.exe was launched by explorer.exe with the command line containing 'powershell' and '.lnk'.
+  - Review the content of any identified .lnk files to determine the legitimacy of the PowerShell commands contained within.
+  - Check your SIEM for any other alerts related to PowerShell execution around the same timeframe to see if there are broader campaign indicators.
+  - Utilize your AV and NDR tools to scan for known malicious patterns or behaviors associated with PowerShell usage and link file execution.

@@ -1,0 +1,41 @@
+title: HackTool - SOAPHound Execution
+id: e92a4287-e072-4a40-9739-370c106bb750
+status: test
+description: |
+  Detects the execution of SOAPHound, a .NET tool for collecting Active Directory data, using specific command-line arguments that may indicate an attempt to extract sensitive AD information.
+references:
+- https://github.com/FalconForceTeam/SOAPHound
+- https://medium.com/falconforce/soaphound-tool-to-collect-active-directory-data-via-adws-165aca78288c
+author: '@kostastsale'
+date: 2024-01-26
+tags:
+- attack.discovery
+- attack.t1087
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_1:
+    CommandLine|contains:
+    - ' --buildcache '
+    - ' --bhdump '
+    - ' --certdump '
+    - ' --dnsdump '
+  selection_2:
+    CommandLine|contains:
+    - ' -c '
+    - ' --cachefilename '
+    - ' -o '
+    - ' --outputdirectory'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential executions of SOAPHound, a .NET tool primarily used for collecting data from Active Directory (AD). The rule focuses on specific command-line arguments indicating that the tool may be used to extract sensitive AD information, such as cached credentials or directory details. It analyzes process creation logs to capture instances where the execution command includes any of the targeted strings. By monitoring these command-line inputs, analysts can effectively detect suspicious behavior that aligns with known tactics for unauthorized AD data extraction.
+  ### Investigation Steps
+  - Review process creation logs in the EDR for instances of SOAPHound execution and carefully examine the complete command line used.
+  - Cross-reference the timestamps of the detected alerts with user activity logs and access records to identify any unauthorized or suspicious access to AD resources.
+  - Utilize the AV tool to scan the affected endpoint for any known signatures of SOAPHound or similar tools to ensure no lingering threats remain.
+  - Analyze network logs from the NGFW or Proxy to check for any outbound connections to unexpected external IPs that might indicate data exfiltration linked to the SOAPHound execution.

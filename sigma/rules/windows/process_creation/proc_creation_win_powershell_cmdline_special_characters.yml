@@ -1,0 +1,52 @@
+title: Potential PowerShell Command Line Obfuscation
+id: d7bcd677-645d-4691-a8d4-7a5602b780d1
+status: test
+description: Detects the PowerShell command lines with special characters
+references:
+- https://speakerdeck.com/heirhabarov/hunting-for-powershell-abuse?slide=64
+author: Teymur Kheirkhabarov (idea), Vasiliy Burov (rule), oscd.community, Tim Shelton
+  (fp)
+date: 2020-10-15
+modified: 2024-04-15
+tags:
+- attack.execution
+- attack.defense-evasion
+- attack.t1027
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+  - OriginalFileName:
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+  selection_re:
+        # TODO: Optimize for PySIGMA
+  - CommandLine|re: '\+.*\+.*\+.*\+.*\+.*\+.*\+.*\+.*\+.*\+.*\+.*\+.*\+.*\+'
+  - CommandLine|re: '\{.*\{.*\{.*\{.*\{.*\{.*\{.*\{.*\{.*\{'
+  - CommandLine|re: '\^.*\^.*\^.*\^.*\^'
+  - CommandLine|re: '`.*`.*`.*`.*`'
+  filter_optional_amazonSSM:
+    ParentImage: C:\Program Files\Amazon\SSM\ssm-document-worker.exe
+  filter_optional_defender_atp:
+    CommandLine|contains:
+    - 'new EventSource("Microsoft.Windows.Sense.Client.Management"'
+    - 'public static extern bool InstallELAMCertificateInfo(SafeFileHandle handle);'
+  condition: all of selection_* and not 1 of filter_optional_*
+falsepositives:
+- Amazon SSM Document Worker
+- Windows Defender ATP
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potentially obfuscated PowerShell command lines that may be indicative of malicious activity or evasion techniques. It focuses on detecting command lines containing specific patterns of special characters, such as multiple occurrences of symbols like `+`, `{`, `^`, and `` ` ``. The rule applies to processes created by `powershell.exe` or `pwsh.exe`, capturing variations that can be used to disguise the true intent of a PowerShell command. By monitoring `process_creation` logs, particularly the `CommandLine` field, the rule can flag suspicious execution attempts that deviate from standard usage patterns.
+  As attackers often use character obfuscation to evade security measures, this rule serves as a critical checkpoint within the enterprise environment, leveraging a combination of process and command-line data to detect unusual behaviors. The identification of such obfuscated command lines helps in the early detection of potential threats, enabling a timely response to mitigate risks.
+  ### Investigation Steps
+  - Review the EDR logs for the specific execution context of the detected alert, examining the process creation logs for `powershell.exe` or `pwsh.exe` and their corresponding command lines.
+  - Analyze any related network activity using the NDR tool, looking for unusual outbound connections that may correlate with the execution of obfuscated PowerShell commands.
+  - Check the AV logs for any detections related to the system at the time of the alert to identify if any known threats were flagged during the suspicious activity.
+  - Investigate cloud platform logs (if applicable), particularly for AWS, GCP, or Azure, to find any related API calls or user activities that may provide additional context to the PowerShell execution.

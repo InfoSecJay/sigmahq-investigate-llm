@@ -1,0 +1,44 @@
+title: User Discovery And Export Via Get-ADUser Cmdlet - PowerShell
+id: c2993223-6da8-4b1a-88ee-668b8bf315e9
+related:
+- id: 1114e048-b69c-4f41-bc20-657245ae6e3f
+  type: similar
+status: test
+description: Detects usage of the Get-ADUser cmdlet to collect user information and
+  output it to a file
+references:
+- http://blog.talosintelligence.com/2022/09/lazarus-three-rats.html
+- https://www.microsoft.com/en-us/security/blog/2022/10/18/defenders-beware-a-case-for-post-ransomware-investigations/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-11-17
+tags:
+- attack.discovery
+- attack.t1033
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'Get-ADUser '
+    - ' -Filter \*'
+    ScriptBlockText|contains:
+    - ' > '
+    - ' | Select '
+    - 'Out-File'
+    - 'Set-Content'
+    - 'Add-Content'
+  condition: selection
+falsepositives:
+- Legitimate admin scripts may use the same technique, it's better to exclude specific
+  computers or users who execute these commands or scripts often
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential unauthorized user discovery and data export activities within a Windows environment that utilize the PowerShell `Get-ADUser` cmdlet. The rule specifically looks for command lines that involve retrieving user accounts from Active Directory while simultaneously redirecting this output to a file or manipulating it with other PowerShell cmdlets such as `Select`, `Out-File`, `Set-Content`, or `Add-Content`. These activities can signify malicious intent, especially if they are executed by users who typically do not perform administrative tasks. The rule relies on PowerShell script block logging, which must be enabled for the capture of relevant data. By monitoring the presence of certain keywords in PowerShell script blocks, analysts can detect potential user enumeration and data exfiltration activities for investigative purposes.
+  ### Investigation Steps
+  - Review PowerShell logs in your EDR tool to identify instances of the `Get-ADUser` cmdlet being executed. Focus on the context of these executions to determine if they align with administrative tasks or appear suspicious.
+  - Cross-reference user account activity with the proxy logs to identify any unusual access patterns from the same users or IP addresses following the execution of the detected command.
+  - Utilize alert data to examine any associated processes related to the script execution. Investigate if these processes are running on legitimate machines or if there are anomalous behaviors indicating compromise.
+  - Check the Windows Security Event logs for any event IDs related to account logins or unique administrative tasks performed around the same time. This helps ascertain whether the detected activity correlates with known legitimate administrative actions.

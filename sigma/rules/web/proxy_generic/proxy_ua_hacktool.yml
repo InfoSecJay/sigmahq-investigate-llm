@@ -1,0 +1,87 @@
+title: Hack Tool User Agent
+id: c42a3073-30fb-48ae-8c99-c23ada84b103
+status: test
+description: Detects suspicious user agent strings user by hack tools in proxy logs
+references:
+- https://github.com/fastly/waf_testbed/blob/8bfc406551f3045e418cbaad7596cff8da331dfc/templates/default/scanners-user-agents.data.erb
+- http://rules.emergingthreats.net/open/snort-2.9.0/rules/emerging-user_agents.rules
+author: Florian Roth (Nextron Systems)
+date: 2017-07-08
+modified: 2022-07-07
+tags:
+- attack.initial-access
+- attack.t1190
+- attack.credential-access
+- attack.t1110
+logsource:
+  category: proxy
+detection:
+  selection:
+    c-useragent|contains:
+            # Vulnerability scanner and brute force tools
+    - '(hydra)'
+    - ' arachni/'
+    - ' BFAC '
+    - ' brutus '
+    - ' cgichk '
+    - 'core-project/1.0'
+    - ' crimscanner/'
+    - 'datacha0s'
+    - 'dirbuster'
+    - 'domino hunter'
+    - 'dotdotpwn'
+    - 'FHScan Core'
+    - 'floodgate'
+    - 'get-minimal'
+    - 'gootkit auto-rooter scanner'
+    - 'grendel-scan'
+    - ' inspath '
+    - 'internet ninja'
+    - 'jaascois'
+    - ' zmeu '
+    - 'masscan'
+    - ' metis '
+    - 'morfeus fucking scanner'
+    - 'n-stealth'
+    - 'nsauditor'
+    - 'pmafind'
+    - 'security scan'
+    - 'springenwerk'
+    - 'teh forest lobster'
+    - 'toata dragostea'
+    - ' vega/'
+    - 'voideye'
+    - 'webshag'
+    - 'webvulnscan'
+    - ' whcc/'
+            # SQL Injection
+    - ' Havij'
+    - 'absinthe'
+    - 'bsqlbf'
+    - 'mysqloit'
+    - 'pangolin'
+    - 'sql power injector'
+    - 'sqlmap'
+    - 'sqlninja'
+    - 'uil2pn'
+            # Hack tool
+    - 'ruler'          # https://www.crowdstrike.com/blog/using-outlook-forms-lateral-movement-persistence/
+    - 'Mozilla/5.0 (Windows; U; Windows NT 5.1; pt-PT; rv:1.9.1.2) Gecko/20090729
+      Firefox/3.5.2 (.NET CLR 3.5.30729)'                                                                                      # SQLi Dumper
+  condition: selection
+fields:
+- ClientIP
+- c-uri
+- c-useragent
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Hack Tool User Agent" Sigma rule is designed to identify suspicious user agent strings commonly associated with hacking and vulnerability scanning tools within proxy logs. By analyzing the user agent fields in the logs, the rule looks for specific patterns or keywords that indicate the potential use of malicious software, such as vulnerability scanners and brute force tools. Examples of such keywords include 'hydra', 'sqlmap', and 'masscan'. When these user agent strings are detected, they suggest that an individual may be attempting to exploit vulnerabilities in web applications or perform unauthorized reconnaissance activities, prompting further investigation.
+  This detection relies heavily on proxy log data, specifically the user agent strings which reveal the client software’s identity. By indexing user agent strings, incident responders can determine if they originate from known hacking tools or scanners, allowing them to act on potential threats before they escalate into more significant security incidents.
+  ### Investigation Steps
+  - Review the proxy logs to locate the ClientIP and associated c-uri for any requests using the flagged user agent strings. This can help in identifying the specific target of the potential attack.
+  - Use the EDR tool to track any activities associated with the identified ClientIP. Look for unusual behaviors, process creations, or anomalies that may indicate further exploitation attempts.
+  - Check historical user agent data against similar requests in the proxy logs for additional history on the ClientIP to determine if it is part of a larger pattern or a unique incident.
+  - Correlate findings with threat intelligence and known malicious IP addresses from AV or NDR tools to assess the risk level and potential impact, which may guide immediate containment actions.

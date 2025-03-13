@@ -1,0 +1,38 @@
+title: Renamed NirCmd.EXE Execution
+id: 264982dc-dbad-4dce-b707-1e0d3e0f73d9
+status: test
+description: Detects the execution of a renamed "NirCmd.exe" binary based on the PE
+  metadata fields.
+references:
+- https://www.microsoft.com/en-us/security/blog/2024/01/17/new-ttps-observed-in-mint-sandstorm-campaign-targeting-high-profile-individuals-at-universities-and-research-orgs/
+- https://www.nirsoft.net/utils/nircmd.html
+author: X__Junior (Nextron Systems)
+date: 2024-03-11
+tags:
+- attack.execution
+- attack.t1059
+- attack.defense-evasion
+- attack.t1202
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    OriginalFileName: 'NirCmd.exe'
+  filter_main_img:
+    Image|endswith:
+    - '\nircmd.exe'
+    - '\nircmdc.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of the "NirCmd.exe" utility, which is often used for legitimate purposes but can be abused by attackers for malicious activities, especially in the context of evasion. The rule checks for process creation logs, specifically targeting instances where the original filename (`OriginalFileName`) matches "NirCmd.exe," but the executable is being run under a renamed version like "nircmd.exe" or "nircmdc.exe." It leverages PE metadata fields as part of the detection process, which can sometimes indicate tampered executables used to disguise malicious intent. 
+  By focusing on the original filename and examining the actual image name under which the process runs, this rule helps in effectively identifying potentially harmful activity related to the execution of "NirCmd.exe." This detection mechanism contributes to overall security by alerting analysts to suspicious executions that may require further investigation.
+  ### Investigation Steps
+  - Utilize the EDR to investigate the executed process and review the command-line parameters used with "nircmd.exe" or similar renamed executables to identify any unusual arguments.
+  - Check process lineage in the EDR to ascertain the parent process that launched "NirCmd.exe," which may provide context on potential malicious activity or misconfiguration.
+  - Investigate any recent system changes or installations that might have included "NirCmd.exe" to determine if its presence was part of a legitimate operation or if it was introduced in a suspicious manner.
+  - Review logs from the SIEM or NDR for any anomalous network activity or connections made by the same host around the time of execution, which could help confirm intent and risk level associated with the invocation.

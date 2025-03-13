@@ -1,0 +1,44 @@
+title: New Root Certificate Installed Via Certutil.EXE
+id: d2125259-ddea-4c1c-9c22-977eb5b29cf0
+related:
+- id: 42821614-9264-4761-acfc-5772c3286f76
+  type: derived
+- id: 46591fae-7a4c-46ea-aec3-dff5e6d785dc
+  type: obsolete
+status: test
+description: |
+  Detects execution of "certutil" with the "addstore" flag in order to install a new certificate on the system.
+  Adversaries may install a root certificate on a compromised system to avoid warnings when connecting to adversary controlled web servers.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1553.004/T1553.004.md
+author: oscd.community, @redcanary, Zach Stanford @svch0st
+date: 2023-03-05
+modified: 2024-03-05
+tags:
+- attack.defense-evasion
+- attack.t1553.004
+logsource:
+  category: process_creation
+  product: windows
+detection:
+    # Example: certutil -addstore -f -user ROOT CertificateFileName.der
+  selection_img:
+  - Image|endswith: '\certutil.exe'
+  - OriginalFileName: 'CertUtil.exe'
+  selection_cli_add:
+    CommandLine|contains|windash: '-addstore'
+  selection_cli_store:
+    CommandLine|contains: 'root'
+  condition: all of selection_*
+falsepositives:
+- Help Desk or IT may need to manually add a corporate Root CA on occasion. Need to
+  test if GPO push doesn't trigger FP
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of `certutil.exe` with the specific intent to add a root certificate to the system's trust store. Adversaries may leverage this functionality to install malicious certificates, allowing them to intercept secure communications without raising alarms. The rule looks for instances where the command line includes parameters such as `-addstore` combined with the term `root`, indicating the attempt to install a root certificate. The primary data source for this detection is process creation logs from Windows systems, which provide insights into executed commands and their parameters.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR to identify events where `certutil.exe` was executed with the `-addstore` parameter and `root` specified in the command line.
+  - Cross-reference these findings with the user and system activity logs to determine the context of the certificate installation and whether the action aligns with normal operational behavior.
+  - Analyze network traffic logs to check for any connections to unauthorized or suspicious web servers that might be using the newly installed root certificate.
+  - Consult with the Help Desk or IT team to validate if there were legitimate cases of root certificate installations that could explain the activity, ensuring that GPO settings didn't trigger a false positive.

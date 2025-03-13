@@ -1,0 +1,31 @@
+title: Disable PUA Protection on Windows Defender
+id: 8ffc5407-52e3-478f-9596-0a7371eafe13
+status: test
+description: Detects disabling Windows Defender PUA protection
+references:
+- https://www.tenforums.com/tutorials/32236-enable-disable-microsoft-defender-pua-protection-windows-10-a.html
+author: Austin Songer @austinsonger
+date: 2021-08-04
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\Policies\Microsoft\Windows Defender\PUAProtection'
+    Details: 'DWORD (0x00000000)'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies changes made to Windows Defender's Potentially Unwanted Application (PUA) protection feature, specifically targeting the registry settings. The rule looks for the modification of the `PUAProtection` registry key within `\Policies\Microsoft\Windows Defender`, where a value of `DWORD (0x00000000)` indicates that PUA protection has been disabled. Since disabling this protection can enable the execution of potentially harmful applications that could evade detection, this activity is classified under defense evasion tactics in the MITRE ATT&CK framework. The primary data sources involved in this detection are Windows registry logs, which track changes made to system settings relevant to security configurations.
+  ### Investigation Steps
+  - Review the Windows registry logs for additional changes made around the same time as the modification to the PUAProtection key to determine if other security-related settings were altered.
+  - Utilize EDR tools to investigate any processes running on the system prior to and after the registry change, looking for suspicious or unknown applications that might exploit the disabled PUA protection.
+  - Check the system's event logs for any entries indicating administrative actions or unauthorized access that could correlate with the registry modification.
+  - Examine network traffic logs (via NDR or NGFW) to identify any unusual connections initiated by applications after the PUA protection was disabled, which may suggest a compromise.

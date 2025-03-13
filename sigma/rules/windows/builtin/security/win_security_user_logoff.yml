@@ -1,0 +1,35 @@
+title: User Logoff Event
+id: 0badd08f-c6a3-4630-90d3-6875cca440be
+status: test
+description: Detects a user log-off activity. Could be used for example to correlate
+  information during forensic investigations
+references:
+- https://github.com/Yamato-Security/EnableWindowsLogSettings/blob/7f6d755d45ac7cc9fc35b0cbf498e6aa4ef19def/ConfiguringSecurityLogAuditPolicies.md
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4634
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4647
+author: frack113
+date: 2022-10-14
+tags:
+- attack.impact
+- attack.t1531
+logsource:
+  service: security
+  product: windows
+detection:
+  selection:
+    EventID:
+    - 4634
+    - 4647
+  condition: selection
+falsepositives:
+- Unknown
+level: informational
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect user logoff events that are recorded in Windows security logs. Specifically, it looks for Event IDs 4634 and 4647, which indicate that a user has logged off from the system. This information can be critical during forensic investigations, as it helps correlate user activity with other events within a particular timeframe. By analyzing logoff events, responders can better understand user behavior and identify any anomalous activities that may warrant further investigation.
+  The primary data sources for this rule are Windows security logs, which capture detailed information about account logon and logoff activities. These logs provide insights into the behavior of users, the times they access the system, and any potential signs of unauthorized logoff attempts or account compromises. Organizations can utilize this rule to bolster their monitoring capabilities and ensure that user session activities are appropriately accounted for.
+  ### Investigation Steps
+  - Review the user's logon history in the security logs to identify all actions taken before the logoff event, focusing on unusual access patterns.
+  - Analyze the system events leading up to the logoff using EDR tools to uncover any related alerts or suspicious activity associated with that user session.
+  - Check proxy logs to verify whether the user accessed any external resources that may indicate data exfiltration before logging off.
+  - Cross-reference cloud access logs (AWS, GCP, Azure) to identify any unusual activity in cloud resources that may correlate with the desktop environment logoff event.

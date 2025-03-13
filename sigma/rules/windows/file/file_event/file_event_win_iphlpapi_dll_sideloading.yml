@@ -1,0 +1,35 @@
+title: Malicious DLL File Dropped in the Teams or OneDrive Folder
+id: 1908fcc1-1b92-4272-8214-0fbaf2fa5163
+status: test
+description: |
+  Detects creation of a malicious DLL file in the location where the OneDrive or Team applications
+  Upon execution of the Teams or OneDrive application, the dropped malicious DLL file ("iphlpapi.dll") is sideloaded
+references:
+- https://blog.cyble.com/2022/07/27/targeted-attacks-being-carried-out-via-dll-sideloading/
+author: frack113
+date: 2022-08-12
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.defense-evasion
+- attack.t1574.002
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|contains|all:
+    - 'iphlpapi.dll'
+    - '\AppData\Local\Microsoft'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets the creation of a potentially malicious DLL file named "iphlpapi.dll" within specific user directories related to Microsoft Teams and OneDrive, i.e., the local AppData folder. The rule focuses on identifying any instances of the file being created in these locations, which is indicative of DLL sideloading attacks. When an unsuspecting user launches the Teams or OneDrive application, this malicious DLL can be executed, leading to privilege escalation and persistence on the system. Log sources involved in this detection include file event logs from Windows systems, making use of attributes such as the target filename and the associated directory path to pinpoint suspicious activities effectively.
+  ### Investigation Steps
+  - Utilize EDR tools to monitor the endpoint for any unusual process creation linked to the "iphlpapi.dll" file and identify the parent processes associated with its execution.
+  - Check file integrity status and history for the "iphlpapi.dll" in the local user's AppData folder using file activity logs to determine if it was created recently and by which user.
+  - Review network traffic from the affected endpoint to identify any outbound connections or patterns that indicate data exfiltration or communication with command and control servers.
+  - Analyze application logs for Teams and OneDrive to establish a timeline of user activities around the time the malicious DLL was created, correlating this with potential user engagement in phishing or exploit scenarios.

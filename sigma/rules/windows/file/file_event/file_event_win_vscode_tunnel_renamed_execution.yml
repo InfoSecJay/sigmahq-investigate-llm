@@ -1,0 +1,35 @@
+title: Renamed VsCode Code Tunnel Execution - File Indicator
+id: d102b8f5-61dc-4e68-bd83-9a3187c67377
+status: test
+description: |
+  Detects the creation of a file with the name "code_tunnel.json" which indicate execution and usage of VsCode tunneling utility by an "Image" or "Process" other than VsCode.
+references:
+- https://ipfyx.fr/post/visual-studio-code-tunnel/
+- https://badoption.eu/blog/2023/01/31/code_c2.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-10-25
+tags:
+- attack.command-and-control
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|endswith: '\code_tunnel.json'
+  filter_main_legit_name:
+        # Note: There might be other legitimate names for VsCode. Please add them if found
+    Image|endswith:
+    - '\code-tunnel.exe'
+    - '\code.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential misuse of the Visual Studio Code tunneling utility by monitoring file creation events for a specific file named "code_tunnel.json". This filename indicates that the VsCode tunneling functionality is being executed, which is typically associated with command-and-control (C2) activities when initiated by processes other than the legitimate Visual Studio Code (VsCode) application. The rule leverages file event logs from Windows systems, particularly focusing on the properties of the image or process that creates this specific JSON file. By filtering out instances where known legitimate VsCode executables (such as "code.exe" or "code-tunnel.exe") are involved, this rule helps minimize false positives and highlights potentially unauthorized tunneling activity.
+  ### Investigation Steps
+  - Review EDR logs to identify the process that created the "code_tunnel.json" file, checking for any unusual parent processes or command-line arguments associated with it.
+  - Analyze network traffic logs for any outbound connections initiated by the process detected in the EDR, looking for connections to suspicious or known malicious IP addresses.
+  - Investigate proxy logs to find any web requests correlating with the time of the file creation, especially requests that lead to unknown or untrusted domains.
+  - Check cloud platform logs (AWS, GCP, Azure) to correlate with any user sign-ins or changes during the same timeframe, especially focusing on unrecognized user accounts or activities.

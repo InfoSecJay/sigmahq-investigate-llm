@@ -1,0 +1,39 @@
+title: Potential SPN Enumeration Via Setspn.EXE
+id: 1eeed653-dbc8-4187-ad0c-eeebb20e6599
+status: test
+description: Detects service principal name (SPN) enumeration used for Kerberoasting
+references:
+- https://web.archive.org/web/20200329173843/https://p16.praetorian.com/blog/how-to-use-kerberoasting-t1208-for-privilege-escalation
+- https://www.praetorian.com/blog/how-to-use-kerberoasting-t1208-for-privilege-escalation/?edition=2019
+author: Markus Neis, keepwatch
+date: 2018-11-14
+modified: 2023-10-23
+tags:
+- attack.credential-access
+- attack.t1558.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_pe:
+  - Image|endswith: '\setspn.exe'
+  - OriginalFileName: 'setspn.exe'
+  - Description|contains|all:
+    - 'Query or reset the computer'
+    - 'SPN attribute'
+  selection_cli:
+    CommandLine|contains:
+    - ' -q '
+    - ' /q '
+  condition: all of selection_*
+falsepositives:
+- Administration activity
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects potential enumeration of service principal names (SPNs) via the use of the `setspn.exe` command-line utility on Windows systems. SPN enumeration is often utilized in Kerberoasting attacks, where an attacker queries the service accounts associated with specific SPNs in order to obtain service tickets. The rule focuses on identifying process creation events specifically for `setspn.exe`, examining both the command line parameters used and the attributes of the process itself to ensure it aligns with typical querying functions, like those containing `-q` or `/q`. Data sources such as process creation logs from EDR solutions are critical for monitoring these activities, alerting the SOC to potential credential access threats.
+  ### Investigation Steps
+  - Review process creation logs in the EDR to confirm if `setspn.exe` was invoked, along with the associated command line arguments.
+  - Check user account activity in the identity management system to identify which account executed the `setspn.exe` command and assess their access level.
+  - Analyze network traffic logs to determine if there were subsequent queries to authentication services or if there are connections to known malicious domains or IPs.
+  - Examine historical logs for any patterns of similar activity, focusing on unusual execution times or frequent use of the enumeration commands associated with known user accounts.

@@ -1,0 +1,34 @@
+title: Bypass UAC Using Event Viewer
+id: 674202d0-b22a-4af4-ae5f-2eda1f3da1af
+status: test
+description: Bypasses User Account Control using Event Viewer and a relevant Windows
+  Registry modification
+references:
+- https://enigma0x3.net/2016/08/15/fileless-uac-bypass-using-eventvwr-exe-and-registry-hijacking/
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1548.002/T1548.002.md#atomic-test-1---bypass-uac-using-event-viewer-cmd
+author: frack113
+date: 2022-01-05
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.t1547.010
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: '_Classes\mscfile\shell\open\command\(Default)'
+  filter:
+    Details|startswith: '%SystemRoot%\system32\mmc.exe "%1" %'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule identifies attempts to bypass User Account Control (UAC) by monitoring modifications to a specific registry key associated with the Event Viewer. By targeting the registry path `_Classes\mscfile\shell\open\command\(Default)`, the rule detects when unauthorized changes are made that point to the use of Microsoft Management Console (MMC) to execute malicious commands. The condition checks for registry edits that indicate potential misuse, specifically looking for commands that start with `%SystemRoot%\system32\mmc.exe "%1" %`, which can be leveraged to execute arbitrary commands with elevated privileges while evading UAC prompts. The primary data source involved is Windows Registry logs, making this a critical rule for detecting persistence mechanisms that exploit the Windows operating environment.
+  ### Investigation Steps
+  - Review the impacted registry key to identify any unauthorized changes and correlate them with known user or system actions.
+  - Utilize EDR tools to examine process creation logs around the time of the registry modification to uncover any potentially malicious executables that may have been launched.
+  - Check Windows event logs for any related entries that indicate abnormal usage of the Event Viewer around the discovery of the registry anomaly.
+  - Analyze network traffic logs from your NDR solution to detect any outbound connections initiated by the potentially compromised process for unusual patterns or connections to known malicious IP addresses.

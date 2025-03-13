@@ -1,0 +1,59 @@
+title: MSSQL Server Failed Logon From External Network
+id: ebfe73c2-5bc9-4ed9-aaa8-8b54b2b4777d
+related:
+- id: 218d2855-2bba-4f61-9c85-81d0ea63ac71
+  type: similar
+status: experimental
+description: Detects failed logon attempts from clients with external network IP to
+  an MSSQL server. This can be a sign of a bruteforce attack.
+references:
+- https://cybersecthreat.com/2020/07/08/enable-mssql-authentication-log-to-eventlog/
+- https://www.experts-exchange.com/questions/27800944/EventID-18456-Failed-to-open-the-explicitly-specified-database.html
+author: j4son
+date: 2023-10-11
+modified: 2024-06-26
+tags:
+- attack.credential-access
+- attack.t1110
+logsource:
+  product: windows
+  service: application
+  definition: 'Requirements: Must enable MSSQL authentication.'
+detection:
+  selection:
+    Provider_Name|contains: 'MSSQL'     # Note: We use contains to account for other third party providers - See https://github.com/SigmaHQ/sigma/issues/4876
+    EventID: 18456
+  filter_main_local_ips:
+    Data|contains:
+    - 'CLIENT: 10.'         # filter_range_IP: 10.0.0.0/8
+    - 'CLIENT: 172.16.'         # filter_range_IP: 172.16.0.0/12
+    - 'CLIENT: 172.17.'
+    - 'CLIENT: 172.18.'
+    - 'CLIENT: 172.19.'
+    - 'CLIENT: 172.20.'
+    - 'CLIENT: 172.21.'
+    - 'CLIENT: 172.22.'
+    - 'CLIENT: 172.23.'
+    - 'CLIENT: 172.24.'
+    - 'CLIENT: 172.25.'
+    - 'CLIENT: 172.26.'
+    - 'CLIENT: 172.27.'
+    - 'CLIENT: 172.28.'
+    - 'CLIENT: 172.29.'
+    - 'CLIENT: 172.30.'
+    - 'CLIENT: 172.31.'
+    - 'CLIENT: 192.168.'         # filter_range_IP: 192.168.0.0/16
+    - 'CLIENT: 127.'         # filter_loop_back: 127.0.0.0/8
+    - 'CLIENT: 169.254.'         # fileter_link-local_addressing: 169.254.0.0/16
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify failed logon attempts to Microsoft SQL Server (MSSQL) from external network IP addresses, which can indicate a potential brute-force attack. The rule analyzes security event logs, specifically targeting Event ID 18456, which is generated when a login fails. By focusing on log entries from the MSSQL service and filtering out traffic from internal IP address ranges (like those in the 10.x, 172.x, and 192.x ranges), the rule can effectively highlight suspicious behavior coming from unauthorized external sources. Responders should pay special attention to repeated failures, which can signal attempts to compromise credentials.
+  ### Investigation Steps
+  - Review the MSSQL server logs for Event ID 18456 to identify the specific external IP address and any associated timestamps for the failed login attempts.
+  - Use EDR tools to examine the processes and network connections on the MSSQL server during the time of the failed logons to check for any unusual activity or previously compromised credentials.
+  - Investigate the IP addresses that generated the failed logins using geolocation services and threat intelligence databases to determine if they are associated with known malicious actors.
+  - Check firewall and VPN logs for any allowed traffic matching the externally originating IPs, which could provide context to how the connection attempts were made and if any additional incidents are present.

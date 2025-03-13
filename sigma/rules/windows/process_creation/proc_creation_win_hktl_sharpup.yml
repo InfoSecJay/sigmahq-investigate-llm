@@ -1,0 +1,42 @@
+title: HackTool - SharpUp PrivEsc Tool Execution
+id: c484e533-ee16-4a93-b6ac-f0ea4868b2f1
+status: test
+description: Detects the use of SharpUp, a tool for local privilege escalation
+references:
+- https://github.com/GhostPack/SharpUp
+author: Florian Roth (Nextron Systems)
+date: 2022-08-20
+modified: 2023-02-13
+tags:
+- attack.privilege-escalation
+- attack.t1615
+- attack.t1569.002
+- attack.t1574.005
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\SharpUp.exe'
+  - Description: 'SharpUp'
+  - CommandLine|contains:
+    - 'HijackablePaths'
+    - 'UnquotedServicePath'
+    - 'ProcessDLLHijack'
+    - 'ModifiableServiceBinaries'
+    - 'ModifiableScheduledTask'
+    - 'DomainGPPPassword'
+    - 'CachedGPPPassword'
+  condition: selection
+falsepositives:
+- Unknown
+level: critical
+notes: |
+  ### Technical Context
+  The Sigma rule titled "HackTool 
+  - SharpUp PrivEsc Tool Execution" is designed to detect the execution of SharpUp, a tool commonly used for local privilege escalation in Windows environments. The rule focuses on process creation events, specifically looking for instances where the SharpUp application (`SharpUp.exe`) is executed. It utilizes insights from Windows process creation logs, examining attributes such as the executable's filename, its description, and the command-line parameters used during execution. Key command-line arguments that may indicate suspicious or malicious behavior include the presence of terms like `HijackablePaths`, `UnquotedServicePath`, and others linked to privilege escalation techniques. By capturing these indicators, the rule helps to identify potential misuse of the SharpUp tool in a security context.
+  ### Investigation Steps
+  - Verify the alert by checking the relevant process creation logs in your EDR platform for details about the `SharpUp.exe` execution, including the user account under which it ran.
+  - Review command-line parameters associated with the SharpUp execution to ascertain if any suspect options related to privilege escalation were invoked.
+  - Cross-reference the system and user accounts that have executed SharpUp against your baseline to identify any anomalies or unauthorized usage.
+  - Collect and analyze logs from related security tools such as AV, NGFW, and Proxy to identify any preceding or following suspicious activities that could indicate a broader attack scenario.

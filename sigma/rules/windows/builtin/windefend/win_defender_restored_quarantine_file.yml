@@ -1,0 +1,29 @@
+title: Win Defender Restored Quarantine File
+id: bc92ca75-cd42-4d61-9a37-9d5aa259c88b
+status: test
+description: Detects the restoration of files from the defender quarantine
+references:
+- https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus?view=o365-worldwide
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-12-06
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  product: windows
+  service: windefend
+detection:
+  selection:
+    EventID: 1009     # The antimalware platform restored an item from quarantine.
+  condition: selection
+falsepositives:
+- Legitimate administrator activity restoring a file
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to monitor and capture instances where Microsoft Defender for Endpoint restores a file from its quarantine state. The primary data source for this rule is Windows event logging, specifically Event ID 1009, which indicates that the antimalware platform has taken action to restore a potentially harmful file that was previously quarantined. The restoration of a quarantined file may indicate a legitimate administrative action or could represent a potential defense evasion tactic employed by malicious actors attempting to reinstate a previously flagged or banned file into the system. The presence of such events can be critical for incident response teams to assess whether the restoration was performed for legitimate purposes or if further investigation is warranted due to potential compromise.
+  ### Investigation Steps
+  - Access the EDR platform to review the file restoration event associated with Event ID 1009. Look for details such as the user account that initiated the restoration and the specific file in question.
+  - Examine the command-line parameters of the application that triggered the restoration, if applicable, to verify whether it aligns with usual business operations.
+  - Check the history of the restored file in Windows Defender to ascertain previous quarantine reasons and if any alerts or detections are linked to it.
+  - Review logs from the SIEM or the Windows Security log to identify any suspicious user activity or patterns leading up to the restoration event, focusing on unusual access times or anomalous user behavior.

@@ -1,0 +1,50 @@
+title: LOLBAS Data Exfiltration by DataSvcUtil.exe
+id: e290b10b-1023-4452-a4a9-eb31a9013b3a
+status: test
+description: Detects when a user performs data exfiltration by using DataSvcUtil.exe
+references:
+- https://gist.github.com/teixeira0xfffff/837e5bfed0d1b0a29a7cb1e5dbdd9ca6
+- https://learn.microsoft.com/en-us/previous-versions/dotnet/framework/data/wcf/wcf-data-service-client-utility-datasvcutil-exe
+- https://learn.microsoft.com/en-us/previous-versions/dotnet/framework/data/wcf/generating-the-data-service-client-library-wcf-data-services
+- https://learn.microsoft.com/en-us/previous-versions/dotnet/framework/data/wcf/how-to-add-a-data-service-reference-wcf-data-services
+- https://lolbas-project.github.io/lolbas/Binaries/DataSvcUtil/
+author: Ialle Teixeira @teixeira0xfffff, Austin Songer @austinsonger
+date: 2021-09-30
+modified: 2022-05-16
+tags:
+- attack.exfiltration
+- attack.t1567
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_cli:
+    CommandLine|contains:
+    - '/in:'
+    - '/out:'
+    - '/uri:'
+  selection_img:
+  - Image|endswith: '\DataSvcUtil.exe'
+  - OriginalFileName: 'DataSvcUtil.exe'
+  condition: all of selection*
+fields:
+- ComputerName
+- User
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- DataSvcUtil.exe being used may be performed by a system administrator.
+- Verify whether the user identity, user agent, and/or hostname should be making changes
+  in your environment.
+- DataSvcUtil.exe being executed from unfamiliar users should be investigated. If
+  known behavior is causing false positives, it can be exempted from the rule.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential data exfiltration activities utilizing the `DataSvcUtil.exe` tool on Windows systems. `DataSvcUtil.exe` is a command-line utility used to generate data service client libraries. The rule focuses on specific command-line parameters that indicate an intention to export data, including `/in:`, `/out:`, and `/uri:`. Monitoring for process creation events that involve these parameters allows the rule to flag suspicious activities where users may be extracting sensitive information from corporate data services.
+  The rule leverages process creation logs as its primary data source, specifically analyzing the command-line arguments and the image name of the executed file. Alerts are generated when the defined command-line patterns are detected along with the `DataSvcUtil.exe` binary, enabling SOC analysts to investigate potential misuse of this tool for data exfiltration activities.
+  ### Investigation Steps
+  - Query the EDR for recent process creation events involving `DataSvcUtil.exe`, focusing on the user and command-line parameters used during execution.
+  - Review related network traffic logs from the NGFW or NDR to identify any outbound connections initiated by the host machine that could correlate with the detected data exfiltration event.
+  - Utilize cloud logs (Azure, AWS, or GCP) to check for any data access or modifications that coincide with the timing of the `DataSvcUtil.exe` executions, ensuring they align with normal operational parameters.
+  - Consult the SIEM to cross-reference alerts with user activities or access patterns to determine if the initiating user has the legitimate authority or justification for such actions.

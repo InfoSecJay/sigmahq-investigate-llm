@@ -1,0 +1,36 @@
+title: Run PowerShell Script from Redirected Input Stream
+id: c83bf4b5-cdf0-437c-90fa-43d734f7c476
+status: test
+description: Detects PowerShell script execution via input stream redirect
+references:
+- https://github.com/LOLBAS-Project/LOLBAS/blob/4db780e0f0b2e2bb8cb1fa13e09196da9b9f1834/yml/LOLUtilz/OSBinaries/Powershell.yml
+- https://twitter.com/Moriarty_Meng/status/984380793383370752
+author: Moriarty Meng (idea), Anton Kutepov (rule), oscd.community
+date: 2020-10-17
+modified: 2021-11-27
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1059
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    CommandLine|re: '\s-\s*<'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of PowerShell scripts via input stream redirection, a technique often used in attacks to evade endpoint defenses. It specifically looks for instances where PowerShell or its open-source counterpart, pwsh, is invoked with a command-line argument that includes input redirection (indicated by `
+  - <`), which suggests a script is being executed from a stream rather than a file. The primary technical data sources for this rule are process creation logs, which log the commands issued to execute any process, including the exact command-line parameters used. By monitoring these logs for suspicious patterns, security teams can detect potentially malicious activity before it can escalate.
+  ### Investigation Steps
+  - Check the EDR for detailed process information on the instances of PowerShell or pwsh that triggered the alert, focusing on the full command and associated user.
+  - Review the log history from the NGFW for any unusual inbound or outbound traffic corresponding to the time of the alert that may indicate additional malicious activity.
+  - Examine the AV logs for any detections or blocks related to the PowerShell execution at the time of the incident, as this could indicate known malicious behavior.
+  - Investigate cloud logs (if applicable) in AWS, GCP, or Azure for any related activity or configurations changes that coincide with the timing of the alert to identify potential lateral movement or command and control operations.

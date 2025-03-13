@@ -1,0 +1,44 @@
+title: Disable-WindowsOptionalFeature Command PowerShell
+id: 99c4658d-2c5e-4d87-828d-7c066ca537c3
+status: test
+description: |
+  Detect built in PowerShell cmdlet Disable-WindowsOptionalFeature, Deployment Image Servicing and Management tool.
+  Similar to DISM.exe, this cmdlet is used to enumerate, install, uninstall, configure, and update features and packages in Windows images
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/5b67c9b141fa3918017f8fa44f2f88f0b1ecb9e1/atomics/T1562.001/T1562.001.md
+- https://learn.microsoft.com/en-us/powershell/module/dism/disable-windowsoptionalfeature?view=windowsserver2022-ps
+author: frack113
+date: 2022-09-10
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_cmd:
+    ScriptBlockText|contains|all:
+    - 'Disable-WindowsOptionalFeature'
+    - '-Online'
+    - '-FeatureName'
+  selection_feature:
+        # Add any important windows features
+    ScriptBlockText|contains:
+    - 'Windows-Defender-Gui'
+    - 'Windows-Defender-Features'
+    - 'Windows-Defender'
+    - 'Windows-Defender-ApplicationGuard'
+            # - 'Containers-DisposableClientVM' # Windows Sandbox
+  condition: all of selection*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the use of the PowerShell cmdlet `Disable-WindowsOptionalFeature`, which can be employed maliciously to disable important security features on Windows systems, such as Windows Defender. The rule specifically looks for script block logs that contain keywords associated with this cmdlet, particularly when the `-Online` parameter is utilized indicating that the feature is being modified on the running operating system. It also monitors for attempts to disable critical features associated with Windows Defender, helping to uncover potential evasion tactics employed by attackers. The logs involved in this detection are derived from PowerShell script block logging, which must be enabled on the target systems for this rule to function effectively.
+  ### Investigation Steps
+  - Review PowerShell logs in the EDR tool to identify the timestamp and context of the command execution to understand the potential impact on security features.
+  - Correlate with event logs from Windows Defender to verify if any features were disabled, and identify any possible malicious activities that followed.
+  - Utilize network traffic logs from the NDR or Proxy to examine if there were any unusual connections or data exfiltration attempts around the time of the command execution.
+  - Conduct a forensic analysis of the systems involved using the AV tool to scan for any signs of compromise that may have resulted from the alteration of security features.

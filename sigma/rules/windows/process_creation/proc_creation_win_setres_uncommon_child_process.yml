@@ -1,0 +1,43 @@
+title: Uncommon Child Process Of Setres.EXE
+id: 835e75bf-4bfd-47a4-b8a6-b766cac8bcb7
+status: test
+description: |
+  Detects uncommon child process of Setres.EXE.
+  Setres.EXE is a Windows server only process and tool that can be used to set the screen resolution.
+  It can potentially be abused in order to launch any arbitrary file with a name containing the word "choice" from the current execution path.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Setres/
+- https://twitter.com/0gtweet/status/1583356502340870144
+- https://strontic.github.io/xcyclopedia/library/setres.exe-0E30E4C09637D7A128A37B59A3BC4D09.html
+- https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/cc731033(v=ws.11)
+author: '@gott_cyber, Nasreddine Bencherchali (Nextron Systems)'
+date: 2022-12-11
+modified: 2024-06-26
+tags:
+- attack.defense-evasion
+- attack.t1218
+- attack.t1202
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\setres.exe'
+    Image|contains: '\choice'
+  filter_main_legit_location:
+    Image|endswith:
+    - 'C:\Windows\System32\choice.exe'
+    - 'C:\Windows\SysWOW64\choice.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule, titled "Uncommon Child Process Of Setres.EXE," is designed to identify potentially malicious activity that exploits the Windows server process `setres.exe`. Normally used for setting screen resolutions, `setres.exe` could be abused by threat actors to execute unknown binaries with names containing the term "choice" from a current execution path. The rule specifically monitors process creation logs to detect instances where `setres.exe` is the parent process for any child processes containing "choice". By filtering out legitimate instances of `choice.exe` found in standard locations, the rule reduces false positives, focusing on potentially suspicious behavior.
+  The data sources utilized by this rule include process creation logs from the Windows operating system, allowing incident responders to assess which applications are being launched and the context in which they are invoked. By correlating parent and child processes, the rule highlights unusual patterns that could signify evasive tactics or exploitation attempts.
+  ### Investigation Steps
+  - Use your EDR tool to review the process creation logs and confirm any suspicious child processes initiated by `setres.exe`. Investigate the command line parameters for additional context about how the process was executed.
+  - Check the file path of the noted child processes to see if they originate from uncommon locations, which could indicate a potential security incident that requires escalation.
+  - Analyze the logs from the NGFW to identify any outbound connections made by the suspicious processes. This can help determine whether they are attempting to communicate with known malicious servers.
+  - Review antivirus alerts or logs to see if any files associated with these processes were flagged as malicious. This can provide further evidence of compromise or a false positive that requires clearance.

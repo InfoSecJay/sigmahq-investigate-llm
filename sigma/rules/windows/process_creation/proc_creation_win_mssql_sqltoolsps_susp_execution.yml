@@ -1,0 +1,40 @@
+title: SQL Client Tools PowerShell Session Detection
+id: a746c9b8-a2fb-4ee5-a428-92bee9e99060
+status: test
+description: |
+  This rule detects execution of a PowerShell code through the sqltoolsps.exe utility, which is included in the standard set of utilities supplied with the Microsoft SQL Server Management studio.
+  Script blocks are not logged in this case, so this utility helps to bypass protection mechanisms based on the analysis of these logs.
+references:
+- https://github.com/LOLBAS-Project/LOLBAS/blob/8283d8d91552213ded165fd36deb6cb9534cb443/yml/OtherMSBinaries/Sqltoolsps.yml
+- https://twitter.com/pabraeken/status/993298228840992768
+author: 'Agro (@agro_sev) oscd.communitly'
+date: 2020-10-13
+modified: 2022-02-25
+tags:
+- attack.execution
+- attack.t1059.001
+- attack.defense-evasion
+- attack.t1127
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\sqltoolsps.exe'
+  - ParentImage|endswith: '\sqltoolsps.exe'
+  - OriginalFileName: '\sqltoolsps.exe'
+  filter:
+    ParentImage|endswith: '\smss.exe'
+  condition: selection and not filter
+falsepositives:
+- Direct PS command execution through SQLToolsPS.exe is uncommon, childprocess sqltoolsps.exe
+  spawned by smss.exe is a legitimate action.
+level: medium
+notes: |
+  ### Technical Context
+  The "SQL Client Tools PowerShell Session Detection" rule is designed to identify potentially unauthorized use of PowerShell initiated through the `sqltoolsps.exe` utility. This utility is part of the standard Microsoft SQL Server Management Studio and presents a unique challenge for threat detection, as PowerShell script blocks executed in this context are not typically logged. The rule observes process creation events to track instances where `sqltoolsps.exe` is either directly executed or spawned by a parent process, specifically filtering out instances that originate from legitimate parents like `smss.exe`. By focusing on this executable, the rule aims to detect attempts to evade detection mechanisms that rely on logging script block execution.
+  ### Investigation Steps
+  - Utilize EDR tools to analyze the process creation events related to `sqltoolsps.exe`, focusing on whether it was initiated directly or via a parent process.
+  - Review command-line parameters associated with the `sqltoolsps.exe` execution to identify any suspicious or unexpected arguments that may indicate malicious intent.
+  - Inspect the timeline of related process activities to trace any lateral movement or escalation of privileges that could be linked to the suspicious execution of `sqltoolsps.exe`.
+  - Correlate findings with logs from NGFW, AV, and other detection tools to further validate the context and potential impact of the detected instance.

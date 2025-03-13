@@ -1,0 +1,35 @@
+title: HackTool - Potential CobaltStrike Process Injection
+id: 6309645e-122d-4c5b-bb2b-22e4f9c2fa42
+status: test
+description: Detects a potential remote threat creation with certain characteristics
+  which are typical for Cobalt Strike beacons
+references:
+- https://medium.com/@olafhartong/cobalt-strike-remote-threads-detection-206372d11d0f
+- https://blog.cobaltstrike.com/2018/04/09/cobalt-strike-3-11-the-snake-that-eats-its-tail/
+author: Olaf Hartong, Florian Roth (Nextron Systems), Aleksey Potapov, oscd.community
+date: 2018-11-30
+modified: 2023-05-05
+tags:
+- attack.defense-evasion
+- attack.t1055.001
+logsource:
+  product: windows
+  category: create_remote_thread
+detection:
+  selection:
+    StartAddress|endswith:
+    - '0B80'
+    - '0C7C'
+    - '0C88'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule aims to detect potential process injection activities commonly associated with Cobalt Strike, a popular penetration testing and adversary simulation tool often leveraged by threat actors. The rule specifically looks for remote thread creation events where the `StartAddress` parameter ends with specific hex values ('0B80', '0C7C', '0C88'). These values are indicative of spawning processes in a manner that bypasses traditional security mechanisms, indicating possible malicious intent. The primary data source leveraged for this detection is Windows `create_remote_thread` logs, which record process creation events, including the addresses at which new threads are initiated.
+  ### Investigation Steps
+  - Query EDR tools for `create_remote_thread` events during the timeframe of the alert to identify any suspicious processes and their parent processes.
+  - Examine the command-line parameters of the flagged processes to check for unusual execution flags or configurations that deviate from normal operational patterns.
+  - Cross-reference any identified processes with threat intelligence feeds to determine if they are known tools or components of Cobalt Strike.
+  - Investigate network logs from the firewall or proxy to trace any outgoing connections made by the suspected processes, looking for indicators of data exfiltration or command-and-control communication.

@@ -1,0 +1,126 @@
+title: Webshell Detection With Command Line Keywords
+id: bed2a484-9348-4143-8a8a-b801c979301c
+status: test
+description: Detects certain command line parameters often used during reconnaissance
+  activity via web shells
+references:
+- https://www.fireeye.com/blog/threat-research/2013/08/breaking-down-the-china-chopper-web-shell-part-ii.html
+- https://unit42.paloaltonetworks.com/bumblebee-webshell-xhunt-campaign/
+- https://www.huntress.com/blog/threat-advisory-oh-no-cleo-cleo-software-actively-being-exploited-in-the-wild
+author: Florian Roth (Nextron Systems), Jonhnathan Ribeiro, Anton Kutepov, oscd.community,
+  Chad Hudson, Matt Anderson
+date: 2017-01-01
+modified: 2024-12-14
+tags:
+- attack.persistence
+- attack.t1505.003
+- attack.t1018
+- attack.t1033
+- attack.t1087
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_webserver_image:
+    ParentImage|endswith:
+    - '\w3wp.exe'
+    - '\php-cgi.exe'
+    - '\nginx.exe'
+    - '\httpd.exe'
+    - '\caddy.exe'
+    - '\ws_tomcatservice.exe'
+  selection_webserver_characteristics_tomcat1:
+    ParentImage|endswith:
+    - '\java.exe'
+    - '\javaw.exe'
+    ParentImage|contains:
+    - '-tomcat-'
+    - '\tomcat'
+  selection_webserver_characteristics_tomcat2:
+    ParentImage|endswith:
+    - '\java.exe'
+    - '\javaw.exe'
+    CommandLine|contains:
+    - 'catalina.jar'
+    - 'CATALINA_HOME'
+  selection_susp_net_utility:
+    OriginalFileName:
+    - 'net.exe'
+    - 'net1.exe'
+    CommandLine|contains:
+    - ' user '
+    - ' use '
+    - ' group '
+  selection_susp_ping_utility:
+    OriginalFileName: 'ping.exe'
+    CommandLine|contains: ' -n '
+  selection_susp_change_dir:
+    CommandLine|contains:
+    - '&cd&echo'          # china chopper web shell
+    - 'cd /d '          # https://www.computerhope.com/cdhlp.htm
+  selection_susp_wmic_utility:
+    OriginalFileName: 'wmic.exe'
+    CommandLine|contains: ' /node:'
+  selection_susp_powershell_cli:
+    Image|endswith:
+    - '\cmd.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    CommandLine|contains:
+    - ' -enc '
+    - ' -EncodedCommand '
+    - ' -w hidden '
+    - ' -windowstyle hidden'
+    - '.WebClient).Download'
+  selection_susp_misc_discovery_binaries:
+  - Image|endswith:
+    - '\dsquery.exe'
+    - '\find.exe'
+    - '\findstr.exe'
+    - '\ipconfig.exe'
+    - '\netstat.exe'
+    - '\nslookup.exe'
+    - '\pathping.exe'
+    - '\quser.exe'
+    - '\schtasks.exe'
+    - '\systeminfo.exe'
+    - '\tasklist.exe'
+    - '\tracert.exe'
+    - '\ver.exe'
+    - '\wevtutil.exe'
+    - '\whoami.exe'
+  - OriginalFileName:
+    - 'dsquery.exe'
+    - 'find.exe'
+    - 'findstr.exe'
+    - 'ipconfig.exe'
+    - 'netstat.exe'
+    - 'nslookup.exe'
+    - 'pathping.exe'
+    - 'quser.exe'
+    - 'schtasks.exe'
+    - 'sysinfo.exe'
+    - 'tasklist.exe'
+    - 'tracert.exe'
+    - 'ver.exe'
+    - 'VSSADMIN.EXE'
+    - 'wevtutil.exe'
+    - 'whoami.exe'
+  selection_susp_misc_discovery_commands:
+    CommandLine|contains:
+    - ' Test-NetConnection '
+    - 'dir \'          # remote dir: dir \<redacted IP #3>\C$:\windows\temp\*.exe
+  condition: 1 of selection_webserver_* and 1 of selection_susp_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  n
+  ### Technical Context
+  This detection rule identifies potential webshell activity based on specific command-line parameters often used by attackers during reconnaissance. It focuses on processes that are typically associated with web server applications such as IIS, nginx, or Tomcat, as well as common system utilities that may be exploited to enumerate or manipulate system resources. The rule looks for specific attributes like the parent image of the process and keywords present in command-line arguments. By analyzing logs from processes (e.g., process creation logs), the detection mechanism can flag suspicious activities that resemble known patterns used in webshell exploits.
+  Key data sources involved in this rule include process creation logs that detail the executed command lines and their parent processes. The rule checks for typical identifiers related to web server applications and pairs them with command-line indicators that suggest malicious behavior, such as attempts to change directories or execute network utilities aimed at reconnaissance.
+  ### Investigation Steps
+  - Use an EDR tool to examine the process creation logs of the flagged activity. Look for unusual command line arguments, especially those that include webshell-like commands or system utilities commonly abused during a compromise.
+  - Verify the parent processes associated with the flagged commands by cross-referencing them in the EDR system. This can help determine whether these processes are legitimate server applications or part of a larger malicious activity.
+  - Check network logs and proxy data to monitor any unexpected outbound connections originating from the affected hosts. Pay particular attention to external IPs that align with those observed in command line parameters or suspicious downloads.
+  - Consult cloud platform logs (e.g., AWS CloudTrail, Azure Activity Log) to see if there are any anomalous activities or unauthorized changes occurring in conjunction with the detected webshell activity. This can provide insight into possible lateral movement or privilege escalation attempts.

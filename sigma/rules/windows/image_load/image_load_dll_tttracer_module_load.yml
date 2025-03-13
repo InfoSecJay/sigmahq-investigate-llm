@@ -1,0 +1,38 @@
+title: Time Travel Debugging Utility Usage - Image
+id: e76c8240-d68f-4773-8880-5c6f63595aaf
+status: test
+description: Detects usage of Time Travel Debugging Utility. Adversaries can execute
+  malicious processes and dump processes, such as lsass.exe, via tttracer.exe.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Tttracer/
+- https://twitter.com/mattifestation/status/1196390321783025666
+- https://twitter.com/oulusoyum/status/1191329746069655553
+author: 'Ensar Şamil, @sblmsrsn, @oscd_initiative'
+date: 2020-10-06
+modified: 2022-12-02
+tags:
+- attack.defense-evasion
+- attack.credential-access
+- attack.t1218
+- attack.t1003.001
+logsource:
+  product: windows
+  category: image_load
+detection:
+  selection:
+    ImageLoaded|endswith:
+    - '\ttdrecord.dll'
+    - '\ttdwriter.dll'
+    - '\ttdloader.dll'
+  condition: selection
+falsepositives:
+- Legitimate usage by software developers/testers
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule identifies the usage of the Time Travel Debugging Utility through the detection of specific DLL files associated with its operations. It analyzes the image load events on Windows systems, looking specifically for instances where the execution or loading of DLLs ends with `ttdrecord.dll`, `ttdwriter.dll`, or `ttdloader.dll`. These libraries are leveraged by adversaries to manipulate and inspect processes in a way that can facilitate malicious activity, such as dumping sensitive information from processes like `lsass.exe`. By monitoring the loading of these DLLs, analysts can potentially identify unauthorized or malicious usage of this debugging utility, which can indicate attempts at credential theft or other nefarious activities.
+  ### Investigation Steps
+  - Review the EDR logs for the specific process and any recorded behavior around the time of the alert, specifically looking for the usage of `tttracer.exe`.
+  - Check for any associated process creation events, especially those involving the listed DLL files, to understand the context in which the Time Travel Debugging Utility was executed.
+  - Analyze system and network traffic logs via the NGFW and Proxy to identify any suspicious communications that may relate to data exfiltration following the usage of this debugging tool.
+  - Investigate user activities and privileges associated with the incident to determine if there was any unauthorized access or compromise, focusing on user accounts involved in the execution of 'tttracer.exe'.

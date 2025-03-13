@@ -1,0 +1,39 @@
+title: Invoke-Obfuscation Via Use Clip - Security
+id: 1a0a2ff1-611b-4dac-8216-8a7b47c618a6
+related:
+- id: 63e3365d-4824-42d8-8b82-e56810fefa0c
+  type: derived
+status: test
+description: Detects Obfuscated Powershell via use Clip.exe in Scripts
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009     # (Task29)
+author: Nikita Nazarov, oscd.community
+date: 2020-10-09
+modified: 2022-11-29
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  service: security
+  definition: The 'System Security Extension' audit subcategory need to be enabled
+    to log the EID 4697
+detection:
+  selection:
+    EventID: 4697
+    ServiceFileName|contains: '(Clipboard|i'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potential obfuscated PowerShell usage as evidenced by the execution of `Clip.exe`, which may be used to interact with the Windows clipboard for stealthy command execution or data exfiltration. The rule specifically looks for Event ID 4697, which logs the installation of services, while filtering for service file names that contain terms like "Clipboard" or variations thereof. By monitoring these logs, the SOC can detect suspicious behavior that may indicate an attempt to evade defenses through obfuscation techniques, aligning with the framework of tactics and techniques outlined in MITRE ATT&CK, such as defense evasion and execution.
+  The relevant data sources for this rule include Windows Security event logs, specifically focusing on service-related events that may indicate malicious activity or the presence of obfuscated scripts. By applying this detection tactic, security teams can proactively identify potential threats in the environment that would otherwise attempt to remain hidden.
+  ### Investigation Steps
+  - Review the Event ID 4697 logs in your SIEM to correlate the instances of `Clip.exe` invocation with the timestamps of other suspicious activities or alerts.
+  - Utilize EDR tools to examine the processes running at the time of the event, focusing on command-line parameters passed to `Clip.exe` and related PowerShell scripts.
+  - Analyze user activity and access patterns through Proxy and VPN logs to identify any abnormal usage of clipboard-related functionalities.
+  - Conduct a threat intelligence investigation to understand if the observed behavior corresponds with known indicators of compromise or attack patterns related to obfuscation techniques.

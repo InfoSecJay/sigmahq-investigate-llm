@@ -1,0 +1,34 @@
+title: Insecure Proxy/DOH Transfer Via Curl.EXE
+id: 2c1486f5-02e8-4f86-9099-b97f2da4ed77
+status: test
+description: Detects execution of "curl.exe" with the "insecure" flag over proxy or
+  DOH.
+references:
+- https://curl.se/docs/manpage.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-07-27
+tags:
+- attack.execution
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith: '\curl.exe'
+  - OriginalFileName: 'curl.exe'
+  selection_cli:
+    CommandLine|contains:
+    - '--doh-insecure'
+    - '--proxy-insecure'
+  condition: all of selection_*
+falsepositives:
+- Access to badly maintained internal or development systems
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of the `curl.exe` utility with specific insecure flags, namely `--doh-insecure` and `--proxy-insecure`. These command-line parameters indicate that the tool is being used to make a DNS over HTTPS (DoH) request or to connect via a proxy without SSL verification, which could potentially expose sensitive data or facilitate malicious activities. The rule examines process creation logs, focusing on the image name of the process (`curl.exe`) and any associated command line parameters. Notably, this detection leverages Windows log sources, making it particularly relevant in environments where Windows-based systems are prevalent.
+  ### Investigation Steps
+  - Review the EDR logs to identify the user and machine that executed the `curl.exe` command with the specified insecure flags, noting the timestamp for context.
+  - Correlate the detected process execution with any existing alerts or incidents in the SIEM to identify potential malicious behavior associated with the same user or device.
+  - Analyze network traffic logs from the NDR or Firewall to determine if any suspicious communications were established during the time of the execution, focusing on the destination IPs and domains contacted.
+  - Check application logs in the cloud environments (if applicable), particularly for any cross-cloud communications that may have been initiated using insecure methods during or after the detected activity.

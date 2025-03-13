@@ -1,0 +1,45 @@
+title: Suspicious ASPX File Drop by Exchange
+id: bd1212e5-78da-431e-95fa-c58e3237a8e6
+related:
+- id: 6b269392-9eba-40b5-acb6-55c882b20ba6
+  type: similar
+status: test
+description: Detects suspicious file type dropped by an Exchange component in IIS
+  into a suspicious folder
+references:
+- https://www.microsoft.com/security/blog/2022/09/30/analyzing-attacks-using-the-exchange-vulnerabilities-cve-2022-41040-and-cve-2022-41082/
+- https://www.gteltsc.vn/blog/canh-bao-chien-dich-tan-cong-su-dung-lo-hong-zero-day-tren-microsoft-exchange-server-12714.html
+- https://en.gteltsc.vn/blog/cap-nhat-nhe-ve-lo-hong-bao-mat-0day-microsoft-exchange-dang-duoc-su-dung-de-tan-cong-cac-to-chuc-tai-viet-nam-9685.html
+author: Florian Roth (Nextron Systems), MSTI (query, idea)
+date: 2022-10-01
+tags:
+- attack.persistence
+- attack.t1505.003
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    Image|endswith: '\w3wp.exe'
+    CommandLine|contains: 'MSExchange'
+    TargetFilename|contains:
+    - 'FrontEnd\HttpProxy\'                   # from GTSC and MSTI reports
+    - '\inetpub\wwwroot\aspnet_client\'         # from GTSC report
+  selection_types:
+    TargetFilename|endswith:
+    - '.aspx'
+    - '.asp'
+    - '.ashx'
+  condition: all of selection*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule aims to identify potentially malicious activity involving the dropping of suspicious ASPX files by the Microsoft Exchange component in Internet Information Services (IIS). The rule monitors processes related to `w3wp.exe`, the IIS worker process for handling web requests, specifically looking for command-line parameters that include 'MSExchange'. It tracks any file drops into specified directories known to be exploited by attackers, particularly `FrontEnd\HttpProxy\` and `\inetpub\wwwroot\aspnet_client\`. The key indicators being monitored include file types that end with `.aspx`, `.asp`, or `.ashx`, which are often associated with web applications but can also be leveraged for malicious purposes.
+  This rule taps into Windows file event logs, scrutinizing the compatibility of the image path, command line, and target file name to detect suspicious file activities that could indicate an ongoing attack or compromise against Exchange servers. By focusing on these specific criteria, the rule provides a mechanism for proactive identification of file drops that could be a precursor to more significant threats.
+  ### Investigation Steps
+  - Use the EDR tool to analyze the `w3wp.exe` process's command-line parameters and confirm if unauthorized ASPX files were dropped on the server.
+  - Review the file system logs to locate any recent changes in the specified directories for suspect files, focusing on timestamps and user accounts involved.
+  - Investigate network traffic logs via NDR to look for any unusual external requests that could be linked to the suspicious file activity.
+  - Refer to the cloud logs (if applicable) under your Exchange deployment in Azure or other platforms for any anomalies or irregular behaviors that correlate with the time frame of the file drops.

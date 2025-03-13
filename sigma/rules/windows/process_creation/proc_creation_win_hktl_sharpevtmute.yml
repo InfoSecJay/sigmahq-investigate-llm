@@ -1,0 +1,38 @@
+title: HackTool - SharpEvtMute Execution
+id: bedfc8ad-d1c7-4e37-a20e-e2b0dbee759c
+related:
+- id: 49329257-089d-46e6-af37-4afce4290685     # DLL load
+  type: similar
+status: test
+description: Detects the use of SharpEvtHook, a tool that tampers with the Windows
+  event logs
+references:
+- https://github.com/bats3c/EvtMute
+author: Florian Roth (Nextron Systems)
+date: 2022-09-07
+modified: 2023-02-14
+tags:
+- attack.defense-evasion
+- attack.t1562.002
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+  - Image|endswith: '\SharpEvtMute.exe'
+  - Description: 'SharpEvtMute'
+  - CommandLine|contains:
+    - '--Filter "rule '
+    - '--Encoded --Filter \"'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of SharpEvtMute, a tool used to manipulate Windows event logs, which poses a risk to the integrity of logged data. The rule leverages process creation logs to monitor for instances where the executable file `SharpEvtMute.exe` is launched, specifically looking for its description and associated command-line parameters that indicate attempts to filter or modify event logs. The use of command-line arguments like `--Filter` and `--Encoded` helps pinpoint specific calls that suggest malicious activity focused on evading detection through tampering with log files. By correlating this information, the rule alerts SOC analysts to potential misuse of the tool, aiding in identifying threats to organizational security.
+  ### Investigation Steps
+  - Use your EDR tool to search for recent instances of `SharpEvtMute.exe` to gather details on its execution context, including associated process trees and user accounts.
+  - Analyze the command-line parameters associated with the detected instances to discern the specific filtering actions attempted on the event logs.
+  - Review Windows event logs to identify any anomalies or missing entries around the time `SharpEvtMute` was executed, which may indicate successful log tampering.
+  - Check for network connections or external communications initiated by the process using NDR tools, as this may reveal additional malicious behavior associated with the alert.

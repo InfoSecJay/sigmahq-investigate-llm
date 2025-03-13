@@ -1,0 +1,37 @@
+title: HackTool - CobaltStrike BOF Injection Pattern
+id: 09706624-b7f6-455d-9d02-adee024cee1d
+status: test
+description: Detects a typical pattern of a CobaltStrike BOF which inject into other
+  processes
+references:
+- https://github.com/boku7/injectAmsiBypass
+- https://github.com/boku7/spawn
+author: Christian Burkard (Nextron Systems)
+date: 2021-08-04
+modified: 2023-11-28
+tags:
+- attack.execution
+- attack.t1106
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: process_access
+  product: windows
+detection:
+  selection:
+    CallTrace|re: '^C:\\Windows\\SYSTEM32\\ntdll\.dll\+[a-z0-9]{4,6}\|C:\\Windows\\System32\\KERNELBASE\.dll\+[a-z0-9]{4,6}\|UNKNOWN\([A-Z0-9]{16}\)$'
+    GrantedAccess:
+    - '0x1028'
+    - '0x1fffff'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential exploitation patterns associated with Cobalt Strike’s Beacon Object File (BOF) injection technique, which is used in various malicious activities to execute code within the context of other processes. The rule focuses on process access logs that capture call traces involving specific system DLLs, particularly `ntdll.dll` and `KERNELBASE.dll`. It looks for successful injection attempts indicated by specific access rights (e.g., `0x1028` for PROCESS_QUERY_INFORMATION and `0x1fffff` for full access). By monitoring process interactions and detecting these distinctive patterns in the call trace, the rule enables security analysts to identify possible intrusions or advanced persistent threats leveraging Cobalt Strike for code execution and defense evasion.
+  ### Investigation Steps
+  - Check EDR logs for any related processes that were accessed around the same time as the alert, particularly focusing on processes that utilize `ntdll.dll` or `KERNELBASE.dll`.
+  - Review the command-line parameters of processes identified in the EDR investigation to identify any suspicious activities or indicators of compromise (IOCs).
+  - Consult application logs (if applicable) in your SIEM to identify any anomalies or unusual patterns that align with the intrusion detection alert.
+  - Investigate network traffic logs, especially from the NGFW or NDR, to look for unusual communication patterns to external IPs that may indicate command and control (C2) activity associated with the detected pattern.

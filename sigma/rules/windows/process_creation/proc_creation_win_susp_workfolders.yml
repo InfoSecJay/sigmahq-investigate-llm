@@ -1,0 +1,33 @@
+title: Execution via WorkFolders.exe
+id: 0bbc6369-43e3-453d-9944-cae58821c173
+status: test
+description: Detects using WorkFolders.exe to execute an arbitrary control.exe
+references:
+- https://twitter.com/elliotkillick/status/1449812843772227588
+author: Maxime Thiebaut (@0xThiebaut)
+date: 2021-10-21
+modified: 2022-12-25
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\control.exe'
+    ParentImage|endswith: '\WorkFolders.exe'
+  filter:
+    Image: 'C:\Windows\System32\control.exe'
+  condition: selection and not filter
+falsepositives:
+- Legitimate usage of the uncommon Windows Work Folders feature.
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule "Execution via WorkFolders.exe" is designed to detect potentially malicious activity involving the execution of `control.exe`, a Windows command used for system control panel tasks. Specifically, it identifies instances where `control.exe` is launched as a process by `WorkFolders.exe`, which is typically not associated with launching this executable. The detection leverages Windows process creation logs, focusing on the parent process to establish a suspicious lineage. By filtering out legitimate instances of `control.exe` initiated directly from its expected path (`C:\Windows\System32\control.exe`), the rule aims to highlight those executions that deviate from standard operational patterns and may signify an attempt to execute unauthorized or harmful commands under a guise of normalcy.
+  ### Investigation Steps
+  - **Review Process Creation Logs:** Utilize your EDR solution to examine the process creation logs for suspicious instances of `control.exe` being spawned by `WorkFolders.exe`. Document any unusual command-line parameters associated with these executions.
+  - **Cross-reference with Threat Intelligence:** Check any observed alerts against threat intelligence feeds to see if the specific `control.exe` instances or their parent processes have been linked to known Indicators of Compromise (IOCs).
+  - **Analyze Network Activity:** Investigate network logs to identify any outgoing connections that coincide with the timing of the detected `control.exe` executions. This may indicate further malicious behavior or data exfiltration attempts.
+  - **Check User Activity:** Review logs from user accounts associated with the detected activities. Determine if the actions align with normal user behavior or if they reveal potential unauthorized access or administrator privileges.

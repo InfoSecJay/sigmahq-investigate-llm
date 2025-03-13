@@ -1,0 +1,32 @@
+title: Invoke-Obfuscation Via Stdin
+id: 9c14c9fa-1a63-4a64-8e57-d19280559490
+status: test
+description: Detects Obfuscated Powershell via Stdin in Scripts
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009     # (Task28)
+author: Nikita Nazarov, oscd.community
+date: 2020-10-12
+modified: 2024-04-16
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|re: '(?i)(set).*&&\s?set.*(environment|invoke|\$\{?input).*&&.*"'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Invoke-Obfuscation Via Stdin" detection rule identifies potentially malicious PowerShell commands that have been obfuscated using standard obfuscation techniques. This rule focuses on command line inputs where specific patterns are detected, particularly the use of the `set` command in conjunction with environment variable manipulations and the invocation of input via `&&`. The purpose of this detection is to highlight attempts to execute obfuscated scripts that might be used to bypass security measures and execute unauthorized actions on Windows systems. The key technical data sources for this detection include process creation logs, specifically monitoring command-line parameters that are associated with these potentially harmful operations.
+  ### Investigation Steps
+  - Review recent process creation logs in your EDR tool for instances of PowerShell execution and analyze the command line arguments for obfuscation indicators as specified in the Sigma rule.
+  - Correlate detection alerts with threat intelligence feeds to determine if the executed PowerShell commands align with known malicious behaviors or attack vectors.
+  - Check firewall and proxy logs to identify any external communications that may be linked to the flagged PowerShell executions, especially unusual or unauthorized outbound connections.
+  - Investigate the presence of any suspicious files or scripts in the environment where the alert was triggered, utilizing tools like AV and file integrity monitoring to assess any potential changes.

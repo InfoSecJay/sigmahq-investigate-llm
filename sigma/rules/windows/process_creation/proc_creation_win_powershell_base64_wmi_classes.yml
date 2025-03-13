@@ -1,0 +1,85 @@
+title: PowerShell Base64 Encoded WMI Classes
+id: 1816994b-42e1-4fb1-afd2-134d88184f71
+related:
+- id: 47688f1b-9f51-4656-b013-3cc49a166a36
+  type: obsolete
+status: test
+description: Detects calls to base64 encoded WMI class such as "Win32_ShadowCopy",
+  "Win32_ScheduledJob", etc.
+references:
+- https://github.com/Neo23x0/Raccine/blob/20a569fa21625086433dcce8bb2765d0ea08dcb6/yara/mal_revil.yar
+author: Christian Burkard (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-30
+tags:
+- attack.execution
+- attack.t1059.001
+- attack.defense-evasion
+- attack.t1027
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+  - OriginalFileName:
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+  selection_cli_shadowcopy:
+        # Win32_ShadowCopy
+    CommandLine|contains:
+    - 'VwBpAG4AMwAyAF8AUwBoAGEAZABvAHcAYwBvAHAAeQ'
+    - 'cAaQBuADMAMgBfAFMAaABhAGQAbwB3AGMAbwBwAHkA'
+    - 'XAGkAbgAzADIAXwBTAGgAYQBkAG8AdwBjAG8AcAB5A'
+    - 'V2luMzJfU2hhZG93Y29we'
+    - 'dpbjMyX1NoYWRvd2NvcH'
+    - 'XaW4zMl9TaGFkb3djb3B5'
+  selection_cli_scheduledJob:
+        # Win32_ScheduledJob
+    CommandLine|contains:
+    - 'VwBpAG4AMwAyAF8AUwBjAGgAZQBkAHUAbABlAGQASgBvAGIA'
+    - 'cAaQBuADMAMgBfAFMAYwBoAGUAZAB1AGwAZQBkAEoAbwBiA'
+    - 'XAGkAbgAzADIAXwBTAGMAaABlAGQAdQBsAGUAZABKAG8AYg'
+    - 'V2luMzJfU2NoZWR1bGVkSm9i'
+    - 'dpbjMyX1NjaGVkdWxlZEpvY'
+    - 'XaW4zMl9TY2hlZHVsZWRKb2'
+  selection_cli_process:
+        # Win32_Process
+    CommandLine|contains:
+    - 'VwBpAG4AMwAyAF8AUAByAG8AYwBlAHMAcw'
+    - 'cAaQBuADMAMgBfAFAAcgBvAGMAZQBzAHMA'
+    - 'XAGkAbgAzADIAXwBQAHIAbwBjAGUAcwBzA'
+    - 'V2luMzJfUHJvY2Vzc'
+    - 'dpbjMyX1Byb2Nlc3'
+    - 'XaW4zMl9Qcm9jZXNz'
+  selection_cli_useraccount:
+        # Win32_UserAccount
+    CommandLine|contains:
+    - 'VwBpAG4AMwAyAF8AVQBzAGUAcgBBAGMAYwBvAHUAbgB0A'
+    - 'cAaQBuADMAMgBfAFUAcwBlAHIAQQBjAGMAbwB1AG4AdA'
+    - 'XAGkAbgAzADIAXwBVAHMAZQByAEEAYwBjAG8AdQBuAHQA'
+    - 'V2luMzJfVXNlckFjY291bn'
+    - 'dpbjMyX1VzZXJBY2NvdW50'
+    - 'XaW4zMl9Vc2VyQWNjb3Vud'
+  selection_cli_loggedonuser:
+        # Win32_LoggedOnUser
+    CommandLine|contains:
+    - 'VwBpAG4AMwAyAF8ATABvAGcAZwBlAGQATwBuAFUAcwBlAHIA'
+    - 'cAaQBuADMAMgBfAEwAbwBnAGcAZQBkAE8AbgBVAHMAZQByA'
+    - 'XAGkAbgAzADIAXwBMAG8AZwBnAGUAZABPAG4AVQBzAGUAcg'
+    - 'V2luMzJfTG9nZ2VkT25Vc2Vy'
+    - 'dpbjMyX0xvZ2dlZE9uVXNlc'
+    - 'XaW4zMl9Mb2dnZWRPblVzZX'
+  condition: selection_img and 1 of selection_cli_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activity executed through PowerShell by monitoring encoded command-line arguments indicative of Windows Management Instrumentation (WMI) class invocations. The rule specifically looks for base64 encoded strings in command-line arguments related to WMI operations like "Win32_ShadowCopy", "Win32_ScheduledJob", and other administrative tasks. These types of PowerShell command-line invocations are commonly used by attackers to evade detection, execute unauthorized commands, or escalate privileges. The primary data sources involved in this rule include process creation logs that capture details such as the image name (PowerShell executable) and the corresponding command-line arguments being executed.
+  ### Investigation Steps
+  - Review EDR logs for PowerShell process creation, filtering by the relevant command-line patterns detected in the alert.
+  - Use AV solutions to check if the identified PowerShell activity is associated with known malicious signatures or behaviors.
+  - Analyze Proxy logs for outbound connections initiated by the PowerShell process, which may indicate attempts to exfiltrate data or communicate with a command and control (C2) server.
+  - Investigate cloud platform logs, especially if the incident relates to Azure, GCP, or AWS, for any unauthorized API calls or resource manipulation correlating with the detected command execution.

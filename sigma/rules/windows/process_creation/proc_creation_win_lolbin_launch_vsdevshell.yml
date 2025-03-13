@@ -1,0 +1,34 @@
+title: Launch-VsDevShell.PS1 Proxy Execution
+id: 45d3a03d-f441-458c-8883-df101a3bb146
+status: test
+description: Detects the use of the 'Launch-VsDevShell.ps1' Microsoft signed script
+  to execute commands.
+references:
+- https://twitter.com/nas_bench/status/1535981653239255040
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-19
+tags:
+- attack.defense-evasion
+- attack.t1216.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_script:
+    CommandLine|contains: 'Launch-VsDevShell.ps1'
+  selection_flags:
+    CommandLine|contains:
+    - 'VsWherePath '
+    - 'VsInstallationPath '
+  condition: all of selection_*
+falsepositives:
+- Legitimate usage of the script by a developer
+level: medium
+notes: |
+  ### Technical Context
+  The "Launch-VsDevShell.PS1 Proxy Execution" detection rule identifies unauthorized use of the "Launch-VsDevShell.ps1" script, a Microsoft-signed PowerShell script often leveraged by developers to set up an integrated development environment (IDE) terminal. This rule specifically looks for instances where the command line used to execute processes contains the script name "Launch-VsDevShell.ps1," along with parameters that indicate the paths relevant to Visual Studio installations. By monitoring these process creation logs for suspicious command-line activities, the rule aims to detect potential misuse of legitimate scripts that could facilitate bypassing security measures, in line with the techniques outlined in the MITRE ATT&CK framework under techniques T1216.001 (Script Execution).
+  ### Investigation Steps
+  - Check the EDR console for the associated process creation logs to confirm the execution of "Launch-VsDevShell.ps1" and its command-line parameters.
+  - Investigate the user account that executed the script to determine if there are legitimate reasons for its use or if the account shows other suspicious activities.
+  - Examine network traffic logs through the NDR to assess whether any outbound connections were initiated post-execution that could suggest data exfiltration or communication with malicious domains.
+  - Review the SIEM logs for any related alerts or patterns that could indicate broader security incidents, particularly focusing on events logged around the same time as the script execution.

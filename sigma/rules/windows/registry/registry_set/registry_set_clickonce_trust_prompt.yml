@@ -1,0 +1,40 @@
+title: ClickOnce Trust Prompt Tampering
+id: ac9159cc-c364-4304-8f0a-d63fc1a0aabb
+status: test
+description: Detects changes to the ClickOnce trust prompt registry key in order to
+  enable an installation from different locations such as the Internet.
+references:
+- https://posts.specterops.io/less-smartscreen-more-caffeine-ab-using-clickonce-for-trusted-code-execution-1446ea8051c5
+- https://learn.microsoft.com/en-us/visualstudio/deployment/how-to-configure-the-clickonce-trust-prompt-behavior
+author: '@SerkinValery, Nasreddine Bencherchali (Nextron Systems)'
+date: 2023-06-12
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\SOFTWARE\MICROSOFT\.NETFramework\Security\TrustManager\PromptingLevel\'
+    TargetObject|endswith:
+    - '\Internet'
+    - '\LocalIntranet'
+    - '\MyComputer'
+    - '\TrustedSites'
+    - '\UntrustedSites'
+    Details: 'Enabled'
+  condition: selection
+falsepositives:
+- Legitimate internal requirements.
+level: medium
+notes: |
+  ### Technical Context
+  The "ClickOnce Trust Prompt Tampering" detection rule focuses on identifying unauthorized changes to the ClickOnce trust prompt settings within the Windows registry. ClickOnce is a Microsoft technology that allows users to install and run Windows applications via a web browser. By tampering with the trust prompt settings in the registry, malicious actors can alter the installation behavior of applications, potentially allowing untrusted code to be executed from various locations, such as the Internet or Local Intranet. This rule specifically monitors the registry path related to the .NET Framework's TrustManager and looks for entries indicating a configuration change where the prompt behavior may be modified to enable installations from potentially unsafe sources.
+  The rule uses registry set logs as its primary data source, focusing on the `TargetObject` field to identify entries that contain or end with specific paths indicative of a trust prompt modification. By flagging changes where the `Details` state shows that the prompt has been enabled for certain zones (like Internet and Trusted Sites), security operations center (SOC) analysts can investigate potential security risks related to unauthorized application installations.
+  ### Investigation Steps
+  - Review registry change logs focusing on the specified ClickOnce trust prompt registry key to determine the source of the modification.
+  - Use EDR tools to inspect process creation logs around the time of the registry change to check for any suspicious processes that may be related to the tampering.
+  - Cross-reference the logs with Proxy server access logs to see if there were any corresponding web accesses to potentially malicious sites.
+  - Analyze recent application installation logs in the environment to identify any applications that may have been installed as a result of the altered trust settings.

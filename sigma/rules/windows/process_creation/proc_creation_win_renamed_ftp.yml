@@ -1,0 +1,38 @@
+title: Renamed FTP.EXE Execution
+id: 277a4393-446c-449a-b0ed-7fdc7795244c
+status: test
+description: Detects the execution of a renamed "ftp.exe" binary based on the PE metadata
+  fields
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Ftp/
+author: Victor Sergeev, oscd.community
+date: 2020-10-09
+modified: 2023-02-03
+tags:
+- attack.execution
+- attack.t1059
+- attack.defense-evasion
+- attack.t1202
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_original:
+    OriginalFileName: 'ftp.exe'
+  filter_img:
+    Image|endswith: '\ftp.exe'
+  condition: selection_original and not filter_img
+fields:
+- CommandLine
+- ParentImage
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying the execution of a binary that has been renamed but retains its original attributes as "ftp.exe" in its PE (Portable Executable) metadata. The rule specifically looks for instances where the "OriginalFileName" field is recognized as "ftp.exe," but the file path does not match the expected name, thus indicating possible evasion techniques aimed at concealing malicious activities. This is particularly relevant in cases where attackers rename common utilities like FTP clients to bypass security controls while executing them. The main data sources involved in this detection include Windows process creation logs, which provide crucial information on run commands and the parent processes associated with the execution of binaries.
+  ### Investigation Steps
+  - Review the process creation logs through EDR tools to correlate the detected instance with additional indicators of malicious activity, including the command-line arguments used during execution.
+  - Analyze the parent process of the detected execution to identify the source of the command and determine whether it may be part of a chain of malicious behavior.
+  - Utilize antivirus and endpoint protection tools to check for any known signatures or behaviors associated with the renamed "ftp.exe" and other related binaries.
+  - Examine network traffic logs from the NGFW or Proxy to trace any connections made by the identified process, paying close attention to any unusual outbound connections that may indicate data exfiltration or command-and-control communications.

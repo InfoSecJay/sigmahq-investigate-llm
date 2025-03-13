@@ -1,0 +1,33 @@
+title: NET NGenAssemblyUsageLog Registry Key Tamper
+id: 28036918-04d3-423d-91c0-55ecf99fb892
+status: test
+description: |
+  Detects changes to the NGenAssemblyUsageLog registry key.
+  .NET Usage Log output location can be controlled by setting the NGenAssemblyUsageLog CLR configuration knob in the Registry or by configuring an environment variable (as described in the next section).
+  By simplify specifying an arbitrary value (e.g. fake output location or junk data) for the expected value, a Usage Log file for the .NET execution context will not be created.
+references:
+- https://bohops.com/2021/03/16/investigating-net-clr-usage-log-tampering-techniques-for-edr-evasion/
+author: frack113
+date: 2022-11-18
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject|endswith: 'SOFTWARE\Microsoft\.NETFramework\NGenAssemblyUsageLog'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying unauthorized changes to the NGenAssemblyUsageLog registry key, a part of the .NET run-time environment. By monitoring registry modifications, the rule aims to highlight potential evasion techniques employed by attackers attempting to manipulate how .NET usage logs are generated. The NGenAssemblyUsageLog key can be altered to redirect log output or suppress it entirely by setting misleading values, thus preventing the creation of legitimate usage logs that could otherwise aid in post-incident investigations. Data sources involved in this detection include Windows registry set logs, which capture the changes made to the specified registry path.
+  ### Investigation Steps
+  - Use EDR tools to collect and review the process creation logs around the time of the detected registry change to identify any suspicious application behavior.
+  - Analyze the command-line parameters associated with the processes that accessed the NGenAssemblyUsageLog key to determine whether they exhibit known malicious patterns.
+  - Review Windows event logs for any corresponding security events that may indicate unauthorized access or administrative actions preceding the registry modification.
+  - Check cloud security logs (if applicable) for any contextual user activity or session anomalies that coincide with the timestamp of the registry change, particularly focusing on unusual activity from admin accounts.

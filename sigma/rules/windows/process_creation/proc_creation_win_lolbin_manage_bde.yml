@@ -1,0 +1,45 @@
+title: Potential Manage-bde.wsf Abuse To Proxy Execution
+id: c363385c-f75d-4753-a108-c1a8e28bdbda
+status: test
+description: Detects potential abuse of the "manage-bde.wsf" script as a LOLBIN to
+  proxy execution
+references:
+- https://lolbas-project.github.io/lolbas/Scripts/Manage-bde/
+- https://gist.github.com/bohops/735edb7494fe1bd1010d67823842b712
+- https://twitter.com/bohops/status/980659399495741441
+- https://twitter.com/JohnLaTwC/status/1223292479270600706
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1216/T1216.md
+author: oscd.community, Natalia Shornikova, Nasreddine Bencherchali (Nextron Systems)
+date: 2020-10-13
+modified: 2023-02-03
+tags:
+- attack.defense-evasion
+- attack.t1216
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_wscript_img:
+  - Image|endswith: '\wscript.exe'
+  - OriginalFileName: 'wscript.exe'
+  selection_wscript_cli:
+    CommandLine|contains: 'manage-bde.wsf'
+  selection_parent:
+    ParentImage|endswith:
+    - '\cscript.exe'
+    - '\wscript.exe'
+    ParentCommandLine|contains: 'manage-bde.wsf'
+  selection_filter_cmd:
+    Image|endswith: '\cmd.exe'
+  condition: all of selection_wscript_* or (selection_parent and not selection_filter_cmd)
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potential abuse of the "manage-bde.wsf" script, which is a Windows scripting file typically used for managing BitLocker encryption. The rule looks for instances where the script is executed using Windows Script Host (WSH) via `wscript.exe` or `cscript.exe`, particularly when the script is run with specific command-line parameters that may indicate malicious intent. The detection leverages process creation logs, highlighting specific characteristics in process images, original filenames, and command lines used during execution to signal potential misuse for unwanted proxy execution. By monitoring these attributes, the rule aims to flag behaviors that align with known techniques in the MITRE ATT&CK framework, specifically the tactic of defense evasion.
+  ### Investigation Steps
+  - Review EDR telemetry to identify the associated `wscript.exe` or `cscript.exe` process creation events and examine the command-line parameters for `manage-bde.wsf`.
+  - Investigate the parent processes to establish the execution context, ensuring no untrusted scripts or commands were executed prior to the `manage-bde.wsf` invocation.
+  - Correlate findings with logs from the firewall or VPN to check for any unusual external communications originating from the host running the script.
+  - Analyze additional system logs such as AV and Proxy logs to detect any signs of malware behavior or data exfiltration related to the alert.

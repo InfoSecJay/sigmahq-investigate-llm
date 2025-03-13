@@ -1,0 +1,32 @@
+title: UtilityFunctions.ps1 Proxy Dll
+id: 0403d67d-6227-4ea8-8145-4e72db7da120
+status: test
+description: Detects the use of a Microsoft signed script executing a managed DLL
+  with PowerShell.
+references:
+- https://lolbas-project.github.io/lolbas/Scripts/UtilityFunctions/
+author: frack113
+date: 2022-05-28
+tags:
+- attack.defense-evasion
+- attack.t1216
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains:
+    - 'UtilityFunctions.ps1'
+    - 'RegSnapin '
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled **UtilityFunctions.ps1 Proxy Dll** is designed to detect the execution of a PowerShell script (`UtilityFunctions.ps1`) that leverages a managed DLL, potentially indicating malicious activity. This rule monitors process creation events on Windows systems, specifically looking for command-line parameters that include the script name along with the term `RegSnapin`. The captured command-line data serves as the key indicator for this detection, helping analysts identify potentially unauthorized uses of PowerShell that employ legitimate signed scripts in a deceptive manner. Attackers often utilize such techniques to bypass detection mechanisms while executing malicious payloads or performing lateral movement within a network.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR system for any instances of `UtilityFunctions.ps1` execution and examine the associated command-line details for any suspicious parameters.
+  - Cross-reference the alert with Windows event logs (Event ID 4104) to gather context around the PowerShell script execution and any prior associated commands leading to this action.
+  - Investigate any network activity correlated to the process creation event using the NDR tool to identify potential exfiltration or command-and-control (C2) communications.
+  - Check user access logs and cloud logs for any abnormal authentication attempts or configurations that coincide with the timing of the detected PowerShell script execution.

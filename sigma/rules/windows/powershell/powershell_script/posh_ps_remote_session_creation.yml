@@ -1,0 +1,37 @@
+title: PowerShell Remote Session Creation
+id: a0edd39f-a0c6-4c17-8141-261f958e8d8f
+status: test
+description: |
+  Adversaries may abuse PowerShell commands and scripts for execution.
+  PowerShell is a powerful interactive command-line interface and scripting environment included in the Windows operating system
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1059.001/T1059.001.md#atomic-test-10---powershell-invoke-downloadcradle
+- https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/new-pssession?view=powershell-7.4
+author: frack113
+date: 2022-01-06
+modified: 2023-01-02
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'New-PSSession'
+    - '-ComputerName '
+  condition: selection
+falsepositives:
+- Legitimate administrative script
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule targets the usage of PowerShell to establish remote sessions, specifically focusing on the creation of new PowerShell sessions using the `New-PSSession` command. This command can be used legitimately by system administrators for remote management, but it may also be exploited by adversaries to execute malicious scripts or commands on remote systems without approval. The rule looks for indicators in PowerShell script block logs where the command text includes `New-PSSession` along with the `-ComputerName` parameter, signifying that a remote connection to another computer is being made.
+  To effectively utilize this detection rule, it is essential to ensure that PowerShell Script Block Logging is enabled. The logs generated from this setting will provide the necessary data for analysis, including details about the executed PowerShell commands, which can be crucial for identifying potential misuse or unauthorized activities within the environment.
+  ### Investigation Steps
+  - Review the PowerShell script block logs generated during the alert to identify context around the `New-PSSession` command, noting any unusual or unauthorized target computers.
+  - Utilize EDR tools to analyze process creation logs around the time of the alert to correlate any suspicious processes that might have leveraged the remote session.
+  - Check network traffic logs within the NGFW or NDR solutions to detect any abnormal connections or data transfers to external or unfamiliar IP addresses during the session time frame.
+  - Inquire into historical activities via AWS, GCP, or Azure logs to assess if similar PowerShell commands were executed in previous sessions, potentially revealing a pattern of activity or a single exploit.

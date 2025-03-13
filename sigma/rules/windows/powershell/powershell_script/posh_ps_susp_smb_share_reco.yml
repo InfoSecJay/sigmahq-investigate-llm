@@ -1,0 +1,34 @@
+title: Suspicious Get Information for SMB Share
+id: 95f0643a-ed40-467c-806b-aac9542ec5ab
+status: test
+description: |
+  Adversaries may look for folders and drives shared on remote systems as a means of identifying sources of information to gather as
+  a precursor for Collection and to identify potential systems of interest for Lateral Movement.
+  Networks often contain shared network drives and folders that enable users to access file directories on various systems across a network.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1069.002/T1069.002.md
+author: frack113
+date: 2021-12-15
+modified: 2022-12-25
+tags:
+- attack.discovery
+- attack.t1069.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains: get-smbshare
+  condition: selection
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies suspicious usage of the `Get-SmbShare` command in PowerShell scripts, which is often employed by adversaries to enumerate shared folders on remote systems. By leveraging this command, attackers can discover potential targets for data collection or lateral movement, increasing their foothold within the network. To effectively detect this activity, the rule requires the integration of script block logging in Windows environments, as the relevant data originates from PowerShell execution logs. When `Get-SmbShare` is detected in script logs, it indicates that an actor may be probing for SMB shares, which are common resources in enterprise networks.
+  ### Investigation Steps
+  - Review PowerShell execution logs within your EDR platform for instances of `Get-SmbShare` commands executed during the same timeframe.
+  - Cross-reference user account activity logs to determine if the account utilized for the command had the necessary permissions and a legitimate business need for accessing SMB shares.
+  - Analyze network traffic with the NDR tool to identify any connections to SMB share resources shortly after the command execution, checking for any unauthorized data access attempts.
+  - Investigate endpoint behavior using AV tools to ensure that there are no other indicators of lateral movement or data exfiltration following the execution of the PowerShell command.

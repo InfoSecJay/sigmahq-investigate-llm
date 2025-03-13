@@ -1,0 +1,53 @@
+title: Potentially Suspicious Child Process Of Regsvr32
+id: 6f0947a4-1c5e-4e0d-8ac7-53159b8f23ca
+related:
+- id: 8e2b24c9-4add-46a0-b4bb-0057b4e6187d
+  type: obsolete
+status: test
+description: Detects potentially suspicious child processes of "regsvr32.exe".
+references:
+- https://redcanary.com/blog/intelligence-insights-april-2022/
+- https://www.echotrail.io/insights/search/regsvr32.exe
+- https://www.ired.team/offensive-security/code-execution/t1117-regsvr32-aka-squiblydoo
+author: elhoim, Florian Roth (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2022-05-05
+modified: 2023-05-26
+tags:
+- attack.defense-evasion
+- attack.t1218.010
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\regsvr32.exe'
+    Image|endswith:
+    - '\calc.exe'
+    - '\cscript.exe'
+    - '\explorer.exe'
+    - '\mshta.exe'
+    - '\net.exe'
+    - '\net1.exe'
+    - '\nltest.exe'
+    - '\notepad.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\reg.exe'
+    - '\schtasks.exe'
+    - '\werfault.exe'
+    - '\wscript.exe'
+  filter_main_werfault:
+    Image|endswith: '\werfault.exe'
+    CommandLine|contains: ' -u -p '
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unlikely, but can rarely occur. Apply additional filters accordingly.
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially suspicious child processes that are spawned by `regsvr32.exe`, a legitimate Windows utility used for registering and unregistering server functions. The rule analyzes process creation logs, specifically looking for instances where `regsvr32.exe` is the parent process, and monitors child processes that may indicate malicious activity. These child processes include common Windows executables like `calc.exe`, `powershell.exe`, and `cscript.exe`, which, when launched by `regsvr32.exe`, could signify an attempt to execute potentially harmful scripts or commands that evade detection. By employing this rule, security analysts can focus on these process relationships to uncover potential abuse of the Windows environment for nefarious purposes.
+  ### Investigation Steps
+  - Correlate the detected activity with EDR logs to gain detailed insights into the process tree, examining other parent and child processes that may indicate further malicious behavior.
+  - Review command-line arguments provided to the identified child processes using the EDR to determine if any are suspicious or indicative of automated attack tools that are leveraging `regsvr32.exe`.
+  - Analyze network traffic logs via the NDR to check for any external communications initiated by these suspicious child processes, which could suggest data exfiltration or command-and-control activity.
+  - Search proxy and web logs for any connections made by these processes during the timeline of interest to identify any potentially harmful downloads or access to known malicious sites.

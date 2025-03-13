@@ -1,0 +1,33 @@
+title: UAC Bypass via Windows Firewall Snap-In Hijack
+id: e52cb31c-10ed-4aea-bcb7-593c9f4a315b
+status: test
+description: Detects attempts to bypass User Account Control (UAC) by hijacking the
+  Microsoft Management Console (MMC) Windows Firewall snap-in
+references:
+- https://www.elastic.co/guide/en/security/current/uac-bypass-via-windows-firewall-snap-in-hijack.html#uac-bypass-via-windows-firewall-snap-in-hijack
+author: Tim Rauch, Elastic (idea)
+date: 2022-09-27
+tags:
+- attack.privilege-escalation
+- attack.t1548
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\mmc.exe'
+    ParentCommandLine|contains: 'WF.msc'
+  filter:
+    Image|endswith: '\WerFault.exe'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies attempts to bypass User Account Control (UAC) by exploiting the Microsoft Management Console (MMC) using a hijacked instance of the Windows Firewall snap-in. When an application such as `WerFault.exe` is launched with `mmc.exe` as its parent and employs `WF.msc` (the firewall management console), it may indicate a privilege escalation attempt. The rule monitors process creation logs specifically for these patterns to detect abnormal behavior related to UAC bypass attempts, utilizing standard Windows event logs related to process creation. By correlating the parent process and its command line arguments, the rule can effectively spot suspicious activities that could indicate malicious intent.
+  ### Investigation Steps
+  - Review the EDR logs to analyze the process creation events that triggered this detection rule, focusing on `WerFault.exe` launched by `mmc.exe`.
+  - Examine the command-line arguments for the potential hijacked instances to determine if `WF.msc` was invoked improperly, indicating a potential escalation attempt.
+  - Assess the timeline of the events surrounding the process creation and identify any other related processes, which could provide insights into the attacker’s methods and objectives.
+  - Investigate user account activities in the SIEM to determine if the account associated with the activity has a history of privilege escalation or unauthorized access, potentially revealing broader insights into the incident.

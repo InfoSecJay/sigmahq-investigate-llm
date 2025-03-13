@@ -1,0 +1,34 @@
+title: Password Protected ZIP File Opened
+id: 00ba9da1-b510-4f6b-b258-8d338836180f
+status: test
+description: Detects the extraction of password protected ZIP archives. See the filename
+  variable for more details on which file has been opened.
+references:
+- https://twitter.com/sbousseaden/status/1523383197513379841
+author: Florian Roth (Nextron Systems)
+date: 2022-05-09
+tags:
+- attack.defense-evasion
+- attack.t1027
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 5379
+    TargetName|contains: 'Microsoft_Windows_Shell_ZipFolder:filename'
+  filter:    # avoid overlaps with 54f0434b-726f-48a1-b2aa-067df14516e4
+    TargetName|contains: '\Temporary Internet Files\Content.Outlook'
+  condition: selection and not filter
+falsepositives:
+- Legitimate used of encrypted ZIP files
+level: medium
+notes: |
+  ### Technical Context
+  The detection rule "Password Protected ZIP File Opened" aims to identify instances where a user extracts password-protected ZIP files on Windows systems. Specifically, it monitors the `EventID 5379`, which logs actions related to ZIP file extractions. The rule focuses on logs where the `TargetName` contains the specific pattern `'Microsoft_Windows_Shell_ZipFolder:filename'`, indicating that a ZIP file is being processed. Additionally, the rule filters out potential false positives by excluding any events from the `Content.Outlook` directory within `Temporary Internet Files`, ensuring that the focus remains on genuinely suspicious activities linked to password-protected ZIP files.
+  When an alert is triggered by this rule, it is critical to perform a thorough investigation due to the possibility of data exfiltration or malware delivery using these types of files.
+  ### Investigation Steps
+  - Review the EDR logs for the endpoint where the alert was triggered, focusing on process execution history and related command-line parameters of the extraction event.
+  - Search the Antivirus (AV) logs for any detections related to the ZIP file that was extracted, checking if it has been flagged for any known threats.
+  - Assess Proxy logs to identify any network activity associated with the ZIP file, looking for unusual outbound communications following the extraction.
+  - Check cloud storage logs (if applicable) to see if there are any unusual file downloads or uploads that correspond to the times of the ZIP file extraction.

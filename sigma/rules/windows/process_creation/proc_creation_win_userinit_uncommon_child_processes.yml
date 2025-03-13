@@ -1,0 +1,61 @@
+title: Uncommon Userinit Child Process
+id: 0a98a10c-685d-4ab0-bddc-b6bdd1d48458
+related:
+- id: 21d856f9-9281-4ded-9377-51a1a6e2a432
+  type: similar
+status: test
+description: Detects uncommon "userinit.exe" child processes, which could be a sign
+  of uncommon shells or login scripts used for persistence.
+references:
+- https://cocomelonc.github.io/persistence/2022/12/09/malware-pers-20.html
+- https://learn.microsoft.com/en-us/windows-server/administration/server-core/server-core-sconfig#powershell-is-the-default-shell-on-server-core
+author: Tom Ueltschi (@c_APT_ure), Tim Shelton
+date: 2019-01-12
+modified: 2023-11-14
+tags:
+- attack.t1037.001
+- attack.persistence
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\userinit.exe'
+  filter_main_explorer:
+    Image|endswith: ':\WINDOWS\explorer.exe'
+  filter_optional_logonscripts:
+    CommandLine|contains:
+    - 'netlogon.bat'
+    - 'UsrLogon.cmd'
+  filter_optional_windows_core:
+        # Note: This filter is mandatory on Windows Core machines as the default shell spawned by "userinit" is "powershell.exe".
+        # https://learn.microsoft.com/en-us/windows-server/administration/server-core/server-core-sconfig#powershell-is-the-default-shell-on-server-core
+    CommandLine: 'PowerShell.exe'
+  filter_optional_proquota:
+    Image|endswith:
+    - ':\Windows\System32\proquota.exe'
+    - ':\Windows\SysWOW64\proquota.exe'
+  filter_optional_citrix:
+    Image|endswith:
+            # As reported by https://github.com/SigmaHQ/sigma/issues/4569
+    - ':\Program Files (x86)\Citrix\HDX\bin\cmstart.exe'         # https://support.citrix.com/article/CTX983798/purpose-of-cmstart-command
+    - ':\Program Files (x86)\Citrix\HDX\bin\icast.exe'         # https://support.citrix.com/article/CTX983798/purpose-of-cmstart-command
+    - ':\Program Files (x86)\Citrix\System32\icast.exe'
+    - ':\Program Files\Citrix\HDX\bin\cmstart.exe'         # https://support.citrix.com/article/CTX983798/purpose-of-cmstart-command
+    - ':\Program Files\Citrix\HDX\bin\icast.exe'         # https://support.citrix.com/article/CTX983798/purpose-of-cmstart-command
+    - ':\Program Files\Citrix\System32\icast.exe'
+  filter_optional_image_null:
+    Image:
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- Legitimate logon scripts or custom shells may trigger false positives. Apply additional
+  filters accordingly.
+level: high
+notes: |
+  ### Technical Context
+  The "Uncommon Userinit Child Process" detection rule aims to identify potentially malicious child processes that are spawned by the legitimate Windows initialization process, `userinit.exe`. This process is typically used to configure user environments during login, but attackers may leverage it to execute unauthorized scripts or shells for persistence on compromised systems. The rule focuses on monitoring process creation logs, specifically looking for any child processes spawned by `userinit.exe` that do not match common patterns. It employs a series of filters, excluding legitimate processes such as standard command-line scripts or applications associated with remote desktop scenarios (e.g., Citrix). By analyzing the command-line parameters and parent-child process relationships, this rule helps in detecting unusual behavior indicative of potential compromise.
+  ### Investigation Steps
+  - Utilize EDR solutions to examine the process creation logs, focusing on instances where child processes are initiated by `userinit.exe`, and take note of any unusual command-line arguments.
+  - Correlate the identified alerts with logs from VPN or Proxy to determine the source of the login, checking for anomalous behaviors or unexpected user locations.
+  - Review any relevant scripts or modification logs in the environment to identify if they appear custom or uncommon compared to standard operational practices.
+  - Assess the associated user accounts for suspicious activity patterns, such as multiple failed login attempts or logins from unfamiliar devices that could indicate credential misuse.

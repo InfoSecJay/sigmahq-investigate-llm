@@ -1,0 +1,39 @@
+title: Arbitrary File Download Via PresentationHost.EXE
+id: b124ddf4-778d-418e-907f-6dd3fc0d31cd
+status: test
+description: Detects usage of "PresentationHost" which is a utility that runs ".xbap"
+  (Browser Applications) files to download arbitrary files
+references:
+- https://github.com/LOLBAS-Project/LOLBAS/pull/239/files
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-19
+modified: 2023-11-09
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\presentationhost.exe'
+  - OriginalFileName: 'PresentationHost.exe'
+  selection_cli:
+    CommandLine|contains:
+    - 'http://'
+    - 'https://'
+    - 'ftp://'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Arbitrary File Download Via PresentationHost.EXE" targets potentially malicious activities associated with the Windows utility PresentationHost.exe. This tool is typically used to execute XBAP (XBrowser Application) files, which can, under certain conditions, download arbitrary files from the internet. The detection logic focuses on process creation logs that indicate when PresentationHost.exe is invoked, specifically looking for command-line parameters that include URLs (http, https, or ftp). These technical data sources provide insights into the nature of executed commands and may reveal unauthorized file downloads that could pose significant risks to the organization. 
+  By monitoring for any instances where PresentationHost.exe is executed with URL parameters, SOC analysts can identify suspicious behaviors that may indicate attempts to deliver malware or unauthorized files, enabling rapid response and remediation efforts.
+  ### Investigation Steps
+  - Review process creation logs in the EDR solution for instances of PresentationHost.exe execution and notes any suspicious command-line parameters containing URLs.
+  - Check the corresponding network traffic logs in the NDR to identify any outbound connections made by PresentationHost.exe, particularly those accessing the monitored URLs.
+  - Investigate the file download activity by analyzing the logs from the web proxy to determine the nature of the downloaded files and whether they pose a threat.
+  - Assess the endpoints running the affected instances of PresentationHost.exe using AV logs to check for potential malware signatures associated with the downloaded files.

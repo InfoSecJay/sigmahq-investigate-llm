@@ -1,0 +1,47 @@
+title: Suspicious DLL Loaded via CertOC.EXE
+id: 84232095-ecca-4015-b0d7-7726507ee793
+related:
+- id: 242301bc-f92f-4476-8718-78004a6efd9f
+  type: similar
+status: test
+description: Detects when a user installs certificates by using CertOC.exe to load
+  the target DLL file.
+references:
+- https://twitter.com/sblmsrsn/status/1445758411803480072?s=20
+- https://github.com/elastic/protections-artifacts/commit/746086721fd385d9f5c6647cada1788db4aea95f#diff-fe98e74189873d6df72a15df2eaa0315c59ba9cdaca93ecd68afc4ea09194ef2
+- https://lolbas-project.github.io/lolbas/Binaries/Certoc/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-02-15
+modified: 2024-03-05
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\certoc.exe'
+  - OriginalFileName: 'CertOC.exe'
+  selection_cli:
+    CommandLine|contains|windash: ' -LoadDLL '
+  selection_paths:
+    CommandLine|contains:
+    - '\Appdata\Local\Temp\'
+    - '\Desktop\'
+    - '\Downloads\'
+    - '\Users\Public\'
+    - 'C:\Windows\Tasks\'
+    - 'C:\Windows\Temp\'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Suspicious DLL Loaded via CertOC.EXE rule is designed to detect potentially malicious activities involving the Windows utility CertOC.exe, which is used for managing certificates. The rule triggers when CertOC.exe is executed with specific command-line parameters, particularly focusing on the `-LoadDLL` option. This execution pattern commonly indicates an attempt to load a Dynamic Link Library (DLL) in a non-standard way, potentially for malicious purposes. The rule inspects process creation logs to identify instances where CertOC.exe is invoked while loading DLLs from suspicious directories such as AppData, Temp, and Desktop. By correlating process attributes with these command-line characteristics, the rule helps identify instances of DLL sideloading and other defense evasion tactics, suggesting that the system may be compromised or under attack.
+  ### Investigation Steps
+  - Use EDR tools to review the process creation logs related to CertOC.EXE, focusing on identifying the execution path and any associated command-line arguments.
+  - Investigate the directory from which the suspicious DLL was loaded. Check folders like AppData, Downloads, and Temp for any unauthorized or unusual files.
+  - Conduct a network analysis using NDR solutions to evaluate any outbound communications that might have occurred following the execution of CertOC.EXE, looking for unusual traffic patterns.
+  - If applicable, consult the AV logs for any flags raised against the DLL or CertOC.EXE process, assessing their threat level and response actions taken by the antivirus solutions.

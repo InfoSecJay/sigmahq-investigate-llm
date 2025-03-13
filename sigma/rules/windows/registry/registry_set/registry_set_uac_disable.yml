@@ -1,0 +1,39 @@
+title: UAC Disabled
+id: 48437c39-9e5f-47fb-af95-3d663c3f2919
+related:
+- id: c5f6a85d-b647-40f7-bbad-c10b66bab038
+  type: similar
+- id: 0d7ceeef-3539-4392-8953-3dc664912714
+  type: similar
+status: stable
+description: |
+  Detects when an attacker tries to disable User Account Control (UAC) by setting the registry value "EnableLUA" to 0.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/7e11e9b79583545f208a6dc3fa062f2ed443d999/atomics/T1548.002/T1548.002.md
+author: frack113
+date: 2022-01-05
+modified: 2024-05-10
+tags:
+- attack.privilege-escalation
+- attack.defense-evasion
+- attack.t1548.002
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\Microsoft\Windows\CurrentVersion\Policies\System\EnableLUA'
+    Details: 'DWORD (0x00000000)'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies attempts to disable User Account Control (UAC) on Windows systems by monitoring changes in the Windows Registry, specifically targeting the registry key that controls UAC behavior: `EnableLUA`. When attackers set this key's value to `0` (DWORD), it signifies an attempt to completely disable UAC, which is a critical security feature designed to prevent unauthorized changes to the operating system. By leveraging registry set logs as the primary data source, the rule effectively alerts on this potential security risk, enabling SOC analysts to investigate and mitigate unauthorized privilege escalation or defense evasion activities.
+  The rule operates by searching for registry modifications that resemble this specific change, helping to ensure that unauthorized user behavior is quickly detected. As UAC plays a significant role in maintaining endpoint security, being able to track changes related to its configuration is vital for defending against common exploitation techniques.
+  ### Investigation Steps
+  - Review the Windows Registry logs to confirm the presence of the `EnableLUA` key and its value set to `0`.
+  - Utilize EDR tools to investigate processes and user activities around the same timeframe as the registry modification to identify potential unauthorized access.
+  - Check system logs for any corresponding events that may indicate privilege escalation attempts or abnormal user behavior prior to the UAC modification.
+  - Search for related alerts or anomalies in the SIEM that might suggest a broader campaign targeting endpoint security settings in the environment.

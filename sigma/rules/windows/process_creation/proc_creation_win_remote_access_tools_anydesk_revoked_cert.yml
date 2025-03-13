@@ -1,0 +1,52 @@
+title: Remote Access Tool - AnyDesk Execution With Known Revoked Signing Certificate
+id: 41f407b5-3096-44ea-a74f-96d04fbc41be
+status: test
+description: |
+  Detects the execution of an AnyDesk binary with a version prior to 8.0.8.
+  Prior to version 8.0.8, the Anydesk application used a signing certificate that got compromised by threat actors.
+  Use this rule to detect instances of older versions of Anydesk using the compromised certificate
+  This is recommended in order to avoid attackers leveraging the certificate and signing their binaries to bypass detections.
+references:
+- https://www.bleepingcomputer.com/news/security/anydesk-says-hackers-breached-its-production-servers-reset-passwords/
+- https://anydesk.com/en/changelog/windows
+author: Sai Prashanth Pulisetti, Nasreddine Bencherchali (Nextron Systems)
+date: 2024-02-08
+tags:
+- attack.execution
+- attack.initial-access
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith: '\AnyDesk.exe'
+  - Description: 'AnyDesk'
+  - Product: 'AnyDesk'
+  - Company: 'AnyDesk Software GmbH'
+  selection_version:
+    FileVersion|startswith:
+    - '7.0.'
+    - '7.1.'
+    - '8.0.1'
+    - '8.0.2'
+    - '8.0.3'
+    - '8.0.4'
+    - '8.0.5'
+    - '8.0.6'
+    - '8.0.7'
+  filter_main_uninstall:
+    CommandLine|contains:
+    - ' --remove'
+    - ' --uninstall'
+  condition: all of selection_* and not 1 of filter_main_*
+falsepositives:
+- Unlikely
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule monitors for the execution of AnyDesk binaries that are associated with versions prior to 8.0.8. The focus is specifically on identifying any instances of these vulnerable versions that utilize a compromised signing certificate, which has been exploited by threat actors. By examining process creation logs, the rule identifies AnyDesk processes with specific attributes such as the product name, company, and version that falls within the defined criteria. The presence of an older version of AnyDesk (e.g., 7.x or 8.0.1-8.0.7) without the use of certain command-line parameters indicating uninstallation ensures that alerts are issued when potentially malicious use of this tool occurs.
+  ### Investigation Steps
+  - Utilize EDR tools to search for any active or recently executed instances of `AnyDesk.exe`, focusing on identifying the exact version deployed on the endpoints.
+  - Review the command-line arguments associated with the found AnyDesk process to determine whether it was executed with options such as `--remove` or `--uninstall`, which would indicate legitimate activity.
+  - Analyze logs from NGFW or NDR tools for unusual outbound traffic patterns that may correlate with the use of AnyDesk, such as connections to known malicious IP addresses.
+  - Check cloud security logs for any unusual access patterns or user actions within contained environments that correspond with the identified execution of AnyDesk, ensuring a comprehensive view of the incident.

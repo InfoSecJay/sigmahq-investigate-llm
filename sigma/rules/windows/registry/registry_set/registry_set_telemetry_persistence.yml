@@ -1,0 +1,58 @@
+title: Potential Registry Persistence Attempt Via Windows Telemetry
+id: 73a883d0-0348-4be4-a8d8-51031c2564f8
+related:
+- id: 4e8d5fd3-c959-441f-a941-f73d0cdcdca5
+  type: obsolete
+status: test
+description: |
+  Detects potential persistence behavior using the windows telemetry registry key.
+  Windows telemetry makes use of the binary CompatTelRunner.exe to run a variety of commands and perform the actual telemetry collections.
+  This binary was created to be easily extensible, and to that end, it relies on the registry to instruct on which commands to run.
+  The problem is, it will run any arbitrary command without restriction of location or type.
+references:
+- https://www.trustedsec.com/blog/abusing-windows-telemetry-for-persistence/
+author: Lednyov Alexey, oscd.community, Sreeman
+date: 2020-10-16
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.t1053.005
+logsource:
+  category: registry_set
+  product: windows
+  definition: 'Requirements: Sysmon config that monitors \SOFTWARE\Microsoft\Windows
+    NT\CurrentVersion\AppCompatFlags\TelemetryController subkey of the HKLM hives'
+detection:
+  selection:
+    TargetObject|contains: '\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\TelemetryController\'
+    TargetObject|endswith: '\Command'
+    Details|contains:
+    - '.bat'
+    - '.bin'
+    - '.cmd'
+    - '.dat'
+    - '.dll'
+    - '.exe'
+    - '.hta'
+    - '.jar'
+    - '.js'
+    - '.msi'
+    - '.ps'
+    - '.sh'
+    - '.vb'
+  filter_main_generic:
+    Details|contains:
+    - '\system32\CompatTelRunner.exe'
+    - '\system32\DeviceCensus.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential registry persistence attempts via the Windows Telemetry framework, specifically targeting the registry key that instructs the CompatTelRunner.exe binary on which commands to execute. The rule assesses changes to the registry subkey located at `HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\TelemetryController\` and looks for specific command endpoints that may invoke malicious executables or scripts. Given that CompatTelRunner.exe is designed to run any command pointed to it from the registry without restrictions, attackers can exploit this functionality to establish persistence on a compromised system. The rule examines registry set logs for indicators indicating that common file types associated with malign behavior (such as `.bat`, `.exe`, and `.cmd` files) are being registered, which could signify an attempt to maintain a foothold on the machine.
+  ### Investigation Steps
+  - Leverage EDR tools to review recent process creation logs, especially those associated with CompatTelRunner.exe and any commands it executed, to determine if the process behaved suspiciously.
+  - Query registry logs to inspect recent changes to the `HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\TelemetryController\` key, focusing on any additions or modifications related to command execution.
+  - Examine network traffic logs via the NDR tool to identify any suspicious outbound connections that may correlate with the timing of the registry changes.
+  - Search through the SIEM for alerts involving the identified command file types (e.g., `.bat`, `.exe`), which could indicate the execution of malicious scripts following the registry persistence attempt.

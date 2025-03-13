@@ -1,0 +1,36 @@
+title: Uncommon Sigverif.EXE Child Process
+id: 7d4aaec2-08ed-4430-8b96-28420e030e04
+status: test
+description: |
+  Detects uncommon child processes spawning from "sigverif.exe", which could indicate potential abuse of the latter as a living of the land binary in order to proxy execution.
+references:
+- https://www.hexacorn.com/blog/2018/04/27/i-shot-the-sigverif-exe-the-gui-based-lolbin/
+- https://twitter.com/0gtweet/status/1457676633809330184
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-19
+modified: 2024-08-27
+tags:
+- attack.defense-evasion
+- attack.t1216
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\sigverif.exe'
+  filter_main_werfault:
+    Image:
+    - 'C:\Windows\System32\WerFault.exe'
+    - 'C:\Windows\SysWOW64\WerFault.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Uncommon Sigverif.EXE Child Process" detection rule is designed to identify unusual child processes spawned from the Windows utility `sigverif.exe`, which is typically used for verifying digital signatures of system files. The underlying premise is that malicious actors may exploit `sigverif.exe` as a "living off the land" binary to facilitate unauthorized actions on a system. This rule analyzes process creation logs specifically looking for instances where `sigverif.exe` is the parent process and filters out commonly associated child processes—specifically `WerFault.exe`, which is a standard Windows error reporting tool. By scrutinizing these relationships, the rule targets potentially malicious behavior that might otherwise blend in with normal operational traffic.
+  ### Investigation Steps
+  - Utilize EDR tools to investigate the specific instance of `sigverif.exe` and its child processes. Focus on the timestamp and user accounts associated with these processes to identify any anomalies.
+  - Review the command-line parameters used by `sigverif.exe` in the process creation logs to determine if there are any unusual flags or configurations indicative of malicious intent.
+  - Check endpoint AV logs to see if any detection events correlate with the execution of the identified child processes. This can provide insights into potential threats or known malicious behavior.
+  - Examine proxy logs or network traffic for any outbound connections initiated by the child processes for contextual information about their activities. Look for unusual destinations or data exfiltration attempts linked to the alert.

@@ -1,0 +1,42 @@
+title: VMMap Unsigned Dbghelp.DLL Potential Sideloading
+id: 273a8dd8-3742-4302-bcc7-7df5a80fe425
+related:
+- id: 98ffaed4-aec2-4e04-9b07-31492fe68b3d
+  type: similar
+status: test
+description: Detects potential DLL sideloading of an unsigned dbghelp.dll by the Sysinternals
+  VMMap.
+references:
+- https://techcommunity.microsoft.com/t5/sysinternals-blog/zoomit-v7-1-procdump-2-0-for-linux-process-explorer-v17-05/ba-p/3884766
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-07-28
+modified: 2023-09-05
+tags:
+- attack.defense-evasion
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|contains: 'C:\Debuggers\dbghelp.dll'
+    Image|endswith:
+    - '\vmmap.exe'
+    - '\vmmap64.exe'
+  filter_main_signed:
+    Signed: 'true'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential side-loading of an unsigned `dbghelp.dll` file through the use of `VMMap`, a Sysinternals utility. Sideloading is a technique commonly employed by attackers to execute malicious code in the context of trusted applications. The rule specifically looks for instances where `dbghelp.dll` is loaded from the `C:\Debuggers\` directory while the originating application is either `vmmap.exe` or `vmmap64.exe`. The detection leverages Windows image load events, which detail loaded modules along with their attributes, such as file paths and signatures. By filtering for the absence of a valid signature on `dbghelp.dll`, the rule flags potential abuse of legitimate tools for malicious purposes.
+  ### Investigation Steps
+  - Review recent process creation logs in the EDR solution to identify when `vmmap.exe` or `vmmap64.exe` was executed. Check for any anomalous execution patterns or timestamps.
+  - Examine the loaded modules for the identified processes to confirm if `dbghelp.dll` was loaded from the `C:\Debuggers\` path, and verify its signature status.
+  - Analyze network traffic through the NDR system for any unusual outbound connections made by the processes, which could indicate data exfiltration or callbacks.
+  - Check proxy logs for any related web requests initiated by the processes that might indicate coordination with external malicious actors or infrastructure.

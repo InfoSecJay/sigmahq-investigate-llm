@@ -1,0 +1,38 @@
+title: Rundll32 Spawned Via Explorer.EXE
+id: 1723e720-616d-4ddc-ab02-f7e3685a4713
+status: test
+description: Detects execution of "rundll32.exe" with a parent process of Explorer.exe.
+  This has been observed by variants of Raspberry Robin, as first reported by Red
+  Canary.
+references:
+- https://redcanary.com/blog/raspberry-robin/
+- https://thedfirreport.com/2022/09/26/bumblebee-round-two/
+author: CD_ROM_
+date: 2022-05-21
+modified: 2023-08-31
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|endswith: '\explorer.exe'
+  selection_img:
+  - Image|endswith: '\rundll32.exe'
+  - OriginalFileName: 'RUNDLL32.EXE'
+  filter_main_generic:
+  - CommandLine|contains: ' C:\Windows\System32\'       # The space at the start is required
+  - CommandLine|endswith: ' -localserver 22d8c27b-47a1-48d1-ad08-7da7abd79617'       # Windows 10 volume control
+  condition: all of selection_* and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects the execution of `rundll32.exe` originating from a parent process of `explorer.exe`. This type of behavior can indicate malicious activity, particularly as seen with certain malware variants like Raspberry Robin, where `rundll32.exe` is leveraged to execute hostile code with the process being spawned from a legitimate parent. The detection focuses on process creation logs, specifically monitoring for processes where the command line of `rundll32.exe` includes references to system directories without certain benign parameters, filtering out allowed behaviors to minimize false positives. By analyzing these indicators, a more focused alert can signal potentially nefarious usage of a commonly exploited legitimate utility.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR tool to identify any instances of `rundll32.exe` spawned by `explorer.exe` and examine associated command line arguments for suspicious patterns. 
+  - Cross-reference the alert with Antivirus (AV) logs to see if any detections were made concerning the identified command or associated files.
+  - Utilize Firewall (NGFW) logs to check for any unusual outbound connections initiated by the process to identify potential data exfiltration or command and control traffic.
+  - Investigate any related artifacts on the endpoint, such as temporary files or prefetch entries, that may provide additional context about the execution and the overall activity associated with the alert.

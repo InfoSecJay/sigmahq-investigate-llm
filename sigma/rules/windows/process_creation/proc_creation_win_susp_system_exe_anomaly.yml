@@ -1,0 +1,104 @@
+title: System File Execution Location Anomaly
+id: e4a6b256-3e47-40fc-89d2-7a477edd6915
+related:
+- id: be58d2e2-06c8-4f58-b666-b99f6dc3b6cd     # Dedicated SvcHost rule
+  type: derived
+status: experimental
+description: |
+  Detects the execution of a Windows system binary that is usually located in the system folder from an uncommon location.
+references:
+- https://twitter.com/GelosSnake/status/934900723426439170
+- https://asec.ahnlab.com/en/39828/
+author: Florian Roth (Nextron Systems), Patrick Bareiss, Anton Kutepov, oscd.community,
+  Nasreddine Bencherchali (Nextron Systems)
+date: 2017-11-27
+modified: 2024-07-16
+tags:
+- attack.defense-evasion
+- attack.t1036
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\atbroker.exe'
+    - '\audiodg.exe'
+    - '\bcdedit.exe'
+    - '\bitsadmin.exe'
+    - '\certreq.exe'
+    - '\certutil.exe'
+    - '\cmstp.exe'
+    - '\conhost.exe'
+    - '\consent.exe'
+    - '\cscript.exe'
+    - '\csrss.exe'
+    - '\dashost.exe'
+    - '\defrag.exe'
+    - '\dfrgui.exe'         # Was seen used by Lazarus Group - https://asec.ahnlab.com/en/39828/
+    - '\dism.exe'
+    - '\dllhost.exe'
+    - '\dllhst3g.exe'
+    - '\dwm.exe'
+    - '\eventvwr.exe'
+    - '\logonui.exe'
+    - '\LsaIso.exe'
+    - '\lsass.exe'
+    - '\lsm.exe'
+    - '\msiexec.exe'
+    - '\ntoskrnl.exe'
+    - '\powershell_ise.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\regsvr32.exe'
+    - '\rundll32.exe'
+    - '\runonce.exe'
+    - '\RuntimeBroker.exe'
+    - '\schtasks.exe'
+    - '\services.exe'
+    - '\sihost.exe'
+    - '\smartscreen.exe'
+    - '\smss.exe'
+    - '\spoolsv.exe'
+    - '\svchost.exe'
+    - '\taskhost.exe'
+    - '\Taskmgr.exe'
+    - '\userinit.exe'
+    - '\wininit.exe'
+    - '\winlogon.exe'
+    - '\winver.exe'
+    - '\wlanext.exe'
+    - '\wscript.exe'
+    - '\wsl.exe'
+    - '\wsmprovhost.exe'         # Was seen used by Lazarus Group - https://asec.ahnlab.com/en/39828/
+  filter_main_generic:
+    Image|startswith:
+    - 'C:\$WINDOWS.~BT\'
+    - 'C:\$WinREAgent\'
+    - 'C:\Windows\SoftwareDistribution\'
+    - 'C:\Windows\System32\'
+    - 'C:\Windows\SystemTemp\'
+    - 'C:\Windows\SysWOW64\'
+    - 'C:\Windows\uus\'
+    - 'C:\Windows\WinSxS\'
+  filter_optional_system32:
+    Image|contains: '\SystemRoot\System32\'
+  filter_main_powershell:
+    Image:
+    - 'C:\Program Files\PowerShell\7\pwsh.exe'
+    - 'C:\Program Files\PowerShell\7-preview\pwsh.exe'
+  filter_main_wsl_windowsapps:
+    Image|startswith: 'C:\Program Files\WindowsApps\MicrosoftCorporationII.WindowsSubsystemForLinux'
+    Image|endswith: '\wsl.exe'
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of certain Windows system binaries from uncommon locations on the file system, which can indicate potential malicious behavior. The rule monitors process creation logs to identify instances where specific executables, normally located in the system folders (like `C:\Windows\System32`), are launched from unexpected directories, such as user directories or temporary folders. The targeted processes include well-known binaries used by the Windows operating system—for instance, `powershell.exe` and `lsass.exe`. The anomaly detection mechanism compares the image paths of these executables against defined filters to identify suspicious executions that could be executed by adversaries attempting to evade detection.
+  ### Investigation Steps
+  - Utilize your EDR tool to investigate the specific event, checking for the process creation logs that triggered the alert, and analyze the origin of the executable.
+  - Review the command-line arguments associated with the anomalous process execution to identify any potentially malicious parameters or payloads.
+  - Examine associated network traffic and logs (e.g., NDR, Proxy) to determine if the process made any suspicious outbound connections or attempted data exfiltration.
+  - Perform a retrospective search for related activity in other logs, such as AV detections or firewall logs, to uncover any prior indicators of compromise linked to this execution pattern.

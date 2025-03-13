@@ -1,0 +1,36 @@
+title: Code Executed Via Office Add-in XLL File
+id: 36fbec91-fa1b-4d5d-8df1-8d8edcb632ad
+status: test
+description: |
+  Adversaries may abuse Microsoft Office add-ins to obtain persistence on a compromised system.
+  Office add-ins can be used to add functionality to Office programs
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1137.006/T1137.006.md
+author: frack113
+date: 2021-12-28
+tags:
+- attack.persistence
+- attack.t1137.006
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'new-object '
+    - '-ComObject '
+    - '.application'
+    - '.RegisterXLL'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious code executed via Office add-ins, specifically XLL files, which are often used by attackers to achieve persistence on a compromised system. The rule focuses on processes where the PowerShell command includes specific patterns associated with the creation of COM objects and registration of XLL files in Microsoft Office. It relies on script block logging from Windows PowerShell, which captures the command-line parameters and script text that may indicate malicious activity. Investigating alerts triggered by this rule may uncover instances where attackers have exploited legitimate Office functionalities to carry out further attacks.
+  ### Investigation Steps
+  - Review PowerShell logs in your EDR tool to inspect the context of the command-line execution, focusing on the specific parameters that triggered the alert.
+  - Cross-reference the detected activity with the process creation logs to identify the parent process and any subsequent actions taken by the application after loading the XLL file.
+  - Analyze the event logs for any unusual behavior by the Office application involved, including geolocation, user behavior anomalies, or unexpected connections.
+  - Use AV and endpoint threat intelligence features to check for known signatures or indicators of compromise associated with the XLL file or the primary actor's behavior.

@@ -1,0 +1,38 @@
+title: Esentutl Steals Browser Information
+id: 6a69f62d-ce75-4b57-8dce-6351eb55b362
+status: test
+description: One way Qbot steals sensitive information is by extracting browser data
+  from Internet Explorer and Microsoft Edge by using the built-in utility esentutl.exe
+references:
+- https://thedfirreport.com/2022/02/07/qbot-likes-to-move-it-move-it/
+- https://redcanary.com/threat-detection-report/threats/qbot/
+- https://thedfirreport.com/2022/10/31/follina-exploit-leads-to-domain-compromise/
+author: frack113
+date: 2022-02-13
+modified: 2024-03-05
+tags:
+- attack.collection
+- attack.t1005
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\esentutl.exe'
+  - OriginalFileName: 'esentutl.exe'
+  selection_flag:
+    CommandLine|contains|windash: '-r'
+  selection_webcache:
+    CommandLine|contains: '\Windows\WebCache'
+  condition: all of selection*
+falsepositives:
+- Legitimate use
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potential Qbot malware activity by monitoring for the execution of the `esentutl.exe` utility, which is a legitimate Windows tool typically used for working with Extensible Storage Engine (ESE) databases. However, in this context, it becomes a potential threat when it is invoked with specific command-line parameters that suggest extraction of sensitive browser data from Internet Explorer and Microsoft Edge. The rule looks for process creation logs, particularly those that capture the image name of `esentutl.exe`, and checks for command-line arguments indicating an attempt to read browser cache files. By analyzing these attributes, analysts can detect activity that may signify malicious intent to collect sensitive information.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify any recent instances of `esentutl.exe` execution, particularly those that coincide with unusual user behavior or system anomalies.
+  - Examine the specific command-line parameters used with `esentutl.exe`, focusing on arguments that reference the browser cache or the `-r` switch, which could suggest unauthorized data extraction.
+  - Utilize your AV and threat intelligence tools to scan the affected system for known Qbot indicators of compromise (IoCs) and assess the overall health of the system for other potential compromises.
+  - Correlate event logs from proxy servers to determine if there were any suspicious outbound connections or data exfiltration attempts following the execution of `esentutl.exe`.

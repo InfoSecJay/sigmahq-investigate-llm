@@ -1,0 +1,41 @@
+title: Portable Gpg.EXE Execution
+id: 77df53a5-1d78-4f32-bc5a-0e7465bd8f41
+status: test
+description: Detects the execution of "gpg.exe" from uncommon location. Often used
+  by ransomware and loaders to decrypt/encrypt data.
+references:
+- https://www.trendmicro.com/vinfo/vn/threat-encyclopedia/malware/ransom.bat.zarlock.a
+- https://securelist.com/locked-out/68960/
+- https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1486/T1486.md
+author: frack113, Nasreddine Bencherchali (Nextron Systems)
+date: 2023-08-06
+modified: 2023-11-10
+tags:
+- attack.impact
+- attack.t1486
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith:
+    - '\gpg.exe'
+    - '\gpg2.exe'
+  - OriginalFileName: 'gpg.exe'
+  - Description: 'GnuPG’s OpenPGP tool'
+  filter_main_legit_location:
+    Image|contains:
+    - ':\Program Files (x86)\GNU\GnuPG\bin\'
+    - ':\Program Files (x86)\GnuPG VS-Desktop\'
+    - ':\Program Files (x86)\GnuPG\bin\'
+    - ':\Program Files (x86)\Gpg4win\bin\'
+  condition: selection and not 1 of filter_main_*
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule monitors the execution of `gpg.exe` and `gpg2.exe`, which are widely recognized as components of the GnuPG suite used for encrypting and decrypting data. The rule specifically targets instances where these executables are launched from locations outside their typical installation directories, such as `C:\Program Files (x86)`, which may suggest malicious activity. Ransomware and malware loaders often use GnuPG for manipulating files, thus execution from uncommon paths can indicate a potential compromise. The main data sources utilized for this detection are process creation logs, which provide details on the executed image paths, as well as attributes like the original file name and description of the processes involved.
+  ### Investigation Steps
+  - **Review Process Creation Logs:** Identify the execution of `gpg.exe` or `gpg2.exe` with process creation logs in your EDR solution to confirm execution details, including the command line and execution paths.
+  - **Assess File Locations:** Check the file path from which `gpg.exe` was executed to determine if it is outside of its standard installation locations. Pay particular attention to unusual or suspicious directories.
+  - **Correlate with Endpoint Activity:** Use your SIEM to correlate the identified process execution with other potentially malicious activities on the endpoint for further context, such as unusual network connections or other anomalous behaviors.
+  - **Investigate Associated File Activity:** Examine any files that may have been encrypted or decrypted around the same time as the execution of `gpg.exe`. Utilize cloud storage logs or endpoint monitoring tools to assess file changes associated with this activity.

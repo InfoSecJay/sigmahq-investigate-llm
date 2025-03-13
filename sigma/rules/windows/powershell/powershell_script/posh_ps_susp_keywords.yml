@@ -1,0 +1,48 @@
+title: Potential Suspicious PowerShell Keywords
+id: 1f49f2ab-26bc-48b3-96cc-dcffbc93eadf
+status: test
+description: Detects potentially suspicious keywords that could indicate the use of
+  a PowerShell exploitation framework
+references:
+- https://posts.specterops.io/entering-a-covenant-net-command-and-control-e11038bcf462
+- https://github.com/PowerShellMafia/PowerSploit/blob/d943001a7defb5e0d1657085a77a0e78609be58f/CodeExecution/Invoke-ReflectivePEInjection.ps1
+- https://github.com/hlldz/Phant0m/blob/30c2935d8cf4aafda17ee2fab7cd0c4aa9a607c2/old/Invoke-Phant0m.ps1
+- https://gist.github.com/MHaggis/0dbe00ad401daa7137c81c99c268cfb7
+author: Florian Roth (Nextron Systems), Perez Diego (@darkquassar), Tuan Le (NCSGroup)
+date: 2019-02-11
+modified: 2023-04-21
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains:
+    - 'System.Reflection.Assembly.Load($'
+    - '[System.Reflection.Assembly]::Load($'
+    - '[Reflection.Assembly]::Load($'
+    - 'System.Reflection.AssemblyName'
+    - 'Reflection.Emit.AssemblyBuilderAccess'
+    - 'Reflection.Emit.CustomAttributeBuilder'
+    - 'Runtime.InteropServices.UnmanagedType'
+    - 'Runtime.InteropServices.DllImportAttribute'
+    - 'SuspendThread'
+    - 'rundll32'
+            # - 'FromBase64'
+            # - 'Invoke-WMIMethod' # Prone to FP
+            # - 'http://127.0.0.1' # Prone to FP
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Potential Suspicious PowerShell Keywords" rule is designed to detect the use of specific keywords and constructs in PowerShell script blocks that may indicate the exploitation of vulnerabilities or unauthorized activity. By monitoring PowerShell execution, particularly when script block logging is enabled, it looks for keywords associated with malicious behaviors commonly seen in exploitation frameworks, such as reflection-based assembly loading and DllImport attributes. These keywords suggest potential attempts at leveraging PowerShell for advanced threats like reflective DLL injection or abuse of remote code execution patterns. Using sources like process creation logs and command-line parameters can enhance the context of this detection and guide responders toward identifying exploitation attempts.
+  ### Investigation Steps
+  - Review the PowerShell script block logs to identify the context in which the suspicious keywords were executed, focusing particularly on the user identity and time of execution.
+  - Utilize EDR tools to correlate the execution with related processes or any suspicious network activity generated during the same timeframe.
+  - Check firewall and proxy logs for any anomalous outbound connections that coincide with the execution of the PowerShell commands.
+  - Investigate the history of the affected endpoints and user accounts to determine if there are previous instances of this behavior or any signs of compromise.

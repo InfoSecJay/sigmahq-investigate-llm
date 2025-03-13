@@ -1,0 +1,33 @@
+title: Suspicious Extrac32 Alternate Data Stream Execution
+id: 4b13db67-0c45-40f1-aba8-66a1a7198a1e
+status: test
+description: Extract data from cab file and hide it in an alternate data stream
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Extrac32/
+author: frack113
+date: 2021-11-26
+modified: 2022-12-30
+tags:
+- attack.defense-evasion
+- attack.t1564.004
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - extrac32.exe
+    - .cab
+    CommandLine|re: ':[^\\]'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Suspicious Extrac32 Alternate Data Stream Execution" detection rule identifies potentially malicious activities involving the `extrac32.exe` tool, which is capable of extracting data from cabinet files (.cab) and hiding it in Alternate Data Streams (ADS) on Windows systems. This technique is often used by attackers to obfuscate their actions and evade detection, leveraging Windows' ability to store data in streams that are not easily visible through standard methods. The rule specifically monitors process creation logs for command-line parameters indicating the use of `extrac32.exe` in conjunction with .cab files, looking for patterns where an ADS is employed as indicated by the presence of a colon (:) followed by non-backslash characters.
+  ### Investigation Steps
+  - Examine the command-line parameters of the `extrac32.exe` execution in the process creation logs to ascertain the specifics of the extraction operation.
+  - Review the file system for any newly created Alternate Data Streams associated with the extracted content to identify potentially hidden malicious materials.
+  - Utilize EDR tools to perform a deeper analysis of the host system for any signs of unauthorized access or other malicious behavior coinciding with the execution of `extrac32.exe`.
+  - Check network logs via firewall or proxy for unusual outbound connections that may suggest that data exfiltration is occurring after the ADS extraction.

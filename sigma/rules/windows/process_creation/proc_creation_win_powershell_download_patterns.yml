@@ -1,0 +1,49 @@
+title: PowerShell Download Pattern
+id: 3b6ab547-8ec2-4991-b9d2-2b06702a48d7
+related:
+- id: e6c54d94-498c-4562-a37c-b469d8e9a275
+  type: derived
+status: test
+description: Detects a Powershell process that contains download commands in its command
+  line string
+references:
+- https://blog.redteam.pl/2020/06/black-kingdom-ransomware.html
+- https://lab52.io/blog/winter-vivern-all-summer/
+- https://hatching.io/blog/powershell-analysis/
+author: Florian Roth (Nextron Systems), oscd.community, Jonhnathan Ribeiro
+date: 2019-01-16
+modified: 2023-01-26
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+  - OriginalFileName:
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'new-object'
+    - 'net.webclient).'
+    - 'download'
+    CommandLine|contains:
+    - 'string('
+    - 'file('
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially malicious PowerShell activity by analyzing the command line execution of PowerShell processes. Specifically, it looks for the use of download commands that may indicate attempts to retrieve malicious payloads from the internet. The rule focuses on PowerShell executables and their command line arguments that utilize the `New-Object` cmdlet in conjunction with the `.NET WebClient` class to perform download actions, which could signify the downloading of malicious files to the system. The primary data sources involved in this detection are process creation logs, which capture the command line execution details of running processes.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify instances where PowerShell or pwsh is used alongside the suspicious command line patterns specified by this detection rule.
+  - Cross-reference alert timestamps with firewall and proxy logs to identify any corresponding outbound connection attempts made during the identified PowerShell activity.
+  - Analyze the retrieved file or objects indicated by the download commands to assess their nature, leveraging your AV tools to check for malware signatures or unusual behavior.
+  - Consult additional intelligence sources, such as threat intelligence platforms, to determine if the identified PowerShell activity is associated with known threats or attacks, especially the ones mentioned in the references.

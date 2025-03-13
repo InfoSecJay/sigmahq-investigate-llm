@@ -1,0 +1,37 @@
+title: Disable Macro Runtime Scan Scope
+id: ab871450-37dc-4a3a-997f-6662aa8ae0f1
+description: Detects tampering with the MacroRuntimeScanScope registry key to disable
+  runtime scanning of enabled macros
+status: test
+date: 2022-10-25
+modified: 2023-08-17
+author: Nasreddine Bencherchali (Nextron Systems)
+references:
+- https://www.microsoft.com/en-us/security/blog/2018/09/12/office-vba-amsi-parting-the-veil-on-malicious-macros/
+- https://admx.help/?Category=Office2016&Policy=office16.Office.Microsoft.Policies.Windows::L_MacroRuntimeScanScope
+- https://github.com/S3cur3Th1sSh1t/OffensiveVBA/blob/28cc6a2802d8176195ac19b3c8e9a749009a82a3/src/AMSIbypasses.vba
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject|contains|all:
+    - '\SOFTWARE\'
+    - '\Microsoft\Office\'
+    - '\Common\Security'
+    TargetObject|endswith: '\MacroRuntimeScanScope'
+    Details: DWORD (0x00000000)
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies modifications to the Windows registry key that controls the runtime scanning of macros in Microsoft Office applications. Specifically, it focuses on alterations made to the `MacroRuntimeScanScope` key, which, when set to `0`, disables the runtime scanning process designed to identify potentially harmful macro code. Attackers often leverage such modifications as a defense evasion tactic to execute malicious macros without triggering security alerts. The relevant data sources for this rule include registry set logs, which provide information on changes made to the registry, along with details about the targeted objects and their values.
+  ### Investigation Steps
+  - Query EDR logs to identify any recent changes to the `MacroRuntimeScanScope` registry key, focusing on the timestamps and associated user accounts.
+  - Inspect process creation logs to determine if any Office applications executed shortly before or after the registry change, as this may indicate potential malicious macro activity.
+  - Review the event logs for abnormal activity or alerts related to Microsoft Office applications during the time frame of the detected registry change.
+  - Check Proxy and web access logs for suspicious downloads or access to known malicious sites that may provide malicious macro attachments or payloads.

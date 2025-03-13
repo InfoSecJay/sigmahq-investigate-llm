@@ -1,0 +1,68 @@
+title: Process Memory Dump Via Comsvcs.DLL
+id: 646ea171-dded-4578-8a4d-65e9822892e3
+related:
+- id: 09e6d5c0-05b8-4ff8-9eeb-043046ec774c
+  type: obsolete
+status: test
+description: Detects a process memory dump via "comsvcs.dll" using rundll32, covering
+  multiple different techniques (ordinal, minidump function, etc.)
+references:
+- https://twitter.com/shantanukhande/status/1229348874298388484
+- https://twitter.com/pythonresponder/status/1385064506049630211?s=21
+- https://twitter.com/Hexacorn/status/1224848930795552769
+- https://modexp.wordpress.com/2019/08/30/minidumpwritedump-via-com-services-dll/
+- https://twitter.com/SBousseaden/status/1167417096374050817
+- https://twitter.com/Wietze/status/1542107456507203586
+- https://github.com/Hackndo/lsassy/blob/14d8f8ae596ecf22b449bfe919829173b8a07635/lsassy/dumpmethod/comsvcs.py
+- https://www.youtube.com/watch?v=52tAmVLg1KM&t=2070s
+author: Florian Roth (Nextron Systems), Modexp, Nasreddine Bencherchali (Nextron Systems),
+  Swachchhanda Shrawan Poudel (Nextron Systems)
+date: 2020-02-18
+modified: 2025-02-23
+tags:
+- attack.defense-evasion
+- attack.credential-access
+- attack.t1036
+- attack.t1003.001
+- car.2013-05-009
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\rundll32.exe'
+  - OriginalFileName: 'RUNDLL32.EXE'
+  - CommandLine|contains: 'rundll32'
+  selection_cli_1:
+    CommandLine|contains|all:
+    - 'comsvcs'
+    - 'full'
+    CommandLine|contains:
+    - '#-'
+    - '#+'
+    - '#24'
+    - '24 '
+    - 'MiniDump'         # Matches MiniDump and MinidumpW
+    - '#65560'         # ordinal is 16 bit ordinal, so if you make the number large enough (don't fit in 16 bit space), then it normally wraps around.  for e.g ordinal 24 can be also represented by 65560 (65536+24)
+  selection_generic:
+    CommandLine|contains|all:
+    - '24'
+    - 'comsvcs'
+    - 'full'
+    CommandLine|contains:
+    - ' #'
+    - ',#'
+    - ', #'
+    - '"#'
+  condition: (selection_img and 1 of selection_cli_*) or selection_generic
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify instances where a process memory dump is performed using `comsvcs.dll` through the execution of `rundll32.exe`. Memory dumps can enable an attacker to capture sensitive data from processes, including credentials and other confidential information, facilitating credential access and evasion of defenses. The rule examines command-line parameters associated with `rundll32.exe`, focusing on specific flags and arguments that signal suspicious behavior, such as references to `comsvcs`, `MiniDump`, and other relevant identifiers. The primary data sources leveraged in this rule include process creation logs and command-line parameters, which are critical for recognizing these potentially malicious memory dump operations.
+  ### Investigation Steps
+  - Analyze process creation logs within the EDR solution to identify instances of `rundll32.exe` executing with suspicious command-line parameters related to `comsvcs.dll`.
+  - Review the command-line arguments for any occurrences of terms like `MiniDump` and specific ordinals that could suggest unauthorized memory dumping activities.
+  - Cross-reference alerting data with endpoint logs to determine whether any executables associated with memory dumps have been run from unexpected or unauthorized locations.
+  - Utilize forensic analysis tools to examine the affected processes' memory for potential indicators of compromise, focusing on sensitive data or abnormal behavior patterns.

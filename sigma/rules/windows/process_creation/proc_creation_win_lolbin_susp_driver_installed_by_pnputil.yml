@@ -1,0 +1,47 @@
+title: Suspicious Driver Install by pnputil.exe
+id: a2ea3ae7-d3d0-40a0-a55c-25a45c87cac1
+status: test
+description: Detects when a possible suspicious driver is being installed via pnputil.exe
+  lolbin
+references:
+- https://learn.microsoft.com/en-us/windows-hardware/drivers/devtest/pnputil-command-syntax
+- https://strontic.github.io/xcyclopedia/library/pnputil.exe-60EDC5E6BDBAEE441F2E3AEACD0340D2.html
+author: Hai Vaknin @LuxNoBulIshit, Avihay eldad  @aloneliassaf, Austin Songer @austinsonger
+date: 2021-09-30
+modified: 2022-10-09
+tags:
+- attack.persistence
+- attack.t1547
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains:
+    - '-i'
+    - '/install'
+    - '-a'
+    - '/add-driver'
+    - '.inf'
+    Image|endswith: '\pnputil.exe'
+  condition: selection
+fields:
+- ComputerName
+- User
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Pnputil.exe being used may be performed by a system administrator.
+- Verify whether the user identity, user agent, and/or hostname should be making changes
+  in your environment.
+- Pnputil.exe being executed from unfamiliar users should be investigated. If known
+  behavior is causing false positives, it can be exempted from the rule.
+level: medium
+notes: |
+  ### Technical Context
+  The detection rule titled "Suspicious Driver Install by pnputil.exe" is designed to identify potentially malicious activity related to driver installations on Windows systems via the command-line utility **pnputil.exe**. This rule specifically monitors process creation logs for instances where pnputil.exe is executed with command-line parameters associated with driver installation, such as flags for installation (`-i`, `/install`, `-a`, `/add-driver`) or files with a `.inf` extension. The use of pnputil.exe can be legitimate, particularly by system administrators, but it can also be abused by attackers to install malicious drivers for persistence or privilege escalation. The rule captures critical fields like the computer name, user executing the command, the command line used, and the parent command line for further context.
+  ### Investigation Steps
+  - Investigate the **process creation logs** in your EDR for any recent instances of pnputil.exe being executed, focusing on the associated command line parameters used.
+  - Cross-reference the **user identity** and **computer name** involved in the alert to determine if they align with expected behaviors for legitimate admin tasks or if the actions appear out of place.
+  - Analyze the **parent command line** to ascertain the context in which pnputil.exe was invoked, looking for suspicious patterns or unexpected activity leading to the driver installation.
+  - Check the **AV logs** to see if any detections were triggered around the time of the pnputil.exe execution, potentially revealing if the driver was flagged as malicious by heuristic analysis.

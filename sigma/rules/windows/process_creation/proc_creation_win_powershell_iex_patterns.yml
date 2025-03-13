@@ -1,0 +1,52 @@
+title: Suspicious PowerShell IEX Execution Patterns
+id: 09576804-7a05-458e-a817-eb718ca91f54
+status: test
+description: Detects suspicious ways to run Invoke-Execution using IEX alias
+references:
+- https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/invoke-expression?view=powershell-7.2
+- https://www.huntress.com/blog/slashandgrab-screen-connect-post-exploitation-in-the-wild-cve-2024-1709-cve-2024-1708
+author: Florian Roth (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2022-03-24
+modified: 2022-11-28
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_combined_1:
+    Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    CommandLine|contains:
+    - ' | iex;'
+    - ' | iex '
+    - ' | iex}'
+    - ' | IEX ;'
+    - ' | IEX -Error'
+    - ' | IEX (new'
+    - ');IEX '
+  selection_combined_2:
+    CommandLine|contains:
+    - '::FromBase64String'
+    - '.GetString([System.Convert]::'
+  selection_standalone:
+    CommandLine|contains:
+    - ')|iex;$'
+    - ');iex($'
+    - ');iex $'
+    - ' | IEX | '
+    - ' | iex\"'
+  condition: all of selection_combined_* or selection_standalone
+falsepositives:
+- Legitimate scripts that use IEX
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify suspicious usage patterns of PowerShell's `Invoke-Expression` (IEX) command, particularly when invoked through various obfuscated or unconventional syntax. The rule analyzes process creation logs for PowerShell (`powershell.exe` and `pwsh.exe`) and focuses on specific CommandLine arguments that are indicative of IEX misuse. By capturing patterns that include characters or commands frequently used in post-exploitation activity (e.g., offering potential attackers ways to execute commands hidden via obfuscation), this rule enhances the detection capabilities against threats leveraging PowerShell for malicious purposes. Data sources include process creation logs, which capture the command line parameters passed during PowerShell execution.
+  ### Investigation Steps
+  - Examine the process creation logs in EDR to identify the PowerShell commands that triggered the alert. This can help in understanding the context and the source of the suspicious command.
+  - Analyze the associated parent process to determine if it is related to a known legitimate application or a suspicious process that may indicate an ongoing attack.
+  - Query Proxy logs to check for any network requests made by the potentially malicious PowerShell commands. This can indicate if data exfiltration or command and control communication is occurring.
+  - Review any relevant security alerts from the SIEM to correlate other events that might provide further insights into potential malicious activity related to the triggered rule.

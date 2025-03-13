@@ -1,0 +1,37 @@
+title: DllUnregisterServer Function Call Via Msiexec.EXE
+id: 84f52741-8834-4a8c-a413-2eb2269aa6c8
+status: test
+description: Detects MsiExec loading a DLL and calling its DllUnregisterServer function
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1218.007/T1218.007.md
+- https://lolbas-project.github.io/lolbas/Binaries/Msiexec/
+- https://twitter.com/_st0pp3r_/status/1583914515996897281
+author: frack113
+date: 2022-04-24
+modified: 2024-03-13
+tags:
+- attack.defense-evasion
+- attack.t1218.007
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith: '\msiexec.exe'
+  - OriginalFileName: '\msiexec.exe'
+  selection_flag:
+    CommandLine|contains|windash: ' -z '
+  selection_dll:
+    CommandLine|contains: '.dll'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially suspicious activity involving the `msiexec.exe` process, which is commonly used for Windows Installer operations. The rule specifically looks for instances where the command line includes a request to unregister a DLL file using the `DllUnregisterServer` function. By monitoring the command line parameters that contain the substring `-z` alongside `.dll`, the rule flags attempts to manipulate DLLs via the installer, which can be indicative of a malicious operation aimed at evading defenses or executing code in a stealthy manner. The primary data sources leveraged for this detection are Windows process creation logs, which provide insight into process invocations, their arguments, and the identities of the executables involved.
+  ### Investigation Steps
+  - Review the EDR logs for any `msiexec.exe` process executions that include the `-z` flag and DLL references in the command line arguments. Investigate the context of these executions to ascertain their legitimacy.
+  - Check for any associated process creation events to understand what other processes may have been spawned as a result of `msiexec.exe`. Look for unusual parent-child relationships that could indicate malicious behavior.
+  - Utilize AV and NGFW logs to determine if any alerts were triggered around the same time as the `msiexec.exe` execution. This may provide clues about potential malware activities or exploited vulnerabilities.
+  - Investigate the execution history and integrity of the DLL files involved in the command using file integrity monitoring or cloud storage logs to ensure they are legitimate and not maliciously crafted or altered.

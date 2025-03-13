@@ -1,0 +1,42 @@
+title: HackTool - LocalPotato Execution
+id: 6bd75993-9888-4f91-9404-e1e4e4e34b77
+status: test
+description: Detects the execution of the LocalPotato POC based on basic PE metadata
+  information and default CLI examples
+references:
+- https://www.localpotato.com/localpotato_html/LocalPotato.html
+- https://github.com/decoder-it/LocalPotato
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-02-14
+modified: 2024-11-23
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- cve.2023-21746
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+    Image|endswith: '\LocalPotato.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - '.exe -i C:\'
+    - '-o Windows\'
+  selection_hash_plain:
+    Hashes|contains:
+    - 'IMPHASH=E1742EE971D6549E8D4D81115F88F1FC'
+    - 'IMPHASH=DD82066EFBA94D7556EF582F247C8BB5'
+  condition: 1 of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The "HackTool 
+  - LocalPotato Execution" Sigma rule detects the execution of the LocalPotato proof-of-concept (POC) tool, which is often used for privilege escalation on Windows systems. This rule focuses on identifying specific execution patterns through analysis of process creation events, looking for the presence of the LocalPotato executable file (`LocalPotato.exe`). Additionally, it analyzes command-line parameters typically associated with its execution, as well as known hash signatures (IMPHASH) that correspond to specific builds of LocalPotato. By leveraging process creation logs as a primary data source, the rule aims to identify potentially malicious activity that aligns with recognized behavior of tools designed for circumventing security controls.
+  ### Investigation Steps
+  - Utilize EDR tools to correlate the detected process with user activity to determine if the execution was legitimate or malicious.
+  - Review command-line arguments in process execution logs to analyze the context in which LocalPotato was launched and identify any unusual patterns.
+  - Cross-reference the associated file hashes against known malware repositories or threat intelligence services to assess the risk associated with the version of LocalPotato detected.
+  - Monitor for any subsequent processes spawned from the LocalPotato execution that may indicate further malicious activity, such as attempts to escalate privileges or access sensitive data.

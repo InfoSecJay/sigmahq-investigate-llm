@@ -1,0 +1,32 @@
+title: Disabled Volume Snapshots
+id: dee4af55-1f22-4e1d-a9d2-4bdc7ecb472a
+status: test
+description: Detects commands that temporarily turn off Volume Snapshots
+references:
+- https://twitter.com/0gtweet/status/1354766164166115331
+author: Florian Roth (Nextron Systems)
+date: 2021-01-28
+modified: 2023-12-15
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - '\Services\VSS\Diag'
+    - '/d Disabled'
+  condition: selection
+falsepositives:
+- Legitimate administration
+level: high
+notes: |
+  ### Technical Context
+  The "Disabled Volume Snapshots" detection rule targets specific command-line activities on Windows systems that indicate the disabling of Volume Shadow Copies, an essential feature for system backups and recovery. This is particularly relevant in the context of defense evasion tactics that attackers may employ to hinder forensic recovery efforts. The rule looks for processes that include command-line arguments indicating that Volume Shadow Services (VSS) are being manipulated, especially commands that include `\Services\VSS\Diag` and `/d Disabled`. The primary data source for this detection is process creation logs, which capture detailed information about executed commands, including the parameters used, allowing for the identification of potentially malicious activities.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR tool to identify the user and context in which the command to disable VSS was executed, paying attention to the execution time and associated processes.
+  - Correlate findings with other security events to determine if there are signs of suspicious activity leading up to the VSS command, including elevated privilege usage or recent unauthorized access.
+  - Check the system's Volume Shadow Copy settings post-detection to confirm if any legitimate administrative tasks were intended or if unauthorized modifications occurred.
+  - Consult network logs from the NGFW and Proxy to identify any unusual outbound connections or data exfiltration attempts that may align with the timeframe of the VSS command execution.

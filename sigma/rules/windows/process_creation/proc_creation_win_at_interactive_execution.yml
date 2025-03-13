@@ -1,0 +1,33 @@
+title: Interactive AT Job
+id: 60fc936d-2eb0-4543-8a13-911c750a1dfc
+status: test
+description: Detects an interactive AT job, which may be used as a form of privilege
+  escalation.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1053.002/T1053.002.md
+- https://eqllib.readthedocs.io/en/latest/analytics/d8db43cf-ed52-4f5c-9fb3-c9a4b95a0b56.html
+author: E.M. Anhaus (originally from Atomic Blue Detections, Endgame), oscd.community
+date: 2019-10-24
+modified: 2021-11-27
+tags:
+- attack.privilege-escalation
+- attack.t1053.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\at.exe'
+    CommandLine|contains: 'interactive'
+  condition: selection
+falsepositives:
+- Unlikely (at.exe deprecated as of Windows 8)
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule identifies the execution of the `at.exe` command with an 'interactive' parameter, which is indicative of an attempt at privilege escalation on Windows systems. The `at.exe` tool allows scheduled tasks to be run automatically, and when executed interactively, it can grant unauthorized access to sensitive resources. This detection is primarily based on process creation logs, focusing on the command-line arguments used when invoking the command. Analysts should be aware that `at.exe` has been deprecated since Windows 8, making its usage unlikely in modern environments but still potentially significant in legacy systems or misconfigured environments.
+  ### Investigation Steps
+  - Examine the process creation logs for instances of `at.exe` to confirm the command execution and interaction level, which could indicate unauthorized privilege escalation attempts.
+  - Utilize EDR tools to analyze the behavior of systems where `at.exe` was executed, focusing on any unusual or unauthorized access attempts that follow the process initiation.
+  - Review user activity logs to ascertain whether the command was executed by a legitimate user or if it originated from a compromised account.
+  - Correlate findings with firewall and network logs to determine any external communication patterns that may suggest an attempted exfiltration or lateral movement post-execution of the command.

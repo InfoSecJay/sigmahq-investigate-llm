@@ -1,0 +1,45 @@
+title: Unauthorized System Time Modification
+id: faa031b5-21ed-4e02-8881-2591f98d82ed
+status: test
+description: Detect scenarios where a potentially unauthorized application or user
+  is modifying the system time.
+references:
+- Private Cuckoo Sandbox (from many years ago, no longer have hash, NDA as well)
+- Live environment caused by malware
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4616
+author: '@neu5ron'
+date: 2019-02-05
+modified: 2022-08-03
+tags:
+- attack.defense-evasion
+- attack.t1070.006
+logsource:
+  product: windows
+  service: security
+  definition: 'Requirements: Audit Policy : System > Audit Security State Change,
+    Group Policy : Computer Configuration\Windows Settings\Security Settings\Advanced
+    Audit Policy Configuration\Audit Policies\System\Audit Security State Change'
+detection:
+  selection:
+    EventID: 4616
+  filter1:
+    ProcessName:
+    - 'C:\Program Files\VMware\VMware Tools\vmtoolsd.exe'
+    - 'C:\Windows\System32\VBoxService.exe'
+    - 'C:\Windows\System32\oobe\msoobe.exe'
+  filter2:
+    ProcessName: 'C:\Windows\System32\svchost.exe'
+    SubjectUserSid: 'S-1-5-19'
+  condition: selection and not 1 of filter*
+falsepositives:
+- HyperV or other virtualization technologies with binary not listed in filter portion
+  of detection
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule detects unauthorized modifications to system time, which can indicate malicious activity or an attempt to evade security measures. The detection logic specifically examines Windows Security logs for Event ID 4616, which is generated when a process changes the system time. The rule includes filters to identify known processes associated with legitimate virtualization activities, such as `vmtoolsd.exe` from VMware and `VBoxService.exe` from VirtualBox. It also checks for changes initiated by the Windows service host (`svchost.exe`) running under a specific system account. By focusing on these parameters, the rule aims to capture potential misuse while minimizing false positives related to legitimate system operations, particularly in environments with virtualization technologies.
+  ### Investigation Steps
+  - Review the details of the triggered Event ID 4616 in the Windows Security logs to identify the initiating process and user.
+  - Utilize the EDR solution to investigate the identified process for any suspicious behavior or known malware signatures that may relate to unauthorized time modifications.
+  - Check relevant logs from the NGFW and Proxy to look for any unusual outbound connections or command-and-control activity that might correlate with the time change event.
+  - If applicable, examine cloud platform logs (AWS, GCP, or Azure) for any related API calls or instances that may indicate further lateral movement or compromise within the environment.

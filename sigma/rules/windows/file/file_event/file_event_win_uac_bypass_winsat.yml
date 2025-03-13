@@ -1,0 +1,35 @@
+title: UAC Bypass Abusing Winsat Path Parsing - File
+id: 155dbf56-e0a4-4dd0-8905-8a98705045e8
+status: test
+description: Detects the pattern of UAC Bypass using a path parsing issue in winsat.exe
+  (UACMe 52)
+references:
+- https://github.com/hfiref0x/UACME
+author: Christian Burkard (Nextron Systems)
+date: 2021-08-30
+modified: 2022-10-09
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|startswith: 'C:\Users\'
+    TargetFilename|endswith:
+    - '\AppData\Local\Temp\system32\winsat.exe'
+    - '\AppData\Local\Temp\system32\winmm.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule aims to detect potential bypass attempts of User Account Control (UAC) through an exploitation of path parsing vulnerabilities in `winsat.exe`. Specifically, the rule identifies file events where the target filename originates from the user directory (`C:\Users\`) and ends with either `winsat.exe` or `winmm.dll` located in a temporary path mimicking system32. By focusing on these specific paths, the rule can flag potentially malicious activities where attackers misuse the Windows Application Performance Toolkit to escalate privileges under the guise of legitimate system processes. Data sources for this detection include file event logs that capture file activity within the Windows environment, displaying malicious processes trying to exploit the UAC mechanism.
+  ### Investigation Steps
+  - Review EDR logs to track the execution of `winsat.exe` and analyze its parent processes to determine if it was launched in an unusual context. 
+  - Check for the presence of the `winmm.dll` file in the specified path to ascertain if it has been crafted or modified unusually, providing insight into potential malicious behavior.
+  - Examine antivirus (AV) logs to identify any prior detections or alerts related to `winsat.exe` or `winmm.dll`, which may indicate known malicious signatures.
+  - Analyze user activity logs from the proxy or cloud platforms used by affected accounts to detect anomalies or suspicious access patterns around the time of the alert.

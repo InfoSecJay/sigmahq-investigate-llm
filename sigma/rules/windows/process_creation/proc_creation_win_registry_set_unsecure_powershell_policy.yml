@@ -1,0 +1,43 @@
+title: Potential PowerShell Execution Policy Tampering - ProcCreation
+id: cf2e938e-9a3e-4fe8-a347-411642b28a9f
+related:
+- id: fad91067-08c5-4d1a-8d8c-d96a21b37814     # ProcCreation Registry
+  type: similar
+- id: 87e3c4e8-a6a8-4ad9-bb4f-46e7ff99a180     # ProcCreation Cmdlet
+  type: similar
+- id: 61d0475c-173f-4844-86f7-f3eebae1c66b     # PowerShell ScriptBlock
+  type: similar
+status: test
+description: Detects changes to the PowerShell execution policy registry key in order
+  to bypass signing requirements for script execution from the CommandLine
+references:
+- https://learn.microsoft.com/de-de/powershell/module/microsoft.powershell.security/set-executionpolicy?view=powershell-7.3
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-11
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_path:
+    CommandLine|contains:
+    - '\ShellIds\Microsoft.PowerShell\ExecutionPolicy'
+    - '\Policies\Microsoft\Windows\PowerShell\ExecutionPolicy'
+  selection_values:
+    CommandLine|contains:
+    - 'Bypass'
+    - 'RemoteSigned'
+    - 'Unrestricted'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule monitors for changes to the PowerShell execution policy registry keys on Windows systems. The execution policy determines the conditions under which PowerShell scripts can run on a system; it is designed to mitigate the risk of malicious scripts being executed. By identifying command line processes that contain references to the execution policy settings—specifically `\ShellIds\Microsoft.PowerShell\ExecutionPolicy` or `\Policies\Microsoft\Windows\PowerShell\ExecutionPolicy`—the rule can detect attempts to manipulate the policy. Furthermore, it looks for specific policy values such as 'Bypass,' 'RemoteSigned,' and 'Unrestricted' that would allow potentially harmful scripts to run undetected. This rule relies on process creation logs as its primary data source, enabling the detection of unauthorized registry modifications.
+  ### Investigation Steps
+  - Review recent process creation events in your EDR to identify any anomalous PowerShell commands that may indicate execution policy manipulation.
+  - Validate any changes to the PowerShell execution policy by querying the relevant registry keys using Windows registry tools or command line utilities.
+  - Analyze logs from the firewall (NGFW) for outgoing traffic that could indicate data exfiltration or command-and-control (C2) activities linked to the suspicious PowerShell activity.
+  - Check the proxy logs for any requests made to potentially malicious domains that may have been contacted by PowerShell scripts following execution policy changes.

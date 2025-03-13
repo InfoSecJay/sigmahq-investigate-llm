@@ -1,0 +1,39 @@
+title: File Download Using Notepad++ GUP Utility
+id: 44143844-0631-49ab-97a0-96387d6b2d7c
+status: test
+description: Detects execution of the Notepad++ updater (gup) from a process other
+  than Notepad++ to download files.
+references:
+- https://twitter.com/nas_bench/status/1535322182863179776
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-10
+modified: 2023-03-02
+tags:
+- attack.command-and-control
+- attack.t1105
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\GUP.exe'
+  - OriginalFileName: 'gup.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - ' -unzipTo '
+    - 'http'
+  filter:
+    ParentImage|endswith: '\notepad++.exe'
+  condition: all of selection* and not filter
+falsepositives:
+- Other parent processes other than notepad++ using GUP that are not currently identified
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of the Notepad++ updater (GUP) utility when it is initiated by processes other than Notepad++. The main goal is to flag any suspicious file downloads that are executed by the GUP utility, as this behavior may indicate potential command-and-control activities. The rule focuses on process creation logs, specifically looking for instances where the `GUP.exe` is running without Notepad++ being the parent process. It checks the command line for specific parameters, notably those indicating potentially malicious URLs, reflecting an attempt to download files from the internet.
+  The rule uses specific indicators such as the image name (`GUP.exe`), its original file name, and the presence of command-line flags like `-unzipTo` alongside any HTTP requests. If these criteria are met while ensuring that the parent process is not `notepad++.exe`, an alert is triggered for further investigation.
+  ### Investigation Steps
+  - Investigate the alert in your EDR tool to gather detailed information on the process tree associated with the GUP execution, focusing on the parent process and command-line parameters.
+  - Review the file download history and monitor outbound network traffic via the proxy logs to determine if any suspicious files were downloaded during the time of the alert.
+  - Conduct a threat intelligence lookup on any downloaded files or URLs found in the logs to assess if they are known indicators of compromise or malicious activity.
+  - Check endpoint antivirus logs for any detections or blocks occurring around the same timeframe to gain insights into the potential threat landscape surrounding the detected activity.

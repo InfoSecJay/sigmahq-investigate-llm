@@ -1,0 +1,42 @@
+title: UAC Bypass Using Windows Media Player - Process
+id: 0058b9e5-bcd7-40d4-9205-95ca5a16d7b2
+status: test
+description: Detects the pattern of UAC Bypass using Windows Media Player osksupport.dll
+  (UACMe 32)
+references:
+- https://github.com/hfiref0x/UACME
+author: Christian Burkard (Nextron Systems)
+date: 2021-08-23
+modified: 2024-12-01
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img_1:
+    Image: 'C:\Program Files\Windows Media Player\osk.exe'
+  selection_img_2:
+    Image: 'C:\Windows\System32\cmd.exe'
+    ParentCommandLine: '"C:\Windows\system32\mmc.exe" "C:\Windows\system32\eventvwr.msc"
+      /s'
+  selection_integrity:
+    IntegrityLevel:
+    - 'High'
+    - 'System'
+    - 'S-1-16-16384'         # System
+    - 'S-1-16-12288'         # High
+  condition: 1 of selection_img_* and selection_integrity
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potential User Account Control (UAC) bypass attempts that exploit Windows Media Player's process. The rule specifically looks for instances where the `osk.exe` process, typically the On-Screen Keyboard, is initiated alongside the Command Prompt (`cmd.exe`) being spawned with a parent process of the Microsoft Management Console (`mmc.exe`). Additionally, it checks for high integrity levels, indicating that the command is being executed with elevated privileges, which is often a sign of a privilege escalation attack. The rule leverages process creation logs, specifically monitoring the command-line parameters and the integrity levels of the processes involved, to pinpoint any suspicious behavior linked to the UAC bypass technique detailed in the UACMe exploit toolkit.
+  ### Investigation Steps
+  - Review EDR logs to identify the execution timeline of `osk.exe` and `cmd.exe`, focusing on their command-line arguments to determine if they were spawned in conjunction with `mmc.exe`.
+  - Check process integrity levels using the EDR’s process properties to confirm whether the involved processes were executed with High or System-level privileges.
+  - Analyze Windows Event logs for any anomalies during the time of the detected activity, particularly looking at security events for privilege escalation attempts.
+  - Correlate findings with logs from the Proxy or VPN to ensure that any network activity associated with these processes does not indicate exfiltration or further malicious actions.

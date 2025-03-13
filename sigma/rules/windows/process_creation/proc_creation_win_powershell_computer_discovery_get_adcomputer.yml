@@ -1,0 +1,52 @@
+title: Computer Discovery And Export Via Get-ADComputer Cmdlet
+id: 435e10e4-992a-4281-96f3-38b11106adde
+related:
+- id: db885529-903f-4c5d-9864-28fe199e6370
+  type: similar
+status: test
+description: Detects usage of the Get-ADComputer cmdlet to collect computer information
+  and output it to a file
+references:
+- http://blog.talosintelligence.com/2022/09/lazarus-three-rats.html
+- https://www.microsoft.com/en-us/security/blog/2022/10/18/defenders-beware-a-case-for-post-ransomware-investigations/
+- https://www.cisa.gov/uscert/sites/default/files/publications/aa22-320a_joint_csa_iranian_government-sponsored_apt_actors_compromise_federal%20network_deploy_crypto%20miner_credential_harvester.pdf
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-11-10
+modified: 2022-11-17
+tags:
+- attack.discovery
+- attack.t1033
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+  - OriginalFileName:
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'Get-ADComputer '
+    - ' -Filter \*'
+    CommandLine|contains:
+    - ' > '
+    - ' | Select '
+    - 'Out-File'
+    - 'Set-Content'
+    - 'Add-Content'
+  condition: all of selection_*
+falsepositives:
+- Legitimate admin scripts may use the same technique, it's better to exclude specific
+  computers or users who execute these commands or scripts often
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potential malicious activity involving the PowerShell `Get-ADComputer` cmdlet, commonly used for gathering information about computers in an Active Directory environment. The rule focuses specifically on cases where this cmdlet is executed with a command-line that indicates the output is redirected to a file. By monitoring process creation logs for instances of PowerShell (either `powershell.exe` or `pwsh.exe`), the rule checks if the command line includes specific strings related to `Get-ADComputer` and output redirection, such as `Out-File`, `Set-Content`, or `Add-Content`. Such behavior may indicate an attempt by an attacker to harvest sensitive information regarding network computers, often used as a preliminary step before more malicious actions are executed.
+  ### Investigation Steps
+  - Review the EDR logs for any recent instances of PowerShell processes executing the `Get-ADComputer` cmdlet with the specified command-line patterns, focusing on the user context under which these commands were run.
+  - Investigate any identified processes by checking additional logs, such as process creation timelines, to determine whether this activity aligns with typical administrative operations or signifies potential malicious intent.
+  - Analyze network traffic logs from the NGFW and Proxy to check for any unusual outbound communications related to the time of the PowerShell activity, looking for data exfiltration or connections to known malicious IP addresses.
+  - Consult Active Directory logs to identify if the user or service account executing the command has a history of legitimate administrative tasks or if this usage is anomalous, which could indicate account compromise.

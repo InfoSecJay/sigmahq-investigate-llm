@@ -1,0 +1,50 @@
+title: Potentially Suspicious Child Process Of ClickOnce Application
+id: 67bc0e75-c0a9-4cfc-8754-84a505b63c04
+status: test
+description: Detects potentially suspicious child processes of a ClickOnce deployment
+  application
+references:
+- https://posts.specterops.io/less-smartscreen-more-caffeine-ab-using-clickonce-for-trusted-code-execution-1446ea8051c5
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-06-12
+tags:
+- attack.execution
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|contains: '\AppData\Local\Apps\2.0\'
+    Image|endswith:
+            # Add more suspicious processes
+    - '\calc.exe'
+    - '\cmd.exe'
+    - '\cscript.exe'
+    - '\explorer.exe'
+    - '\mshta.exe'
+    - '\net.exe'
+    - '\net1.exe'
+    - '\nltest.exe'
+    - '\notepad.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\reg.exe'
+    - '\regsvr32.exe'
+    - '\rundll32.exe'
+    - '\schtasks.exe'
+    - '\werfault.exe'
+    - '\wscript.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Potentially Suspicious Child Process Of ClickOnce Application" Sigma rule is designed to detect potentially malicious activity stemming from ClickOnce applications, which are typically used for deploying Windows applications via web technology. The rule focuses on child processes that are spawned by ClickOnce applications located in the user’s AppData\Local\Apps\2.0 directory. It looks for specific parent and child process relationships, identifying known malicious or suspicious executables like `calc.exe`, `cmd.exe`, and `powershell.exe` among others. By monitoring process creation logs, the rule aims to flag any unauthorized or unwanted child processes linked to ClickOnce deployments, providing alerts that can indicate a potential malicious exploitation of trusted applications.
+  Responders should pay attention to unexpected child processes that may lead to security breaches or lateral movements within the network. The detection uses Windows process creation events, making it integral for monitoring environments where ClickOnce applications are utilized.
+  ### Investigation Steps
+  - Utilize EDR tools to evaluate the historical behavior of the flagged process, focusing on parent-child relationships in process hierarchies.
+  - Review Windows Event Logs for process creation events around the time the alert was triggered, specifically looking for suspicious commands or anomalies in user activity.
+  - Examine network activity through NDR solutions to determine if there were any connections made by the suspicious child processes, which may point to data exfiltration or command and control communication.
+  - Check for any recent ClickOnce application deployments on the affected system through Application logs or cloud platform logs to validate if legitimate activity correlates with the alert.

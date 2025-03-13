@@ -1,0 +1,37 @@
+title: Potential AMSI COM Server Hijacking
+id: 160d2780-31f7-4922-8b3a-efce30e63e96
+status: test
+description: Detects changes to the AMSI come server registry key in order disable
+  AMSI scanning functionalities. When AMSI attempts to starts its COM component, it
+  will query its registered CLSID and return a non-existent COM server. This causes
+  a load failure and prevents any scanning methods from being accessed, ultimately
+  rendering AMSI useless
+references:
+- https://enigma0x3.net/2017/07/19/bypassing-amsi-via-com-server-hijacking/
+- https://github.com/r00t-3xp10it/hacking-material-books/blob/43cb1e1932c16ff1f58b755bc9ab6b096046853f/obfuscation/simple_obfuscation.md#amsi-comreg-bypass
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-04
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: '\CLSID\{fdb00e52-a214-4aa1-8fba-4357bb0072ec}\InProcServer32\(Default)'
+  filter:
+    Details: '%windir%\system32\amsi.dll'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential attempts to hijack the Anti-Malware Scan Interface (AMSI) COM server component by monitoring changes made to specific Windows registry keys. It specifically observes the `InProcServer32` registry entry associated with the CLSID `{fdb00e52-a214-4aa1-8fba-4357bb0072ec}`. When attacker-controlled software alters this entry, it can point to a non-existent COM server, leading to a failure in AMSI's ability to function effectively. Consequently, this allows malicious activities to occur without detection, as AMSI scanning capabilities will be rendered inoperative. This rule relies on registry set logs from Windows to flag potential evasive actions taken against AMSI.
+  ### Investigation Steps
+  - Examine the registry changes logged around the time of the alert to identify uncommon modifications to the AMSI COM server key.
+  - Utilize EDR solutions to correlate the registry changes with process creation logs, focusing on any suspicious processes that may have initiated these changes.
+  - Check for any indications of malware or obfuscated scripts that may use AMSI bypass techniques, referencing the AV logs for detections related to unusual activity.
+  - Review network logs from NGFW and proxy data for outbound connections made by processes linked to the registry changes to assess potential data exfiltration or command-and-control communications.

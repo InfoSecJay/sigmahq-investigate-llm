@@ -1,0 +1,49 @@
+title: Non-privileged Usage of Reg or Powershell
+id: 8f02c935-effe-45b3-8fc9-ef8696a9e41d
+status: test
+description: Search for usage of reg or Powershell by non-privileged users to modify
+  service configuration in registry
+references:
+- https://image.slidesharecdn.com/kheirkhabarovoffzonefinal-181117201458/95/hunting-for-privilege-escalation-in-windows-environment-20-638.jpg
+author: Teymur Kheirkhabarov (idea), Ryan Plas (rule), oscd.community
+date: 2020-10-05
+modified: 2024-12-01
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_cli:
+  - CommandLine|contains|all:
+    - 'reg '
+    - 'add'
+  - CommandLine|contains:
+    - 'powershell'
+    - 'set-itemproperty'
+    - ' sp '
+    - 'new-itemproperty'
+  selection_data:
+    IntegrityLevel:
+    - 'Medium'
+    - 'S-1-16-8192'
+    CommandLine|contains|all:
+    - 'ControlSet'
+    - 'Services'
+    CommandLine|contains:
+    - 'ImagePath'
+    - 'FailureCommand'
+    - 'ServiceDLL'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential misuse of the Windows Registry and PowerShell by non-privileged users. Specifically, it focuses on instances where users with a medium integrity level (indicative of non-privileged access) execute commands to modify service configurations within the registry using the `reg` command or PowerShell. The critical aspects under scrutiny include command-line parameters like 'ControlSet', 'Services', 'ImagePath', 'FailureCommand', and 'ServiceDLL', which are often associated with manipulating service properties. By monitoring process creation logs, the rule can highlight potential abuse patterns where non-admin users attempt to alter system service configurations, which may suggest attempts to elevate privileges or evade detection.
+  ### Investigation Steps
+  - Review the EDR tool for process creation logs to identify which non-privileged user accounts executed the reg or PowerShell commands that triggered the alert.
+  - Examine command-line parameters captured in the logs for evidence of modifications aimed at critical services or system configurations.
+  - Utilize your SIEM to correlate alerts with network activity or unusual login patterns to determine if other suspicious behavior is associated with the user accounts in question.
+  - Check Windows Event logs for any related events indicating unsuccessful attempts or anomalies regarding service modifications around the time of the alert.

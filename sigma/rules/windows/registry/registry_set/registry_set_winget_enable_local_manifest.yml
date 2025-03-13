@@ -1,0 +1,34 @@
+title: Enable Local Manifest Installation With Winget
+id: fa277e82-9b78-42dd-b05c-05555c7b6015
+status: test
+description: Detects changes to the AppInstaller (winget) policy. Specifically the
+  activation of the local manifest installation, which allows a user to install new
+  packages via custom manifests.
+references:
+- https://github.com/nasbench/Misc-Research/tree/b9596e8109dcdb16ec353f316678927e507a5b8d/LOLBINs/Winget
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-04-17
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.persistence
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject|endswith: '\AppInstaller\EnableLocalManifestFiles'
+    Details: 'DWORD (0x00000001)'
+  condition: selection
+falsepositives:
+- Administrators or developers might enable this for testing purposes or to install
+  custom private packages
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule monitors changes to the Windows registry that relate to the AppInstaller (winget) configuration, specifically focusing on alterations that enable local manifest installations. The rule is triggered when the registry key `\AppInstaller\EnableLocalManifestFiles` is set to the value `1`, indicating that local manifests can be used to install packages. Such changes may be benign when executed by system administrators for development purposes, but they can also pose a significant security risk as they allow users to install potentially unverified applications from custom sources. The technical data sources for this rule include Windows registry logs, which are crucial for tracking modifications to system configurations that could indicate malicious activities.
+  ### Investigation Steps
+  - Review the Windows registry logs to verify the exact time and source of the change to the `EnableLocalManifestFiles` setting.
+  - Use EDR tools to identify the user account that made the change and analyze their recent activities for any suspicious behavior.
+  - Check application logs to confirm any installations that occurred following the registry modification, especially those involving untrusted or unknown sources.
+  - Monitor network traffic via proxy or network detection tools to identify any communications with external repositories or servers that may be associated with the installed packages.

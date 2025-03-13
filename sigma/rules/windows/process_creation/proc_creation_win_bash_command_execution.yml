@@ -1,0 +1,40 @@
+title: Indirect Inline Command Execution Via Bash.EXE
+id: 5edc2273-c26f-406c-83f3-f4d948e740dd
+related:
+- id: 2d22a514-e024-4428-9dba-41505bd63a5b
+  type: similar
+status: test
+description: |
+  Detects execution of Microsoft bash launcher with the "-c" flag.
+  This can be used to potentially bypass defenses and execute Linux or Windows-based binaries directly via bash.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Bash/
+author: frack113
+date: 2021-11-24
+modified: 2023-08-15
+tags:
+- attack.defense-evasion
+- attack.t1202
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - ':\Windows\System32\bash.exe'
+    - ':\Windows\SysWOW64\bash.exe'
+  - OriginalFileName: 'Bash.exe'
+  selection_cli:
+    CommandLine|contains: ' -c '
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential threats by monitoring the execution of the Microsoft bash launcher (bash.exe) with the "-c" command-line flag on Windows systems. The rule specifically focuses on instances where the bash executable is located in standard Windows directories (System32 and SysWOW64) and verifies if the command line contains the "-c" flag, which is indicative of potential indirect command execution. Such execution can be exploited by attackers to bypass traditional security measures, facilitating the running of both Linux and Windows binaries directly through Bash, thus evading standard defenses. The primary data sources involved in this detection process are process creation logs, which capture details about running processes including their command-line arguments and original file names.
+  ### Investigation Steps
+  - Examine the process creation logs in your EDR solution to confirm the presence of `bash.exe` initiating with the "-c" flag.
+  - Query the command-line arguments associated with the detected process to identify the specific commands being executed and any related suspicious activity.
+  - Review firewall logs from the NGFW to identify any unusual outbound or inbound connections that may correlate with the execution of the detected bash command.
+  - Investigate user activity and authentication logs from the VPN and domain controllers to determine whether the command execution was initiated by a legitimate user or if it reflects possible credential compromise.

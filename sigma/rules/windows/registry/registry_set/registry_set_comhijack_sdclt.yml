@@ -1,0 +1,33 @@
+title: COM Hijack via Sdclt
+id: 07743f65-7ec9-404a-a519-913db7118a8d
+status: test
+description: Detects changes to 'HKCU\Software\Classes\Folder\shell\open\command\DelegateExecute'
+references:
+- http://blog.sevagas.com/?Yet-another-sdclt-UAC-bypass
+- https://www.exploit-db.com/exploits/47696
+author: Omkar Gudhate
+date: 2020-09-27
+modified: 2023-09-28
+tags:
+- attack.privilege-escalation
+- attack.t1546
+- attack.t1548
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\Software\Classes\Folder\shell\open\command\DelegateExecute'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets unauthorized modifications to the Windows registry specifically at the path `HKCU\Software\Classes\Folder\shell\open\command\DelegateExecute`. Such changes are often indicative of attempts to exploit a COM object for privilege escalation, which allows attackers to bypass User Account Control (UAC) mechanisms. When this registry key is altered, it may enable malicious applications to execute commands with elevated privileges without the user's consent. This rule utilizes Windows registry change logs to identify potential threats, enabling security teams to respond to potential privilege escalation attempts effectively.
+  The key indicators for triggering this rule are alterations to the `DelegateExecute` entry under the specified registry path, which should typically be left unmodified in a standard operating environment. By monitoring this specific area of the registry, the detection system can help identify suspicious behavior associated with registry manipulation and possible threats stemming from credential theft or exploitation.
+  ### Investigation Steps
+  - Utilize EDR tools to review the process tree and behavior of any application accessing the `DelegateExecute` registry key to identify potential malicious activity.
+  - Check Windows event logs for any related entries that coincide with the timing of the registry change, especially focusing on security and system logs.
+  - Query the AV logs to determine if any known malware signatures or behavioral patterns are associated with the process that modified the registry entry.
+  - Inspect cloud logs and VPN connections, if applicable, for any unusual authentication attempts or unknown devices accessing the networking infrastructure at the time of the event.

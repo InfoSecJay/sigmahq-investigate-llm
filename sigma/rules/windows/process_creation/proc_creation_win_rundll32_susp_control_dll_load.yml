@@ -1,0 +1,41 @@
+title: Suspicious Control Panel DLL Load
+id: d7eb979b-c2b5-4a6f-a3a7-c87ce6763819
+status: test
+description: Detects suspicious Rundll32 execution from control.exe as used by Equation
+  Group and Exploit Kits
+references:
+- https://twitter.com/rikvduijn/status/853251879320662017
+- https://twitter.com/felixw3000/status/853354851128025088
+author: Florian Roth (Nextron Systems)
+date: 2017-04-15
+modified: 2023-02-09
+tags:
+- attack.defense-evasion
+- attack.t1218.011
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|endswith: '\System32\control.exe'
+  selection_img:
+  - Image|endswith: '\rundll32.exe'
+  - OriginalFileName: 'RUNDLL32.EXE'
+  filter:
+    CommandLine|contains: 'Shell32.dll'
+  condition: all of selection_* and not filter
+fields:
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potentially malicious activity involving the execution of `rundll32.exe` as a child process of `control.exe` on Windows systems. The `control.exe` process is a legitimate Windows system component used to manage Control Panel programs; however, threat actors often exploit it to execute arbitrary DLLs, particularly in cases where malware like those associated with the Equation Group and various exploit kits are involved. The rule focuses on detecting instances where `rundll32.exe` is invoked in a suspicious manner, specifically targeting command lines that include 'Shell32.dll', which is a common legitimate DLL that can also be misused to carry out harmful activities. 
+  The primary data sources for this rule include process creation logs, which provide information about the execution of processes and their parent-child relationships. The detection logic checks for both the parent process being `control.exe` and the child process being `rundll32.exe`, while additionally filtering out benign uses based on the command line parameters.
+  ### Investigation Steps
+  - Inspect the full command line of the `rundll32.exe` process in your EDR tool to confirm the parameters used during execution, specifically looking for any suspicious DLLs being loaded.
+  - Review the Parent Command Line from the process creation logs to understand the context of how `control.exe` was invoked, which may provide indications of user or system behavior.
+  - Correlate alerts with historical logs from the SIEM to determine if there are any recurring patterns or related alerts that may indicate a compromise or a misuse of legitimate processes.
+  - Utilize your malware analysis tools or AV solution to scan the associated DLLs for known signatures or behavioral characteristics of malicious payloads.

@@ -1,0 +1,37 @@
+title: Potential Binary Proxy Execution Via VSDiagnostics.EXE
+id: ac1c92b4-ac81-405a-9978-4604d78cc47e
+status: test
+description: Detects execution of "VSDiagnostics.exe" with the "start" command in
+  order to launch and proxy arbitrary binaries.
+references:
+- https://twitter.com/0xBoku/status/1679200664013135872
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-08-03
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\VSDiagnostics.exe'
+  - OriginalFileName: 'VSDiagnostics.exe'
+  selection_cli_start:
+    CommandLine|contains: 'start'
+  selection_cli_launch:
+    CommandLine|contains:
+    - ' /launch:'
+    - ' -launch:'
+  condition: all of selection_*
+falsepositives:
+- Legitimate usage for tracing and diagnostics purposes
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule highlights suspicious behavior associated with the Windows utility "VSDiagnostics.exe." The rule specifically looks for execution instances of this executable where the command line contains the "start" command, which suggests the potential for proxying arbitrary binaries. It examines process creation logs to identify both the executable file path and command-line parameters that indicate unusual activity. Given that "VSDiagnostics.exe" is typically used for tracing and diagnostics, its misuse could indicate an attempt to circumvent security controls, making it essential for incident responders to understand the context of these alerts.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR tool to find instances of "VSDiagnostics.exe" being executed with a "start" command. 
+  - Check the command-line parameters used alongside "VSDiagnostics.exe" to identify any potentially malicious flags, such as those invoking arbitrary binaries.
+  - Correlate the execution time with any known indicators of compromise (IoCs) or recent threats reported in the threat intelligence feed.
+  - Analyze network traffic logs from the NDR for any abnormal outbound connections that may correlate with the execution of the process, particularly those initiated by the binary in question.

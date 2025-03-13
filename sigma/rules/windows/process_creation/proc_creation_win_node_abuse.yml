@@ -1,0 +1,45 @@
+title: Potential Arbitrary Code Execution Via Node.EXE
+id: 6640f31c-01ad-49b5-beb5-83498a5cd8bd
+status: test
+description: Detects the execution node.exe which is shipped with multiple software
+  such as VMware, Adobe...etc. In order to execute arbitrary code. For example to
+  establish reverse shell as seen in Log4j attacks...etc
+references:
+- http://blog.talosintelligence.com/2022/09/lazarus-three-rats.html
+- https://www.sprocketsecurity.com/resources/crossing-the-log4j-horizon-a-vulnerability-with-no-return
+- https://www.rapid7.com/blog/post/2022/01/18/active-exploitation-of-vmware-horizon-servers/
+- https://nodejs.org/api/cli.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-09
+modified: 2023-02-03
+tags:
+- attack.defense-evasion
+- attack.t1127
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_main:
+    Image|endswith: '\node.exe'
+    CommandLine|contains:
+    - ' -e '
+    - ' --eval '
+    # Add more pattern of abuse as actions
+  selection_action_reverse_shell:
+    CommandLine|contains|all:
+    - '.exec('
+    - 'net.socket'
+    - '.connect'
+    - 'child_process'
+  condition: selection_main and 1 of selection_action_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential arbitrary code execution via the Node.js executable (`node.exe`), which is included with various software packages such as VMware and Adobe. The rule triggers on specific command-line patterns that suggest an attacker may be leveraging Node.js to execute malicious code, such as a reverse shell setup, similar to tactics observed in Log4j exploitation incidents. The technical data sources involved primarily include process creation logs, which capture details about executed processes, including the image name (`node.exe`) and its associated command-line parameters. The rule looks for critical indicators of potentially harmful usage, thereby allowing for early detection of unauthorized code execution attempts.
+  ### Investigation Steps
+  - Analyze the process creation logs in your EDR tool to confirm the presence of `node.exe` being executed with suspicious command-line parameters, particularly those indicating code execution.
+  - Review any related network logs in your NDR to identify unusual network activities, such as outbound connections or attempts to establish reverse shells that correspond to the time of the detected event.
+  - Utilize the SIEM to assess system logs around the alert time for any associated events, user logins, or other suspicious activity patterns that may indicate a compromised environment.
+  - Check for known vulnerabilities in the software that includes Node.js via threat intelligence feeds and relevant security advisories to evaluate any exploitable weaknesses that may have been leveraged in the observed event.

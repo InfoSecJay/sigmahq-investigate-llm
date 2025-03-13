@@ -1,0 +1,39 @@
+title: Xwizard.EXE Execution From Non-Default Location
+id: 193d5ccd-6f59-40c6-b5b0-8e32d5ddd3d1
+status: test
+description: |
+  Detects the execution of Xwizard tool from a non-default directory.
+  When executed from a non-default directory, this utility can be abused in order to side load a custom version of "xwizards.dll".
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Xwizard/
+- http://www.hexacorn.com/blog/2017/07/31/the-wizard-of-x-oppa-plugx-style/
+author: Christian Burkard (Nextron Systems)
+date: 2021-09-20
+modified: 2024-08-15
+tags:
+- attack.defense-evasion
+- attack.t1574.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\xwizard.exe'
+  - OriginalFileName: 'xwizard.exe'
+  filter_main_legit_location:
+    Image|startswith:
+    - 'C:\Windows\System32\'
+    - 'C:\Windows\SysWOW64\'
+    - 'C:\Windows\WinSxS\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Windows installed on non-C drive
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of the Xwizard tool, specifically when it occurs from a non-default directory on Windows systems. In typical environments, Xwizard.exe should reside and execute from standard system directories such as C:\Windows\System32\. However, threat actors can exploit this tool by running it from alternative locations to load a custom malicious version of xwizards.dll, thereby facilitating defense evasion tactics. The rule looks for process creation logs where the image path indicates the execution of Xwizard.exe, while filtering out those that originate from its legitimate directories. By focusing on files meeting these criteria, the rule aims to identify potentially malicious activity indicative of an attacker trying to leverage this utility for ulterior motives.
+  ### Investigation Steps
+  - Analyze the process creation logs in your EDR to identify all instances of Xwizard.exe execution, focusing on non-standard file paths to ascertain the context of the execution. 
+  - Review command-line arguments associated with the Xwizard.exe process to uncover any suspicious parameters that may indicate malicious intent or unusual behavior.
+  - Cross-reference the execution time with recent incident reports or other alerts in your SIEM to identify any corresponding events that may indicate a larger attack pattern.
+  - Check the directory where Xwizard.exe was executed for any associated malicious files, particularly custom versions of xwizards.dll, and assess whether they match known indicators of compromise (IOCs).

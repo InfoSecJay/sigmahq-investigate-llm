@@ -1,0 +1,35 @@
+title: UAC Bypass Using WOW64 Logger DLL Hijack
+id: 4f6c43e2-f989-4ea5-bcd8-843b49a0317c
+status: test
+description: Detects the pattern of UAC Bypass using a WoW64 logger DLL hijack (UACMe
+  30)
+references:
+- https://github.com/hfiref0x/UACME
+author: Christian Burkard (Nextron Systems)
+date: 2021-08-23
+modified: 2022-10-09
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  category: process_access
+  product: windows
+detection:
+  selection:
+    SourceImage|contains: ':\Windows\SysWOW64\'
+    GrantedAccess: '0x1fffff'
+    CallTrace|startswith: 'UNKNOWN(0000000000000000)|UNKNOWN(0000000000000000)|'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects potential User Account Control (UAC) bypass attempts via a method known as a WoW64 logger DLL hijack. The Windows-on-Windows 64-bit (WoW64) is a technology that allows 32-bit applications to run on 64-bit Windows environments. Attackers may exploit this feature by hijacking DLLs in the SysWOW64 directory, which can lead to unauthorized privilege escalation by manipulating process access rights. 
+  The detection rule focuses on specific characteristics in process access logs, particularly looking for processes originating from the SysWOW64 folder that have been granted a high level of access (0x1fffff). It also examines the call trace of these processes to identify suspicious patterns indicative of a DLL hijack. By monitoring these parameters, the rule aims to identify and flag potentially malicious activities associated with UAC bypass exploits.
+  ### Investigation Steps
+  - Examine EDR process logs for any processes initiated from the SysWOW64 directory that match the alert criteria, noting the associated user accounts and timestamps.
+  - Review the call trace in the logs to identify any abnormal execution sequences or unknown calls leading up to the process execution.
+  - Check the Antivirus logs for any detections or warnings related to the identified processes, focusing on any blocked or quarantined DLL files.
+  - Correlate with firewall and proxy logs to identify any outbound connections initiated by the flagged process, indicating potential data exfiltration or further malicious activity.

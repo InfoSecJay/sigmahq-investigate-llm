@@ -1,0 +1,40 @@
+title: Network Connection Initiated Via Notepad.EXE
+id: e81528db-fc02-45e8-8e98-4e84aba1f10b
+status: test
+description: |
+  Detects a network connection that is initiated by the "notepad.exe" process.
+  This might be a sign of process injection from a beacon process or something similar.
+  Notepad rarely initiates a network communication except when printing documents for example.
+references:
+- https://web.archive.org/web/20200219102749/https://www.sans.org/cyber-security-summit/archives/file/summit-archive-1492186586.pdf
+- https://www.cobaltstrike.com/blog/why-is-notepad-exe-connecting-to-the-internet
+author: EagleEye Team
+date: 2020-05-14
+modified: 2024-02-02
+tags:
+- attack.command-and-control
+- attack.execution
+- attack.defense-evasion
+- attack.t1055
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\notepad.exe'
+  filter_optional_printing:
+    DestinationPort: 9100
+  condition: selection and not 1 of filter_optional_*
+falsepositives:
+- Printing documents via notepad might cause communication with the printer via port
+  9100 or similar.
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies unusual network activity initiated by the `notepad.exe` process on Windows systems. Normally, `notepad.exe` is a benign application that does not communicate over the network except for specific instances, such as when printing documents. The rule specifically looks for network connections where `notepad.exe` is the originating process, while excluding legitimate traffic such as printing, which typically utilizes Destination Port 9100. By detecting this anomaly, the rule aids in identifying potential process injection attacks or beaconing behavior, which attackers might use to exfiltrate data or establish command-and-control channels.
+  The primary data sources involved in this detection include network connection logs that capture process activity on Windows systems. Analysts will review logs for any connections that do not align with normal behavior for `notepad.exe`, especially focusing on any suspicious external communications that could signify a compromise.
+  ### Investigation Steps
+  - Examine EDR logs for instances of `notepad.exe` initiating network connections to identify the target IP addresses and ports used.
+  - Review process creation logs to check if `notepad.exe` was spawned by a legitimate user or through suspicious means, such as a known malware process.
+  - Investigate proxy logs for any outgoing traffic associated with the identified `notepad.exe` connections to see if any data was sent to the external destination.
+  - Correlate findings with cloud activity logs (e.g., AWS CloudTrail or GCP audit logs) to determine if any cloud resources were involved in the communication or if any credentials were exposed.

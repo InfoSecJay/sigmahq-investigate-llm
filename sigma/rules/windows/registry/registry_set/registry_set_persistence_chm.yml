@@ -1,0 +1,33 @@
+title: Potential Persistence Via CHM Helper DLL
+id: 976dd1f2-a484-45ec-aa1d-0e87e882262b
+status: test
+description: Detects when an attacker modifies the registry key "HtmlHelp Author"
+  to achieve persistence
+references:
+- https://persistence-info.github.io/Data/htmlhelpauthor.html
+- https://www.hexacorn.com/blog/2018/04/22/beyond-good-ol-run-key-part-76/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-21
+modified: 2023-08-17
+tags:
+- attack.persistence
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains:
+    - '\Software\Microsoft\HtmlHelp Author\Location'
+    - '\Software\WOW6432Node\Microsoft\HtmlHelp Author\Location'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule identifies potential persistence mechanisms employed by attackers through the manipulation of the Windows Registry. Specifically, it looks for modifications to the "HtmlHelp Author" registry key, as attackers can exploit this key to establish persistent access on an affected system. The rule focuses on entries within the paths `\Software\Microsoft\HtmlHelp Author\Location` and `\Software\WOW6432Node\Microsoft\HtmlHelp Author\Location`. By monitoring these registry changes, security teams can detect unauthorized persistence that may be indicative of nefarious actor activity. The logs generated from registry modifications are crucial for this detection and can provide insight into changes made by malware or adversaries seeking to maintain control over compromised systems.
+  ### Investigation Steps
+  - Utilize the EDR tool to review historical registry modification events related to the "HtmlHelp Author" key to determine if any unauthorized changes have occurred.
+  - Cross-reference the identified registry changes with process creation logs to identify any associated processes that may indicate malicious activity.
+  - Check for any installed applications or scheduled tasks that may be linked to the modifications detected, using the enterprise AV solution.
+  - Review network traffic and proxy logs to identify any unusual outbound connections that may correlate with the timing of the registry modifications.

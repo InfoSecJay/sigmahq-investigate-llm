@@ -1,0 +1,40 @@
+title: Potential CCleanerDU.DLL Sideloading
+id: 1fbc0671-5596-4e17-8682-f020a0b995dc
+status: test
+description: Detects potential DLL sideloading of "CCleanerDU.dll"
+references:
+- https://lab52.io/blog/2344-2/
+author: X__Junior (Nextron Systems)
+date: 2023-07-13
+tags:
+- attack.defense-evasion
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\CCleanerDU.dll'
+  filter_main_path:
+    Image|startswith:
+    - 'C:\Program Files\CCleaner\'
+    - 'C:\Program Files (x86)\CCleaner\'
+    Image|endswith:
+    - '\CCleaner.exe'
+    - '\CCleaner64.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- False positives could occur from other custom installation paths. Apply additional
+  filters accordingly.
+level: medium
+notes: |
+  ### Technical Context
+  The detection rule "Potential CCleanerDU.DLL Sideloading" focuses on identifying attempts to sideload the "CCleanerDU.dll" through the legitimate CCleaner application. Sideloading can be part of a malicious strategy where attackers use a trusted application to load a malicious DLL, bypassing traditional security mechanisms. The rule specifically looks for instances where the "CCleanerDU.dll" is loaded in the context of the CCleaner executable, which is typically located in "C:\Program Files\CCleaner\" or "C:\Program Files (x86)\CCleaner\". The rule checks for the loading of this DLL when the image being executed ends with 'CCleaner.exe' or 'CCleaner64.exe', ensuring that the detection is focused on legitimate use cases of the CCleaner application, while highlighting potential threats that could indicate persistence or privilege escalation through malicious DLLs.
+  ### Investigation Steps
+  - Review EDR logs for process creation events that show the loading of "CCleanerDU.dll" alongside CCleaner executables. Investigate parent-child process relationships to identify any suspicious activity.
+  - Check recent command-line parameters used with CCleaner to see if any unusual options or arguments were utilized that may indicate a deviation from normal behavior.
+  - Utilize the SIEM to look for related events in the timeline around the occurrence of the alert, focusing on other DLL loading events that might suggest coordinated malicious activity.
+  - Examine firewall logs for outbound connections initiated by the CCleaner processes, especially if the DLL loading coincides with unexpected network behavior that may indicate data exfiltration or further compromise.

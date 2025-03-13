@@ -1,0 +1,43 @@
+title: Bypass UAC via WSReset.exe
+id: d797268e-28a9-49a7-b9a8-2f5039011c5c
+related:
+- id: bdc8918e-a1d5-49d1-9db7-ea0fd91aa2ae
+  type: obsolete
+status: test
+description: Detects use of WSReset.exe to bypass User Account Control (UAC). Adversaries
+  use this technique to execute privileged processes.
+references:
+- https://eqllib.readthedocs.io/en/latest/analytics/532b5ed4-7930-11e9-8f5c-d46d6d62a49e.html
+- https://lolbas-project.github.io/lolbas/Binaries/Wsreset/
+- https://www.activecyber.us/activelabs/windows-uac-bypass
+- https://twitter.com/ReaQta/status/1222548288731217921
+author: E.M. Anhaus (originally from Atomic Blue Detections, Tony Lambert), oscd.community,
+  Florian Roth
+date: 2019-10-24
+modified: 2022-05-13
+tags:
+- attack.privilege-escalation
+- attack.defense-evasion
+- attack.t1548.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\wsreset.exe'
+  filter:
+  - Image|endswith: '\conhost.exe'
+  - OriginalFileName: 'CONHOST.EXE'
+  condition: selection and not filter
+falsepositives:
+- Unknown sub processes of Wsreset.exe
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies unauthorized use of the `WSReset.exe` utility to bypass User Account Control (UAC) in Windows environments. Adversaries exploit this legitimate Windows process to execute privileged commands or files under the guise of a trusted application. The rule analyzes process creation logs for instances where the parent process is `WSReset.exe` and checks if the child process is `conhost.exe`. Notably, it uses specific criteria to differentiate between legitimate use and malicious activity, thus preventing false positives by filtering out approved subprocesses.
+  The primary data sources utilized in this rule include the `process_creation` logs from Windows systems, which provide insights into executed commands, parent-child process relationships, and relevant image paths. By monitoring these parameters, the rule efficiently flags potentially nefarious attempts to escalate privileges by leveraging a common Windows utility.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR platform to identify the instances of `WSReset.exe` and the corresponding child processes spawned. 
+  - Investigate the command-line arguments associated with the `WSReset.exe` execution to find unusual patterns that might indicate malicious intent.
+  - Use the SIEM to correlate alerts related to `WSReset.exe` with other security events during the same timeframe, focusing on any unauthorized changes or escalations in privileges.
+  - Examine your AV logs for any detections or warnings regarding the use of `WSReset.exe` and related processes, particularly assessing any flagged behaviors that could suggest an attempt to manipulate UAC settings.

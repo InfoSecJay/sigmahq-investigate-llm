@@ -1,0 +1,40 @@
+title: Potential Startup Shortcut Persistence Via PowerShell.EXE
+id: 92fa78e7-4d39-45f1-91a3-8b23f3f1088d
+status: test
+description: |
+  Detects PowerShell writing startup shortcuts.
+  This procedure was highlighted in Red Canary Intel Insights Oct. 2021, "We frequently observe adversaries using PowerShell to write malicious .lnk files into the startup directory to establish persistence.
+  Accordingly, this detection opportunity is likely to identify persistence mechanisms in multiple threats.
+  In the context of Yellow Cockatoo, this persistence mechanism eventually launches the command-line script that leads to the installation of a malicious DLL"
+references:
+- https://redcanary.com/blog/intelligence-insights-october-2021/
+- https://github.com/redcanaryco/atomic-red-team/blob/36d49de4c8b00bf36054294b4a1fcbab3917d7c5/atomics/T1547.001/T1547.001.md#atomic-test-7---add-executable-shortcut-link-to-user-startup-folder
+author: Christopher Peacock '@securepeacock', SCYTHE
+date: 2021-10-24
+modified: 2023-02-23
+tags:
+- attack.persistence
+- attack.t1547.001
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    TargetFilename|contains: '\start menu\programs\startup\'
+    TargetFilename|endswith: '.lnk'
+  condition: selection
+falsepositives:
+- Depending on your environment accepted applications may leverage this at times.
+  It is recommended to search for anomalies inidicative of malware.
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects potential malicious activity involving PowerShell scripts that create startup shortcut files (.lnk) in the user’s startup directory. The primary intent of this behavior is to establish persistence on a compromised system, allowing an adversary to execute their payload every time the user logs onto the machine. The rule specifically looks for instances where PowerShell (or its cross-platform counterpart pwsh) is used to generate shortcut files targeting the startup folder. When a .lnk file is created here, it indicates a method employed by various threats, including the Yellow Cockatoo, to ensure continuous execution of malicious scripts or DLLs on system startup. The detection source relies on file event logs to capture actions related to the creation and modification of the shortcut files.
+  ### Investigation Steps
+  - Examine PowerShell process logs in your EDR to confirm the execution context of any detected PowerShell activity leading up to the creation of the shortcut.
+  - Investigate the specific .lnk files created in the startup directory by accessing file system logs to get details on the source, creation time, and properties of the files.
+  - Use your SIEM to correlate the detected PowerShell events with user login events, determining if the timing aligns with user logins or other anomalous activity.
+  - Review any network activity recorded in your Proxy or NDR tools for communication with suspicious external hosts related to the identified PowerShell processes and startup shortcuts.

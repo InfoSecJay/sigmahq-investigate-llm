@@ -1,0 +1,39 @@
+title: Powershell DNSExfiltration
+id: d59d7842-9a21-4bc6-ba98-64bfe0091355
+status: test
+description: DNSExfiltrator allows for transferring (exfiltrate) a file over a DNS
+  request covert channel
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1048/T1048.md#atomic-test-3---dnsexfiltration-doh
+- https://github.com/Arno0x/DNSExfiltrator
+author: frack113
+date: 2022-01-07
+tags:
+- attack.exfiltration
+- attack.t1048
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_cmdlet:
+  - ScriptBlockText|contains: 'Invoke-DNSExfiltrator'
+  - ScriptBlockText|contains|all:
+    - ' -i '
+    - ' -d '
+    - ' -p '
+    - ' -doh '
+    - ' -t '
+  condition: selection_cmdlet
+falsepositives:
+- Legitimate script
+level: high
+notes: |
+  ### Technical Context
+  The "Powershell DNSExfiltration" detection rule identifies potential data exfiltration attempts via DNS using PowerShell. It specifically looks for instances where the `Invoke-DNSExfiltrator` command is executed, as well as command-line parameters associated with this command that indicate the transfer of files over DNS requests. This detection relies on Script Block Logging, enabling the capture of PowerShell execution details including script text, which is vital for identifying malicious use. If any script execution contains the command or parameters related to DNS exfiltration, an alert is generated.
+  Key data sources for this rule include PowerShell script execution logs that capture the scripts' actions and parameters in environments where Script Block Logging is active. Such detection mechanisms are essential in proactively identifying and mitigating unauthorized data transfers often employed by adversaries seeking to compromise sensitive information.
+  ### Investigation Steps
+  - Review EDR logs for recent PowerShell commands executed on affected hosts to identify the context in which `Invoke-DNSExfiltrator` was used.
+  - Analyze network traffic through NDR tools to check for unusual or suspicious DNS requests, particularly looking for patterns corresponding to the parameters used in the detection rule.
+  - Check Windows Event Logs and Proxy logs to identify any related activities or connections that coincide with the alert, helping to build a timeline of the incident.
+  - Examine any corresponding alerts or incidents in your SIEM platform that may relate to the same endpoint or user activity for further context before taking remediation steps.

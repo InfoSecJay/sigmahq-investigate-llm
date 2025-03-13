@@ -1,0 +1,44 @@
+title: Suspicious Application Installed
+id: 83c161b6-ca67-4f33-8ad0-644a0737cf07
+status: test
+description: Detects suspicious application installed by looking at the added shortcut
+  to the app resolver cache
+references:
+- https://nasbench.medium.com/finding-forensic-goodness-in-obscure-windows-event-logs-60e978ea45a3
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-14
+tags:
+- attack.execution
+logsource:
+  product: windows
+  service: shell-core
+detection:
+  selection_name:
+    EventID: 28115
+    Name|contains:
+            # Please add more
+    - 'Zenmap'
+    - 'AnyDesk'
+    - 'wireshark'
+    - 'openvpn'
+  selection_packageid:
+    EventID: 28115
+    AppID|contains:
+            # Please add more
+    - 'zenmap.exe'
+    - 'prokzult ad'         # AnyDesk
+    - 'wireshark'
+    - 'openvpn'
+  condition: 1 of selection_*
+falsepositives:
+- Packages or applications being legitimately used by users or administrators
+level: medium
+notes: |
+  ### Technical Context
+  The "Suspicious Application Installed" detection rule is designed to identify potentially unwanted software installations on Windows systems by analyzing the app resolver cache for associated events. Specifically, it monitors Event ID 28115, which logs entries related to the installation of applications, including changes in application shortcuts. The rule checks for known suspicious applications, such as Zenmap, AnyDesk, Wireshark, and OpenVPN, by examining both the application names and their respective identifiers. By flagging these specific applications, the rule helps security teams quickly pinpoint potentially malicious installations that may facilitate unauthorized remote access or data leakage.
+  The effectiveness of this rule hinges on the use of Windows event logs, particularly those generated during application installations. By integrating data from these logs into a centralized security information and event management (SIEM) system, security teams can improve their detection capabilities and respond swiftly to potential threats.
+  ### Investigation Steps
+  - Review the Event ID 28115 logs in the Windows Event Viewer or through your SIEM to identify instances of the suspicious applications being installed.
+  - Use EDR to inspect the endpoints where these applications were detected, checking for unusual behaviors or associated processes.
+  - Search proxy logs for any suspicious outbound traffic linked to the detected applications, which can help establish potential command-and-control connections.
+  - Examine user account activity and permissions to determine if the installation of these applications was authorized or if it indicates a compromise.

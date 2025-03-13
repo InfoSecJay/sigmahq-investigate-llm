@@ -1,0 +1,41 @@
+title: ScreenSaver Registry Key Set
+id: 40b6e656-4e11-4c0c-8772-c1cc6dae34ce
+status: test
+description: Detects registry key established after masqueraded .scr file execution
+  using Rundll32 through desk.cpl
+references:
+- https://twitter.com/VakninHai/status/1517027824984547329
+- https://twitter.com/pabraeken/status/998627081360695297
+- https://jstnk9.github.io/jstnk9/research/InstallScreenSaver-SCR-files
+author: Jose Luis Sanchez Martinez (@Joseliyo_Jstnk)
+date: 2022-05-04
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1218.011
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    Image|endswith: '\rundll32.exe'
+  registry:
+    TargetObject|contains: '\Control Panel\Desktop\SCRNSAVE.EXE'
+    Details|endswith: '.scr'
+  filter:
+    Details|contains:
+    - 'C:\Windows\System32\'
+    - 'C:\Windows\SysWOW64\'
+  condition: selection and registry and not filter
+falsepositives:
+- Legitimate use of screen saver
+level: medium
+notes: |
+  ### Technical Context
+  The "ScreenSaver Registry Key Set" detection rule is designed to identify potentially suspicious activity involving the execution of a masqueraded screensaver file (.scr) using `rundll32.exe`. This rule checks for the modification of the Windows registry to establish a screensaver by monitoring specific registry actions. When a `.scr` file is executed through `rundll32.exe` and attempts to change the screensaver settings in the registry (specifically under `\Control Panel\Desktop\SCRNSAVE.EXE`), this rule triggers an alert. It is particularly focused on registry changes that may be associated with evasive tactics used by attackers, where a malicious screensaver file could be disguised to carry out harmful activities.
+  The key technical data sources for this rule include Windows registry set logs, specifically looking for relevant registry modifications, as well as process execution logs that track the usage of `rundll32.exe`. The rule also implements filters to reduce false positives by excluding legitimate uses of screensavers that originate from standard Windows directories.
+  ### Investigation Steps
+  - Examine the EDR logs for any recent executions of `rundll32.exe` that align with the alert timeframe, paying special attention to the command-line parameters used.
+  - Review the Windows registry activity to confirm the presence of modifications under `\Control Panel\Desktop\SCRNSAVE.EXE`, correlating these changes with the identified `rundll32.exe` execution.
+  - Check for any parent processes of `rundll32.exe` to determine the context in which the potential malicious activity was initiated and assess if further investigation is warranted.
+  - Utilize endpoint antivirus logs to verify if the triggered execution of the `.scr` file has produced any alerts or blocks related to malware or unwanted software activity.

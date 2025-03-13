@@ -1,0 +1,39 @@
+title: ImagingDevices Unusual Parent/Child Processes
+id: f11f2808-adb4-46c0-802a-8660db50fa99
+status: test
+description: Detects unusual parent or children of the ImagingDevices.exe (Windows
+  Contacts) process as seen being used with Bumblebee activity
+references:
+- https://thedfirreport.com/2022/09/26/bumblebee-round-two/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-27
+modified: 2022-12-29
+tags:
+- attack.defense-evasion
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|endswith:
+            # Add more if known
+    - \WmiPrvSE.exe
+    - \svchost.exe
+    - \dllhost.exe
+    Image|endswith: '\ImagingDevices.exe'
+  selection_child:
+        # You can add specific suspicious child processes (such as cmd, powershell...) to increase the accuracy
+    ParentImage|endswith: '\ImagingDevices.exe'
+  condition: 1 of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "ImagingDevices Unusual Parent/Child Processes" rule is designed to identify potentially suspicious behavior involving the ImagingDevices.exe process, which is a legitimate Windows component associated with the Contacts application. The rule focuses on instances where ImagingDevices.exe is launched by unusual parent processes like WmiPrvSE.exe, svchost.exe, or dllhost.exe, which could indicate malicious activity, particularly in connection with the Bumblebee malware framework. Additionally, it looks for unusual child processes spawned by ImagingDevices.exe, as the misuse of this process can signify a compromise or nefarious usage of Windows functionalities by threat actors. The primary technical data sources involved in this detection include process creation logs and their accompanying properties, such as the parent and child process images.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution for any recent instances where ImagingDevices.exe was spawned by unusual parent processes like WmiPrvSE.exe or svchost.exe.
+  - Check for any child processes created by ImagingDevices.exe that may indicate unauthorized action, such as PowerShell or Command Prompt executions, in your process logs.
+  - Utilize your SIEM to correlate these events with other alerts or indicators of compromise that may be related to the Bumblebee threat actor campaign.
+  - Conduct a thorough analysis of the affected system, including examining system artifacts and running processes, to identify any further signs of malicious behavior or persistence mechanisms.

@@ -1,0 +1,42 @@
+title: Uncommon File Creation By Mysql Daemon Process
+id: c61daa90-3c1e-4f18-af62-8f288b5c9aaf
+status: experimental
+description: |
+  Detects the creation of files with scripting or executable extensions by Mysql daemon.
+  Which could be an indicator of "User Defined Functions" abuse to download malware.
+references:
+- https://asec.ahnlab.com/en/58878/
+- https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/honeypot-recon-mysql-malware-infection-via-user-defined-functions-udf/
+author: Joseph Kamau
+date: 2024-05-27
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    Image|endswith:
+    - \mysqld.exe
+    - \mysqld-nt.exe
+    TargetFilename|endswith:
+    - '.bat'
+    - '.dat'
+    - '.dll'
+    - '.exe'
+    - '.ps1'
+    - '.psm1'
+    - '.vbe'
+    - '.vbs'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potentially malicious file creation by MySQL daemon processes, specifically `mysqld.exe` and `mysqld-nt.exe`. The rule monitors file creation events for specified scripting and executable file extensions such as `.bat`, `.dll`, and `.exe`, which can be indicative of a misuse of MySQL's User Defined Functions (UDF). The presence of these file types may suggest an attacker is leveraging MySQL to execute unauthorized commands or download malware, posing significant risks to system integrity and data security. The detection relies on file event logs from the Windows operating system, specifically focusing on the behavior of the MySQL daemon.
+  ### Investigation Steps
+  - Review the created file events within the EDR for the identified file types to determine if they were executed or accessed after creation.
+  - Investigate the MySQL daemon process activity for unusual command-line arguments or any anomalies that might indicate exploitation attempts.
+  - Cross-reference the IP addresses and domain names associated with the MySQL daemon's network traffic against threat intelligence sources for any known malicious indicators.
+  - Analyze user account activity in logs to identify any unauthorized access or privilege escalation events around the time of the suspicious file creation.

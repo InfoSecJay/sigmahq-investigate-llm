@@ -1,0 +1,32 @@
+title: Windows PowerShell User Agent
+id: c8557060-9221-4448-8794-96320e6f3e74
+status: test
+description: Detects Windows PowerShell Web Access
+references:
+- https://msdn.microsoft.com/powershell/reference/5.1/microsoft.powershell.utility/Invoke-WebRequest
+author: Florian Roth (Nextron Systems)
+date: 2017-03-13
+modified: 2021-11-27
+tags:
+- attack.defense-evasion
+- attack.command-and-control
+- attack.t1071.001
+logsource:
+  category: proxy
+detection:
+  selection:
+    c-useragent|contains: ' WindowsPowerShell/'
+  condition: selection
+falsepositives:
+- Administrative scripts that download files from the Internet
+- Administrative scripts that retrieve certain website contents
+level: medium
+notes: |
+  ### Technical Context
+  The "Windows PowerShell User Agent" detection rule aims to identify potentially malicious use of Windows PowerShell Web Access by monitoring user agent strings that include "WindowsPowerShell/." This user agent string can indicate sessions where PowerShell commands are invoked to make web requests, potentially leading to data exfiltration or command-and-control activities. The rule primarily analyzes logs collected from proxy servers, which capture HTTP traffic and user agent information, helping to flag suspicious PowerShell activities that deviate from standard administrative tasks. By focusing on these user agents, the rule seeks to provide early detection of potential breaches or misuse of PowerShell capabilities.
+  ### Investigation Steps
+  - Review proxy logs to identify instances where the user agent string contains "WindowsPowerShell/." 
+     
+  - Correlate identified user agent entries with corresponding process creation logs to determine if they are linked to unauthorized PowerShell activity.
+  - Check EDR logs for any indicators of unusual process behavior or execution patterns related to PowerShell usage during the time frame of the alerts.
+  - Investigate any associated network traffic patterns to determine if there are outbound calls to known malicious IP addresses or domains.

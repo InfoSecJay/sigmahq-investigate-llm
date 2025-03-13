@@ -1,0 +1,50 @@
+title: Windows Firewall Disabled via PowerShell
+id: 12f6b752-042d-483e-bf9c-915a6d06ad75
+related:
+- id: 488b44e7-3781-4a71-888d-c95abfacf44d
+  type: similar
+status: test
+description: Detects attempts to disable the Windows Firewall using PowerShell
+references:
+- https://www.elastic.co/guide/en/security/current/windows-firewall-disabled-via-powershell.html
+author: Tim Rauch, Elastic (idea)
+date: 2022-09-14
+modified: 2023-02-13
+tags:
+- attack.defense-evasion
+- attack.t1562
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_name:
+  - Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\powershell_ise.exe'
+  - OriginalFileName:
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+  selection_args:
+    CommandLine|contains|all:
+    - 'Set-NetFirewallProfile '
+    - ' -Enabled '
+    - ' False'
+  selection_opt:
+    CommandLine|contains:
+    - ' -All '
+    - 'Public'
+    - 'Domain'
+    - 'Private'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where the Windows Firewall is being disabled through PowerShell command-line execution. By monitoring process creation logs for specific PowerShell executables (such as `powershell.exe`, `pwsh.exe`, and `powershell_ise.exe`), the rule looks for command-line arguments indicating an attempt to alter the firewall profile settings. Particularly, it targets any usage of the `Set-NetFirewallProfile` command with parameters that denote disabling the firewall, such as `-Enabled False`. This behavior can indicate malicious intent as it is a known method used by attackers to bypass security defenses, making this rule essential for detecting potential breaches or unauthorized actions within the environment.
+  ### Investigation Steps
+  - Review the alert details in your SIEM to determine the user and system context associated with the PowerShell command execution.
+  - Investigate the command history on the affected system using EDR to confirm whether similar commands were executed previously, indicating potential reconnaissance or malicious behavior.
+  - Check the logs from your network firewall and proxy to identify any unusual outbound connections made shortly after the incident, which could indicate data exfiltration attempts.
+  - Correlate findings with cloud platform logs (if applicable) to uncover any related activities or access patterns that could provide additional context around the alert.

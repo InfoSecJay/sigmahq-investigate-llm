@@ -1,0 +1,32 @@
+title: Allow RDP Remote Assistance Feature
+id: 37b437cf-3fc5-4c8e-9c94-1d7c9aff842b
+status: test
+description: Detect enable rdp feature to allow specific user to rdp connect on the
+  targeted machine
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/40b77d63808dd4f4eafb83949805636735a1fd15/atomics/T1112/T1112.md
+author: frack113
+date: 2022-08-19
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: 'System\CurrentControlSet\Control\Terminal Server\fAllowToGetHelp'
+    Details: DWORD (0x00000001)
+  condition: selection
+falsepositives:
+- Legitimate use of the feature (alerts should be investigated either way)
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies when the Remote Desktop Protocol (RDP) Remote Assistance feature is enabled on Windows systems. Specifically, it monitors changes to the Windows registry key associated with RDP assistance, looking for a DWORD value (0x00000001) that allows specific users to connect remotely. The monitoring of registry changes is crucial, as it can signify authorized support activities or potential misuse by attackers seeking unauthorized remote access. Analysts should be aware that legitimate administrative actions may trigger this rule, requiring careful investigation to determine the intent behind the change.
+  ### Investigation Steps
+  - Review the registry change using EDR tools to identify the user account associated with the modification and the time it occurred.
+  - Cross-reference user credentials against known administrative accounts to ensure that the change is not the result of compromised credentials.
+  - Check for related events in logs from the Windows Security Event logs to confirm any subsequent RDP logins that correspond to the user account linked to the registry change.
+  - Evaluate network traffic captured by NDR or firewall logs to identify any anomalous connections or activities following the registry modification.

@@ -1,0 +1,39 @@
+title: HackTool - Empire PowerShell Launch Parameters
+id: 79f4ede3-402e-41c8-bc3e-ebbf5f162581
+status: test
+description: Detects suspicious powershell command line parameters used in Empire
+references:
+- https://github.com/EmpireProject/Empire/blob/c2ba61ca8d2031dad0cfc1d5770ba723e8b710db/lib/common/helpers.py#L165
+- https://github.com/EmpireProject/Empire/blob/e37fb2eef8ff8f5a0a689f1589f424906fe13055/lib/modules/powershell/persistence/powerbreach/deaduser.py#L191
+- https://github.com/EmpireProject/Empire/blob/e37fb2eef8ff8f5a0a689f1589f424906fe13055/lib/modules/powershell/persistence/powerbreach/resolver.py#L178
+- https://github.com/EmpireProject/Empire/blob/e37fb2eef8ff8f5a0a689f1589f424906fe13055/data/module_source/privesc/Invoke-EventVwrBypass.ps1#L64
+author: Florian Roth (Nextron Systems)
+date: 2019-04-20
+modified: 2023-02-21
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains:
+    - ' -NoP -sta -NonI -W Hidden -Enc '
+    - ' -noP -sta -w 1 -enc '
+    - ' -NoP -NonI -W Hidden -enc '
+    - ' -noP -sta -w 1 -enc'
+    - ' -enc  SQB'
+    - ' -nop -exec bypass -EncodedCommand '
+  condition: selection
+falsepositives:
+- Other tools that incidentally use the same command line parameters
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious behavior associated with PowerShell command line invocations commonly used by the Empire framework, a well-known penetration testing tool. The rule focuses on specific command line parameters that indicate potential malicious use of PowerShell, particularly through Empire's obfuscation techniques. It analyzes process creation logs for Windows systems, looking for command lines that contain certain flags such as `-NoP`, `-Enc`, and variations thereof that signal usage of Empire's capabilities. By leveraging this detection, security teams can identify attempts to obfuscate malicious actions and take necessary steps to investigate and remediate potential threats.
+  ### Investigation Steps
+  - Review the identified PowerShell invocation in EDR for additional context around process ancestry and associated users, including whether it was initiated by a legitimate application or process.
+  - Correlate the timestamp of the alert with other security logs, such as VPN and Proxy logs, to determine if there are any suspicious external connections or related activities that could suggest a broader compromise.
+  - Examine the command line parameters in context with any relevant alerts from antivirus or endpoint protection platforms to identify known malicious patterns or signatures.
+  - Perform a threat hunting exercise focusing on the affected endpoints, using cloud platform logs if necessary, to uncover any lateral movement or data exfiltration behaviors linked to the detected PowerShell execution.

@@ -1,0 +1,58 @@
+title: Potentially Suspicious Cabinet File Expansion
+id: 9f107a84-532c-41af-b005-8d12a607639f
+status: test
+description: Detects the expansion or decompression of cabinet files from potentially
+  suspicious or uncommon locations, e.g. seen in Iranian MeteorExpress related attacks
+references:
+- https://labs.sentinelone.com/meteorexpress-mysterious-wiper-paralyzes-iranian-trains-with-epic-troll
+- https://blog.malwarebytes.com/threat-intelligence/2021/08/new-variant-of-konni-malware-used-in-campaign-targetting-russia/
+author: Bhabesh Raj, X__Junior (Nextron Systems)
+date: 2021-07-30
+modified: 2024-11-13
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_cmd:
+    Image|endswith: '\expand.exe'
+    CommandLine|contains|windash: '-F:'
+  selection_folders_1:
+    CommandLine|contains:
+    - ':\Perflogs\'
+    - ':\ProgramData'
+    - ':\Users\Public\'
+    - ':\Windows\Temp\'
+    - '\Admin$\'
+    - '\AppData\Local\Temp\'
+    - '\AppData\Roaming\'
+    - '\C$\'
+    - '\Temporary Internet'
+  selection_folders_2:
+  - CommandLine|contains|all:
+    - ':\Users\'
+    - '\Favorites\'
+  - CommandLine|contains|all:
+    - ':\Users\'
+    - '\Favourites\'
+  - CommandLine|contains|all:
+    - ':\Users\'
+    - '\Contacts\'
+  filter_optional_dell:
+        # Launched by Dell ServiceShell.exe
+    ParentImage: 'C:\Program Files (x86)\Dell\UpdateService\ServiceShell.exe'
+    CommandLine|contains: 'C:\ProgramData\Dell\UpdateService\Temp\'
+  condition: selection_cmd and 1 of selection_folders_* and not 1 of filter_optional_*
+falsepositives:
+- System administrator Usage
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potentially suspicious activity involving the expansion or decompression of cabinet (.cab) files within uncommon or vulnerable directories on Windows systems. Specifically, it targets the execution of `expand.exe` with command-line parameters that indicate an expansion from directories such as `C:\Perflogs\`, `C:\ProgramData`, and various user-specific folders. These paths are often less monitored and may be misused in attacks, as evidenced by their association with incidents like the Iranian MeteorExpress malware campaign. The rule effectively filters out benign activities, such as those initiated by the Dell Update Service, to minimize false positives while maintaining vigilance over potentially malicious file manipulations.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR system to identify any instances of `expand.exe` being executed with command-line arguments that include `-F:` from the specified suspicious directories.
+  - Utilize the SIEM to correlate the detected activity with historical logs, searching for prior occurrences of suspicious cabinet file expansions or related malware indicators.
+  - Check for related processes and network connections that occurred around the same time as the alert to understand the context and impact of the file expansion.
+  - Monitor AV logs for any previous detections or alerts involving the same executable or the related malicious activities to assess whether this was an isolated incident or part of a broader attack strategy.

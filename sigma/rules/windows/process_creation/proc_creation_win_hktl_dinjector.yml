@@ -1,0 +1,35 @@
+title: HackTool - DInjector PowerShell Cradle Execution
+id: d78b5d61-187d-44b6-bf02-93486a80de5a
+status: test
+description: Detects the use of the Dinject PowerShell cradle based on the specific
+  flags
+references:
+- https://web.archive.org/web/20211001064856/https://github.com/snovvcrash/DInjector     # Original got deleted. This is a fork
+author: Florian Roth (Nextron Systems)
+date: 2021-12-07
+modified: 2023-02-04
+tags:
+- attack.defense-evasion
+- attack.t1055
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - ' /am51'
+    - ' /password'
+  condition: selection
+falsepositives:
+- Unlikely
+level: critical
+notes: |
+  ### Technical Context
+  The detection rule "HackTool 
+  - DInjector PowerShell Cradle Execution" is designed to identify the execution of a specific PowerShell command associated with the DInjector tool, which is often leveraged for malicious activities. The rule looks for command-line arguments that include '/am51' and '/password', which are specific flags used by the DInjector tool to obfuscate its activities while injecting malicious payloads into memory. This rule relies on process creation logs from Windows systems to monitor and capture command lines associated with newly initiated processes.
+  When a PowerShell command is executed with the identified flags, the rule triggers an alert, indicating a potential threat that warrants further investigation. Given the nature of DInjector and its relation to defense evasion tactics, timely detection is critical for mitigating risks associated with credential theft and process manipulation.
+  ### Investigation Steps
+  Investigate the alerted process creation logs in your EDR solution to examine the full command line used and any associated processes or parents.
+  Review the system event logs to identify the time of execution and correlate it with other activities on the host for potential indicators of compromise.
+  Check for any network connections made by the process or related processes using the NDR tool to uncover potential data exfiltration or further lateral movement.
+  Cross-reference the user account associated with the execution against your organization's access management policies to determine if the action was authorized or anomalous.

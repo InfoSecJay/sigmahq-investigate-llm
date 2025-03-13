@@ -1,0 +1,40 @@
+title: Potential Waveedit.DLL Sideloading
+id: 71b31e99-9ad0-47d4-aeb5-c0ca3928eeeb
+status: test
+description: Detects potential DLL sideloading of "waveedit.dll", which is part of
+  the Nero WaveEditor audio editing software.
+references:
+- https://www.trendmicro.com/en_us/research/23/f/behind-the-scenes-unveiling-the-hidden-workings-of-earth-preta.html
+author: X__Junior (Nextron Systems)
+date: 2023-06-14
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\waveedit.dll'
+  filter_main_legit_path:
+    Image:
+    - 'C:\Program Files (x86)\Nero\Nero Apps\Nero WaveEditor\waveedit.exe'
+    - 'C:\Program Files\Nero\Nero Apps\Nero WaveEditor\waveedit.exe'
+    ImageLoaded|startswith:
+    - 'C:\Program Files (x86)\Nero\Nero Apps\Nero WaveEditor\'
+    - 'C:\Program Files\Nero\Nero Apps\Nero WaveEditor\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential DLL sideloading of `waveedit.dll`, which is associated with the Nero WaveEditor software. The rule specifically looks for instances where the `waveedit.dll` file is loaded outside its legitimate context, signifying that it may be exploited for malicious purposes. The primary data source for this detection is image load events from Windows, which record when DLL files are loaded into the memory space of processes. By filtering for legitimate paths associated with `waveedit.exe`, the rule helps distinguish between normal and potentially harmful loads of the `waveedit.dll` library.
+  The detection involves matching the process loading the DLL against specified paths that are known to be legitimate for the WaveEditor application. If the DLL is loaded but not from these trusted paths, it raises an alert and flags it for further investigation. Given the implications of DLL sideloading—often used to evade security measures—this rule is crucial in detecting possible misuse.
+  ### Investigation Steps
+  - Review recent EDR alerts for instances where `waveedit.dll` was loaded and examine the associated process details to understand the context of the loading.
+  - Check the command-line parameters for `waveedit.exe` in the EDR logs to determine if any unusual arguments were present during execution.
+  - Cross-reference proxy and firewall logs to identify any suspicious outbound network connections initiated by the processes loading `waveedit.dll`.
+  - Investigate any recent changes in the software installation or updates associated with the Nero WaveEditor application through asset inventory tools.

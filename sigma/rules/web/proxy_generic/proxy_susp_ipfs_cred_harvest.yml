@@ -1,0 +1,34 @@
+title: Suspicious Network Communication With IPFS
+id: eb6c2004-1cef-427f-8885-9042974e5eb6
+status: test
+description: Detects connections to interplanetary file system (IPFS) containing a
+  user's email address which mirrors behaviours observed in recent phishing campaigns
+  leveraging IPFS to host credential harvesting webpages.
+references:
+- https://blog.talosintelligence.com/ipfs-abuse/
+- https://github.com/Cisco-Talos/IOCs/tree/80caca039988252fbb3f27a2e89c2f2917f582e0/2022/11
+- https://isc.sans.edu/diary/IPFS%20phishing%20and%20the%20need%20for%20correctly%20set%20HTTP%20security%20headers/29638
+author: Gavin Knapp
+date: 2023-03-16
+tags:
+- attack.credential-access
+- attack.t1056
+logsource:
+  category: proxy
+detection:
+  selection:
+    cs-uri|re: '(?i)(ipfs\.io/|ipfs\.io\s).+\..+@.+\.[a-z]+'
+  condition: selection
+falsepositives:
+- Legitimate use of IPFS being used in the organisation. However the cs-uri regex
+  looking for a user email will likely negate this.
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious network communication involving the InterPlanetary File System (IPFS) when a user's email address is present in the request URI. IPFS is a decentralized storage network that has recently been exploited in phishing campaigns to host credential harvesting webpages. The rule employs a regex pattern to scrutinize the outbound traffic in proxy logs that shows requests to IPFS domains containing email addresses. When a suspicious request matches this pattern, it indicates a high likelihood of phishing activity, warranting further investigation.
+  The primary data source utilized for this detection is proxy log data, specifically the `cs-uri` field, which captures the requested URL. By monitoring these outbound requests, security analysts can identify and respond to potential phishing threats that employ IPFS as a platform for malicious activities.
+  ### Investigation Steps
+  - Review the proxy log entries associated with the detected IPFS requests to confirm if they exhibit patterns consistent with known phishing tactics.
+  - Utilize EDR tools to analyze endpoint behavior around the time of the network communication to check for any processes associated with the detected IPFS activity.
+  - Cross-reference user email addresses found in the proxy logs against known compromised email datasets to assess the potential for credential theft.
+  - Conduct a search in your organization’s AV solution to determine if any flagged malware samples related to IPFS-based phishing activities are present on endpoints.

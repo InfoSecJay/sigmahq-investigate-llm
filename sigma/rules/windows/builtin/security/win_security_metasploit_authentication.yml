@@ -1,0 +1,38 @@
+title: Metasploit SMB Authentication
+id: 72124974-a68b-4366-b990-d30e0b2a190d
+status: test
+description: Alerts on Metasploit host's authentications on the domain.
+references:
+- https://github.com/rapid7/metasploit-framework/blob/1416b5776d963f21b7b5b45d19f3e961201e0aed/lib/rex/proto/smb/client.rb
+author: Chakib Gzenayi (@Chak092), Hosni Mribah
+date: 2020-05-06
+modified: 2024-01-25
+tags:
+- attack.lateral-movement
+- attack.t1021.002
+logsource:
+  product: windows
+  service: security
+detection:
+  selection1:
+    EventID:
+    - 4625
+    - 4624
+    LogonType: 3
+    AuthenticationPackageName: 'NTLM'
+    WorkstationName|re: '^[A-Za-z0-9]{16}$'
+  selection2:
+    EventID: 4776
+    Workstation|re: '^[A-Za-z0-9]{16}$'
+  condition: 1 of selection*
+falsepositives:
+- Linux hostnames composed of 16 characters.
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect unauthorized or suspicious SMB (Server Message Block) authentication attempts that may indicate the use of Metasploit, a common penetration testing tool often leveraged by attackers. The rule triggers on specific Windows security event logs that record failed and successful logon attempts (Event IDs 4624 and 4625, respectively) using NTLM authentication, a protocol frequently exploited in lateral movement techniques. To further hone in on potential malicious activity, the rule looks for workstation names consisting of exactly 16 alphanumeric characters, which can signify the naming conventions used by Metasploit. The use of Event ID 4776 for additional validation helps to track authentication issues tied to the domain controller, adding another layer of scrutiny to the detected events.
+  ### Investigation Steps
+  - Review EDR logs for detailed information on the identified authentication attempts, including the source process and IP addresses associated with the logins.
+  - Check the firewall logs to determine if there were any unusual inbound or outbound connections from the workstation names flagged by the rule.
+  - Analyze Windows security logs on the affected hosts to check for any additional signs of lateral movement or unusual user activity around the timestamp of the alerts.
+  - Examine intrusion detection system (IDS) alerts and proxy logs around the time of the detected events to identify any other potential attack vectors or correlated malicious activities.

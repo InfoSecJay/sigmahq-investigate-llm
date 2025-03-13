@@ -1,0 +1,29 @@
+title: HackTool - BabyShark Agent Default URL Pattern
+id: 304810ed-8853-437f-9e36-c4975c3dfd7e
+status: test
+description: Detects Baby Shark C2 Framework default communication patterns
+references:
+- https://nasbench.medium.com/understanding-detecting-c2-frameworks-babyshark-641be4595845
+author: Florian Roth (Nextron Systems)
+date: 2021-06-09
+modified: 2024-02-15
+tags:
+- attack.command-and-control
+- attack.t1071.001
+logsource:
+  category: proxy
+detection:
+  selection:
+    c-uri|contains: 'momyshark\?key='
+  condition: selection
+falsepositives:
+- Unlikely
+level: critical
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potential Command and Control (C2) activity associated with the BabyShark agent, a known threat used for malicious purposes. The rule specifically looks for HTTP requests containing the string `momyshark?key=`, which is characteristic of the BabyShark agent's default communication patterns. The primary data source for this detection is proxy logs, which capture outbound traffic and can reveal suspicious patterns indicative of compromised systems communicating with their C2 infrastructure. By monitoring these logs for the specified URI, the rule aims to flag potentially malicious activity for further investigation.
+  ### Investigation Steps
+  - Review the proxy logs for any instances of requests containing the string `momyshark?key=` to identify affected endpoints.
+  - Utilize EDR solutions to examine the processes running on the identified endpoints and check for any unauthorized or suspicious programs associated with the BabyShark agent.
+  - Correlate user activity logs to determine if the affected systems show signs of unusual behavior or connections to known malicious IP addresses.
+  - Cross-reference findings with threat intelligence databases to verify if the identified activity aligns with known BabyShark C2 operations.

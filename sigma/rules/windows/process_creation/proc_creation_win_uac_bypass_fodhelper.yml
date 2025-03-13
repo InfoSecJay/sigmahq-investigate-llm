@@ -1,0 +1,36 @@
+title: Bypass UAC via Fodhelper.exe
+id: 7f741dcf-fc22-4759-87b4-9ae8376676a2
+status: test
+description: Identifies use of Fodhelper.exe to bypass User Account Control. Adversaries
+  use this technique to execute privileged processes.
+references:
+- https://eqllib.readthedocs.io/en/latest/analytics/e491ce22-792f-11e9-8f5c-d46d6d62a49e.html
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1548.002/T1548.002.md
+author: E.M. Anhaus (originally from Atomic Blue Detections, Tony Lambert), oscd.community
+date: 2019-10-24
+modified: 2021-11-27
+tags:
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\fodhelper.exe'
+  condition: selection
+fields:
+- ComputerName
+- User
+- CommandLine
+falsepositives:
+- Legitimate use of fodhelper.exe utility by legitimate user
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Bypass UAC via Fodhelper.exe" is designed to identify potential privilege escalation attempts by monitoring the execution of the `fodhelper.exe` process, which is a Windows utility. Adversaries often exploit this process as a means to bypass User Account Control (UAC) and execute commands with elevated privileges. The rule focuses on process creation logs, specifically targeting instances where `fodhelper.exe` is the parent process for other command executions, indicating a possible malicious intent. By analyzing the command line parameters associated with these instances, security analysts can identify suspicious patterns that may reveal attempts to execute unauthorized privileged processes.
+  ### Investigation Steps
+  - Utilize the EDR tool to investigate the details of the detected `fodhelper.exe` execution, checking for any related processes that may have spawned from it.
+  - Review the command line parameters associated with `fodhelper.exe` to determine if any unusual or unexpected commands indicate possible misuse or malicious activity.
+  - Correlate the alert with user and system activity logs in the SIEM to identify whether the user executing `fodhelper.exe` has a legitimate reason for doing so.
+  - Check logs from antivirus solutions to see if any detections or blocks were recorded around the time of the `fodhelper.exe` execution, indicating potential malicious behavior.

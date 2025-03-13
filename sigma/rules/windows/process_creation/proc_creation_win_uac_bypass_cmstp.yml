@@ -1,0 +1,48 @@
+title: Bypass UAC via CMSTP
+id: e66779cc-383e-4224-a3a4-267eeb585c40
+status: test
+description: Detect commandline usage of Microsoft Connection Manager Profile Installer
+  (cmstp.exe) to install specially formatted local .INF files
+references:
+- https://eqllib.readthedocs.io/en/latest/analytics/e584f1a1-c303-4885-8a66-21360c90995b.html
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1218.003/T1218.003.md
+- https://lolbas-project.github.io/lolbas/Binaries/Cmstp/
+author: E.M. Anhaus (originally from Atomic Blue Detections, Endgame), oscd.community
+date: 2019-10-24
+modified: 2022-08-30
+tags:
+- attack.privilege-escalation
+- attack.defense-evasion
+- attack.t1548.002
+- attack.t1218.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\cmstp.exe'
+  - OriginalFileName: 'CMSTP.EXE'
+  selection_cli:
+    CommandLine|contains:
+    - '/s'
+    - '-s'
+    - '/au'
+    - '-au'
+    - '/ni'
+    - '-ni'
+  condition: all of selection*
+fields:
+- ComputerName
+- User
+- CommandLine
+falsepositives:
+- Legitimate use of cmstp.exe utility by legitimate user
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets potential abuse of the Microsoft Connection Manager Profile Installer (`cmstp.exe`), which can be misused to bypass User Account Control (UAC) by executing specially crafted `.INF` files. The rule specifically looks for command-line arguments associated with known instances of UAC bypass attempts, such as `/s`, `-s`, `/au`, `-au`, `/ni`, and `-ni`, combined with evidence that the `cmstp.exe` process is being used. It analyzes process creation logs for the presence of these command-line patterns while ensuring that the process invoked is the legitimate `cmstp.exe` with the original filename intact. This check allows the detection of malicious behavior aimed at elevating privileges through sophisticated evasion techniques that exploit legitimate Windows functionality.
+  ### Investigation Steps
+  - Review process creation logs in the EDR to identify instances of `cmstp.exe` executed with suspicious command-line arguments.
+  - Cross-reference the user accounts involved with authentication logs to establish if they exhibit any unusual behavior or are known to have legitimate access.
+  - Examine the content of any `.INF` files referenced in the command line for potentially malicious modifications or unknown origins.
+  - Check firewall and proxy logs for any unusual outbound connections initiated by the user or system after the execution of `cmstp.exe`, which may indicate post-exploitation activity.

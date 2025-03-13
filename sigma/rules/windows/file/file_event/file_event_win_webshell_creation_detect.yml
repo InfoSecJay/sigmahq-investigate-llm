@@ -1,0 +1,63 @@
+title: Potential Webshell Creation On Static Website
+id: 39f1f9f2-9636-45de-98f6-a4046aa8e4b9
+status: test
+description: Detects the creation of files with certain extensions on a static web
+  site. This can be indicative of potential uploads of a web shell.
+references:
+- PT ESC rule and personal experience
+- https://github.com/swisskyrepo/PayloadsAllTheThings/blob/c95a0a1a2855dc0cd7f7327614545fe30482a636/Upload%20Insecure%20Files/README.md
+author: Beyu Denis, oscd.community, Tim Shelton, Thurein Oo
+date: 2019-10-22
+modified: 2023-10-15
+tags:
+- attack.persistence
+- attack.t1505.003
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection_wwwroot_path:
+    TargetFilename|contains: '\inetpub\wwwroot\'
+  selection_wwwroot_ext:
+    TargetFilename|contains:
+    - '.ashx'
+    - '.asp'
+    - '.ph'
+    - '.soap'
+  selection_htdocs_path:
+    TargetFilename|contains:
+    - '\www\'
+    - '\htdocs\'
+    - '\html\'
+  selection_htdocs_ext:
+    TargetFilename|contains: '.ph'
+    # selection_tomcat_path:
+    #     TargetFilename|contains: '\webapps\ROOT'
+    # selection_tomcat_ext:
+    #     TargetFilename|contains:
+    #         - '.jsp' # .jspx, .jspf
+    #         - '.jsv'
+    #         - '.jsw'
+  filter_main_temp:    # FP when unpacking some executables in $TEMP
+    TargetFilename|contains:
+    - '\AppData\Local\Temp\'
+    - '\Windows\Temp\'
+  filter_main_system:
+    Image: 'System'     # FP when backup/restore from drivers
+  filter_main_legitimate:
+    TargetFilename|contains: '\xampp'
+  condition: (all of selection_wwwroot_* or all of selection_htdocs_*) and not 1 of
+    filter_main_*
+falsepositives:
+- Legitimate administrator or developer creating legitimate executable files in a
+  web application folder
+level: medium
+notes: |
+  ### Technical Context
+  The detection rule titled "Potential Webshell Creation On Static Website" is designed to identify potentially malicious file creations on web servers hosting static websites. This rule specifically looks for files with certain extensions commonly associated with web shells, such as `.ashx`, `.asp`, and `.ph`, being created in directories like `\inetpub\wwwroot\` or other typical web root directories such as `\www\`, `\htdocs\`, or `\html\`. The rule avoids false positives by filtering out file creations initiated by system processes or legitimate web application frameworks like XAMPP, and it also excludes files created in temporary directories.
+  By monitoring file creation events through Windows file event logs, the rule generates alerts when suspicious file extensions are detected in hotspot directories. The underlying assumption is that the presence of these file types could indicate an attacker attempting to upload or manage a web shell on a compromised static web server, an action associated with maintaining unauthorized access or executing arbitrary code on the server.
+  ### Investigation Steps
+  - Review recent file creation events in the Windows file event logs, particularly focusing on the specified web root directories for the presence of the identified file extensions.
+  - Utilize EDR tools to track down and analyze the process tree associated with any detected file creations, providing context on how the files were created.
+  - Cross-reference logs from the web server and proxy to look for unusual HTTP requests or file upload activity that correlates with the file creation events.
+  - Conduct a search for any related indicators of compromise (IOCs) in your threat intelligence feeds to assess if the detected activity is linked to known malicious actors or tactics.

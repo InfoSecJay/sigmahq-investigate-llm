@@ -1,0 +1,39 @@
+title: RottenPotato Like Attack Pattern
+id: 16f5d8ca-44bd-47c8-acbe-6fc95a16c12f
+status: test
+description: Detects logon events that have characteristics of events generated during
+  an attack with RottenPotato and the like
+references:
+- https://twitter.com/SBousseaden/status/1195284233729777665
+author: '@SBousseaden, Florian Roth'
+date: 2019-11-15
+modified: 2022-12-22
+tags:
+- attack.privilege-escalation
+- attack.credential-access
+- attack.t1557.001
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4624
+    LogonType: 3
+    TargetUserName: 'ANONYMOUS LOGON'
+    WorkstationName: '-'
+    IpAddress:
+    - '127.0.0.1'
+    - '::1'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "RottenPotato Like Attack Pattern" rule is designed to detect unusual logon events that suggest potential privilege escalation attempts typical of attacks like RottenPotato. Specifically, the rule looks for Event ID 4624, which represents successful logon events, with certain characteristics: a Logon Type of 3 (network logons), a Target User Name of 'ANONYMOUS LOGON', and a Workstation Name of '-'. Additionally, it filters for logon attempts originating from localhost IP addresses (127.0.0.1 and ::1). This combination of criteria indicates a suspicious internal access attempt that could signify misuse of credentials or exploitation of vulnerabilities for unauthorized access.
+  The data sources involved in this rule primarily come from Windows security logs, which capture details about user logon activities. Incident responders should note that the presence of these logon patterns may not always indicate malicious behavior; however, they warrant further investigation due to their historical association with credential access and privilege escalation tactics.
+  ### Investigation Steps
+  - Review the EDR logs to identify any related process executions around the time of the suspicious logon event to check for malicious or unauthorized application behavior.
+  - Analyze network traffic logs from the NDR to determine if there were any unusual outgoing connections or requests to remote resources following the logon event.
+  - Check system event logs for any additional security-related events that occurred concurrently to assess the context of the logon activity.
+  - Validate the access permissions and roles of the user account involved to confirm if the 'ANONYMOUS LOGON' should have been able to perform the actions associated with this event.

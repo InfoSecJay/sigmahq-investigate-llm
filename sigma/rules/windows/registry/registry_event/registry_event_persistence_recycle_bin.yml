@@ -1,0 +1,37 @@
+title: Registry Persistence Mechanisms in Recycle Bin
+id: 277efb8f-60be-4f10-b4d3-037802f37167
+status: test
+description: Detects persistence registry keys for Recycle Bin
+references:
+- https://github.com/vxunderground/VXUG-Papers/blob/751edb8d50f95bd7baa730adf2c6c3bb1b034276/The%20Persistence%20Series/Persistence%20via%20Recycle%20Bin/Persistence_via_Recycle_Bin.pdf
+- https://persistence-info.github.io/Data/recyclebin.html
+- https://www.hexacorn.com/blog/2018/05/28/beyond-good-ol-run-key-part-78-2/
+author: frack113
+date: 2021-11-18
+modified: 2022-12-06
+tags:
+- attack.persistence
+- attack.t1547
+logsource:
+  category: registry_event
+  product: windows
+detection:
+  selection_create:
+    EventType: RenameKey
+    NewName|contains: '\CLSID\{645FF040-5081-101B-9F08-00AA002F954E}\shell\open'
+  selection_set:
+    EventType: SetValue
+    TargetObject|contains: '\CLSID\{645FF040-5081-101B-9F08-00AA002F954E}\shell\open\command\(Default)'
+  condition: 1 of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect malicious persistence mechanisms that leverage the Windows Recycle Bin through specific registry modifications. The rule focuses on two main types of registry events: the renaming of keys and setting values associated with the Recycle Bin CLSID (Class Identifier). In particular, it alerts on any rename operation of registry keys containing `\CLSID\{645FF040-5081-101B-9F08-00AA002F954E}\shell\open` and the setting of default command values in the same path. These modifications can be indicative of an attacker trying to execute malicious code each time the Recycle Bin is accessed, allowing for stealthy persistence.
+  To ensure detection success, the rule primarily relies on Windows registry event logs, particularly the `RenameKey` and `SetValue` event types. Incident responders should familiarize themselves with the concept of persistence via the Recycle Bin to understand the implications of these alerts and the potential for abuse of these registry settings.
+  ### Investigation Steps
+  - Utilize your EDR solution to hunt for recent registry changes that correspond to the CLSID path indicated in the alert, focusing on any unauthorized modifications or suspicious process launches.
+  - Check for process creation logs that coincide with the timing of the registry activity, paying particular attention to any processes that may have accessed the Recycle Bin or executed commands linked to the observed registry entries.
+  - Query antivirus (AV) logs to see if any detected threats correspond with the timeline of the registry event, as this may highlight known malicious behaviors associated with persistence mechanisms.
+  - Examine network proxy logs for any anomalous command-and-control (C2) traffic initiated by endpoints tied to the alerts, as this may suggest that the persistence mechanism is actively being used to maintain unauthorized access or perform other malicious activities.

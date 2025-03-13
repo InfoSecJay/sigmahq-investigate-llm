@@ -1,0 +1,39 @@
+title: LiveKD Driver Creation By Uncommon Process
+id: 059c5af9-5131-4d8d-92b2-de4ad6146712
+related:
+- id: 16fe46bb-4f64-46aa-817d-ff7bec4a2352
+  type: similar
+status: test
+description: Detects the creation of the LiveKD driver by a process image other than
+  "livekd.exe".
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-16
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename: 'C:\Windows\System32\drivers\LiveKdD.SYS'
+  filter_main_legit_name:
+    Image|endswith:
+    - '\livekd.exe'
+    - '\livek64.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Administrators might rename LiveKD before its usage which could trigger this. Add
+  additional names you use to the filter
+level: high
+notes: |
+  ### Technical Context
+  The detection rule "LiveKD Driver Creation By Uncommon Process" is designed to identify the creation of the LiveKD driver file (`LiveKdD.SYS`) on Windows systems. This action is significant because the legitimate process responsible for this driver should be either `livekd.exe` or `livek64.exe`. The rule works by monitoring file events associated with the creation of new driver files in the `C:\Windows\System32\drivers\` directory. It specifically looks for any process (other than the expected legitimate processes) that initiates the creation of the `LiveKdD.SYS` driver, which may indicate potential misuse or an attempt to evade security controls by malicious actors.
+  Using this rule helps security teams identify unusual behavior that could signify privilege escalation or defense evasion tactics, particularly if an unknown process attempts to create this driver. Security analysts can leverage this detection to investigate potential threats and react accordingly to preserve the integrity of their environments.
+  ### Investigation Steps
+  - Utilize the EDR to investigate the process creation events to determine which process attempted to create the `LiveKdD.SYS` driver. Examine the execution context, including parent processes and their command-line parameters.
+  - Review file event logs specifically for `C:\Windows\System32\drivers\LiveKdD.SYS` to gather details about the time, user context, and any related file operations.
+  - Analyze network traffic logs from the NDR to check for any suspicious outbound connections that may correlate with the identified process and its activity around the same timeframe.
+  - Query the SIEM for any alerts or anomalies tied to the identified process, particularly those related to privilege escalation or suspicious activity that could provide context or previous indicators of compromise.

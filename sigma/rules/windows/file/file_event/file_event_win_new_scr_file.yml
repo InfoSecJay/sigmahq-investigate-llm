@@ -1,0 +1,39 @@
+title: SCR File Write Event
+id: c048f047-7e2a-4888-b302-55f509d4a91d
+status: test
+description: Detects the creation of screensaver files (.scr) outside of system folders.
+  Attackers may execute an application as an ".SCR" file using "rundll32.exe desk.cpl,InstallScreenSaver"
+  for example.
+references:
+- https://lolbas-project.github.io/lolbas/Libraries/Desk/
+author: 'Christopher Peacock @securepeacock, SCYTHE @scythe_io'
+date: 2022-04-27
+modified: 2023-08-23
+tags:
+- attack.defense-evasion
+- attack.t1218.011
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|endswith: '.scr'
+  filter:
+    TargetFilename|contains:
+    - ':\$WINDOWS.~BT\NewOS\'
+    - ':\Windows\System32\'
+    - ':\Windows\SysWOW64\'
+    - ':\Windows\WinSxS\'
+    - ':\WUDownloadCache\'         # Windows Update Download Cache
+  condition: selection and not filter
+falsepositives:
+- The installation of new screen savers by third party software
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation of screensaver files (.scr) in locations that are unconventional or outside of recognized system directories on Windows systems. Attackers may exploit these screensaver file types to execute malicious code, often utilizing `rundll32.exe` in conjunction with "desk.cpl" to install potentially harmful screensavers. The rule primarily examines file event logs, focusing on the `TargetFilename` to determine if any files ending with ".scr" are created and evaluating if they are located in restricted paths such as `C:\Windows\System32`, `C:\Windows\SysWOW64`, or temporary installation locations. By focusing on file write events, this rule assists in identifying potentially malicious activity that could evade traditional detection mechanisms.
+  ### Investigation Steps
+  - Review EDR logs to identify the process that created the .scr file and analyze its parent-child process relationships for any suspicious activity.
+  - Use file integrity monitoring tools to confirm if the .scr file was placed in an unusual directory and whether there were any recent changes to system files.
+  - Query antivirus logs to check if the newly created .scr file has been flagged or quarantined, which may indicate malicious behavior.
+  - Check proxy logs for any unusual outbound connections initiated by processes associated with the creation of the .scr file, as this could signal data exfiltration or command and control communications.

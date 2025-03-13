@@ -1,0 +1,38 @@
+title: Sysinternals Tools AppX Versions Execution
+id: d29a20b2-be4b-4827-81f2-3d8a59eab5fc
+status: test
+description: Detects execution of Sysinternals tools via an AppX package. Attackers
+  could install the Sysinternals Suite to get access to tools such as psexec and procdump
+  to avoid detection based on System paths
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-16
+modified: 2023-09-12
+tags:
+- attack.defense-evasion
+- attack.execution
+logsource:
+  product: windows
+  service: appmodel-runtime
+detection:
+  selection:
+    EventID: 201
+    ImageName:
+    - 'procdump.exe'
+    - 'psloglist.exe'
+    - 'psexec.exe'
+    - 'livekd.exe'
+    - 'ADExplorer.exe'
+  condition: selection
+falsepositives:
+- Legitimate usage of the applications from the Windows Store
+level: low
+notes: |
+  ### Technical Context
+  The "Sysinternals Tools AppX Versions Execution" rule is designed to detect the execution of specific Sysinternals tools, such as procdump, psexec, psloglist, livekd, and ADExplorer, when these applications are launched as AppX packages. AppX is a packaging format used for distributing and installing applications in the Windows ecosystem, allowing for applications to run in a more controlled environment. Attackers often leverage these powerful tools to execute commands and extract data while attempting to evade detection by utilizing non-standard paths instead of conventional executable directories. By monitoring Event ID 201 from the AppModel runtime logs, the detection rule identifies and alerts on instances where these tools are executed, enabling incident responders to investigate potentially malicious activity.
+  ### Investigation Steps
+  - Review the corresponding process creation logs in your EDR solution to determine the context of the detected execution, including parent-child relationships and command-line arguments.
+  - Check your security logs for any unusual access patterns or network connections initiated by the detected tools, focusing on communication to unauthorized external sources.
+  - Analyze the timestamps of the detected events against user activity logs to identify any anomalous behavior or potential misuse during legitimate operational hours.
+  - Examine AppX installer logs and any associated user account activity to assess whether the execution was legitimate or part of a larger attack vector.

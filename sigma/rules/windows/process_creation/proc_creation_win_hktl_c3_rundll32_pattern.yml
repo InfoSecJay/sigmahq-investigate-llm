@@ -1,0 +1,34 @@
+title: HackTool - F-Secure C3 Load by Rundll32
+id: b18c9d4c-fac9-4708-bd06-dd5bfacf200f
+status: test
+description: F-Secure C3 produces DLLs with a default exported StartNodeRelay function.
+references:
+- https://github.com/FSecureLABS/C3/blob/11a081fd3be2aaf2a879f6b6e9a96ecdd24966ef/Src/NodeRelayDll/NodeRelayDll.cpp#L12
+author: Alfie Champion (ajpc500)
+date: 2021-06-02
+modified: 2023-03-05
+tags:
+- attack.defense-evasion
+- attack.t1218.011
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - 'rundll32.exe'
+    - '.dll'
+    - 'StartNodeRelay'
+  condition: selection
+falsepositives:
+- Unknown
+level: critical
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of potentially malicious activity involving the `rundll32.exe` process, specifically targeting the use of the F-Secure C3 tool. The rule identifies instances where `rundll32.exe` is invoked with a command line that includes the terms `.dll` and `StartNodeRelay`. This is notable because the F-Secure C3 tool generates DLLs that export a default function, `StartNodeRelay`, which can be leveraged for covert purposes, often related to evading detection and executing unauthorized actions.
+  The primary data source involved in this detection is Windows process creation logs, which capture details about new processes, including their command lines. By monitoring the specific command line parameters associated with `rundll32.exe`, this rule aims to flag activity that may indicate misuse of a legitimate Windows component by malicious actors.
+  ### Investigation Steps
+  - Investigate recent process creation logs in the EDR to identify instances of `rundll32.exe` running with the parameters related to `.dll` and `StartNodeRelay`.
+  - Use the SIEM to correlate the timing of the detected activity with other security events to assess whether there are related suspicious activities occurring on the endpoint.
+  - Check antivirus logs to see if the F-Secure C3 tool or associated DLLs have been flagged or quarantined as part of any automated threat detection.
+  - Review network logs (NDR) for anomalous outbound connections that might correlate with the execution of the identified process, indicating potential data exfiltration or command-and-control communications.

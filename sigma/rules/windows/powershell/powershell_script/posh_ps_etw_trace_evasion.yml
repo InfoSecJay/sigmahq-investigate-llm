@@ -1,0 +1,41 @@
+title: Disable of ETW Trace - Powershell
+id: 115fdba9-f017-42e6-84cf-d5573bf2ddf8
+related:
+- id: a238b5d0-ce2d-4414-a676-7a531b3d13d6
+  type: derived
+status: test
+description: Detects usage of powershell cmdlets to disable or remove ETW trace sessions
+references:
+- https://medium.com/palantir/tampering-with-windows-event-tracing-background-offense-and-defense-4be7ac62ac63
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-28
+modified: 2022-11-25
+tags:
+- attack.defense-evasion
+- attack.t1070
+- attack.t1562.006
+- car.2016-04-002
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_pwsh_remove:     # Autologger provider removal
+    ScriptBlockText|contains: 'Remove-EtwTraceProvider '
+  selection_pwsh_set:     # Provider “Enable” property modification
+    ScriptBlockText|contains|all:
+    - 'Set-EtwTraceProvider '
+    - '0x11'
+  condition: 1 of selection*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying the use of PowerShell cmdlets that disable or remove Event Tracing for Windows (ETW) trace sessions. ETW is a vital component for system monitoring and incident response, and its tampering can indicate malicious activities aimed at evading detection. The rule monitors Script Block Logging for the execution of specific PowerShell commands: `Remove-EtwTraceProvider` and `Set-EtwTraceProvider` with the associated property modification of `0x11`. By analyzing these command patterns, the rule helps in detecting potential attempts to hide illicit activities from security monitoring tools.
+  The primary data source for this detection is PowerShell script logs, specifically those generated when Script Block Logging is enabled on Windows systems. This allows security teams to observe the execution of potentially harmful PowerShell scripts in their environments.
+  ### Investigation Steps
+  - Confirm the alert by reviewing the PowerShell script logs in your EDR system for the detected commands related to ETW provider manipulation.
+  - Assess the context of the incident by examining the process creation logs to identify any unusual or unauthorized processes initiated around the time of the alert.
+  - Utilize the SIEM to correlate this alert with other security events or alerts that may indicate broader malicious activity, such as lateral movement or privilege escalation attempts.
+  - Investigate network logs from your NGFW or proxy to check for any outbound connections that may correlate with the timing of the ETW manipulation, indicating possible data exfiltration or command and control activity.

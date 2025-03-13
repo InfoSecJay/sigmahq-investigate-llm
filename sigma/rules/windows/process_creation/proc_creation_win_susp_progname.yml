@@ -1,0 +1,79 @@
+title: Suspicious Program Names
+id: efdd8dd5-cee8-4e59-9390-7d4d5e4dd6f6
+status: test
+description: Detects suspicious patterns in program names or folders that are often
+  found in malicious samples or hacktools
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1560.001/T1560.001.md
+author: Florian Roth (Nextron Systems)
+date: 2022-02-11
+modified: 2023-03-22
+tags:
+- attack.execution
+- attack.t1059
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_image:
+  - Image|contains:
+    - '\CVE-202'           # Update this when we reach the year 2100
+    - '\CVE202'           # Update this when we reach the year 2100
+  - Image|endswith:
+    - '\poc.exe'
+    - '\artifact.exe'
+    - '\artifact64.exe'
+    - '\artifact_protected.exe'
+    - '\artifact32.exe'
+    - '\artifact32big.exe'
+    - 'obfuscated.exe'
+    - 'obfusc.exe'
+    - '\meterpreter'
+  selection_commandline:
+    CommandLine|contains:
+    - 'inject.ps1'
+    - 'Invoke-CVE'
+    - 'pupy.ps1'
+    - 'payload.ps1'
+    - 'beacon.ps1'
+    - 'PowerView.ps1'
+    - 'bypass.ps1'
+    - 'obfuscated.ps1'
+    - 'obfusc.ps1'
+    - 'obfus.ps1'
+    - 'obfs.ps1'
+    - 'evil.ps1'
+    - 'MiniDogz.ps1'
+    - '_enc.ps1'
+    - '\shell.ps1'
+    - '\rshell.ps1'
+    - 'revshell.ps1'
+    - '\av.ps1'
+    - '\av_test.ps1'
+    - 'adrecon.ps1'
+    - 'mimikatz.ps1'
+    - '\PowerUp_'
+    - 'powerup.ps1'
+    - '\Temp\a.ps1'
+    - '\Temp\p.ps1'
+    - '\Temp\1.ps1'
+    - 'Hound.ps1'
+    - 'encode.ps1'
+    - 'powercat.ps1'
+  condition: 1 of selection*
+fields:
+- CommandLine
+- ParentCommandLine
+- CurrentDirectory
+falsepositives:
+- Legitimate tools that accidentally match on the searched patterns
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious processes based on suspicious patterns found in the names of executable files and their command-line parameters. The rule inspects Windows process creation logs for specific criteria, targeting program names that often correlate with known attack tools or malicious behavior, such as those that contain references to CVE identifiers, or names like `meterpreter`, `mimikatz`, and various obfuscated scripts. The detection logic evaluates both the image path of executables and the command-line arguments used during their execution, allowing for nuanced detection of potentially harmful activities without overwhelming noise from benign operations.
+  The rule's logic hinges on identifying specific keywords and patterns that are prevalent in tactics, techniques, and procedures used by threat actors, as outlined in frameworks like MITRE ATT&CK. By leveraging data sources such as process creation logs and parsing command-line information, the rule effectively narrows down potential threats for investigators, enabling them to focus on alerts that warrant deeper analysis.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR solution for any executions that match the specified patterns in the rule, paying close attention to the image path and command-line arguments.
+  - Use the AV tool to scan the affected system for any known malware or potentially unwanted programs based on the suspicious executable names found in the alert.
+  - Cross-reference the command-line parameters with a known list of indicators of compromise (IoCs) to assess whether the executed scripts are associated with known malicious activity.
+  - Analyze the current directory and parent command line in the context of the execution to determine if the execution follows typical user behavior or if it appears anomalous, indicating potential malicious intent.

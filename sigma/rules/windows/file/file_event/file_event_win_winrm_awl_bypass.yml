@@ -1,0 +1,40 @@
+title: AWL Bypass with Winrm.vbs and Malicious WsmPty.xsl/WsmTxt.xsl - File
+id: d353dac0-1b41-46c2-820c-d7d2561fc6ed
+related:
+- id: 074e0ded-6ced-4ebd-8b4d-53f55908119d
+  type: derived
+status: test
+description: Detects execution of attacker-controlled WsmPty.xsl or WsmTxt.xsl via
+  winrm.vbs and copied cscript.exe (can be renamed)
+references:
+- https://posts.specterops.io/application-whitelisting-bypass-and-arbitrary-unsigned-code-execution-technique-in-winrm-vbs-c8c24fb40404
+author: Julia Fomina, oscd.community
+date: 2020-10-06
+modified: 2022-11-28
+tags:
+- attack.defense-evasion
+- attack.t1216
+logsource:
+  product: windows
+  category: file_event
+detection:
+  system_files:
+    TargetFilename|endswith:
+    - 'WsmPty.xsl'
+    - 'WsmTxt.xsl'
+  in_system_folder:
+    TargetFilename|startswith:
+    - 'C:\Windows\System32\'
+    - 'C:\Windows\SysWOW64\'
+  condition: system_files and not in_system_folder
+falsepositives:
+- Unlikely
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects a specific technique used by attackers to bypass application whitelisting controls in Windows environments. It focuses on the execution of malicious files named `WsmPty.xsl` or `WsmTxt.xsl` that are run via `winrm.vbs`, which may involve the copying of `cscript.exe` that could also be renamed. The rule captures file event logs where the execution target filename ends with either of these malicious file names and checks if they originate from system folders like `C:\Windows\System32\` or `C:\Windows\SysWOW64\`. Alerts are generated when these files are executed outside their expected directories, indicating a potential bypass of security measures.
+  ### Investigation Steps
+  - Review the alert in the SIEM to identify the process creation logs associated with `winrm.vbs` and examine command-line arguments for suspicious parameters.
+  - Utilize EDR tools to trace the execution of `cscript.exe` and assess its behavior, checking for any additional malicious activity correlating with the execution of the flagged XSL files.
+  - Check system logs and file integrity monitoring logs for unauthorized modifications or access events related to `WsmPty.xsl` and `WsmTxt.xsl`.
+  - Investigate the surrounding network traffic captured by NDR or firewall logs for any anomalous attempts to exploit or communicate using WinRM post the detection of malicious file execution.

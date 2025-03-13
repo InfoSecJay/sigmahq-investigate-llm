@@ -1,0 +1,33 @@
+title: Diagnostic Library Sdiageng.DLL Loaded By Msdt.EXE
+id: ec8c4047-fad9-416a-8c81-0f479353d7f6
+status: test
+description: Detects both of CVE-2022-30190 (Follina) and DogWalk vulnerabilities
+  exploiting msdt.exe binary to load the "sdiageng.dll" library
+references:
+- https://www.securonix.com/blog/detecting-microsoft-msdt-dogwalk/
+author: Greg (rule)
+date: 2022-06-17
+modified: 2023-02-17
+tags:
+- attack.defense-evasion
+- attack.t1202
+- cve.2022-30190
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\msdt.exe'
+    ImageLoaded|endswith: '\sdiageng.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets the misuse of the Microsoft Support Diagnostic Tool (msdt.exe), specifically identifying processes that exploit vulnerabilities CVE-2022-30190 (Follina) and DogWalk. It detects when msdt.exe is invoked and subsequently loads the "sdiageng.dll" library, which can be an indicator of malicious activity, such as an attacker's attempt to execute arbitrary code on a compromised system. The primary data sources for this detection include logs related to image loading events on Windows systems, focusing on specific file paths, namely those associated with msdt.exe and sdiageng.dll. This rule is crucial for identifying and mitigating threats that employ these vulnerabilities, ultimately helping to safeguard enterprise environments.
+  ### Investigation Steps
+  - Investigate the associated process creation log for msdt.exe to understand about the origin and the execution context of the process.
+  - Examine the command-line parameters used to invoke msdt.exe, as they may provide insight into the attack vector or intent.
+  - Review endpoint detection and response (EDR) logs for any unusual or suspicious actions performed by msdt.exe and the loaded sdiageng.dll.
+  - Check the network activity for the system to identify any potentially malicious communications that occurred during or after the invocation of msdt.exe.

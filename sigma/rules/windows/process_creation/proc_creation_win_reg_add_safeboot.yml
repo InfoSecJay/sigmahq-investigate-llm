@@ -1,0 +1,43 @@
+title: Add SafeBoot Keys Via Reg Utility
+id: d7662ff6-9e97-4596-a61d-9839e32dee8d
+related:
+- id: fc0e89b5-adb0-43c1-b749-c12a10ec37de
+  type: similar
+status: test
+description: Detects execution of "reg.exe" commands with the "add" or "copy" flags
+  on safe boot registry keys. Often used by attacker to allow the ransomware to work
+  in safe mode as some security products do not
+references:
+- https://redacted.com/blog/bianlian-ransomware-gang-gives-it-a-go/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-02
+modified: 2024-03-19
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\reg.exe'
+  - OriginalFileName: 'reg.exe'
+  selection_safeboot:
+    CommandLine|contains: '\SYSTEM\CurrentControlSet\Control\SafeBoot'
+  selection_flag:
+    CommandLine|contains:
+    - ' copy '
+    - ' add '
+  condition: all of selection*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activity involving the Windows Registry Utility (`reg.exe`). Specifically, it looks for the execution of commands that include the "add" or "copy" flags associated with Safe Boot registry keys. Attackers often modify these keys to bypass security measures, enabling ransomware or other malicious software to operate in Safe Mode, where security products may be disabled or less effective. The primary data sources leveraged in this rule include process creation logs from Windows, which capture details about command-line arguments, image paths, and other relevant execution metadata.
+  By monitoring for the combination of `reg.exe` executions that target Safe Boot registry entries, incident responders can uncover attempts to manipulate system settings for evasion purposes, leading to further investigation into potential compromise.
+  ### Investigation Steps
+  - Examine the process creation logs in the EDR tool to identify the user account associated with the execution of `reg.exe` and the specific command line arguments used.
+  - Query the SIEM for any additional alerts or events correlating with the identified timestamp, particularly focusing on anomalies in user behavior or system changes.
+  - Utilize Windows registry viewers to check the current state of the Safe Boot keys and determine if any unauthorized modifications were made following the detected command execution.
+  - Review logs from the NGFW and Proxy to detect any outbound connections or unusual network activity that may indicate further exploitation attempts following the registry modifications.

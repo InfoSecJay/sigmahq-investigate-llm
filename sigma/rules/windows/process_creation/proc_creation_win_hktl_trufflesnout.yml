@@ -1,0 +1,34 @@
+title: HackTool - TruffleSnout Execution
+id: 69ca006d-b9a9-47f5-80ff-ecd4d25d481a
+status: test
+description: Detects the use of TruffleSnout.exe an iterative AD discovery toolkit
+  for offensive operators, situational awareness and targeted low noise enumeration.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/40b77d63808dd4f4eafb83949805636735a1fd15/atomics/T1482/T1482.md
+- https://github.com/dsnezhkov/TruffleSnout
+- https://github.com/dsnezhkov/TruffleSnout/blob/master/TruffleSnout/Docs/USAGE.md
+author: frack113
+date: 2022-08-20
+modified: 2023-02-13
+tags:
+- attack.discovery
+- attack.t1482
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - OriginalFileName: 'TruffleSnout.exe'
+  - Image|endswith: '\TruffleSnout.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of TruffleSnout.exe, a tool used for Active Directory (AD) enumeration and reconnaissance by malicious actors. The rule relies on analyzing process creation logs, specifically looking for instances where the executable file name is TruffleSnout.exe or where the image path ends with TruffleSnout.exe. Given its purpose as a low-noise enumeration tool, the presence of this executable in an environment may indicate an ongoing reconnaissance effort by an attacker. By focusing on the original file name and specific image path, the rule aims to alert security analysts to potentially malicious activities that could jeopardize the integrity of the network.
+  ### Investigation Steps
+  - Utilize EDR tools to trace the execution chain of TruffleSnout.exe, monitoring any associated processes that may indicate lateral movement or privilege escalation activity.
+  - Review command-line parameters associated with the TruffleSnout execution in process creation logs to identify specific actions taken during its run and determine if they are consistent with legitimate administrative tasks.
+  - Examine firewall and network logs for unusual traffic patterns or connections initiated by TruffleSnout to external IP addresses, which may suggest data exfiltration or external command and control activity.
+  - Search for any related artifacts or indicators of compromise (IOCs) in the environment that may have been dropped or created alongside the execution of TruffleSnout.exe, such as suspicious files or registry changes.

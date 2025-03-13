@@ -1,0 +1,45 @@
+title: Suspicious MsiExec Embedding Parent
+id: 4a2a2c3e-209f-4d01-b513-4155a540b469
+status: test
+description: Adversaries may abuse msiexec.exe to proxy the execution of malicious
+  payloads
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1218.007/T1218.007.md
+author: frack113
+date: 2022-04-16
+modified: 2022-07-14
+tags:
+- attack.t1218.007
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\cmd.exe'
+    ParentCommandLine|contains|all:
+    - 'MsiExec.exe'
+    - '-Embedding '
+  filter_splunk_ufw:
+    Image|endswith: ':\Windows\System32\cmd.exe'
+    CommandLine|contains: 'C:\Program Files\SplunkUniversalForwarder\bin\'
+  filter_vs:
+  - CommandLine|contains: '\DismFoDInstall.cmd'
+  - ParentCommandLine|contains|all:
+    - '\MsiExec.exe -Embedding '
+    - 'Global\MSI0000'
+  condition: selection and not 1 of filter*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule aims to identify potentially malicious activity leveraging the Windows `msiexec.exe` process, which is often exploited by adversaries to execute malicious payloads. Specifically, the rule examines process creation logs to find instances where either `powershell.exe`, `pwsh.exe`, or `cmd.exe` are initiated with a parent command line containing `MsiExec.exe` with the `-Embedding` flag. Such behavior could indicate an attempt to proxy execution, which is a common technique in evading detection. The data sources involved in this rule encompass process creation logs, which provide insights into the command-line arguments used during process initiation, enabling the identification of suspicious parent-child process relationships.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR tool to confirm the invocation of `powershell.exe`, `pwsh.exe`, or `cmd.exe` with the parent process being `MsiExec.exe` containing the `-Embedding` flag.
+  - Utilize the SIEM to analyze contextual logs around the detected processes, correlating timestamps with other events to uncover potential lateral movement or further exploitation attempts.
+  - Search the proxy logs for any unusual outbound connections that may align with the timing of the alert, indicating potential data exfiltration or command and control activity.
+  - Query the antivirus and endpoint protection platforms for any recent detections or quarantined items related to `MsiExec.exe`, `powershell.exe`, or associated processes to identify known threats or malicious behavior.

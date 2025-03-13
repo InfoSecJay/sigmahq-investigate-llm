@@ -1,0 +1,47 @@
+title: HackTool - HandleKatz LSASS Dumper Execution
+id: ca621ba5-54ab-4035-9942-d378e6fcde3c
+status: test
+description: Detects the use of HandleKatz, a tool that demonstrates the usage of
+  cloned handles to Lsass in order to create an obfuscated memory dump of the same
+references:
+- https://github.com/codewhitesec/HandleKatz
+author: Florian Roth (Nextron Systems)
+date: 2022-08-18
+modified: 2024-11-23
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_loader_img:
+    Image|endswith: '\loader.exe'
+    CommandLine|contains: '--pid:'
+  selection_loader_imphash:
+    Hashes|contains:
+    - 'IMPHASH=38D9E015591BBFD4929E0D0F47FA0055'
+    - 'IMPHASH=0E2216679CA6E1094D63322E3412D650'
+  selection_flags:
+    CommandLine|contains|all:
+    - '--pid:'
+    - '--outfile:'
+    CommandLine|contains:
+    - '.dmp'
+    - 'lsass'
+    - '.obf'
+    - 'dump'
+  condition: 1 of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "HackTool 
+  - HandleKatz LSASS Dumper Execution" is designed to detect the execution of HandleKatz, a tool that exploits cloned handles to create obfuscated memory dumps of the Local Security Authority Subsystem Service (LSASS) process on Windows systems. The rule monitors specific process creation events for indications of HandleKatz usage, particularly focusing on the execution of a loader executable often associated with memory dumping. It examines the command line parameters for key terms such as `--pid:` and output file extensions like `.dmp` and `.obf`, which are indicative of attempts to extract sensitive information from memory.
+  The detection logic is based on multiple selections—first, it identifies the loader executable that signifies the tool’s initiation, then checks for specific command line arguments that suggest a legitimate HandleKatz operation. By correlating these parameters with specific image hashes, the rule aims to minimize false positives while ensuring the identification of potentially malicious activities related to credential access.
+  ### Investigation Steps
+  - Review the associated process creation logs through the EDR tool to identify the process execution path and any relevant command-line arguments that were used during the HandleKatz execution.
+  - Use the SIEM to search for alerts and correlate them with user account activity logs, especially focusing on any unusual access patterns or logins preceding HandleKatz execution.
+  - Analyze network connections via NDR logs to determine if there were any external communications contemporaneous to the HandleKatz alert, which could indicate data exfiltration or command-and-control activity.
+  - Check the system for the presence of any generated `.dmp` or `.obf` files, and correlate these findings with antivirus logs to confirm whether these files were flagged as malicious.

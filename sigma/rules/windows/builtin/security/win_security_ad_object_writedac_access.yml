@@ -1,0 +1,38 @@
+title: AD Object WriteDAC Access
+id: 028c7842-4243-41cd-be6f-12f3cf1a26c7
+status: test
+description: Detects WRITE_DAC access to a domain object
+references:
+- https://threathunterplaybook.com/hunts/windows/180815-ADObjectAccessReplication/notebook.html
+- https://threathunterplaybook.com/library/windows/active_directory_replication.html
+- https://threathunterplaybook.com/hunts/windows/190101-ADModDirectoryReplication/notebook.html
+author: Roberto Rodriguez @Cyb3rWard0g
+date: 2019-09-12
+modified: 2021-11-27
+tags:
+- attack.defense-evasion
+- attack.t1222.001
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4662
+    ObjectServer: 'DS'
+    AccessMask: '0x40000'
+    ObjectType:
+    - '19195a5b-6da0-11d0-afd3-00c04fd930c9'
+    - 'domainDNS'
+  condition: selection
+falsepositives:
+- Unknown
+level: critical
+notes: |
+  ### Technical Context
+  The "AD Object WriteDAC Access" detection rule is designed to identify potential suspicious activity related to directory services in a Windows Active Directory environment. Specifically, it focuses on WRITE_DAC (Discretionary Access Control) access events recorded by Windows Security logs (Event ID 4662) for a domain object. The rule captures instances when an entity, such as a user or a service, attempts to modify the access control settings of important Active Directory objects. The relevant log sources include security event logs where attributes such as `ObjectServer`, `AccessMask`, and `ObjectType` are monitored to detect unauthorized changes or manipulations that could signify an attempt to escalate privileges or evade defenses.
+  The detection is primarily reliant on monitoring specific access patterns associated with key Active Directory object types, namely 'domainDNS' and custom object IDs, providing analysts with crucial indicators that warrant further investigation. The overall aim of this rule is to highlight potentially nefarious actions that could compromise the integrity of the Active Directory environment and escalate security risks within the enterprise.
+  ### Investigation Steps
+  - Utilize your EDR tool to check the user and process activities around the time of the alert to understand if any unauthorized changes were attempted or successful.
+  - Investigate security logs in the Active Directory to examine the source of the WRITE_DAC access, focusing on the user account or service that triggered the Event ID 4662.
+  - Review audit logs from Windows servers, looking for anomalies in access patterns, particularly for objects that have been recently modified or accessed by multiple privileged entities.
+  - Correlate findings with network traffic logs from the NGFW or NDR tools to identify potential lateral movement or command-and-control activity associated with the alert.

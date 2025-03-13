@@ -1,0 +1,37 @@
+title: Potential SolidPDFCreator.DLL Sideloading
+id: a2edbce1-95c8-4291-8676-0d45146862b3
+status: test
+description: Detects potential DLL sideloading of "SolidPDFCreator.dll"
+references:
+- https://lab52.io/blog/new-mustang-pandas-campaing-against-australia/
+author: X__Junior (Nextron Systems)
+date: 2023-05-07
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\SolidPDFCreator.dll'
+  filter_main_path:
+    Image|endswith: '\SolidPDFCreator.exe'
+    ImageLoaded|startswith:
+    - 'C:\Program Files (x86)\SolidDocuments\SolidPDFCreator\'
+    - 'C:\Program Files\SolidDocuments\SolidPDFCreator\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential DLL sideloading involving the "SolidPDFCreator.dll" file. DLL sideloading is a technique used by attackers to execute malicious code by leveraging a trusted executable (in this case, "SolidPDFCreator.exe") to load a compromised DLL file. The rule looks for instances where "SolidPDFCreator.dll" is loaded specifically when the legitimate SolidPDFCreator executable is being executed, but it filters out legitimate paths where the DLL is expected to be loaded. By analyzing image load events within Windows environments, this rule helps identify suspicious activity that could lead to privilege escalation or defense evasion.
+  The data sources involved in this detection include image load events that capture details about loaded libraries and their associated executables. When the specified conditions in the Sigma rule are met—where "SolidPDFCreator.dll" is employed in conjunction with the "SolidPDFCreator.exe" executable from a suspicious or unexpected path—alerts will be generated, prompting further investigation into possible malicious activity.
+  ### Investigation Steps
+  - Retrieve the process creation logs from your EDR tool to identify the execution history of "SolidPDFCreator.exe". Look for unusual command-line parameters or execution times that may indicate suspicious activity.
+  - Analyze the image load events from your SIEM to confirm the circumstances under which "SolidPDFCreator.dll" was loaded. Check for any deviations from expected behaviors, such as unexpected file paths leading to the DLL.
+  - Review Antivirus (AV) alerts and logs to determine whether any detections or quarantines have been associated with "SolidPDFCreator.dll" or "SolidPDFCreator.exe". Investigate if prior alerts indicate known malicious behavior.
+  - Consult network traffic logs from your NDR or NGFW to identify any outbound connections or commands issued by "SolidPDFCreator.exe" that may suggest exfiltration or command and control (C2) activities. Ensure to correlate this with the timeline of the detected event.

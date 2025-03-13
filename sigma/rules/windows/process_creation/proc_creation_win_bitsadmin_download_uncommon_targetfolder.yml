@@ -1,0 +1,52 @@
+title: File Download Via Bitsadmin To An Uncommon Target Folder
+id: 6e30c82f-a9f8-4aab-b79c-7c12bce6f248
+status: test
+description: Detects usage of bitsadmin downloading a file to uncommon target folder
+references:
+- https://blog.netspi.com/15-ways-to-download-a-file/#bitsadmin
+- https://isc.sans.edu/diary/22264
+- https://lolbas-project.github.io/lolbas/Binaries/Bitsadmin/
+- https://blog.talosintelligence.com/breaking-the-silence-recent-truebot-activity/
+author: Florian Roth (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-28
+modified: 2023-02-15
+tags:
+- attack.defense-evasion
+- attack.persistence
+- attack.t1197
+- attack.s0190
+- attack.t1036.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\bitsadmin.exe'
+  - OriginalFileName: 'bitsadmin.exe'
+  selection_flags:
+    CommandLine|contains:
+    - ' /transfer '
+    - ' /create '
+    - ' /addfile '
+  selection_folder:
+    CommandLine|contains:
+    - '%AppData%'
+    - '%temp%'
+    - '%tmp%'
+    - '\AppData\Local\'
+    - 'C:\Windows\Temp\'
+  condition: all of selection_*
+fields:
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the use of the Windows command-line utility `bitsadmin.exe` for downloading files to uncommon or suspicious target folders, such as directories within the AppData or Temp paths. The detection works by monitoring process creation logs for instances of `bitsadmin.exe` being executed, specifically looking for command-line arguments that indicate file transfer actions, such as creating or adding files to a download task. When the command-line includes paths that are typically associated with temporary or application data storage, it raises a flag indicating potential misuse for file downloads that could be related to malware or data exfiltration activities. The rule leverages logs from the process creation category to capture relevant information about the executed command and its parameters.
+  ### Investigation Steps
+  - Query the EDR (Endpoint Detection and Response) tool to examine the specific endpoint(s) where the alert originated, paying attention to process execution details and the timeline of events.
+  - Analyze the command-line arguments in the logs from the alert to understand the specific files that were downloaded and their intended directory paths.
+  - Review integration logs from your AV (Antivirus) solution to determine if the downloaded files were subsequently flagged or quarantined as malicious.
+  - Check network logs from the NGFW or Proxy to trace the download source, examining the URLs involved and any unusual external communications during the time of the file download.

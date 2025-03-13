@@ -1,0 +1,31 @@
+title: Add Debugger Entry To Hangs Key For Persistence
+id: 833ef470-fa01-4631-a79b-6f291c9ac498
+status: test
+description: Detects when an attacker adds a new "Debugger" value to the "Hangs" key
+  in order to achieve persistence which will get invoked when an application crashes
+references:
+- https://persistence-info.github.io/Data/wer_debugger.html
+- https://www.hexacorn.com/blog/2019/09/20/beyond-good-ol-run-key-part-116/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-21
+modified: 2023-08-17
+tags:
+- attack.persistence
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\SOFTWARE\Microsoft\Windows\Windows Error Reporting\Hangs\Debugger'
+  condition: selection
+falsepositives:
+- This value is not set by default but could be rarly used by administrators
+level: high
+notes: |
+  ### Technical Context
+  This detection rule aims to identify unauthorized changes to the Windows registry, specifically the addition of a "Debugger" value under the "Hangs" key within the Windows Error Reporting framework. This modification is indicative of an attacker's attempt to establish persistence, as it instructs the operating system to invoke a designated debugger when a specified application crashes. The rule looks for log entries reporting changes to the registry, focusing on the path `\SOFTWARE\Microsoft\Windows\Windows Error Reporting\Hangs\Debugger`, a location not typically modified by legitimate software or administrators. The data sources leveraged for this detection include registry set logs from Windows, which capture events of values being added or modified.
+  ### Investigation Steps
+  - Review registry change logs using your EDR tool to identify the user and process that made the modification to the "Hangs" key. Investigate whether the command-line parameters and execution context correspond to malicious activity.
+  - Utilize the SIEM to correlate events around the timestamp of the registry change. Look for any previous or subsequent alerts that may indicate suspicious behavior related to the affected application.
+  - Examine application crash logs to determine if the modified Debugger value has been invoked and understand the context of the crashes. This can provide insights into whether the change was exploitative or legitimate.
+  - Investigate network communications using the NDR and proxy logs to identify any outbound connections or malicious traffic related to the process that was associated with the registry change. This may help uncover additional compromises or stages of the attack.

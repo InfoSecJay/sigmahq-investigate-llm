@@ -1,0 +1,58 @@
+title: Suspicious Provlaunch.EXE Child Process
+id: f9999590-1f94-4a34-a91e-951e47bedefd
+related:
+- id: 7f5d1c9a-3e83-48df-95a7-2b98aae6c13c     # CLI Generic
+  type: similar
+- id: 2a4b3e61-9d22-4e4a-b60f-6e8f0cde6f25     # CLI Registry
+  type: similar
+- id: 7021255e-5db3-4946-a8b9-0ba7a4644a69     # Registry
+  type: similar
+status: test
+description: Detects suspicious child processes of "provlaunch.exe" which might indicate
+  potential abuse to proxy execution.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Provlaunch/
+- https://twitter.com/0gtweet/status/1674399582162153472
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-08-08
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|endswith: '\provlaunch.exe'
+  selection_child:
+  - Image|endswith:
+    - '\calc.exe'
+    - '\cmd.exe'
+    - '\cscript.exe'
+    - '\mshta.exe'
+    - '\notepad.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\regsvr32.exe'
+    - '\rundll32.exe'
+    - '\wscript.exe'
+  - Image|contains:
+    - ':\PerfLogs\'
+    - ':\Temp\'
+    - ':\Users\Public\'
+    - '\AppData\Temp\'
+    - '\Windows\System32\Tasks\'
+    - '\Windows\Tasks\'
+    - '\Windows\Temp\'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies suspicious child processes spawned by "provlaunch.exe", a legitimate Windows process typically used for proxy execution in Microsoft environments. The rule specifically looks for particular child processes like `calc.exe`, `cmd.exe`, or `powershell.exe` that can be leveraged by attackers to execute malicious actions within a system. The implementation is based on process creation logs, capturing instances where "provlaunch.exe" acts as a parent process to these potentially harmful child processes. The rule aims to highlight unusual activity that could indicate abuse of normal operating procedures within the enterprise, ultimately helping detect possible evasion techniques used by threat actors.
+  ### Investigation Steps
+  - Examine EDR logs to track the parent-child process relationship to confirm if "provlaunch.exe" spawned any suspicious child processes.
+  - Review command-line arguments associated with the children processes in the EDR data, as malicious actors often manipulate these to execute payloads.
+  - Check the Windows event logs for any evidence of unusual execution patterns or access to uncommon directories, especially those specified in the detection logic.
+  - Utilize antivirus tools to scan the systems involved for possible malware, focusing on any files related to recently executed child processes that raise suspicion.

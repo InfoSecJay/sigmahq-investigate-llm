@@ -1,0 +1,32 @@
+title: Suspicious GPO Discovery With Get-GPO
+id: eb2fd349-ec67-4caa-9143-d79c7fb34441
+status: test
+description: Detect use of Get-GPO to get one GPO or all the GPOs in a domain.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1615/T1615.md
+- https://learn.microsoft.com/en-us/powershell/module/grouppolicy/get-gpo?view=windowsserver2022-ps
+author: frack113
+date: 2022-06-04
+tags:
+- attack.discovery
+- attack.t1615
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains: Get-GPO
+  condition: selection
+falsepositives:
+- Legitimate PowerShell scripts
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies the use of the `Get-GPO` PowerShell cmdlet, which is commonly used to retrieve information about one or more Group Policy Objects (GPOs) within a domain. The presence of this command in a PowerShell script can signal unauthorized attempts to enumerate GPOs, which may be part of a reconnaissance phase in a larger attack. The rule looks for entries in PowerShell script logs, specifically filtering those that contain the `Get-GPO` command. It is important to note that for this detection to function effectively, Script Block Logging must be enabled on the target systems to capture such activity.
+  The technical data sources involved primarily include PowerShell script logs (ps_script category), which provide insights into the executed commands and their context. By monitoring for the `Get-GPO` usage, SOC analysts can detect potentially suspicious activities that warrant further investigation.
+  ### Investigation Steps
+  - Review PowerShell logs in the EDR for instances where `Get-GPO` was executed, noting the user and context in which it was run. 
+  - Check for associated commands run by the same user or from the same session, as related commands may indicate a broader reconnaissance activity.
+  - Cross-reference the timing of the `Get-GPO` executions with other security alerts within the SIEM to correlate potential malicious behavior.
+  - Examine administrative access levels of the user executing the command to evaluate if there was improper use of permissions or escalation of privileges.

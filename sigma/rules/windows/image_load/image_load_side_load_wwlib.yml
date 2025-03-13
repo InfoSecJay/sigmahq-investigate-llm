@@ -1,0 +1,42 @@
+title: Potential WWlib.DLL Sideloading
+id: e2e01011-5910-4267-9c3b-4149ed5479cf
+status: test
+description: Detects potential DLL sideloading of "wwlib.dll"
+references:
+- https://twitter.com/WhichbufferArda/status/1658829954182774784
+- https://news.sophos.com/en-us/2022/11/03/family-tree-dll-sideloading-cases-may-be-related/
+- https://securelist.com/apt-luminousmoth/103332/
+author: X__Junior (Nextron Systems)
+date: 2023-05-18
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\wwlib.dll'
+  filter_main_path:
+    Image|startswith:
+    - 'C:\Program Files (x86)\Microsoft Office\'
+    - 'C:\Program Files\Microsoft Office\'
+    Image|endswith: '\winword.exe'
+    ImageLoaded|startswith:
+    - 'C:\Program Files (x86)\Microsoft Office\'
+    - 'C:\Program Files\Microsoft Office\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Potential WWlib.DLL Sideloading" aims to detect potentially malicious DLL sideloading involving the `wwlib.dll` library, which is often exploited in attacks to evade detection mechanisms. The rule identifies instances where `wwlib.dll` is loaded, specifically in conjunction with the Microsoft Word executable, `winword.exe`. To effectively trigger an alert, the loading of the DLL must occur while the executable is loaded from standard Office installation paths, which serves as an indicator of potential misuse. By monitoring image load events, particularly from Windows systems, the rule helps in identifying instances where legitimate applications may be weaponized through path manipulation, a common tactic employed by threat actors.
+  The primary data sources utilized include image load events from Windows, capturing details about any DLLs loaded by applications. This captures critical information such as the image name, its path, and whether it is being loaded by a process that could imply malicious intent. By focusing on these elements, the rule seeks to highlight suspicious behaviors that may warrant further investigation by the security team.
+  ### Investigation Steps
+  - Review EDR logs for the process that triggered the alert, focusing on the command-line parameters used by `winword.exe` to determine if any suspicious flags or arguments were present.
+  - Analyze the file properties of the `wwlib.dll` detected in the event to verify its digital signature and ensure it is not a known malicious variant.
+  - Check firewall and proxy logs for any unusual outbound connections initiated by the `winword.exe` process, as these may hint at data exfiltration attempts or command-and-control communication.
+  - Investigate the original install source of the Microsoft Office application to ensure that it wasn’t installed from an untrusted or unauthorized source, which could indicate a compromised system.

@@ -1,0 +1,59 @@
+title: Potential Persistence Via App Paths Default Property
+id: 707e097c-e20f-4f67-8807-1f72ff4500d6
+status: test
+description: |
+  Detects changes to the "Default" property for keys located in the \Software\Microsoft\Windows\CurrentVersion\App Paths\ registry. Which might be used as a method of persistence
+  The entries found under App Paths are used primarily for the following purposes.
+  First, to map an application's executable file name to that file's fully qualified path.
+  Second, to prepend information to the PATH environment variable on a per-application, per-process basis.
+references:
+- https://www.hexacorn.com/blog/2013/01/19/beyond-good-ol-run-key-part-3/
+- https://learn.microsoft.com/en-us/windows/win32/shell/app-registration
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-10
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.t1546.012
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths'
+    TargetObject|endswith:
+    - '(Default)'
+    - 'Path'
+    Details|contains:
+            # Add more suspicious paths or binaries as you see fit.
+    - '\Users\Public'
+    - '\AppData\Local\Temp\'
+    - '\Windows\Temp\'
+    - '\Desktop\'
+    - '\Downloads\'
+    - '%temp%'
+    - '%tmp%'
+    - 'iex'
+    - 'Invoke-'
+    - 'rundll32'
+    - 'regsvr32'
+    - 'mshta'
+    - 'cscript'
+    - 'wscript'
+    - '.bat'
+    - '.hta'
+    - '.dll'
+    - '.ps1'
+  condition: selection
+falsepositives:
+- Legitimate applications registering their binary from on of the suspicious locations
+  mentioned above (tune it)
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect changes in the "Default" property for registry keys within the `\Software\Microsoft\Windows\CurrentVersion\App Paths\` directory on Windows systems. These registry entries are used to link application's executable names with their full paths and can potentially be exploited by malicious actors to create persistence mechanisms. By monitoring for modifications indicative of non-standard or suspicious behaviors—such as entries pointing to typical temporary or user-specific paths—the rule helps identify potential malicious activity aimed at executing code through these altered registry entries. The primary data sources for this rule are registry change logs, which detail any modifications made to these critical App Paths and can assist responders in tracing unauthorized changes.
+  ### Investigation Steps
+  - Review the registry change logs for any recent modifications to the `App Paths` entries and analyze the associated details of those changes to identify potential malicious patterns. 
+  - Use Endpoint Detection and Response (EDR) tools to track the execution of processes linked to the modified App Paths to determine if they initiated suspicious activities.
+  - Query the logs from network security devices, such as firewalls or proxies, to see if any network connections were initiated by the executables associated with the suspicious App Paths modifications.
+  - Check the system's scheduled tasks and startup programs to identify any links to the modified App Paths that could indicate an attempt at persistence through lateral movement or service execution.

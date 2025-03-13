@@ -1,0 +1,38 @@
+title: Arbitrary File Download Via MSPUB.EXE
+id: 3b3c7f55-f771-4dd6-8a6e-08d057a17caf
+status: test
+description: Detects usage of "MSPUB" (Microsoft Publisher) to download arbitrary
+  files
+references:
+- https://github.com/LOLBAS-Project/LOLBAS/pull/238/files
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-19
+modified: 2023-02-08
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\MSPUB.exe'
+  - OriginalFileName: 'MSPUB.exe'
+  selection_cli:
+    CommandLine|contains:
+    - 'ftp://'
+    - 'http://'
+    - 'https://'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Arbitrary File Download Via MSPUB.EXE" is designed to detect suspicious usage of Microsoft Publisher (MSPUB.EXE) for downloading arbitrary files over the internet. This rule looks specifically for two main criteria: the execution of the MSPUB.EXE process and the presence of command-line arguments that include potential file download links, such as HTTP, HTTPS, or FTP URLs. The data sources leveraged by this rule include process creation logs that capture which applications are run, along with their associated command-line parameters. By monitoring these elements, the rule helps uncover potentially malicious behaviors where MSPUB.EXE is misused to retrieve files from external sources, which may be indicative of attempts to bypass security measures.
+  ### Investigation Steps
+  1. Use EDR to review the timeline of the detected MSPUB.EXE process execution and obtain details about its execution context, including user and system information.
+  2. Analyze command-line parameters in the process creation logs to confirm the presence of any unusual URLs that may indicate an attempted file download.
+  3. Check antivirus and endpoint protection logs for any alerts or blocks related to the file download activity associated with MSPUB.EXE.
+  4. Query Proxy logs for any outbound network connections made by the endpoint running MSPUB.EXE to determine if any communication occurred with the identified URLs.

@@ -1,0 +1,45 @@
+title: Potential Process Hollowing Activity
+id: c4b890e5-8d8c-4496-8c66-c805753817cd
+status: test
+description: Detects when a memory process image does not match the disk image, indicative
+  of process hollowing.
+references:
+- https://twitter.com/SecurePeacock/status/1486054048390332423?s=20
+- https://www.bleepingcomputer.com/news/microsoft/microsoft-sysmon-now-detects-malware-process-tampering-attempts/
+author: Christopher Peacock '@securepeacock', SCYTHE '@scythe_io', Sittikorn S
+date: 2022-01-25
+modified: 2023-11-28
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1055.012
+logsource:
+  product: windows
+  category: process_tampering
+detection:
+  selection:
+    Type: 'Image is replaced'
+  filter_main_generic:
+    Image|contains:
+    - ':\Program Files (x86)'
+    - ':\Program Files\'
+    - ':\Windows\System32\wbem\WMIADAP.exe'
+    - ':\Windows\SysWOW64\wbem\WMIADAP.exe'
+  filter_optional_opera:
+    Image|contains: '\AppData\Local\Programs\Opera\'
+    Image|endswith: '\opera.exe'
+  filter_optional_edge:
+    Image|endswith: '\WindowsApps\MicrosoftEdge.exe'
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potential process hollowing activities within Windows environments. Process hollowing is a technique often employed by malware where a legitimate process is manipulated to execute malicious code, thus evading detection. The rule operates by inspecting process creation logs to determine if the in-memory image of a running process does not match the disk image of the same process. Specifically, it looks for instances where processes located in trusted directories (such as `C:\Program Files` and `C:\Windows\System32`) have been altered, while simultaneously filtering out known legitimate processes, such as Opera and Microsoft Edge, from generating false positives.
+  To effectively monitor these behaviors, the rule leverages data from Windows process tampering logs, scrutinizing the properties of the running processes and their associated file paths. When a discrepancy is found—indicating a process image replacement without matching the expected file path—an alert is generated, signaling a potential security incident that requires further investigation.
+  ### Investigation Steps
+  - Use the EDR solution to review the process tree associated with the alert to identify any suspicious parent-child process relationships.
+  - Check process creation and modification timestamps in the relevant logs to discern if the modified process aligns with the expected timeline of activity.
+  - Query the SIEM for any recent behavioral patterns from the affected process, including network connections, file modifications, or unusual command-line arguments.
+  - Examine endpoint antivirus logs for any previous detections related to the flagged processes that might indicate prior malicious activity or attempts to hide their presence.

@@ -1,0 +1,47 @@
+title: Possible DC Shadow Attack
+id: 32e19d25-4aed-4860-a55a-be99cb0bf7ed
+related:
+- id: 611eab06-a145-4dfa-a295-3ccc5c20f59a
+  type: derived
+status: test
+description: Detects DCShadow via create new SPN
+references:
+- https://twitter.com/gentilkiwi/status/1003236624925413376
+- https://gist.github.com/gentilkiwi/dcc132457408cf11ad2061340dcb53c2
+- https://web.archive.org/web/20180203014709/https://blog.alsid.eu/dcshadow-explained-4510f52fc19d?gi=c426ac876c48
+author: Ilyas Ochkov, oscd.community, Chakib Gzenayi (@Chak092), Hosni Mribah
+date: 2019-10-25
+modified: 2022-10-17
+tags:
+- attack.credential-access
+- attack.t1207
+logsource:
+  product: windows
+  service: security
+  definition: The "Audit Directory Service Changes" logging policy must be configured
+    in order to receive events. Audit events are generated only for objects with configured
+    system access control lists (SACLs). Audit events are generated only for objects
+    with configured system access control lists (SACLs) and only when accessed in
+    a manner that matches their SACL settings. This policy covers the following events
+    ids - 5136, 5137, 5138, 5139, 5141. Note that the default policy does not cover
+    User objects. For that a custom AuditRule need to be setup (See https://github.com/OTRF/Set-AuditRule)
+detection:
+  selection1:
+    EventID: 4742
+    ServicePrincipalNames|contains: 'GC/'
+  selection2:
+    EventID: 5136
+    AttributeLDAPDisplayName: servicePrincipalName
+    AttributeValue|startswith: 'GC/'
+  condition: 1 of selection*
+falsepositives:
+- Valid on domain controllers; exclude known DCs
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential DCShadow attacks, which are a method used by attackers to manipulate a domain controller's Service Principal Names (SPNs) in an Active Directory environment. Specifically, the rule tracks changes involving SPNs that are prefixed with 'GC/', indicating a Global Catalog server. The rule encompasses the examination of Windows Security logs, particularly focusing on Event IDs 4742 and 5136. Event ID 4742 relates to the modification of group objects, while Event ID 5136 captures changes in directory service objects, allowing for the identification of unauthorized alterations to SPNs that could indicate malicious intent. For accurate detection, it is essential that the "Audit Directory Service Changes" logging policy is enabled and correctly configured to capture relevant changes.
+  ### Investigation Steps
+  - Review recent changes in Active Directory using the EDR to correlate the detected events with the timeline of modifications related to SPNs.
+  - Query Security logs for Event IDs 4742 and 5136 specifically, looking for unauthorized changes or patterns that suggest compromise.
+  - Use the SIEM to search for alerts linked to the identified SPNs and analyze associated logs, focusing on user accounts or processes that made these changes.
+  - Check for any recent access logs from the domain controllers and evaluate if any anomalies are present that could indicate unauthorized activities or known threat actor techniques.

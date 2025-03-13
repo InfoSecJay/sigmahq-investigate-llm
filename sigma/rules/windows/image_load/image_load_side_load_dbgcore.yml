@@ -1,0 +1,45 @@
+title: Potential DLL Sideloading Of DBGCORE.DLL
+id: 9ca2bf31-0570-44d8-a543-534c47c33ed7
+status: test
+description: Detects DLL sideloading of "dbgcore.dll"
+references:
+- https://hijacklibs.net/     # For list of DLLs that could be sideloaded (search for dlls mentioned here in there)
+author: Nasreddine Bencherchali (Nextron Systems), Wietze Beukema (project and research)
+date: 2022-10-25
+modified: 2023-05-05
+tags:
+- attack.defense-evasion
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\dbgcore.dll'
+  filter_main_generic:
+    ImageLoaded|startswith:
+    - 'C:\Program Files (x86)\'
+    - 'C:\Program Files\'
+    - 'C:\Windows\SoftwareDistribution\'
+    - 'C:\Windows\System32\'
+    - 'C:\Windows\SystemTemp\'
+    - 'C:\Windows\SysWOW64\'
+    - 'C:\Windows\WinSxS\'
+  filter_optional_steam:
+    ImageLoaded|endswith: '\Steam\bin\cef\cef.win7x64\dbgcore.dll'
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- Legitimate applications loading their own versions of the DLL mentioned in this
+  rule
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule monitors Windows systems for potential DLL sideloading activities involving the "dbgcore.dll" library. DLL sideloading is a technique used by attackers to run malicious code by leveraging legitimate DLLs that a program is expected to load. The rule aims to detect scenarios where "dbgcore.dll" is loaded from unexpected or potentially malicious paths, specifically filtering out known legitimate paths such as `C:\Program Files`, `C:\Windows\System32`, and others. The detection relies on image load events recorded in the logs, which capture the details about dynamically linked library (DLL) loading, including the path and name of the DLL being loaded. By focusing on the paths from which the DLL is being loaded, analysts can identify potentially malicious activity that attempts to evade security measures through the manipulation of trusted system libraries.
+  ### Investigation Steps
+  - Examine EDR logs for the process that loaded "dbgcore.dll" to determine its parent process and creation timestamp, which may reveal if the DLL loading was triggered by a suspicious application.
+  - Review the command-line arguments of the parent process to identify any unusual or potentially malicious behavior that could be associated with the loading of the DLL.
+  - Cross-reference the loaded DLL’s path with known good paths from legitimate applications, using a database of signed applications to check for any discrepancies.
+  - Check firewall and network logs to determine if the process exhibited any unusual outgoing connections that could indicate further compromise or data exfiltration.

@@ -1,0 +1,60 @@
+title: PowerShell Execution With Potential Decryption Capabilities
+id: 434c08ba-8406-4d15-8b24-782cb071a691
+status: test
+description: Detects PowerShell commands that decrypt an ".LNK" "file to drop the
+  next stage of the malware.
+references:
+- https://research.checkpoint.com/2023/chinese-threat-actors-targeting-europe-in-smugx-campaign/
+author: X__Junior (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2023-06-30
+modified: 2023-12-05
+tags:
+- attack.execution
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+    Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    OriginalFileName:
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+  selection_cli_dir:
+    CommandLine|contains:
+    - "Get-ChildItem "
+    - "dir "
+    - "gci "
+    - "ls "
+  selection_cli_gc:
+    CommandLine|contains:
+    - "Get-Content "
+    - "gc "
+    - 'cat '
+    - 'type '
+    - 'ReadAllBytes'
+  selection_cli_specific:
+  - CommandLine|contains|all:
+    - ' ^| '
+    - '\*.lnk'
+    - '-Recurse'
+    - '-Skip '
+  - CommandLine|contains|all:
+    - ' -ExpandProperty '
+    - '\*.lnk'
+    - 'WriteAllBytes'
+    - ' .length '
+  condition: all of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets PowerShell executions that exploit decryption capabilities, particularly when dealing with Windows shortcut files (.LNK). It identifies process creation logs where PowerShell or its core execution module (pwsh.exe) is being invoked, using specific command line parameters. Key indicators include commands that gather or read file contents, like `Get-ChildItem`, `Get-Content`, and the use of wildcard patterns to target .LNK files. The rule focuses on any instances where command line parameters suggest the manipulation or decryption of these files, indicating potential malicious activities typical of advanced persistent threats (APTs).
+  The rule utilizes windows process creation logs, specifically analyzing command-line arguments passed to PowerShell executables. By correlating these parameters and keywords, the rule seeks to identify patterns that align with behavior consistent with malware stages in attacks, particularly those likely to be associated with Chinese threat actors, as highlighted in recent research.
+  ### Investigation Steps
+  - Examine EDR logs for full process trees related to alerts, paying particular attention to the commands executed and any sibling processes that may indicate further malicious activities.
+  - Cross-reference the timestamp of the alert with firewall and network logs to identify any unusual outbound traffic or connections that coincide with the PowerShell execution.
+  - Review any relevant AV logs for detections or blocks related to PowerShell execution or .LNK file modifications occurring around the same timeframe as the alert.
+  - Investigate cloud logs in platforms like AWS, GCP, or Azure for unusual API calls or activity surrounding file storage or retrieval that may correlate with the identified PowerShell activity.

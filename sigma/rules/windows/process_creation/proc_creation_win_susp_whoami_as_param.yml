@@ -1,0 +1,32 @@
+title: WhoAmI as Parameter
+id: e9142d84-fbe0-401d-ac50-3e519fb00c89
+status: test
+description: Detects a suspicious process command line that uses whoami as first parameter
+  (as e.g. used by EfsPotato)
+references:
+- https://twitter.com/blackarrowsec/status/1463805700602224645?s=12
+author: Florian Roth (Nextron Systems)
+date: 2021-11-29
+modified: 2022-12-25
+tags:
+- attack.discovery
+- attack.t1033
+- car.2016-03-001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains: '.exe whoami'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potentially malicious activity on Windows systems by monitoring the command line parameters of newly created processes. It specifically looks for instances where the command line contains the string ".exe whoami", which is often associated with the EfsPotato exploitation technique. Attackers might use this command to gather information about the user’s privileges, potentially signaling an attempt to escalate their access privileges or execute lateral movement tactics. By analyzing process creation logs, this rule utilizes data sources that capture command-line executions, helping to flag suspicious activity for further investigation.
+  ### Investigation Steps
+  1. Review recent process creation logs in the EDR to identify the specific instance of the malicious command and gather contextual information about the user and system involved.
+  2. Analyze the command line parameters for other potentially malicious arguments or additional indicators of compromise that may suggest further exploitation.
+  3. Correlate the event with logs from the firewall (NGFW) to check for any unusual outbound connections that may indicate data exfiltration or command and control communication.
+  4. Investigate user account activity in your identity and access management system to determine if any unauthorized access or privilege escalation occurred around the time of the alert.

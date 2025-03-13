@@ -1,0 +1,42 @@
+title: Uncommon AddinUtil.EXE CommandLine Execution
+id: 4f2cd9b6-4a17-440f-bb2a-687abb65993a
+status: test
+description: |
+  Detects execution of the Add-In deployment cache updating utility (AddInutil.exe) with uncommon Addinroot or Pipelineroot paths. An adversary may execute AddinUtil.exe with uncommon Addinroot/Pipelineroot paths that point to the adversaries Addins.Store payload.
+references:
+- https://www.blue-prints.blog/content/blog/posts/lolbin/addinutil-lolbas.html
+author: Michael McKinley (@McKinleyMike), Tony Latteri (@TheLatteri)
+date: 2023-09-18
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\addinutil.exe'
+  - OriginalFileName: 'AddInUtil.exe'
+  selection_cli:
+    CommandLine|contains:
+    - '-AddInRoot:'
+    - '-PipelineRoot:'
+  filter_main_addinroot:
+    CommandLine|contains:
+    - '-AddInRoot:"C:\Program Files (x86)\Common Files\Microsoft Shared\VSTA'
+    - '-AddInRoot:C:\Program Files (x86)\Common Files\Microsoft Shared\VSTA'
+    - '-PipelineRoot:"C:\Program Files (x86)\Common Files\Microsoft Shared\VSTA'
+    - '-PipelineRoot:C:\Program Files (x86)\Common Files\Microsoft Shared\VSTA'
+  condition: all of selection_* and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule monitors for the execution of `AddInUtil.exe`, a utility used for managing add-ins within Microsoft environments. Specifically, the rule is triggered when this executable is run with command-line parameters specifying uncommon paths for `AddInRoot` or `PipelineRoot`. Attackers might exploit this Windows utility to introduce malicious payloads by manipulating these paths to point to malicious add-in directories. The critical data sources for this rule include process creation logs, which capture details about the execution of processes on Windows systems, including the path to the executable and accompanying command-line arguments.
+  By analyzing the properties of the process, such as its image name and the original file name, alongside the command-line parameters, the rule effectively identifies potential illegitimate uses of `AddInUtil.exe`. If this executable is found to be executed under such uncommon conditions, it warrants a closer investigation into the context of the execution to ensure no malicious activity is occurring within the enterprise environment.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR to identify other instances of `AddInUtil.exe` execution and correlate timestamps with other events of interest.
+  - Examine the command-line arguments used with `AddInUtil.exe` to determine the specific AddInRoot and PipelineRoot paths being referenced, especially focusing on deviations from standard paths.
+  - Utilize AV and NDR tools to scan the identified paths for known malicious payloads or unusual files that may be associated with the identified execution.
+  - Check the network logs, especially from the Proxy and NGFW, for any outbound communications that might indicate data exfiltration or contact with command and control servers following the anomalous execution.

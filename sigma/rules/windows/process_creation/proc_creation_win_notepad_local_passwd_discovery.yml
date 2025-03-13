@@ -1,0 +1,40 @@
+title: Notepad Password Files Discovery
+id: 3b4e950b-a3ea-44d3-877e-432071990709
+status: experimental
+description: Detects the execution of Notepad to open a file that has the string "password"
+  which may indicate unauthorized access to credentials or suspicious activity.
+references:
+- https://thedfirreport.com/2025/02/24/confluence-exploit-leads-to-lockbit-ransomware/
+- https://intel.thedfirreport.com/eventReports/view/57      # Private Report
+author: 'The DFIR Report'
+tags:
+- attack.discovery
+- attack.t1083
+date: 2025-02-21
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    ParentImage|endswith: '\explorer.exe'
+    Image|endswith: '\notepad.exe'
+    CommandLine|endswith:
+        # Note: Commandline to contain a file with the string password and a specific extension
+    - 'password*.txt'
+    - 'password*.csv'
+    - 'password*.doc'
+    - 'password*.xls'
+  condition: selection
+falsepositives:
+- Legitimate use of opening files from remote hosts by administrators or users. However,
+  storing passwords in text readable format could potentially be a violation of the
+  organization's policy. Any match should be investigated further.
+level: low
+notes: |
+  ### Technical Context
+  The "Notepad Password Files Discovery" detection rule aims to identify potentially suspicious activity by monitoring for the execution of Notepad to open files that contain the string "password" in their names. This is significant because accessing such files may indicate unauthorized attempts to view credentials or other sensitive information. The rule primarily looks for process creation logs from Windows, specifically focusing on instances where Notepad (notepad.exe) is launched by the Explorer process (explorer.exe) and the command line specifies files with extensions like .txt, .csv, .doc, or .xls that include "password". By targeting this specific behavior, the rule serves to highlight risks associated with password management and the potential for credential exposure.
+  ### Investigation Steps
+  - Utilize your EDR solution to search for the process creation logs that correlate with the detected Notepad executions, focusing on the command line parameters used.
+  - Check the user account associated with the Notepad process to determine if it is an authorized user. Look for any recent suspicious or anomalous activities tied to this account.
+  - Cross-reference the file paths of the accessed password files against your organization's policy to confirm if such files are permissible and investigate any violations detected.
+  - Examine network traffic through NDR or proxy logs for any related data exfiltration attempts that might align with the file access event, providing insight into potential malicious intent.

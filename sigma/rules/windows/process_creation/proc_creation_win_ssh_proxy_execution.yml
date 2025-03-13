@@ -1,0 +1,43 @@
+title: Program Executed Using Proxy/Local Command Via SSH.EXE
+id: 7d6d30b8-5b91-4b90-a891-46cccaf29598
+status: test
+description: Detect usage of the "ssh.exe" binary as a proxy to launch other programs.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Ssh/
+- https://github.com/LOLBAS-Project/LOLBAS/pull/211/files
+- https://gtfobins.github.io/gtfobins/ssh/
+- https://man.openbsd.org/ssh_config#ProxyCommand
+- https://man.openbsd.org/ssh_config#LocalCommand
+author: frack113, Nasreddine Bencherchali
+date: 2022-12-29
+modified: 2023-01-25
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+        # ParentCommandLine: '"C:\Windows\System32\OpenSSH\sshd.exe" -R'
+    ParentImage: 'C:\Windows\System32\OpenSSH\sshd.exe'
+  selection_cli_img:
+    Image|endswith: '\ssh.exe'
+  selection_cli_flags:
+  - CommandLine|contains: 'ProxyCommand='
+  - CommandLine|contains|all:
+    - 'PermitLocalCommand'
+    - 'LocalCommand'
+  condition: selection_parent or all of selection_cli_*
+falsepositives:
+- Legitimate usage for administration purposes
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential misuse of the `ssh.exe` binary as a proxy to execute other programs, leveraging the functionality available through SSH configurations. Specifically, the rule looks for instances where `ssh.exe` is invoked via its parent process `sshd.exe`, particularly when command-line arguments indicate the use of `ProxyCommand` or `LocalCommand`. This could suggest an attempt to bypass security measures or conduct unauthorized actions within the environment. Data sources involved include process creation logs that capture details such as the parent image, command-line parameters, and the exact sequence of executed commands.
+  Monitoring for this behavior is crucial, as attackers might use SSH in a similar way to establish covert communication channels or execute malware on a target system. However, it is important to note that legitimate administrative tasks may also trigger this rule, and thus further investigation is necessary to discern intent.
+  ### Investigation Steps
+  - Utilize EDR tools to examine the process tree and identify other processes spawned by `ssh.exe` to determine if unauthorized activities are occurring.
+  - Review command-line arguments captured in process creation logs and look for any unusual or suspicious commands being executed alongside legitimate SSH operations.
+  - Check network traffic logs and proxy logs to identify any unexpected destinations being accessed or communications that could indicate data exfiltration.
+  - Investigate user account activity associated with the execution of `ssh.exe` to establish the legitimacy of the session and whether it aligns with expected administrative behaviors.

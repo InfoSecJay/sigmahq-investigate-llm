@@ -1,0 +1,40 @@
+title: Powershell LocalAccount Manipulation
+id: 4fdc44df-bfe9-4fcc-b041-68f5a2d3031c
+status: test
+description: |
+  Adversaries may manipulate accounts to maintain access to victim systems.
+  Account manipulation may consist of any action that preserves adversary access to a compromised account, such as modifying credentials or permission groups
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1098/T1098.md#atomic-test-1---admin-account-manipulate
+- https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.localaccounts/?view=powershell-5.1
+author: frack113
+date: 2021-12-28
+tags:
+- attack.persistence
+- attack.t1098
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains:
+    - 'Disable-LocalUser'
+    - 'Enable-LocalUser'
+    - 'Get-LocalUser'
+    - 'Set-LocalUser'
+    - 'New-LocalUser'
+    - 'Rename-LocalUser'
+    - 'Remove-LocalUser'
+  condition: selection
+falsepositives:
+- Legitimate administrative script
+level: medium
+notes: |
+  ### Technical Context
+  The "Powershell LocalAccount Manipulation" detection rule is designed to identify suspicious changes to local user accounts on Windows systems, which may indicate an attempt by an adversary to maintain access to a compromised environment. The rule focuses on specific PowerShell commands that are commonly used for manipulating local user accounts, such as enabling or disabling accounts, creating new users, and altering user attributes. To function effectively, the rule requires that Script Block Logging is enabled to capture the execution of PowerShell scripts. By monitoring these specific cmdlets—like `Disable-LocalUser`, `Enable-LocalUser`, `Get-LocalUser`, `Set-LocalUser`, `New-LocalUser`, `Rename-LocalUser`, and `Remove-LocalUser`—the detection can flag potentially malicious activity that conflicts with expected administrative practices.
+  ### Investigation Steps
+  - Use your EDR solution to review process creation logs for PowerShell processes executing the detected commands, focusing on the parent processes to understand the context of execution.
+  - Check user account activity in the Windows Event Logs to identify any recent modifications to account states, such as enabling or disabling accounts, to correlate with the PowerShell command executions.
+  - Analyze network logs from the NGFW or Proxy to observe any suspicious connections or data exfiltration attempts that may coincide with the account manipulation activities.
+  - Review cloud management logs (for environments like AWS or Azure) to determine if any user accounts were created or modified through related management scripts around the same timeframe.

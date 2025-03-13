@@ -1,0 +1,37 @@
+title: Blackbyte Ransomware Registry
+id: 83314318-052a-4c90-a1ad-660ece38d276
+status: test
+description: BlackByte set three different registry values to escalate privileges
+  and begin setting the stage for lateral movement and encryption
+references:
+- https://redcanary.com/blog/blackbyte-ransomware/?utm_source=twitter&utm_medium=social
+- https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/blackbyte-ransomware-pt-1-in-depth-analysis/
+author: frack113
+date: 2022-01-24
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject:
+    - HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\LocalAccountTokenFilterPolicy
+    - HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\EnableLinkedConnections
+    - HKLM\SYSTEM\CurrentControlSet\Control\FileSystem\LongPathsEnabled
+    Details: DWORD (0x00000001)
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The rule titled "Blackbyte Ransomware Registry" is designed to detect changes made to specific Windows registry keys that are indicative of BlackByte ransomware activity. This ransomware variant escalates privileges and prepares for lateral movement and data encryption by modifying three critical registry values: `LocalAccountTokenFilterPolicy`, `EnableLinkedConnections`, and `LongPathsEnabled`, all set to `DWORD (0x00000001)`. By monitoring Windows registry set operations, the detection rule identifies these modifications which may signify an attempt to undermine security measures and facilitate ransomware deployment across the network.
+  The primary data sources for this rule are registry set events captured in Windows operating environments. When the specified keys are altered, alerts are generated, enabling security analysts to investigate potential ransomware activities. Understanding these indicators is essential for timely intervention and mitigation of threat impacts.
+  ### Investigation Steps
+  - Review recent registry set events in EDR to confirm changes to the specified keys related to BlackByte ransomware.
+  - Analyze process creation logs in the EDR and SIEM for any anomalous processes that executed around the same time as the registry changes.
+  - Check the network activity logs from the NDR or Proxy for any suspicious outbound connections or lateral movement attempts that may be linked to the identified registry changes.
+  - Conduct a threat intelligence search across available platforms to identify any known indicators of compromise associated with BlackByte ransomware linked to the actions observed.

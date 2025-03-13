@@ -1,0 +1,44 @@
+title: Suspicious ZipExec Execution
+id: 90dcf730-1b71-4ae7-9ffc-6fcf62bd0132
+status: test
+description: ZipExec is a Proof-of-Concept (POC) tool to wrap binary-based tools into
+  a password-protected zip file.
+references:
+- https://twitter.com/SBousseaden/status/1451237393017839616
+- https://github.com/Tylous/ZipExec
+author: frack113
+date: 2021-11-07
+modified: 2022-12-25
+tags:
+- attack.execution
+- attack.defense-evasion
+- attack.t1218
+- attack.t1202
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  run:
+    CommandLine|contains|all:
+    - '/generic:Microsoft_Windows_Shell_ZipFolder:filename='
+    - '.zip'
+    - '/pass:'
+    - '/user:'
+  delete:
+    CommandLine|contains|all:
+    - '/delete'
+    - 'Microsoft_Windows_Shell_ZipFolder:filename='
+    - '.zip'
+  condition: run or delete
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Suspicious ZipExec Execution" Sigma rule is designed to detect the use of ZipExec, a tool that packages executable files into password-protected ZIP archives, potentially facilitating evasion of security mechanisms. The rule primarily focuses on process creation logs from Windows systems by examining command-line parameters that indicate the execution of ZipExec. Specifically, it looks for command lines that contain specific flags, such as those indicating a filename, password protection, or deletion of zip files. By monitoring these parameters, the rule aims to identify potentially unauthorized or nefarious use of this tool, which may be indicative of malicious activity.
+  The detection criteria are established around key command-line arguments. The rule fires if either the execution of ZipExec to create a zip file (`run` detection) or the deletion of such zip files (`delete` detection) is detected. This can provide security teams with critical alerts when an anomalous behavior pattern is identified, warranting further investigation.
+  ### Investigation Steps
+  - Utilize EDR tools to investigate the process creation logs for instances of ZipExec being executed, focusing on command-line arguments for potential misuse.
+  - Check the system logs for any associated anomalies around the same timeframe, particularly looking for other suspicious processes being executed in conjunction with ZipExec.
+  - Query endpoint antivirus solutions to determine if any alerts or detections were triggered by ZipExec or related commands during the time of the incident.
+  - Review proxy and network logs to identify any unusual outbound connections that might coincide with the execution of ZipExec, which could suggest data exfiltration or lateral movement.

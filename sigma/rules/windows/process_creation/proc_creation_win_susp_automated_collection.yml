@@ -1,0 +1,53 @@
+title: Automated Collection Command Prompt
+id: f576a613-2392-4067-9d1a-9345fb58d8d1
+status: test
+description: Once established within a system or network, an adversary may use automated
+  techniques for collecting internal data.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1119/T1119.md
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1552.001/T1552.001.md
+author: frack113
+date: 2021-07-28
+modified: 2022-11-11
+tags:
+- attack.collection
+- attack.t1119
+- attack.credential-access
+- attack.t1552.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_ext:
+    CommandLine|contains:
+    - '.doc'
+    - '.docx'
+    - '.xls'
+    - '.xlsx'
+    - '.ppt'
+    - '.pptx'
+    - '.rtf'
+    - '.pdf'
+    - '.txt'
+  selection_other_dir:
+    CommandLine|contains|all:
+    - 'dir '
+    - ' /b '
+    - ' /s '
+  selection_other_findstr:
+    OriginalFileName: 'FINDSTR.EXE'
+    CommandLine|contains:
+    - ' /e '
+    - ' /si '
+  condition: selection_ext and 1 of selection_other_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Automated Collection Command Prompt" detection rule identifies potential adversarial activities where automated commands are used to collect sensitive internal data from a compromised system. The rule focuses on process creation logs associated with command-line executions, specifically looking for file extensions commonly associated with documents and spreadsheets, such as `.doc`, `.xls`, and `.pdf`. Additionally, the rule examines the use of typical command-line utilities, including directory listings (via `dir`) and searches (via `FINDSTR`). By correlating these command-line parameters, the rule enables the detection of suspicious or unauthorized data collection attempts which may indicate a threat actor trying to exfiltrate information from the environment.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify instances of command-line executions that match the criteria specified in the rule.
+  - Utilize your SIEM to correlate alerts with other logs, such as network traffic or user activity, to determine if data exfiltration is occurring concurrently.
+  - Check for any anomalous file access or transfer activity in your AV or NGFW logs that may relate to the captured document extensions.
+  - Analyze user accounts associated with the command-line executions to assess if there are any unauthorized devices or sessions accessing sensitive data.

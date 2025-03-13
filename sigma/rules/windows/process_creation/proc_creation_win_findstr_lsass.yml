@@ -1,0 +1,46 @@
+title: LSASS Process Reconnaissance Via Findstr.EXE
+id: fe63010f-8823-4864-a96b-a7b4a0f7b929
+status: experimental
+description: Detects findstring commands that include the keyword lsass, which indicates
+  recon actviity for the LSASS process PID
+references:
+- https://blog.talosintelligence.com/2022/08/recent-cyber-attack.html?m=1
+author: Florian Roth (Nextron Systems)
+date: 2022-08-12
+modified: 2024-06-04
+tags:
+- attack.credential-access
+- attack.t1552.006
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_findstr_img:
+  - Image|endswith:
+    - '\find.exe'
+    - '\findstr.exe'
+  - OriginalFileName:
+    - 'FIND.EXE'
+    - 'FINDSTR.EXE'
+  selection_findstr_cli:
+    CommandLine|contains: 'lsass'
+  selection_special:
+    CommandLine|contains|windash:
+    - ' /i "lsass'
+    - ' /i lsass.exe'
+    - 'findstr "lsass'
+    - 'findstr lsass'
+    - 'findstr.exe "lsass'
+    - 'findstr.exe lsass'
+  condition: all of selection_findstr_* or selection_special
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious reconnaissance activities targeting the Local Security Authority Subsystem Service (LSASS) process on Windows systems. It specifically monitors the execution of the `findstr` and `find` commands with command-line parameters that contain the keyword "lsass." Detection occurs when these commands attempt to extract sensitive information concerning the LSASS process, which is critical for managing authentication and security policies in Windows environments. The rule utilizes process creation logs as its primary data source, enabling visibility into command-line executions and the associated image and original file names of the processes that trigger this rule. By focusing on specific patterns indicative of reconnaissance, this alert helps defend against credential theft and potential lateral movement within an enterprise network.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR to confirm the execution of `findstr.exe` or `find.exe` commands alongside "lsass" in the command line.
+  - Check for the parent process of the executed command to determine if it originated from a suspicious or unauthorized source.
+  - Analyze user account activities associated with the time of the command execution to assess whether there are any indicators of compromise or unauthorized access.
+  - Utilize network logs from the NGFW and Proxy to identify any unusual outbound connections made by the user during or after the execution of the command to understand potential data exfiltration attempts.

@@ -1,0 +1,39 @@
+title: Tap Installer Execution
+id: 99793437-3e16-439b-be0f-078782cf953d
+status: test
+description: Well-known TAP software installation. Possible preparation for data exfiltration
+  using tunneling techniques
+references:
+- https://community.openvpn.net/openvpn/wiki/ManagingWindowsTAPDrivers
+author: Daniil Yugoslavskiy, Ian Davis, oscd.community
+date: 2019-10-24
+modified: 2023-12-11
+tags:
+- attack.exfiltration
+- attack.t1048
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\tapinstall.exe'
+  filter_optional_avast:
+    Image|contains:
+    - ':\Program Files\Avast Software\SecureLine VPN\'
+    - ':\Program Files (x86)\Avast Software\SecureLine VPN\'
+  filter_optional_openvpn:
+    Image|contains: ':\Program Files\OpenVPN Connect\drivers\tap\'
+  filter_optional_protonvpn:
+    Image|contains: ':\Program Files (x86)\Proton Technologies\ProtonVPNTap\installer\'
+  condition: selection and not 1 of filter_optional_*
+falsepositives:
+- Legitimate OpenVPN TAP installation
+level: medium
+notes: |
+  ### Technical Context
+  The "Tap Installer Execution" detection rule identifies the execution of `tapinstall.exe`, a common component used for the installation and management of TAP drivers which facilitate VPN connections. The rule specifically looks for instances where `tapinstall.exe` is executed outside of known legitimate paths associated with popular VPN applications like Avast SecureLine, OpenVPN, and ProtonVPN. This is significant because the presence of unauthorized or unexpected TAP driver installations could indicate preparation for data exfiltration through tunneling methods. By monitoring process creation logs, particularly for their command-line parameters and file paths, the rule can flag potentially malicious behavior that may evade traditional detection methods by masquerading as legitimate VPN installations.
+  ### Investigation Steps
+  - Review process creation logs in your EDR tool to identify the context and parent processes associated with the `tapinstall.exe` execution.
+  - Check for any recent changes in network connections or data transfers that coincide with the execution of the executable using your Network Detection and Response (NDR) tools.
+  - Analyze the command-line parameters passed to the `tapinstall.exe` process for atypical or suspicious flags that suggest malicious intent.
+  - Correlate findings with application logs from the AV and proxy solutions to understand whether any blocked connections or alerts were raised during this activity.

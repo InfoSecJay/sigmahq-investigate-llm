@@ -1,0 +1,34 @@
+title: Network Connection Initiated By Regsvr32.EXE
+id: c7e91a02-d771-4a6d-a700-42587e0b1095
+status: test
+description: Detects a network connection initiated by "Regsvr32.exe"
+references:
+- https://pentestlab.blog/2017/05/11/applocker-bypass-regsvr32/
+- https://oddvar.moe/2017/12/13/applocker-case-study-how-insecure-is-it-really-part-1/
+author: Dmitriy Lifanov, oscd.community
+date: 2019-10-25
+modified: 2023-09-18
+tags:
+- attack.execution
+- attack.t1559.001
+- attack.defense-evasion
+- attack.t1218.010
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Initiated: 'true'
+    Image|endswith: '\regsvr32.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies network connections initiated by the Windows utility `regsvr32.exe`. This executable, commonly used to register and unregister OLE controls and COM objects, can sometimes be exploited by attackers to circumvent security controls, hence it is crucial to monitor its activity. The rule focuses on cases where `regsvr32.exe` initiates a network connection, an action that may indicate suspicious behavior or potential data exfiltration attempts. By correlating this activity within network connection logs, analysts can gain insights into possible malicious executions leveraging this process. The main data sources involved are network connection logs from Windows systems, which capture details about processes, including their images and whether they initiated connections.
+  ### Investigation Steps
+  - Review the process tree of the detected `regsvr32.exe` instance using EDR tools to ascertain its parent process and any associated scripts or commands that may indicate malicious activity.
+  - Examine recent network connections made by `regsvr32.exe` in your network logs to identify any unusual endpoints or data transfers that could signify a breach.
+  - Check for signs of process injection or other anomalies in the command-line parameters of the `regsvr32.exe` execution using an AV solution to enhance context regarding how it was invoked.
+  - Correlate logs from your firewall and Proxy to determine if the destination servers contacted by `regsvr32.exe` are known malicious domains or unusual for your organization's infrastructure.

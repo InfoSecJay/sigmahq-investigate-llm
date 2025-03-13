@@ -1,0 +1,32 @@
+title: Powershell Suspicious Win32_PnPEntity
+id: b26647de-4feb-4283-af6b-6117661283c5
+status: test
+description: Adversaries may attempt to gather information about attached peripheral
+  devices and components connected to a computer system.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1120/T1120.md
+author: frack113
+date: 2021-08-23
+modified: 2022-12-25
+tags:
+- attack.discovery
+- attack.t1120
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains: Win32_PnPEntity
+  condition: selection
+falsepositives:
+- Admin script
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially suspicious usage of PowerShell scripts that relate to the enumeration of peripheral device information on a Windows system. Specifically, the rule looks for the presence of the string "Win32_PnPEntity" within PowerShell script block logging, which is a feature that captures details of executed PowerShell scripts and their operations. Adversaries may exploit this capability to gather intelligence about connected devices, aiming to gather information that could aid in further malicious actions. The detection relies heavily on the availability of script block logging, which needs to be enabled for effective monitoring.
+  ### Investigation Steps
+  - Review the PowerShell execution logs within your EDR to determine the user and context of the script execution. Look for unusual users or accounts that do not typically use PowerShell to run scripts.
+  - Analyze the command line parameters associated with the PowerShell execution to identify any additional arguments or suspicious patterns that may indicate malicious intent.
+  - Check the event logs for any recent installations or changes related to peripheral devices, as this can provide context on the intention behind querying the Win32_PnPEntity.
+  - Utilize threat intelligence tools to correlate the user account and IP addresses involved in the event with known bad actors or indicators of compromise (IoCs).

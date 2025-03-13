@@ -1,0 +1,50 @@
+title: HackTool - Certify Execution
+id: 762f2482-ff21-4970-8939-0aa317a886bb
+status: test
+description: Detects Certify a tool for Active Directory certificate abuse based on
+  PE metadata characteristics and common command line arguments.
+references:
+- https://github.com/GhostPack/Certify
+author: pH-T (Nextron Systems)
+date: 2023-04-17
+modified: 2023-04-25
+tags:
+- attack.discovery
+- attack.credential-access
+- attack.t1649
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\Certify.exe'
+  - OriginalFileName: 'Certify.exe'
+  - Description|contains: 'Certify'
+  selection_cli_commands:
+    CommandLine|contains:
+    - '.exe cas '
+    - '.exe find '
+    - '.exe pkiobjects '
+    - '.exe request '
+    - '.exe download '
+  selection_cli_options:
+    CommandLine|contains:
+    - ' /vulnerable'
+    - ' /template:'
+    - ' /altname:'
+    - ' /domain:'
+    - ' /path:'
+    - ' /ca:'
+  condition: selection_img or all of selection_cli_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "HackTool 
+  - Certify Execution" detection rule is designed to identify the execution of a specific tool—Certify—often leveraged for Active Directory certificate abuse. It utilizes process creation logs to monitor for executables with specific metadata and command-line arguments. The rule looks for the executable file path that ends with 'Certify.exe' and examines the original file name and description to confirm its identity. Furthermore, it tracks command-line parameters that are commonly associated with potentially malicious activities, such as requesting, downloading, or interacting with PKI (Public Key Infrastructure) objects. This multifaceted approach allows the rule to effectively flag suspicious behaviors indicative of credential access attacks.
+  ### Investigation Steps
+  - Examine the process creation logs in your EDR to identify instances of "Certify.exe" and analyze the timing and user context associated with each execution.
+  - Review the command-line arguments used alongside the executable; focus particularly on flags like '/vulnerable', '/template:', and '/domain:' to understand the intent behind the execution.
+  - Pull relevant logs from your firewall and proxy systems to check for any unusual outbound connections or data transfers that may correlate with the execution of Certify.
+  - Cross-reference alerts with Active Directory logs to detect any unauthorized certificate requests or modifications that may indicate exploitation attempts using Certify.

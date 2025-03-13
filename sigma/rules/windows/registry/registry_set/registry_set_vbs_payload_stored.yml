@@ -1,0 +1,49 @@
+title: VBScript Payload Stored in Registry
+id: 46490193-1b22-4c29-bdd6-5bf63907216f
+status: test
+description: Detects VBScript content stored into registry keys as seen being used
+  by UNC2452 group
+references:
+- https://www.microsoft.com/security/blog/2021/03/04/goldmax-goldfinder-sibot-analyzing-nobelium-malware/
+author: Florian Roth (Nextron Systems)
+date: 2021-03-05
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.t1547.001
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: 'Software\Microsoft\Windows\CurrentVersion'
+    Details|contains:
+    - 'vbscript:'
+    - 'jscript:'
+    - 'mshtml,'
+    - 'RunHTMLApplication'
+    - 'Execute('
+    - 'CreateObject'
+    - 'window.close'
+  filter:
+    TargetObject|contains: 'Software\Microsoft\Windows\CurrentVersion\Run'
+  filter_dotnet:
+    Image|endswith: '\msiexec.exe'
+    TargetObject|contains: '\SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData\'
+    Details|contains:
+    - '\Microsoft.NET\Primary Interop Assemblies\Microsoft.mshtml.dll'
+    - '<\Microsoft.mshtml,fileVersion='
+    - '_mshtml_dll_'
+    - '<\Microsoft.mshtml,culture='
+  condition: selection and not 1 of filter*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule identifies potentially malicious VBScript payloads stored within Windows registry keys, specifically within the `CurrentVersion` path. It targets strings commonly associated with scripting languages (VBScript, JScript) and related functions such as `CreateObject` and `Execute(`, which are frequently used by adversaries to execute scripts without user interaction. The rule also examines entries under `Run` and certain subkeys linked to Microsoft Installer activities that might indicate persistence mechanisms being employed by threat actors, such as those in the UNC2452 group known for sophisticated cyber attacks. Data sources utilized in this rule include Windows registry logs capturing changes to these keys, providing essential insights into possible malicious intent and persistence strategies.
+  ### Investigation Steps
+  - Examine recent changes to the registry using your EDR tool to correlate with the detected VBScript content, focusing on the `Software\Microsoft\Windows\CurrentVersion\Run` path for persistence mechanisms.
+  - Review process creation logs for any instances of `msiexec.exe` that could be linked to the registry modifications noted in the alert, particularly examining command-line arguments for signs of execution and script usage.
+  - Utilize your SIEM's alerting capabilities to trace any related network connections made around the time of registry changes, which may provide context about data exfiltration or further malicious activity.
+  - Check proxy logs for unusual internet traffic patterns or connections that align with the execution of VBScript or related activities, aiding in identifying whether the detected entry is a part of a larger attack infrastructure.

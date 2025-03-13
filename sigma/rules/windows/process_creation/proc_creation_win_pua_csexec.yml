@@ -1,0 +1,37 @@
+title: PUA - CsExec Execution
+id: d08a2711-ee8b-4323-bdec-b7d85e892b31
+status: test
+description: Detects the use of the lesser known remote execution tool named CsExec
+  a PsExec alternative
+references:
+- https://github.com/malcomvetter/CSExec
+- https://www.microsoft.com/security/blog/2022/05/09/ransomware-as-a-service-understanding-the-cybercrime-gig-economy-and-how-to-protect-yourself/
+author: Florian Roth (Nextron Systems)
+date: 2022-08-22
+modified: 2023-02-21
+tags:
+- attack.resource-development
+- attack.t1587.001
+- attack.execution
+- attack.t1569.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\csexec.exe'
+  selection_pe:
+    Description: 'csexec'
+  condition: 1 of selection*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "PUA 
+  - CsExec Execution" is designed to detect the use of a lesser-known remote execution tool called CsExec, a competitor to Microsoft's PsExec. This tool is often employed for executing processes on remote systems and can be exploited by threat actors to perform unauthorized actions across a network. The rule leverages process creation logs to monitor for instances where the CsExec executable (`csexec.exe`) is invoked. By setting specific conditions based on the executable's image path and its description, the rule identifies potentially malicious attempts to use CsExec for unauthorized remote execution. Responders should note that due to CsExec’s nature, this could signify a risk of lateral movement or data compromise within the enterprise environment.
+  ### Investigation Steps
+  - Review process creation logs in your EDR solution to identify instances of `csexec.exe` execution and correlate with user and system activities around that timeframe.
+  - Check network logs using NDR tools for unusual outbound connections initiated by the system where CsExec was detected, which may indicate data exfiltration or callback to a command-and-control server.
+  - Query the logs from endpoint protection solutions to determine if there are any known detections or alerts related to the utilization of CsExec, as it could help validate the legitimacy of the request.
+  - Analyze proxy logs for any suspicious URL access or downloads that occurred before or after the `csexec.exe` execution, looking for potential indicators of compromise (IOCs) associated with the tool.

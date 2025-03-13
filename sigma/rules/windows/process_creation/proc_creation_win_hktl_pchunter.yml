@@ -1,0 +1,54 @@
+title: HackTool - PCHunter Execution
+id: fca949cc-79ca-446e-8064-01aa7e52ece5
+status: test
+description: Detects suspicious use of PCHunter, a tool like Process Hacker to view
+  and manipulate processes, kernel options and other low level stuff
+references:
+- https://web.archive.org/web/20231210115125/http://www.xuetr.com/
+- https://www.crowdstrike.com/blog/falcon-overwatch-report-finds-increase-in-ecrime/
+- https://www.hexacorn.com/blog/2018/04/20/kernel-hacking-tool-you-might-have-never-heard-of-xuetr-pchunter/
+author: Florian Roth (Nextron Systems), Nasreddine Bencherchali
+date: 2022-10-10
+modified: 2024-11-23
+tags:
+- attack.execution
+- attack.discovery
+- attack.t1082
+- attack.t1057
+- attack.t1012
+- attack.t1083
+- attack.t1007
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_image:
+    Image|endswith:
+    - '\PCHunter64.exe'
+    - '\PCHunter32.exe'
+  selection_pe:
+  - OriginalFileName: 'PCHunter.exe'
+  - Description: 'Epoolsoft Windows Information View Tools'
+  selection_hashes:
+    Hashes|contains:
+    - 'SHA1=5F1CBC3D99558307BC1250D084FA968521482025'
+    - 'MD5=987B65CD9B9F4E9A1AFD8F8B48CF64A7'
+    - 'SHA256=2B214BDDAAB130C274DE6204AF6DBA5AEEC7433DA99AA950022FA306421A6D32'
+    - 'IMPHASH=444D210CEA1FF8112F256A4997EED7FF'
+    - 'SHA1=3FB89787CB97D902780DA080545584D97FB1C2EB'
+    - 'MD5=228DD0C2E6287547E26FFBD973A40F14'
+    - 'SHA256=55F041BF4E78E9BFA6D4EE68BE40E496CE3A1353E1CA4306598589E19802522C'
+    - 'IMPHASH=0479F44DF47CFA2EF1CCC4416A538663'
+  condition: 1 of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "HackTool 
+  - PCHunter Execution" is designed to detect the execution of PCHunter, a tool commonly used for inspecting and manipulating system processes and kernel options. This rule identifies instances where PCHunter is launched either by monitoring the process creation activity on Windows systems or by checking specific file characteristics such as its name, description, or hash values. The rule focuses on process creation logs, targeting filenames that match PCHunter executables (`PCHunter64.exe` and `PCHunter32.exe`) and hashes associated with known variants of this tool. Given its potential use in malicious activities such as bypassing security mechanisms, the detection of PCHunter is critical for monitoring execution in environments where such tools should not be present.
+  ### Investigation Steps
+  - Utilize EDR tools to investigate the endpoint from which the PCHunter process was executed. Look for any recent suspicious activities or anomalies in the process tree.
+  - Review process creation logs to identify any command-line parameters passed to PCHunter during its execution. This can provide insight into its use and any additional malicious commands that may have been executed.
+  - Check for network activity related to the execution of PCHunter using NDR or firewall logs. Look for unusual outbound connections that may indicate data exfiltration or communication with command and control servers.
+  - Examine AV logs for any detections of PCHunter or other associated tools. Ensure that no other security measures were bypassed during the execution of this tool, which may signal a more significant incident.

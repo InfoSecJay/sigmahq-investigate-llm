@@ -1,0 +1,43 @@
+title: Findstr Launching .lnk File
+id: 33339be3-148b-4e16-af56-ad16ec6c7e7b
+status: test
+description: Detects usage of findstr to identify and execute a lnk file as seen within
+  the HHS redirect attack
+references:
+- https://www.bleepingcomputer.com/news/security/hhsgov-open-redirect-used-by-coronavirus-phishing-to-spread-malware/
+author: Trent Liffick
+date: 2020-05-01
+modified: 2024-01-15
+tags:
+- attack.defense-evasion
+- attack.t1036
+- attack.t1202
+- attack.t1027.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\find.exe'
+    - '\findstr.exe'
+  - OriginalFileName:
+    - 'FIND.EXE'
+    - 'FINDSTR.EXE'
+  selection_cli:
+    CommandLine|endswith:
+    - '.lnk'
+    - '.lnk"'
+    - ".lnk'"
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the potentially malicious use of the `findstr` or `find.exe` utilities to execute Windows shortcut files (.lnk), which is a tactic commonly observed in advanced persistent threat (APT) scenarios. Specifically, it focuses on command-line arguments that target .lnk files, a common method used by attackers to leverage legitimate tools for malicious purposes. The rule examines process creation logs where either `find.exe` or `findstr.exe` is initiated, specifically looking for command lines that end with `.lnk`. It relies on critical attributes such as `Image` and `CommandLine`, facilitating detection when the `findstr` or `find.exe` is evidently involved in executing shortcut files that could redirect or launch harmful payloads.
+  ### Investigation Steps
+  - Utilize the EDR tool to trace the execution history of `findstr.exe` or `find.exe` on the affected endpoint, identifying the parent processes and timestamps associated with the alert. 
+  - Review process creation logs associated with the timeliness of the alert to determine the context in which the .lnk file was called, noting any unusual patterns or behaviors.
+  - Query the AV logs for the detection of any threats linked to the executed .lnk file, which can provide insights into possible malware deployment.
+  - Inspect network traffic via NDR and proxy logs during the time of the incident to identify any outbound connections or indicators of compromise that correlate with the execution of the .lnk file.

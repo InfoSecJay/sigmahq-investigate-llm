@@ -1,0 +1,47 @@
+title: Forfiles.EXE Child Process Masquerading
+id: f53714ec-5077-420e-ad20-907ff9bb2958
+status: test
+description: |
+  Detects the execution of "forfiles" from a non-default location, in order to potentially spawn a custom "cmd.exe" from the current working directory.
+references:
+- https://www.hexacorn.com/blog/2023/12/31/1-little-known-secret-of-forfiles-exe/
+author: Nasreddine Bencherchali (Nextron Systems), Anish Bogati
+date: 2024-01-05
+tags:
+- attack.defense-evasion
+- attack.t1036
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+        # Notes:
+        #   - The parent must not have CLI options
+        #   - The Child Image must be named "cmd" as its hardcoded in the "forfiles" binary
+        #   - The Child CLI will always contains "/c echo" as its hardcoded in the original "forfiles" binary
+    ParentCommandLine|endswith:
+    - '.exe'
+    - '.exe"'
+    Image|endswith: '\cmd.exe'
+    CommandLine|startswith: '/c echo "'
+  filter_main_parent_not_sys:
+    ParentImage|contains:
+    - ':\Windows\System32\'
+    - ':\Windows\SysWOW64\'
+    ParentImage|endswith: '\forfiles.exe'
+    Image|contains:
+    - ':\Windows\System32\'
+    - ':\Windows\SysWOW64\'
+    Image|endswith: '\cmd.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Forfiles.EXE Child Process Masquerading" is designed to detect instances where the Windows command-line utility "forfiles" is executed from a non-standard location. This can be indicative of an attacker using "forfiles" to spawn a malicious or modified "cmd.exe" instance. The rule focuses on process creation events, specifically analyzing parent-child relationships in command execution. If "forfiles.exe" is run from an unexpected path and it spawns a new "cmd.exe" process with a specific command line structure (containing "/c echo"), it raises an alert for potential malicious activity. By monitoring command-line logs and process attributes, this rule leverages key telemetry sourced from the Windows operating system.
+  ### Investigation Steps
+  - Review process creation logs in your EDR system to identify instances of "forfiles.exe" launching from outside the standard system directories. 
+  - Analyze the command-line parameters for the spawned "cmd.exe" processes to confirm they include "/c echo" and assess any further actions taken by these processes.
+  - Cross-reference any detected instances against your SIEM for patterns and historical data, looking for anomalous behaviors or previous similar incidents related to these processes.
+  - Evaluate network traffic logs from the NGFW or Proxy to identify any outbound connections initiated by the suspicious "cmd.exe" processes, as this may indicate data exfiltration or further compromise attempts.

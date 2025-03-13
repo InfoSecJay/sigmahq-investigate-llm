@@ -1,0 +1,70 @@
+title: Uncommon  Assistive Technology Applications Execution Via AtBroker.EXE
+id: f24bcaea-0cd1-11eb-adc1-0242ac120002
+status: test
+description: Detects the start of a non built-in assistive technology applications
+  via "Atbroker.EXE".
+references:
+- http://www.hexacorn.com/blog/2016/07/22/beyond-good-ol-run-key-part-42/
+- https://lolbas-project.github.io/lolbas/Binaries/Atbroker/
+author: Mateusz Wydra, oscd.community
+date: 2020-10-12
+modified: 2024-03-06
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\AtBroker.exe'
+  - OriginalFileName: 'AtBroker.exe'
+  selection_cli:
+    CommandLine|contains: 'start'
+  filter_main_builtin:
+    CommandLine|contains:
+    - 'animations'
+    - 'audiodescription'
+    - 'caretbrowsing'
+    - 'caretwidth'
+    - 'colorfiltering'
+    - 'cursorindicator'
+    - 'cursorscheme'
+    - 'filterkeys'
+    - 'focusborderheight'
+    - 'focusborderwidth'
+    - 'highcontrast'
+    - 'keyboardcues'
+    - 'keyboardpref'
+    - 'livecaptions'
+    - 'magnifierpane'
+    - 'messageduration'
+    - 'minimumhitradius'
+    - 'mousekeys'
+    - 'Narrator'
+    - 'osk'
+    - 'overlappedcontent'
+    - 'showsounds'
+    - 'soundsentry'
+    - 'speechreco'
+    - 'stickykeys'
+    - 'togglekeys'
+    - 'voiceaccess'
+    - 'windowarranging'
+    - 'windowtracking'
+    - 'windowtrackingtimeout'
+    - 'windowtrackingzorder'
+  filter_optional_java:
+    CommandLine|contains: 'Oracle_JavaAccessBridge'
+  condition: all of selection_* and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- Legitimate, non-default assistive technology applications execution
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule identifies the execution of uncommon assistive technology applications via `AtBroker.exe`, a process commonly used for assistive functions in Windows. The detection focuses on the `process_creation` logs that capture the initiation of processes, specifically looking for instances where `AtBroker.exe` is launched with command-line parameters indicative of executing non-default or third-party assistive technologies. The rule acts by filtering out common built-in functionalities, such as 'Narrator' or 'Magnifier', ensuring that any invocation of `AtBroker.exe` with other parameters raises an alert. This could signal potentially suspicious or malicious user behavior, as attackers could exploit assistive technology to evade detection or facilitate unauthorized actions without being easily noticed.
+  ### Investigation Steps
+  - Review recent process creation logs in the EDR to identify the instances of `AtBroker.exe` execution, noting the command-line parameters used to determine if they are legitimate or potentially malicious.
+  - Cross-reference the user accounts associated with the `AtBroker.exe` executions against known users who typically utilize assistive technology applications, which may help determine the validity of the alerts.
+  - Analyze network activity logs from the NGFW and Proxy server to identify any unusual outbound connections that may correspond with the times of `AtBroker.exe` execution, as this may indicate data exfiltration or command and control activities.
+  - Check cloud logs (if applicable) from AWS, GCP, or Azure for related activities or anomalies that coincide with the execution of the detected processes, linking user behavior to potential ongoing threats.

@@ -1,0 +1,64 @@
+title: Suspicious Double Extension Files
+id: b4926b47-a9d7-434c-b3a0-adc3fa0bd13e
+related:
+- id: 1cdd9a09-06c9-4769-99ff-626e2b3991b8
+  type: derived
+- id: 3215aa19-f060-4332-86d5-5602511f3ca8
+  type: similar
+status: test
+description: Detects dropped files with double extensions, which is often used by
+  malware as a method to abuse the fact that Windows hide default extensions by default.
+references:
+- https://www.crowdstrike.com/blog/meet-crowdstrikes-adversary-of-the-month-for-june-mustang-panda/
+- https://www.anomali.com/blog/china-based-apt-mustang-panda-targets-minority-groups-public-and-private-sector-organizations
+- https://www.cybereason.com/blog/research/a-bazar-of-tricks-following-team9s-development-cycles
+- https://twitter.com/malwrhunterteam/status/1235135745611960321
+- https://twitter.com/luc4m/status/1073181154126254080
+author: Nasreddine Bencherchali (Nextron Systems), frack113
+date: 2022-06-19
+modified: 2022-11-07
+tags:
+- attack.defense-evasion
+- attack.t1036.007
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection_gen:
+    TargetFilename|endswith:
+    - '.exe'
+    - '.iso'
+            # - '.lnk'  # legitimate links can happen just anywhere
+    - '.rar'
+    - '.zip'
+    TargetFilename|contains:
+    - '.doc.'
+    - '.docx.'
+    - '.jpg.'
+    - '.pdf.'
+    - '.ppt.'
+    - '.pptx.'
+    - '.xls.'
+    - '.xlsx.'
+  selection_exe:
+    TargetFilename|endswith:
+    - '.rar.exe'
+    - '.zip.exe'
+    # Note: If you wanna keep using the ".lnk" extension. You might uncomment this filter and add additional locations
+    # filter_main_lnk:
+    #     TargetFilename|contains:
+    #         - '\AppData\Roaming\Microsoft\Office\Recent\'
+    #         - '\AppData\Roaming\Microsoft\Windows\Recent\'
+  condition: 1 of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious file behaviors associated with double extension files, a common tactic used by malware authors to disguise malicious executables as benign documents or media files. The rule inspects file creation events in a Windows environment, particularly looking for files that end with common extension patterns such as `.exe`, `.iso`, `.zip`, and `.rar`, but also contain secondary extensions like `.doc.`, `.jpg.`, or `.pdf.`. By leveraging process creation logs and file event logs, it focuses on identifying potentially harmful files that could bypass user scrutiny due to Windows’ default behavior of hiding extensions.
+  The detection logic uses two main selection criteria: the first identifies files with potentially valid double extensions, while the second narrows it down to specific harmful combinations like `.rar.exe` and `.zip.exe`. The use of these double extensions indicates a likelihood that a malicious actor is attempting to deceive users into executing harmful binaries, posing a high threat to systems if left unmonitored.
+  ### Investigation Steps
+  - Search the EDR logs for the identified filenames related to the alert, focusing on the process tree and execution context to understand how the file was executed.
+  - Review file creation events in the file event logs to ascertain the origin and behavior of the suspicious files, noting their paths and any associated parent processes.
+  - Check the web proxy logs for any downloads leading to the creation of these files, investigating the domains accessed to identify potential phishing or malware distribution sites.
+  - Inspect any related AV alerts or cloud activity logs to see if any subsequent actions were taken by endpoint protection solutions, indicating whether the suspicious files were flagged or quarantined.

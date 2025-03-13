@@ -1,0 +1,52 @@
+title: Monitoring For Persistence Via BITS
+id: b9cbbc17-d00d-4e3d-a827-b06d03d2380d
+status: test
+description: |
+  BITS will allow you to schedule a command to execute after a successful download to notify you that the job is finished.
+  When the job runs on the system the command specified in the BITS job will be executed.
+  This can be abused by actors to create a backdoor within the system and for persistence.
+  It will be chained in a BITS job to schedule the download of malware/additional binaries and execute the program after being downloaded.
+references:
+- https://www.fireeye.com/blog/threat-research/2020/10/kegtap-and-singlemalt-with-a-ransomware-chaser.html
+- http://0xthem.blogspot.com/2014/03/t-emporal-persistence-with-and-schtasks.html
+- https://isc.sans.edu/diary/Wipe+the+drive+Stealthy+Malware+Persistence+Mechanism+-+Part+1/15394
+author: Sreeman
+date: 2020-10-29
+modified: 2024-01-25
+tags:
+- attack.defense-evasion
+- attack.t1197
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith: '\bitsadmin.exe'
+  - OriginalFileName: 'bitsadmin.exe'
+  selection_cli_notify_1:
+    CommandLine|contains: '/SetNotifyCmdLine'
+  selection_cli_notify_2:
+    CommandLine|contains:
+    - '%COMSPEC%'
+    - 'cmd.exe'
+    - 'regsvr32.exe'
+  selection_cli_add_1:
+    CommandLine|contains: '/Addfile'
+  selection_cli_add_2:
+    CommandLine|contains:
+    - 'http:'
+    - 'https:'
+    - 'ftp:'
+    - 'ftps:'
+  condition: selection_img and (all of selection_cli_notify_* or all of selection_cli_add_*)
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential persistence mechanisms involving the Background Intelligent Transfer Service (BITS) on Windows systems. BITS can be leveraged by attackers to schedule the execution of commands after downloading files, which may facilitate the delivery of malware or establishing a backdoor for persistent access. The rule focuses specifically on the execution of `bitsadmin.exe`, monitoring for command line parameters that indicate suspicious behavior, such as using `/SetNotifyCmdLine` to run commands after downloads or specifying URLs to files that will be added for download. By analyzing process creation logs, this rule identifies potentially malicious activity that seeks to exploit BITS for nefarious purposes.
+  ### Investigation Steps
+  - Review the EDR logs for the execution of `bitsadmin.exe` to understand the context of the process and identify any associated command line arguments that match the criteria of the Sigma rule.
+  - Check the command line parameters for the presence of known malicious indicators, such as commands aimed at executing later via `/SetNotifyCmdLine`, which could indicate an attempt to establish persistence.
+  - Examine process creation history around the time of the BITS activity to identify any other suspicious processes that may be related, such as `cmd.exe` or `regsvr32.exe`, which could serve as indicators of compromise.
+  - Analyze network logs (from Proxy or NDR solutions) for outbound connections initiated during or shortly after the BITS job execution, particularly to unusual or known malicious URLs that were specified in the command line arguments.

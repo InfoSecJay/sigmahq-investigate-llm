@@ -1,0 +1,47 @@
+title: Suspicious Service Installation Script
+id: 70f00d10-60b2-4f34-b9a0-dc3df3fe762a
+status: test
+description: Detects suspicious service installation scripts
+references:
+- Internal Research
+author: pH-T (Nextron Systems)
+date: 2022-03-18
+modified: 2024-03-05
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- car.2013-09-005
+- attack.t1543.003
+logsource:
+  product: windows
+  service: system
+detection:
+  selection_eid:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7045
+  selection_cmd_flags:
+    ImagePath|contains|windash:
+    - ' -c '
+    - ' -r '
+    - ' -k '
+  selection_binaries:
+    ImagePath|contains:
+    - 'cscript'
+    - 'mshta'
+    - 'powershell'
+    - 'pwsh'
+    - 'regsvr32'
+    - 'rundll32'
+    - 'wscript'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potentially malicious service installation scripts in a Windows environment by monitoring the Service Control Manager (SCM) for specific event logs. It looks for Event ID 7045, which indicates the installation of a new service, and correlates this with known scripting engines such as `cscript`, `mshta`, `powershell`, `pwsh`, `regsvr32`, `rundll32`, and `wscript`. Additionally, the rule checks for unusual command-line flags in the `ImagePath` of these binaries—specifically looking for arguments like `-c`, `-r`, and `-k`—which can indicate an attempt to execute harmful scripts or commands that could lead to persistence or privilege escalation attacks. By integrating these criteria, the rule aims to highlight suspicious activity indicative of an attacker attempting to establish a foothold in the environment.
+  ### Investigation Steps
+  - Utilize your EDR tool to search for recent Event ID 7045 entries in the Windows logs, correlating with the detected service installation events to assess the context of each event.
+  - Examine the command-line parameters associated with the identified scripts to determine if any unusual flags were used that might indicate malicious intent.
+  - Review the logs from your AV and NGFW systems to identify any blocks or alerts related to the binaries involved in the suspicious service installations.
+  - Check related system changes in audit logs or cloud logs for any user or system account activity that may correlate with the timing of the service installations for further threats or lateral movement indications.

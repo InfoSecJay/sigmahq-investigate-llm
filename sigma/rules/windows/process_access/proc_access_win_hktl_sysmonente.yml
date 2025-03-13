@@ -1,0 +1,48 @@
+title: HackTool - SysmonEnte Execution
+id: d29ada0f-af45-4f27-8f32-f7b77c3dbc4e
+status: test
+description: Detects the use of SysmonEnte, a tool to attack the integrity of Sysmon
+references:
+- https://codewhitesec.blogspot.com/2022/09/attacks-on-sysmon-revisited-sysmonente.html
+- https://github.com/codewhitesec/SysmonEnte/
+- https://github.com/codewhitesec/SysmonEnte/blob/main/screens/1.png
+author: Florian Roth (Nextron Systems)
+date: 2022-09-07
+modified: 2023-11-28
+tags:
+- attack.defense-evasion
+- attack.t1562.002
+logsource:
+  category: process_access
+  product: windows
+detection:
+  selection_sysmon:
+    TargetImage|contains:
+    - ':\Windows\Sysmon.exe'
+    - ':\Windows\Sysmon64.exe'
+    GrantedAccess: '0x1400'
+  selection_calltrace:
+    CallTrace: 'Ente'
+  filter_main_generic:
+    SourceImage|contains:
+    - ':\Program Files (x86)\'
+    - ':\Program Files\'
+    - ':\Windows\System32\'
+    - ':\Windows\SysWOW64\'
+  filter_main_msdefender:
+    SourceImage|contains: ':\ProgramData\Microsoft\Windows Defender\Platform\'
+    SourceImage|endswith: '\MsMpEng.exe'
+  condition: ( selection_sysmon and not 1 of filter_main_* ) or selection_calltrace
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "HackTool 
+  - SysmonEnte Execution" is designed to detect potential misuse of Sysmon, a system monitoring tool, through the specific execution of its executable files (`Sysmon.exe` and `Sysmon64.exe`). The rule focuses on identifying any process that attempts to access these files with specific permissions, particularly those that could indicate an attempt to manipulate or bypass Sysmon's integrity protections. It leverages data from process access logs to monitor for suspicious access patterns and call traces associated with the manipulation of Sysmon's execution.
+  The primary data sources involved in this detection include process access logs from Windows systems, capturing detailed information about process creation and access attempts. The rule filters for specific characteristics of the accessing process, such as the source image path, which helps eliminate benign activities typically associated with known Microsoft Defender processes. When detections align with the set criteria, the SOC analysts may consider deeper investigation into potential threats.
+  ### Investigation Steps
+  - Investigate the process access logs within the EDR to identify occurrences of `Sysmon.exe` and `Sysmon64.exe` being accessed, particularly noting the process initiating this access.
+  - Use the command-line parameters captured in the process creation events to understand how the `SysmonEnte` tool might have been used and to identify any unusual flags or parameters.
+  - Check the file location of the accessing process; if it originates from directories other than expected (like `Program Data` or Microsoft Defender paths), flag it for further scrutiny.
+  - Correlate findings with network logs and proxy data to see if there are any unusual external connections established by the processes involved that might suggest further malicious behavior.

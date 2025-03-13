@@ -1,0 +1,69 @@
+title: Suspicious Eventlog Clearing or Configuration Change Activity
+id: cc36992a-4671-4f21-a91d-6c2b72a2edf5
+status: stable
+description: |
+  Detects the clearing or configuration tampering of EventLog using utilities such as "wevtutil", "powershell" and "wmic".
+  This technique were seen used by threat actors and ransomware strains in order to evade defenses.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1070.001/T1070.001.md
+- https://eqllib.readthedocs.io/en/latest/analytics/5b223758-07d6-4100-9e11-238cfdd0fe97.html
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/wevtutil
+- https://gist.github.com/fovtran/ac0624983c7722e80a8f5a4babb170ee
+- https://jdhnet.wordpress.com/2017/12/19/changing-the-location-of-the-windows-event-logs/
+author: Ecco, Daniil Yugoslavskiy, oscd.community, D3F7A5105
+date: 2019-09-26
+modified: 2023-07-13
+tags:
+- attack.defense-evasion
+- attack.t1070.001
+- attack.t1562.002
+- car.2016-04-002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_wevtutil:
+    Image|endswith: '\wevtutil.exe'
+    CommandLine|contains:
+    - 'clear-log '                  # clears specified log
+    - ' cl '                        # short version of 'clear-log'
+    - 'set-log '                    # modifies config of specified log. could be uset to set it to a tiny size
+    - ' sl '                        # short version of 'set-log'
+    - 'lfn:'                        # change log file location and name
+  selection_other_ps:
+    Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    CommandLine|contains:
+    - 'Clear-EventLog '
+    - 'Remove-EventLog '
+    - 'Limit-EventLog '
+    - 'Clear-WinEvent '
+  selection_other_wmi:
+    Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\wmic.exe'
+    CommandLine|contains: 'ClearEventLog'
+  filter_msiexec:
+        # Example seen during office update/installation:
+        #   ParentImage: C:\Windows\SysWOW64\msiexec.exe
+        #   CommandLine: "C:\WINDOWS\system32\wevtutil.exe" sl Microsoft-RMS-MSIPC/Debug /q:true /e:true /l:4 /rt:false
+    ParentImage:
+    - 'C:\Windows\SysWOW64\msiexec.exe'
+    - 'C:\Windows\System32\msiexec.exe'
+    CommandLine|contains: ' sl '
+  condition: 1 of selection_* and not 1 of filter_*
+falsepositives:
+- Admin activity
+- Scripts and administrative tools used in the monitored environment
+- Maintenance activity
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activity involving the clearing or tampering of Windows Event Logs. Threat actors, including some ransomware variants, often use utilities like `wevtutil`, `PowerShell`, and `WMIC` to hide their tracks after compromising a system. The rule focuses on specific command-line patterns associated with these tools, such as `clear-log`, `Clear-EventLog`, and various short forms or related functions that could indicate attempts to modify or clear event logs. By monitoring process creation logs for the execution of these commands, the SOC can detect attempts to obfuscate malicious actions, which is often a precursor to further exploits or data exfiltration.
+  ### Investigation Steps
+  - Use EDR tools to review the process execution timeline and identify any instances of `wevtutil`, `PowerShell`, or `WMIC` being executed alongside suspicious command-line arguments.
+  - Search through the Event Logs on the affected system to identify any recent entries that correlate with the times of detected command executions, noting any significant gaps or deletions in logs.
+  - Investigate parent processes using the command line pattern observed, especially for any context involving `msiexec.exe`, which might indicate legitimate administrative tasks being misused.
+  - Consult proxy logs and network traffic data to see if there are any connections to known malicious IPs or URLs during or shortly after the suspicious actions, helping to establish the context of the activity.

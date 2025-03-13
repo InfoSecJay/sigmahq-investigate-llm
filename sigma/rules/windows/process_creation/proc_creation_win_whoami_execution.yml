@@ -1,0 +1,36 @@
+title: Whoami Utility Execution
+id: e28a5a99-da44-436d-b7a0-2afc20a5f413
+status: test
+description: Detects the execution of whoami, which is often used by attackers after
+  exploitation / privilege escalation
+references:
+- https://brica.de/alerts/alert/public/1247926/agent-tesla-keylogger-delivered-inside-a-power-iso-daa-archive/
+- https://app.any.run/tasks/7eaba74e-c1ea-400f-9c17-5e30eee89906/
+author: Florian Roth (Nextron Systems)
+date: 2018-08-13
+modified: 2023-11-30
+tags:
+- attack.discovery
+- attack.t1033
+- car.2016-03-001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\whoami.exe'
+  - OriginalFileName: 'whoami.exe'
+  condition: selection
+falsepositives:
+- Admin activity
+- Scripts and administrative tools used in the monitored environment
+- Monitoring activity
+level: low
+notes: |
+  ### Technical Context
+  This detection rule focuses on the execution of the `whoami` utility, which is commonly used by attackers post-exploitation to gather information about the current user context on Windows systems. The rule specifically looks for logs indicating the process creation of `whoami.exe`, with an emphasis on its filename and original file name attributes. The primary technical data source used for this detection is process creation logs, which capture key details such as command-line parameters, originating user context, and the executed image path. By identifying instances where this utility is invoked, the rule helps incident responders spot potential unauthorized reconnaissance activities that may signify a larger compromise.
+  ### Investigation Steps
+  - Review the EDR logs to identify the user context and command-line arguments associated with the `whoami.exe` execution to understand the intent behind its invocation.
+  - Check the process tree in the EDR for any suspicious parent processes that may have launched `whoami.exe`, as this can provide context for how the tool was utilized.
+  - Examine Windows event logs for any related security events around the time of the execution to identify any preceding actions that could indicate malicious activity.
+  - Correlate the alert with network traffic logs from the NDR to identify any outbound connections that might suggest data exfiltration following the use of `whoami`.

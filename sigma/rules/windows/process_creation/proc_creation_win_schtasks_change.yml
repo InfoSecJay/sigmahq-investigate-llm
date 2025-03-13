@@ -1,0 +1,80 @@
+title: Suspicious Modification Of Scheduled Tasks
+id: 1c0e41cd-21bb-4433-9acc-4a2cd6367b9b
+related:
+- id: 614cf376-6651-47c4-9dcc-6b9527f749f4     # Security-Audting Eventlog
+  type: similar
+status: test
+description: |
+  Detects when an attacker tries to modify an already existing scheduled tasks to run from a suspicious location
+  Attackers can create a simple looking task in order to avoid detection on creation as it's often the most focused on
+  Instead they modify the task after creation to include their malicious payload
+references:
+- Internal Research
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-28
+modified: 2022-11-18
+tags:
+- attack.execution
+- attack.t1053.005
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_schtasks:
+    Image|endswith: '\schtasks.exe'
+    CommandLine|contains|all:
+    - ' /Change '
+    - ' /TN '
+  selection_susp_locations:
+    CommandLine|contains:
+    - '\AppData\Local\Temp'
+    - '\AppData\Roaming\'
+    - '\Users\Public\'
+    - '\WINDOWS\Temp\'
+    - '\Desktop\'
+    - '\Downloads\'
+    - '\Temporary Internet'
+    - 'C:\ProgramData\'
+    - 'C:\Perflogs\'
+    - '%ProgramData%'
+    - '%appdata%'
+    - '%comspec%'
+    - '%localappdata%'
+  selection_susp_images:
+    CommandLine|contains:
+    - 'regsvr32'
+    - 'rundll32'
+    - 'cmd /c '
+    - 'cmd /k '
+    - 'cmd /r '
+    - 'cmd.exe /c '
+    - 'cmd.exe /k '
+    - 'cmd.exe /r '
+    - 'powershell'
+    - 'mshta'
+    - 'wscript'
+    - 'cscript'
+    - 'certutil'
+    - 'bitsadmin'
+    - 'bash.exe'
+    - 'bash '
+    - 'scrcons'
+    - 'wmic '
+    - 'wmic.exe'
+    - 'forfiles'
+    - 'scriptrunner'
+    - 'hh.exe'
+    - 'hh '
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious modifications made to already existing scheduled tasks on Windows systems. Attackers often aim to evade detection by initially creating seemingly benign scheduled tasks. The threat emerges when they subsequently modify these tasks, incorporating their malicious payloads to execute nefarious activities. The rule inspects logs from the process creation category, particularly monitoring for instances of the `schtasks.exe` executable, which is used for managing scheduled tasks. It looks for specific command-line parameters indicating a change to a task, as well as modifications that involve running executable images from known suspicious locations such as temporary folders, user data directories, and common system folders.
+  ### Investigation Steps
+  - Review recent executions of `schtasks.exe` in your EDR to identify any modifications made to scheduled tasks, focusing on the command line parameters used.
+  - Investigate the context of the modification by correlating findings with logs from the AV and NGFW tools to check for any preceding malicious activity or file downloads.
+  - Examine the scheduled tasks that were altered to determine if any are set to execute from suspicious locations or with unusual command patterns.
+  - Cross-reference the task modification times with user activity logs to identify any unauthorized access or potentially compromised accounts involved in these changes.

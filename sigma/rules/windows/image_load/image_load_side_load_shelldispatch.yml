@@ -1,0 +1,37 @@
+title: Potential ShellDispatch.DLL Sideloading
+id: 844f8eb2-610b-42c8-89a4-47596e089663
+status: test
+description: Detects potential DLL sideloading of "ShellDispatch.dll"
+references:
+- https://www.hexacorn.com/blog/2023/06/07/this-lolbin-doesnt-exist/
+author: X__Junior (Nextron Systems)
+date: 2023-06-20
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\ShellDispatch.dll'
+  filter_main_legit_path:
+  - ImageLoaded|contains|all:
+    - ':\Users\'
+    - '\AppData\Local\Temp\'
+  - ImageLoaded|contains: ':\Windows\Temp\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Some installers may trigger some false positives
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential DLL sideloading involving the file "ShellDispatch.dll", which can be abused for executing malicious code while bypassing security measures. The rule focuses on the loading of this DLL file from suspicious locations, particularly within user profiles and temporary directories such as `C:\Users\` and `C:\Windows\Temp\`. By monitoring the `ImageLoaded` event, the rule examines the paths from which DLLs are loaded, aiming to spotlight instances that deviate from expected or legitimate usage, which could indicate malicious software trying to evade detection.
+  When "ShellDispatch.dll" is loaded from atypical directories such as `\AppData\Local\Temp\` or `\Windows\Temp\`, it raises flags for further investigation. Attackers may use DLL sideloading as a technique for privilege escalation or defense evasion, making this detection critical for identifying potentially harmful activities in the environment.
+  ### Investigation Steps
+  - Utilize your EDR solution to correlate the alerts with process creation logs to understand the context in which "ShellDispatch.dll" was loaded, including parent processes or other associated events. 
+  - Review command-line parameters and parameters used for spawning processes that reference the DLL to identify any suspicious arguments or patterns that may indicate malicious intent.
+  - Check Windows event logs and the file system for the presence and recent modifications of "ShellDispatch.dll", ensuring that you analyze timestamps and file origins for abnormal behavior.
+  - Explore network logs via the Proxy or NDR tools to see if there were any outbound connections made by processes that loaded the DLL, which might provide insight into command-and-control activities or data exfiltration attempts.

@@ -1,0 +1,33 @@
+title: Atera Agent Installation
+id: 87261fb2-69d0-42fe-b9de-88c6b5f65a43
+status: test
+description: Detects successful installation of Atera Remote Monitoring & Management
+  (RMM) agent as recently found to be used by Conti operators
+references:
+- https://www.advintel.io/post/secret-backdoor-behind-conti-ransomware-operation-introducing-atera-agent
+author: Bhabesh Raj
+date: 2021-09-01
+modified: 2022-12-25
+tags:
+- attack.t1219
+logsource:
+  service: application
+  product: windows
+detection:
+  selection:
+    EventID: 1033
+    Provider_Name: MsiInstaller
+    Message|contains: AteraAgent
+  condition: selection
+falsepositives:
+- Legitimate Atera agent installation
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the installation of the Atera Remote Monitoring & Management (RMM) agent on Windows systems. The Atera agent has been linked to cyber operations by the Conti ransomware group, thus making its detection critical for incident responders. The rule operates by monitoring logs from the Microsoft Installer (MsiInstaller) service and specifically looks for Event ID 1033, which indicates successful installations. By examining the logs for messages that contain "AteraAgent," the rule can effectively surface potential instances of unauthorized installations of this agent, allowing for swift remediation actions.
+  In an enterprise environment, the detection leverages application logs where installation events are recorded. The accurate identification of this particular agent is vital to preventing and mitigating potential threats from advanced persistent threats (APTs) and ransomware operations that seek to exploit remote management tools.
+  ### Investigation Steps
+  - Review the application logs in your SIEM for Event ID 1033 entries related to the Atera Agent to confirm the installation details and source.
+  - Utilize the EDR tool to check for any associated processes or suspicious activities on the host machine post-installation.
+  - Examine network traffic logs in the NDR system for outbound connections initiated by the Atera Agent to identify any command-and-control communications.
+  - Investigate the historical usage of the Atera agent in your environment through Policy and Administration tools, ensuring that installation aligns with organizational guidelines and practices.

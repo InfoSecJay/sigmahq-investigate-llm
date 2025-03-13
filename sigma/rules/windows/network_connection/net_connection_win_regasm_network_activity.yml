@@ -1,0 +1,42 @@
+title: RegAsm.EXE Initiating Network Connection To Public IP
+id: 0531e43a-d77d-47c2-b89f-5fe50321c805
+status: test
+description: Detects "RegAsm.exe" initiating a network connection to public IP adresses
+references:
+- https://app.any.run/tasks/ec207948-4916-47eb-a0f4-4c6abb2e7668/
+- https://research.splunk.com/endpoint/07921114-6db4-4e2e-ae58-3ea8a52ae93f/
+- https://lolbas-project.github.io/lolbas/Binaries/Regasm/
+author: frack113
+date: 2024-04-25
+tags:
+- attack.defense-evasion
+- attack.t1218.009
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Initiated: 'true'
+    Image|endswith: '\regasm.exe'
+  filter_main_local_ranges:
+    DestinationIp|cidr:
+    - '127.0.0.0/8'
+    - '10.0.0.0/8'
+    - '172.16.0.0/12'
+    - '192.168.0.0/16'
+    - '169.254.0.0/16'
+    - '::1/128'          # IPv6 loopback
+    - 'fe80::/10'          # IPv6 link-local addresses
+    - 'fc00::/7'          # IPv6 private addresses
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The detection rule titled "RegAsm.EXE Initiating Network Connection To Public IP" is designed to identify instances where the .NET framework's RegAsm.exe utility initiates outbound network connections to public IP addresses. RegAsm.exe is typically used for registering .NET assemblies, but its execution can also indicate suspicious behaviors or potential misuse in a compromise scenario. This rule specifically checks for network connection attempts that originate from RegAsm.exe while filtering out connections made to local and private IP ranges (such as 127.0.0.1 or 10.0.0.0/8), thereby focusing the detection on potentially malicious activity. The relevant technical data sources for this detection include network connection logs from Windows systems that detail initiated connections and the processes associated with them.
+  ### Investigation Steps
+  - Review the EDR logs to identify the full execution context of RegAsm.exe, including any relevant command-line arguments and parent processes that may clarify its use.
+  - Check the network logs for all public IP addresses that RegAsm.exe attempted to connect to, looking for any patterns or known command-and-control (C2) IPs that may suggest malicious behavior.
+  - Analyze the proxy logs for outbound connections made during the timeframe of the RegAsm.exe execution to capture additional context on the data being transmitted.
+  - Monitor any subsequent activities related to the system or user that executed RegAsm.exe to determine whether there are further signs of compromise or malicious intent.

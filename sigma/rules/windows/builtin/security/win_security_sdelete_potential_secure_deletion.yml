@@ -1,0 +1,45 @@
+title: Potential Secure Deletion with SDelete
+id: 39a80702-d7ca-4a83-b776-525b1f86a36d
+status: test
+description: Detects files that have extensions commonly seen while SDelete is used
+  to wipe files.
+references:
+- https://jpcertcc.github.io/ToolAnalysisResultSheet/details/sdelete.htm
+- https://www.jpcert.or.jp/english/pub/sr/ir_research.html
+- https://learn.microsoft.com/en-gb/sysinternals/downloads/sdelete
+author: Thomas Patzke
+date: 2017-06-14
+modified: 2024-12-13
+tags:
+- attack.impact
+- attack.defense-evasion
+- attack.t1070.004
+- attack.t1027.005
+- attack.t1485
+- attack.t1553.002
+- attack.s0195
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID:
+    - 4656
+    - 4663
+    - 4658
+    ObjectName|endswith:
+    - '.AAA'
+    - '.ZZZ'
+  condition: selection
+falsepositives:
+- Legitimate usage of SDelete
+- Files that are interacted with that have these extensions legitimately
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential secure deletion actions performed using the utility SDelete, which is commonly used to permanently erase files on Windows systems. The rule monitors for specific Windows Security Event IDs (4656, 4663, and 4658) that indicate file access attempts, with a focus on files ending in specific extensions often associated with SDelete operations, such as `.AAA` and `.ZZZ`. By analyzing these logs, the rule aims to flag unusual patterns that may signify attempts to obscure malicious activities through file deletion. Consequently, it leverages data sources such as process creation logs and object access events to of monitor behaviors consistent with file wiping operations.
+  ### Investigation Steps
+  - Review the identified Event IDs in the EDR logs, focusing on the context surrounding the file access attempts and correlating with user activity.
+  - Assess the system processes running at the time of the events to determine if SDelete or similar tools were executed, using the process creation logs.
+  - Cross-reference the affected file paths with user permissions and organizational policies to identify legitimate use cases versus suspicious activity.
+  - Investigate related network activities in the NDR and Proxy logs during the same timeframe to check for any outbound connections that might indicate data exfiltration attempts.

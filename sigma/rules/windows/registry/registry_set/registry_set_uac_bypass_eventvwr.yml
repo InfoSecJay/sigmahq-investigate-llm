@@ -1,0 +1,33 @@
+title: UAC Bypass via Event Viewer
+id: 7c81fec3-1c1d-43b0-996a-46753041b1b6
+status: test
+description: Detects UAC bypass method using Windows event viewer
+references:
+- https://enigma0x3.net/2016/08/15/fileless-uac-bypass-using-eventvwr-exe-and-registry-hijacking/
+- https://www.hybrid-analysis.com/sample/e122bc8bf291f15cab182a5d2d27b8db1e7019e4e96bb5cdbd1dfe7446f3f51f?environmentId=100
+author: Florian Roth (Nextron Systems)
+date: 2017-03-19
+modified: 2023-09-28
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+- car.2019-04-001
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject|endswith: '\mscfile\shell\open\command'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential User Account Control (UAC) bypass attempts via the Windows Event Viewer. Attackers might manipulate the registry key associated with the Event Viewer to run malicious commands without proper user prompts for elevated privileges. The detection logic focuses on registry changes that specifically target the object path ending with `\mscfile\shell\open\command`, indicating that the attacker is attempting to alter the command executed when a Management Console (MSC) file is opened. The rule primarily relies on monitoring Windows registry logs to identify unauthorized modifications that could signal a UAC bypass, a common tactic used for privilege escalation in Windows environments.
+  ### Investigation Steps
+  - Review the event logs for any recent changes to the specified registry key related to MSC files. This can provide insight into whether an unauthorized alteration has occurred.
+  - Analyze process creation logs around the time of the registry modification to check for any processes that executed commands related to UAC bypass techniques.
+  - Use EDR tools to identify any unusual behaviors or alerts triggered by the detection of `eventvwr.exe` or related processes, as these are commonly utilized in this attack scenario.
+  - Cross-reference network activity with Proxy and VPN logs to see if there were any suspicious external connections that coincided with the registry changes, which may further indicate malicious intent.

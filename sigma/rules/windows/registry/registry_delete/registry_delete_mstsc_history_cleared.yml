@@ -1,0 +1,39 @@
+title: Terminal Server Client Connection History Cleared - Registry
+id: 07bdd2f5-9c58-4f38-aec8-e101bb79ef8d
+status: test
+description: Detects the deletion of registry keys containing the MSTSC connection
+  history
+references:
+- https://learn.microsoft.com/en-us/troubleshoot/windows-server/remote/remove-entries-from-remote-desktop-connection-computer
+- http://woshub.com/how-to-clear-rdp-connections-history/
+- https://www.trendmicro.com/en_us/research/23/a/vice-society-ransomware-group-targets-manufacturing-companies.html
+author: Christian Burkard (Nextron Systems)
+date: 2021-10-19
+modified: 2023-02-08
+tags:
+- attack.defense-evasion
+- attack.t1070
+- attack.t1112
+logsource:
+  category: registry_delete
+  product: windows
+detection:
+  selection1:
+    EventType: DeleteValue
+    TargetObject|contains: '\Microsoft\Terminal Server Client\Default\MRU'
+  selection2:
+    EventType: DeleteKey
+    TargetObject|contains: '\Microsoft\Terminal Server Client\Servers\'
+  condition: 1 of selection*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the deletion of registry keys associated with the Remote Desktop Protocol (RDP) connection history on Windows systems. Specifically, it monitors for two actions: the deletion of values under the `\Microsoft\Terminal Server Client\Default\MRU` path, which stores the most recently used RDP connections, and the deletion of keys under the `\Microsoft\Terminal Server Client\Servers\` path, which can contain details about specific servers connected via RDP. Detecting these deletions serves to uncover potential attempts to erase digital footprints of remote access connections, a behavior often employed by attackers seeking to evade detection.
+  The rule utilizes Windows registry deletion events as its primary data source, leveraging the `EventType` field to differentiate between value deletions and key deletions within the relevant registry paths. When an event triggers this rule, it raises an alert indicating that someone may be attempting to hide their RDP usage.
+  ### Investigation Steps
+  - Review EDR logs for any recent process activity that may have led to registry changes, particularly focusing on RDP client actions using MSTSC.
+  - Analyze Windows event logs to track user logins and RDP session initiations around the time of the detected registry deletions to correlate user activity with potential malicious behavior.
+  - Check network traffic logs via NDR tools to identify any unusual outbound connections that may reflect unauthorized access subsequent to the RDP connection history being cleared.
+  - Investigate additional security events and logs from NGFW and AV solutions to identify any alerts that could indicate a broader threat or compromise related to the RDP usage.

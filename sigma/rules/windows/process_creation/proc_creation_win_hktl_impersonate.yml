@@ -1,0 +1,44 @@
+title: HackTool - Impersonate Execution
+id: cf0c254b-22f1-4b2b-8221-e137b3c0af94
+status: test
+description: Detects execution of the Impersonate tool. Which can be used to manipulate
+  tokens on a Windows computers remotely (PsExec/WmiExec) or interactively
+references:
+- https://sensepost.com/blog/2022/abusing-windows-tokens-to-compromise-active-directory-without-touching-lsass/
+- https://github.com/sensepost/impersonate
+author: Sai Prashanth Pulisetti @pulisettis
+date: 2022-12-21
+modified: 2024-11-23
+tags:
+- attack.privilege-escalation
+- attack.defense-evasion
+- attack.t1134.001
+- attack.t1134.003
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_commandline_exe:
+    CommandLine|contains: 'impersonate.exe'
+  selection_commandline_opt:
+    CommandLine|contains:
+    - ' list '
+    - ' exec '
+    - ' adduser '
+  selection_hash:
+    Hashes|contains:
+    - 'MD5=9520714AB576B0ED01D1513691377D01'
+    - 'SHA256=E81CC96E2118DC4FBFE5BAD1604E0AC7681960143E2101E1A024D52264BB0A8A'
+    - 'IMPHASH=0A358FFC1697B7A07D0E817AC740DF62'
+  condition: all of selection_commandline_* or selection_hash
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of the "Impersonate" tool, which can be utilized to manipulate Windows security tokens, thereby allowing unauthorized privilege escalation or interaction with remote systems (commonly via tools like PsExec or WmiExec). The rule specifically monitors for the presence of `impersonate.exe` in process creation logs, particularly focusing on command lines that include keywords such as 'list', 'exec', or 'adduser', which indicate potentially malicious activities. Additionally, the rule evaluates process execution based on known hashes of the "Impersonate" tool, enhancing detection accuracy by correlating file integrity to recognized malicious indicators. Data sources involved in this detection include Windows process creation logs and activities relating to command-line parameters.
+  ### Investigation Steps
+  - Review the EDR logs for any instances of process creation that include `impersonate.exe` to identify the context and user triggering the execution.
+  - Check associated command-line arguments for any actions that suggest unusual behavior, such as 'exec' or 'adduser', which could indicate an attempt to escalate privileges or manipulate user accounts.
+  - Verify the file hashes in the process creation logs against known malicious hashes to confirm whether the execution involved a legitimate or compromised version of the "Impersonate" tool.
+  - Examine relevant user activity logs in the SIEM to assess if there are correlations with other suspicious activities or patterns in account behavior following the execution of the detected command.

@@ -1,0 +1,36 @@
+title: PowerShell Decompress Commands
+id: 1ddc1472-8e52-4f7d-9f11-eab14fc171f5
+related:
+- id: 81fbdce6-ee49-485a-908d-1a728c5dcb09
+  type: derived
+status: test
+description: A General detection for specific decompress commands in PowerShell logs.
+  This could be an adversary decompressing files.
+references:
+- https://github.com/OTRF/detection-hackathon-apt29/issues/8
+- https://github.com/OTRF/ThreatHunter-Playbook/blob/2d4257f630f4c9770f78d0c1df059f891ffc3fec/docs/evals/apt29/detections/4.A.3_09F29912-8E93-461E-9E89-3F06F6763383.md
+author: Roberto Rodriguez (Cyb3rWard0g), OTR (Open Threat Research)
+date: 2020-05-02
+modified: 2022-12-25
+tags:
+- attack.defense-evasion
+- attack.t1140
+logsource:
+  product: windows
+  category: ps_module
+  definition: 0ad03ef1-f21b-4a79-8ce8-e6900c54b65b
+detection:
+  selection_4103:
+    Payload|contains: 'Expand-Archive'
+  condition: selection_4103
+falsepositives:
+- Unknown
+level: informational
+notes: |
+  ### Technical Context
+  This detection rule identifies the use of PowerShell commands associated with decompressing files, specifically searching for the `Expand-Archive` command in PowerShell logs. Decompressing files can be a legitimate administrative action; however, it can also indicate potentially malicious behavior, such as an attacker extracting payloads or tools for further exploitation within the environment. The rule relies on data from Windows PowerShell module logs, which capture the execution of PowerShell commands and any relevant parameters passed during that execution. By monitoring for these specific commands, security teams can flag suspicious activity for review, enhancing their ability to respond to potential threats.
+  ### Investigation Steps
+  - Review PowerShell execution logs in the EDR to identify the context of the `Expand-Archive` command, including timestamps and user accounts that executed the commands.
+  - Monitor for any associated file activity, such as newly created or modified files in the directories where decompression was performed, using file system logging tools or alerts.
+  - Check the historical activity of the user account involved to ascertain if there are patterns indicative of malicious behavior or anomaly, cross-referencing with user access logs.
+  - Analyze the network traffic for any unusual outbound connections that might correlate with the decompression event, utilizing NDR or firewall logs to identify potential data exfiltration or command and control communications.

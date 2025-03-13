@@ -1,0 +1,62 @@
+title: HTML Help HH.EXE Suspicious Child Process
+id: 52cad028-0ff0-4854-8f67-d25dfcbc78b4
+status: test
+description: Detects a suspicious child process of a Microsoft HTML Help (HH.exe)
+references:
+- https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/chm-badness-delivers-a-banking-trojan/
+- https://github.com/elastic/protections-artifacts/commit/746086721fd385d9f5c6647cada1788db4aea95f#diff-27939090904026cc396b0b629c8e4314acd6f5dac40a676edbc87f4567b47eb7
+- https://www.ptsecurity.com/ww-en/analytics/pt-esc-threat-intelligence/higaisa-or-winnti-apt-41-backdoors-old-and-new/
+- https://www.zscaler.com/blogs/security-research/unintentional-leak-glimpse-attack-vectors-apt37
+author: Maxim Pavlunin, Nasreddine Bencherchali (Nextron Systems)
+date: 2020-04-01
+modified: 2023-04-12
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.initial-access
+- attack.t1047
+- attack.t1059.001
+- attack.t1059.003
+- attack.t1059.005
+- attack.t1059.007
+- attack.t1218
+- attack.t1218.001
+- attack.t1218.010
+- attack.t1218.011
+- attack.t1566
+- attack.t1566.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\hh.exe'
+    Image|endswith:
+    - '\CertReq.exe'
+    - '\CertUtil.exe'
+    - '\cmd.exe'
+    - '\cscript.exe'
+    - '\installutil.exe'
+    - '\MSbuild.exe'
+    - '\MSHTA.EXE'
+    - '\msiexec.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\regsvr32.exe'
+    - '\rundll32.exe'
+    - '\schtasks.exe'
+    - '\wmic.exe'
+    - '\wscript.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "HTML Help HH.EXE Suspicious Child Process" is designed to identify potentially malicious child processes created by the Microsoft HTML Help executable (HH.EXE). Attackers often leverage HH.EXE as a means of launching various scripts and utilities in a deceptive manner. The rule specifically looks for instances where HH.EXE spawns other processes that are commonly used in various attack scenarios, such as `cmd.exe`, `powershell.exe`, and `CertUtil.exe`. By monitoring process creation logs, the detection rule captures relevant command-line parameters and the parent-child process relationship to flag these suspicious activities.
+  This approach is particularly effective in detecting threats that use legitimate system tools for malicious purposes, a technique known as living off the land. Understanding the context of these processes is crucial for incident responders, as it helps in distinguishing between benign and potentially harmful activities occurring within the network.
+  ### Investigation Steps
+  - Analyze the alerts in the EDR system to identify details about the parent process (HH.EXE) and the suspicious child processes that were initiated. 
+  - Review the command-line parameters associated with the detected child processes to determine if any unauthorized actions or unusual flags were used during execution.
+  - Search the SIEM for other related activities around the same timeframe, such as network connections or additional process creations, to gather context on the alert.
+  - Check proxy logs for any attempted communications to known malicious domains or unusual data exfiltration that might correlate with the alert to ascertain the extent of potential compromise.

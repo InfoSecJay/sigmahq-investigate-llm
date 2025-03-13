@@ -1,0 +1,35 @@
+title: Suspicious TSCON Start as SYSTEM
+id: 9847f263-4a81-424f-970c-875dab15b79b
+status: test
+description: Detects a tscon.exe start as LOCAL SYSTEM
+references:
+- http://www.korznikov.com/2017/03/0-day-or-feature-privilege-escalation.html
+- https://medium.com/@networksecurity/rdp-hijacking-how-to-hijack-rds-and-remoteapp-sessions-transparently-to-move-through-an-da2a1e73a5f6
+- https://www.ired.team/offensive-security/lateral-movement/t1076-rdp-hijacking-for-lateral-movement
+author: Florian Roth (Nextron Systems)
+date: 2018-03-17
+modified: 2022-05-27
+tags:
+- attack.command-and-control
+- attack.t1219
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    User|contains:     # covers many language settings
+    - 'AUTHORI'
+    - 'AUTORI'
+    Image|endswith: '\tscon.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where the Windows utility `tscon.exe` is executed under the SYSTEM account, which may indicate a potential misuse of session control functionality. `tscon.exe` is primarily used to connect to a terminal session on a remote desktop and, when executed as SYSTEM, suggests possible unauthorized access or lateral movement with elevated privileges. The rule analyzes process creation logs that capture user activity and process images, specifically looking for the presence of keywords indicating the user account (e.g., "AUTHORI" or "AUTORI") and ensuring the image name ends with `tscon.exe`. The execution of this process in such a context could signify an attempt to hijack an active remote desktop session, raising suspicions about malicious activity within the environment.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR to identify all instances of `tscon.exe` being executed by the SYSTEM account, noting the timestamps and related parent processes.
+  - Cross-reference the user sessions on affected machines using Windows event logs to verify if legitimate users were logged in or if the session was accessed remotely without authorization.
+  - Check for any network connections associated with this execution using NDR data to determine if there was unusual remote access or data exfiltration during the timeframe of the detected activity.
+  - Analyze any corresponding alerts from the NGFW or Proxy that may indicate unusual traffic patterns or attempts to access resources associated with the `tscon.exe` execution.

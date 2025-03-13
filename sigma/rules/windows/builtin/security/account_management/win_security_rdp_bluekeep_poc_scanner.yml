@@ -1,0 +1,34 @@
+title: Scanner PoC for CVE-2019-0708 RDP RCE Vuln
+id: 8400629e-79a9-4737-b387-5db940ab2367
+status: test
+description: Detects the use of a scanner by zerosum0x0 that discovers targets vulnerable
+  to  CVE-2019-0708 RDP RCE aka BlueKeep
+references:
+- https://twitter.com/AdamTheAnalyst/status/1134394070045003776
+- https://web.archive.org/web/20190710034152/https://github.com/zerosum0x0/CVE-2019-0708
+author: Florian Roth (Nextron Systems), Adam Bradbury (idea)
+date: 2019-06-02
+modified: 2022-12-25
+tags:
+- attack.lateral-movement
+- attack.t1210
+- car.2013-07-002
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4625
+    TargetUserName: AAAAAAA
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects attempts to exploit the CVE-2019-0708 vulnerability—commonly known as BlueKeep—through the identification of scanners used by malicious actors, specifically the tool developed by zerosum0x0. The primary focus of this detection rule is to monitor Windows security logs for failed login attempts (EventID 4625) targeting accounts with a predefined username ("AAAAAAA"). This behavior typically indicates automated scanning for vulnerable Remote Desktop Protocol (RDP) services. By correlating these failed login attempts with the specific username indicative of scanning tools, SOC analysts can identify potential reconnaissance activities aimed at exploiting unpatched RDP services in the network.
+  ### Investigation Steps
+  - Review the EDR logs for EventID 4625, filtering by the specific username "AAAAAAA" to identify the failed login attempts associated with the scanning activity.
+  - Correlate the timestamps of the failed login events with other relevant logs from the firewall and VPN to determine the source IP address and identify any associated activities.
+  - Check for any alerts or detections related to RDP from the Network Detection and Response (NDR) system to assess if there have been any successful connection attempts following the failed attempts.
+  - Examine the Proxy logs to see if there was any related outbound traffic to external IPs that could indicate an attempt to exploit discovered vulnerabilities.

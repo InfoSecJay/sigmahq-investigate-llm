@@ -1,0 +1,35 @@
+title: Suspicious Run Key from Download
+id: 9c5037d1-c568-49b3-88c7-9846a5bdc2be
+status: test
+description: Detects the suspicious RUN keys created by software located in Download
+  or temporary Outlook/Internet Explorer directories
+references:
+- https://app.any.run/tasks/c5bef5b7-f484-4c43-9cf3-d5c5c7839def/
+author: Florian Roth (Nextron Systems)
+date: 2019-10-01
+modified: 2021-11-27
+tags:
+- attack.persistence
+- attack.t1547.001
+logsource:
+  category: registry_event
+  product: windows
+detection:
+  selection:
+    Image|contains:
+    - '\Downloads\'
+    - '\Temporary Internet Files\Content.Outlook\'
+    - '\Local Settings\Temporary Internet Files\'
+    TargetObject|contains: '\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\'
+  condition: selection
+falsepositives:
+- Software installers downloaded and used by users
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation of suspicious registry RUN keys within specific directories associated with downloaded software and temporary internet files, particularly targeting the Windows operating system. The rule is designed to detect instances where executable files, located in the user's Downloads folder or temporary directories of Outlook and Internet Explorer, attempt to establish persistence on the system by adding themselves to the RUN registry key. By targeting these specific paths, the rule aims to uncover potential malicious activities often associated with adversaries trying to maintain access or deploy unwanted software. The primary data sources involved in this rule include registry event logs that capture changes to the RUN key alongside the source file locations.
+  ### Investigation Steps
+  - Review recent process creation logs in your EDR tool for any executables originating from the identified directories, particularly focusing on those that were executed shortly after the RUN key creation.
+  - Check the content and legitimacy of the files in the Downloads and temporary directories using antivirus scanning tools to ensure they do not contain known malicious signatures.
+  - Utilize the SIEM to correlate the timing of any alert with user activity logs to see if the execution of an application corresponds to legitimate user actions or if there are indicators of unauthorized access.
+  - Investigate network traffic logs for any outbound connections made by the flagged executables to detect possible command and control activity or data exfiltration attempts.

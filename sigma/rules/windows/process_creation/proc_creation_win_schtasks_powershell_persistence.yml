@@ -1,0 +1,46 @@
+title: Potential Persistence Via Powershell Search Order Hijacking - Task
+id: b66474aa-bd92-4333-a16c-298155b120df
+related:
+- id: 6e8811ee-90ba-441e-8486-5653e68b2299
+  type: similar
+status: test
+description: Detects suspicious powershell execution via a schedule task where the
+  command ends with an suspicious flags to hide the powershell instance instead of
+  executeing scripts or commands. This could be a sign of persistence via PowerShell
+  "Get-Variable" technique as seen being used in Colibri Loader
+references:
+- https://blog.malwarebytes.com/threat-intelligence/2022/04/colibri-loader-combines-task-scheduler-and-powershell-in-clever-persistence-technique/
+author: pH-T (Nextron Systems), Florian Roth (Nextron Systems)
+date: 2022-04-08
+modified: 2023-02-03
+tags:
+- attack.execution
+- attack.persistence
+- attack.t1053.005
+- attack.t1059.001
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    ParentImage: 'C:\WINDOWS\System32\svchost.exe'
+    ParentCommandLine|contains|all:
+    - '-k netsvcs'
+    - '-s Schedule'
+    CommandLine|endswith:
+    - ' -windowstyle hidden'
+    - ' -w hidden'
+    - ' -ep bypass'
+    - ' -noni'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially malicious PowerShell executions initiated via Windows Task Scheduler, specifically looking for signs of persistence through PowerShell "Get-Variable" techniques. The rule focuses on process creation logs, particularly for instances where the PowerShell command executed is associated with the `svchost.exe` parent process, which can indicate a command masquerading under a legitimate Windows service. The presence of certain flags in the command line, such as `-windowstyle hidden` or `-noni`, suggests that the operator may be trying to run PowerShell in an obfuscated manner to avoid detection while maintaining control over the system. Detecting these patterns is critical, as they can be indicative of sophisticated threats like the Colibri Loader.
+  ### Investigation Steps
+  - Review the EDR tool for any suspicious PowerShell command execution events that correlate with the detected alert, focusing on the context of the scheduling task.
+  - Investigate the parent process `svchost.exe` in your security logs to confirm its legitimacy and assess any other child processes that were running concurrently.
+  - Correlate findings with network telemetry from NDR tools to detect any abnormal outbound connections that might indicate data exfiltration or command-and-control activities.
+  - Analyze related cloud logs (if applicable) to identify any unauthorized access or modifications to resources that may tie back to the suspicious PowerShell execution.

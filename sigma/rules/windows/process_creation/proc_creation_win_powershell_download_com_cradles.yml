@@ -1,0 +1,46 @@
+title: Potential COM Objects Download Cradles Usage - Process Creation
+id: 02b64f1b-3f33-4e67-aede-ef3b0a5a8fcf
+related:
+- id: 3c7d1587-3b13-439f-9941-7d14313dbdfe
+  type: similar
+status: test
+description: Detects usage of COM objects that can be abused to download files in
+  PowerShell by CLSID
+references:
+- https://learn.microsoft.com/en-us/dotnet/api/system.type.gettypefromclsid?view=net-7.0
+- https://speakerdeck.com/heirhabarov/hunting-for-powershell-abuse?slide=57
+author: frack113
+date: 2022-12-25
+tags:
+- attack.command-and-control
+- attack.t1105
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_1:
+    CommandLine|contains: '[Type]::GetTypeFromCLSID('
+  selection_2:
+    CommandLine|contains:
+    - '0002DF01-0000-0000-C000-000000000046'
+    - 'F6D90F16-9C73-11D3-B32E-00C04F990BB4'
+    - 'F5078F35-C551-11D3-89B9-0000F81FE221'
+    - '88d96a0a-f192-11d4-a65f-0040963251e5'
+    - 'AFBA6B42-5692-48EA-8141-DC517DCF0EF1'
+    - 'AFB40FFD-B609-40A3-9828-F88BBE11E4E3'
+    - '88d96a0b-f192-11d4-a65f-0040963251e5'
+    - '2087c2f4-2cef-4953-a8ab-66779b670495'
+    - '000209FF-0000-0000-C000-000000000046'
+    - '00024500-0000-0000-C000-000000000046'
+  condition: all of selection_*
+falsepositives:
+- Legitimate use of the library
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potentially malicious usage of Component Object Model (COM) objects that are frequently exploited to download files via PowerShell scripts. By monitoring process creation events, the rule looks for specific patterns in command line execution, particularly instances where the PowerShell command `[Type]::GetTypeFromCLSID(` is invoked with known COM object Class IDs (CLSIDs). These CLSIDs, such as `0002DF01-0000-0000-C000-000000000046` and others listed in the rule, are associated with functionalities that can be abused to fetch files from remote locations, effectively acting as download cradles for malware or unwanted applications. The primary data sources for this detection include process creation logs and the command-line parameters that detail how PowerShell is being executed.
+  ### Investigation Steps
+  - Review recent process creation logs in your EDR solution for instances of PowerShell executing with the detected command line patterns.
+  - Analyze network traffic logs from your NDR or firewall to check for unusual outbound connections that coincide with the timeline of the alerts.
+  - Cross-reference the potentially flagged CLSIDs against your environment's legitimate applications to rule out false positives.
+  - Conduct a forensic analysis on any suspicious endpoints, leveraging AV logs and cloud logs to determine if any malicious files were downloaded or executed.

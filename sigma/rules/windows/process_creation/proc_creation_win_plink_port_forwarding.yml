@@ -1,0 +1,34 @@
+title: Suspicious Plink Port Forwarding
+id: 48a61b29-389f-4032-b317-b30de6b95314
+status: test
+description: Detects suspicious Plink tunnel port forwarding to a local port
+references:
+- https://www.real-sec.com/2019/04/bypassing-network-restrictions-through-rdp-tunneling/
+- https://medium.com/@informationsecurity/remote-ssh-tunneling-with-plink-exe-7831072b3d7d
+author: Florian Roth (Nextron Systems)
+date: 2021-01-19
+modified: 2022-10-09
+tags:
+- attack.command-and-control
+- attack.t1572
+- attack.lateral-movement
+- attack.t1021.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Description: 'Command-line SSH, Telnet, and Rlogin client'
+    CommandLine|contains: ' -R '
+  condition: selection
+falsepositives:
+- Administrative activity using a remote port forwarding to a local port
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule aims to detect potentially malicious activities involving Plink, a command-line connection tool that serves as a front for SSH, Telnet, and Rlogin protocols. The primary focus is on identifying command-line executions using specific parameters that initiate remote port forwarding to a local port, which can be an indicator of unauthorized tunneling. By monitoring process creation logs on Windows systems and inspecting the command-line arguments for occurrences of ' -R ', this rule can help responders recognize suspicious behaviors commonly associated with lateral movement and command-and-control (C2) scenarios. The ability to forward ports remotely can facilitate bypassing network restrictions or establishing covert communication channels, making this detection critical for preventing potential exploits within the network.
+  ### Investigation Steps
+  - Review the process creation logs on the affected endpoint to identify other related commands executed in proximity to the Plink invocation. 
+  - Query the EDR for any indicators of compromise (IOCs) associated with the identified process, including parent-child process relationships and recent activity patterns.
+  - Check network logs from the NGFW and NDR for unusual outbound traffic, especially on the designated local port, which might confirm malicious tunneling attempts.
+  - Analyze cloud platform logs (if applicable) for any unusual access or configurations that could correlate with remote access attempts via Plink.

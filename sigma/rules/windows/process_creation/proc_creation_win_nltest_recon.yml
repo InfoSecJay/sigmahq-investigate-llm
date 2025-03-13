@@ -1,0 +1,59 @@
+title: Potential Recon Activity Via Nltest.EXE
+id: 5cc90652-4cbd-4241-aa3b-4b462fa5a248
+related:
+- id: 410ad193-a728-4107-bc79-4419789fcbf8
+  type: similar
+- id: 903076ff-f442-475a-b667-4f246bcc203b
+  type: similar
+- id: 77815820-246c-47b8-9741-e0def3f57308
+  type: obsolete
+status: test
+description: Detects nltest commands that can be used for information discovery
+references:
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/cc731935(v=ws.11)
+- https://thedfirreport.com/2021/08/16/trickbot-leads-up-to-fake-1password-installation/
+- https://thedfirreport.com/2020/10/18/ryuk-in-5-hours/
+- https://book.hacktricks.xyz/windows/basic-cmd-for-pentesters
+- https://research.nccgroup.com/2022/08/19/back-in-black-unlocking-a-lockbit-3-0-ransomware-attack/
+- https://eqllib.readthedocs.io/en/latest/analytics/03e231a6-74bc-467a-acb1-e5676b0fb55e.html
+- https://redcanary.com/blog/how-one-hospital-thwarted-a-ryuk-ransomware-outbreak/
+- https://github.com/redcanaryco/atomic-red-team/blob/5360c9d9ffa3b25f6495f7a16e267b719eba2c37/atomics/T1482/T1482.md#atomic-test-2---windows---discover-domain-trusts-with-nltest
+author: Craig Young, oscd.community, Georg Lauenstein
+date: 2021-07-24
+modified: 2023-12-15
+tags:
+- attack.discovery
+- attack.t1016
+- attack.t1482
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_nltest:
+  - Image|endswith: '\nltest.exe'
+  - OriginalFileName: 'nltestrk.exe'
+  selection_recon:
+  - CommandLine|contains|all:
+    - 'server'
+    - 'query'
+  - CommandLine|contains:
+    - '/user'
+    - 'all_trusts'           # Flag for /domain_trusts
+    - 'dclist:'
+    - 'dnsgetdc:'
+    - 'domain_trusts'
+    - 'dsgetdc:'
+    - 'parentdomain'
+    - 'trusted_domains'
+  condition: all of selection_*
+falsepositives:
+- Legitimate administration use but user and host must be investigated
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential reconnaissance activities conducted through the execution of the `nltest.exe` command on Windows systems. `nltest.exe` is a command-line tool used for various network and domain-related queries, including discovering trusted domains and querying domain controllers. The rule identifies instances where `nltest.exe` is executed with specific command-line parameters commonly associated with reconnaissance behaviors, such as querying for server trust relationships or domain information. The key data sources leveraged for this detection are process creation logs, particularly focusing on the command line and the name of the executable that triggered the event. When these patterns are observed, it suggests that an individual may be attempting to gather detailed information about the network environment, thus warranting further investigation.
+  ### Investigation Steps
+  - Review the EDR logs to identify the user and system context under which the `nltest.exe` command was executed, focusing on the process creation events associated with this executable.
+  - Analyze the command-line arguments passed to `nltest.exe` to establish if they align with legitimate administrative tasks or indicate suspicious recon activity.
+  - Cross-reference the execution timestamps with user activity logs to determine if the command was run during an unusual time frame or if it aligns with previously known malicious activity.
+  - Check firewall and network logs for any corresponding external communication that may indicate a broader reconnaissance scan or exploitation attempt following the use of `nltest.exe`.

@@ -1,0 +1,34 @@
+title: Windows Credential Manager Access via VaultCmd
+id: 58f50261-c53b-4c88-bd12-1d71f12eda4c
+status: test
+description: List credentials currently stored in Windows Credential Manager via the
+  native Windows utility vaultcmd.exe
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1555.004/T1555.004.md#atomic-test-1---access-saved-credentials-via-vaultcmd
+author: frack113
+date: 2022-04-08
+modified: 2022-05-13
+tags:
+- attack.credential-access
+- attack.t1555.004
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\VaultCmd.exe'
+  - OriginalFileName: 'VAULTCMD.EXE'
+  selection_cli:
+    CommandLine|contains: '/listcreds:'
+  condition: all of selection*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential malicious access to stored credentials on Windows systems through the `VaultCmd.exe` command-line utility. `VaultCmd` is used to interact with Windows Credential Manager, allowing users to manage credentials securely stored on the system. The rule triggers when `VaultCmd.exe` is executed with the command-line parameter `/listcreds:`, which indicates that the requester intends to list all credentials currently stored in the Credential Manager. By monitoring process creation logs for specific indicators, such as the image name ending with `\VaultCmd.exe` and the presence of the command-line argument, the rule can effectively detect unauthorized attempts to access sensitive credential information.
+  ### Investigation Steps
+  - Examine EDR logs for instances of `VaultCmd.exe` execution, focusing on the command line arguments to validate if `/listcreds:` was used.
+  - Review user accounts running the command to determine if they have appropriate administrative privileges or if they appear suspicious.
+  - Cross-reference with credential access logs in the Windows Event Log to identify any patterns or unusual activities around the time of the command execution.
+  - Analyze network traffic logs for any unusual outbound connections that may correlate with the timing and source of the `VaultCmd.exe` execution to ensure no data exfiltration occurred.

@@ -1,0 +1,33 @@
+title: PowerShell Get Clipboard
+id: 4cbd4f12-2e22-43e3-882f-bff3247ffb78
+status: test
+description: A General detection for the Get-Clipboard commands in PowerShell logs.
+  This could be an adversary capturing clipboard contents.
+references:
+- https://github.com/OTRF/detection-hackathon-apt29/issues/16
+- https://github.com/OTRF/ThreatHunter-Playbook/blob/2d4257f630f4c9770f78d0c1df059f891ffc3fec/docs/evals/apt29/detections/7.A.2_F4609F7E-C4DB-4327-91D4-59A58C962A02.md
+author: Roberto Rodriguez (Cyb3rWard0g), OTR (Open Threat Research)
+date: 2020-05-02
+modified: 2023-01-04
+tags:
+- attack.collection
+- attack.t1115
+logsource:
+  product: windows
+  category: ps_module
+  definition: 0ad03ef1-f21b-4a79-8ce8-e6900c54b65b
+detection:
+  selection:
+    Payload|contains: 'Get-Clipboard'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule targets instances of the PowerShell command `Get-Clipboard`, which is commonly used to access the contents of the system clipboard. Attackers may leverage this command as part of their reconnaissance or data exfiltration processes, allowing them to capture sensitive information such as passwords or confidential data from user sessions. The rule focuses on PowerShell logs where this command is executed, specifically looking for any logs that contain the string 'Get-Clipboard'. Key technical data sources for this rule include PowerShell module logs that capture command execution details and associated arguments.
+  ### Investigation Steps
+  - Review PowerShell command execution logs in your EDR tool to identify all instances of the `Get-Clipboard` command. Cross-reference the timestamps with other suspicious activities that may indicate further malicious behavior.
+  - Verify the context and origin of the PowerShell process by checking process creation logs for any parent processes or execution flags that may indicate if it was initiated by an untrusted source.
+  - Utilize your SIEM to correlate this event with other alerts, such as unusual login attempts or data transfer events, that could suggest a broader attack vector.
+  - Analyze clipboard content if available through host monitoring tools, considering whether any sensitive information was accessed or transmitted to an external endpoint.

@@ -1,0 +1,41 @@
+title: Testing Usage of Uncommonly Used Port
+id: adf876b3-f1f8-4aa9-a4e4-a64106feec06
+status: test
+description: |
+  Adversaries may communicate using a protocol and port paring that are typically not associated.
+  For example, HTTPS over port 8088(Citation: Symantec Elfin Mar 2019) or port 587(Citation: Fortinet Agent Tesla April 2018) as opposed to the traditional port 443.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1571/T1571.md#atomic-test-1---testing-usage-of-uncommonly-used-port-with-powershell
+- https://learn.microsoft.com/en-us/powershell/module/nettcpip/test-netconnection?view=windowsserver2022-ps
+author: frack113
+date: 2022-01-23
+tags:
+- attack.command-and-control
+- attack.t1571
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - Test-NetConnection
+    - '-ComputerName '
+    - '-port '
+  filter:
+    ScriptBlockText|contains:
+    - ' 443 '
+    - ' 80 '
+  condition: selection and not filter
+falsepositives:
+- Legitimate administrative script
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule aims to identify the usage of commonly unassociated ports for potentially malicious network communication. It specifically looks for PowerShell commands that utilize the `Test-NetConnection` cmdlet with specified parameters denoting a target computer and a port number, excluding typical ports like 80 (HTTP) and 443 (HTTPS). Adversaries can exploit uncommon ports to evade detection mechanisms, making it crucial for security teams to monitor such activities. The rule requires the presence of Script Block Logging on Windows systems to capture relevant process creation logs.
+  The rule operates by analyzing the content of PowerShell script blocks for command invocations that suggest potential command-and-control tactics. When found, it indicates that an entity may be attempting to establish a connection over an unusual port, which warrants further investigation.
+  ### Investigation Steps
+  - Review the EDR logs for the system where the alert was triggered, focusing on process creation events around the time of the detected activity to identify any related suspicious processes.
+  - Examine the network traffic logs from the NGFW to see if any outbound connections were made to the identified uncommonly used port, assessing the destination IP addresses and the nature of the communication.
+  - Check the Proxy logs for HTTP/HTTPS requests that correlate with the timeframe of the alert to identify any unusual web activities that may indicate data exfiltration or command-and-control.
+  - Search cloud platform logs (if applicable) like AWS CloudTrail or Azure Activity logs for any administrative actions or API calls that might correlate with the behavior seen on the alerted host.

@@ -1,0 +1,37 @@
+title: Abusing Print Executable
+id: bafac3d6-7de9-4dd9-8874-4a1194b493ed
+status: test
+description: Attackers can use print.exe for remote file copy
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Print/
+- https://twitter.com/Oddvarmoe/status/985518877076541440
+author: 'Furkan CALISKAN, @caliskanfurkan_, @oscd_initiative'
+date: 2020-10-05
+modified: 2022-07-07
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\print.exe'
+    CommandLine|startswith: 'print'
+    CommandLine|contains|all:
+    - '/D'
+    - '.exe'
+  filter_print:
+    CommandLine|contains: 'print.exe'
+  condition: selection and not filter_print
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Abusing Print Executable" detection rule identifies potential misuse of the `print.exe` utility in Windows. This executable is typically used for sending documents to printers, but attackers can exploit it to transfer files remotely. The rule looks specifically for process creation events where the command line of the executed process starts with `print`, includes the `/D` switch along with another executable file (denoted by `.exe`), and the execution comes from `print.exe`. The distinction made by filtering out cases where the command line contains `print.exe` itself aids in minimizing false positives, focusing on potential malicious activity. The primary data sources involved in this detection process are process creation logs, which provide insights into the commands executed on the system along with the associated parameters.
+  ### Investigation Steps
+  - Utilize EDR to search for recent process creation events related to `print.exe`, focusing on the command lines that match the rule's criteria for potential abuse.
+  - Review the timeline of system and user activities leading up to the alert to identify any suspicious file transfers or user behavior that could indicate malicious intent.
+  - Examine firewall and proxy logs to assess if any unusual outbound connections were established by the system following the execution of `print.exe`.
+  - Cross-reference with any available threat intelligence to determine if the identified command patterns correspond to known attack methodologies or threat actors.

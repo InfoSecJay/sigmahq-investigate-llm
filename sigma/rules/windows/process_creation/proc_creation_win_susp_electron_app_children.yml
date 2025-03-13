@@ -1,0 +1,74 @@
+title: Suspicious Electron Application Child Processes
+id: f26eb764-fd89-464b-85e2-dc4a8e6e77b8
+related:
+- id: 378a05d8-963c-46c9-bcce-13c7657eac99
+  type: similar
+status: test
+description: |
+  Detects suspicious child processes of electron apps (teams, discord, slack, etc.). This could be a potential sign of ".asar" file tampering (See reference section for more information) or binary execution proxy through specific CLI arguments (see related rule)
+references:
+- https://taggart-tech.com/quasar-electron/
+- https://github.com/mttaggart/quasar
+- https://positive.security/blog/ms-officecmd-rce
+- https://lolbas-project.github.io/lolbas/Binaries/Msedge/
+- https://lolbas-project.github.io/lolbas/Binaries/Teams/
+- https://lolbas-project.github.io/lolbas/Binaries/msedgewebview2/
+- https://medium.com/@MalFuzzer/one-electron-to-rule-them-all-dc2e9b263daf
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-10-21
+modified: 2024-07-12
+tags:
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|endswith:
+            # Add more electron based app to the list
+    - '\chrome.exe'         # Might require additional tuning
+    - '\discord.exe'
+    - '\GitHubDesktop.exe'
+    - '\keybase.exe'
+    - '\msedge.exe'
+    - '\msedgewebview2.exe'
+    - '\msteams.exe'
+    - '\slack.exe'
+    - '\teams.exe'
+            # - '\code.exe' # Prone to a lot of FPs. Requires an additional baseline
+  selection_child_image:
+    Image|endswith:
+            # Add more suspicious/unexpected paths
+    - '\cmd.exe'
+    - '\cscript.exe'
+    - '\mshta.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\regsvr32.exe'
+    - '\whoami.exe'
+    - '\wscript.exe'
+  selection_child_paths:
+    Image|contains:
+            # Add more suspicious/unexpected paths
+    - ':\ProgramData\'
+    - ':\Temp\'
+    - '\AppData\Local\Temp\'
+    - '\Users\Public\'
+    - '\Windows\Temp\'
+  filter_optional_discord:
+    ParentImage|endswith: '\Discord.exe'
+    Image|endswith: '\cmd.exe'
+    CommandLine|contains: '\NVSMI\nvidia-smi.exe'
+  condition: selection_parent and 1 of selection_child_* and not 1 of filter_optional_*
+falsepositives:
+- Unknown
+# Increase the level once FP rate is reduced (see status)
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potentially suspicious child processes spawned by commonly used Electron applications such as Discord, Slack, Microsoft Teams, and others. Electron apps are often used for collaboration and communication, but they can be exploited to execute malicious commands or tamper with application files, particularly `.asar` files. The rule analyzes process creation logs to detect any of these parent Electron application processes initiating child processes that are typically associated with command execution or script execution, such as `cmd.exe`, `powershell.exe`, and others. By checking the command-line parameters of these child processes and their creation paths, the rule can highlight instances of possible malicious activity, guiding responders to investigate further.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify the parent Electron processes involved in the alert. Look for abnormal child processes spawned from these applications. 
+  - Analyze command-line arguments used by the detected child processes for any suspicious patterns or commands that indicate potential exploitation or lateral movement.
+  - Check file paths associated with the child processes in the alert. Focus on directories known for temporary files, such as `C:\ProgramData`, `C:\Temp`, and `C:\Users\Public`, to find potential indicators of compromise.
+  - Correlate findings with your AV and NGFW logs to identify any previous malicious activities or related traffic to further assess the severity of the alert and determine the next steps for remediation.

@@ -1,0 +1,30 @@
+title: CodeIntegrity - Blocked Image Load With Revoked Certificate
+id: 6f156c48-3894-4952-baf0-16193e9067d2
+status: test
+description: Detects blocked image load events with revoked certificates by code integrity.
+references:
+- https://learn.microsoft.com/en-us/windows/security/application-security/application-control/windows-defender-application-control/operations/event-id-explanations
+- https://learn.microsoft.com/en-us/windows/security/application-security/application-control/windows-defender-application-control/operations/event-tag-explanations
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-06-06
+tags:
+- attack.privilege-escalation
+logsource:
+  product: windows
+  service: codeintegrity-operational
+detection:
+  selection:
+    EventID: 3036     # Windows is unable to verify the integrity of the file %2 because the signing certificate has been revoked.  Check with the publisher to see if a new signed version of the kernel module is available.
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The "Blocked Image Load With Revoked Certificate" detection rule aims to identify instances where Windows blocks the loading of images (like kernel modules) that fail integrity checks due to revoked signing certificates. When a Windows application or module is signed with a digital certificate deemed invalid or revoked, Windows prevents its execution to uphold system security. The technical data source leveraged for this detection comes primarily from Windows event logs, specifically analyzing Event ID 3036. This event indicates that Windows code integrity has detected a compromised or untrusted module, sending a clear alert that something potentially malicious or unauthorized is attempting to execute. As organizations face an increasing threat of privilege escalation through malicious code, this rule serves as a critical mechanism for identifying and mitigating such risks.
+  ### Investigation Steps
+  - Review the Windows Event Viewer for any relevant logs associated with Event ID 3036 to gather context on the blocked image load, including the specific file path and associated digital certificate details.
+  - Utilize EDR tools to trace the process that attempted to load the blocked module, checking for any unusual behaviors or prior alerts that may indicate earlier compromise attempts.
+  - Cross-reference the certificate information with threat intelligence sources to determine if the revoked certificate is linked to known malicious actors or malware, guiding further investigative efforts.
+  - Assess the system environment and running processes to identify any potential lateral movement or exploitation attempts related to the blocked event, focusing on unusual user activities or elevated permissions.

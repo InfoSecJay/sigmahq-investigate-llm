@@ -1,0 +1,42 @@
+title: Esentutl Gather Credentials
+id: 7df1713a-1a5b-4a4b-a071-dc83b144a101
+status: test
+description: Conti recommendation to its affiliates to use esentutl to access NTDS
+  dumped file. Trickbot also uses this utilities to get MSEdge info via its module
+  pwgrab.
+references:
+- https://twitter.com/vxunderground/status/1423336151860002816
+- https://attack.mitre.org/software/S0404/
+- https://thedfirreport.com/2021/08/01/bazarcall-to-conti-ransomware-via-trickbot-and-cobalt-strike/
+author: sam0x90
+date: 2021-08-06
+modified: 2022-10-09
+tags:
+- attack.credential-access
+- attack.t1003
+- attack.t1003.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - 'esentutl'
+    - ' /p'
+  condition: selection
+fields:
+- User
+- CommandLine
+- ParentCommandLine
+- CurrentDirectory
+falsepositives:
+- To be determined
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Esentutl Gather Credentials" detects the use of the `esentutl` command-line utility, which is commonly leveraged by malicious actors for credential harvesting, especially in context of accessing NTDS (Active Directory database) files. Specifically, this rule identifies instances where the command includes parameters that suggest it is being used for unauthorized credential retrieval. The primary technical data sources involved are process creation logs that capture command-line executions on Windows systems. By monitoring the `CommandLine` field for the presence of the string `esentutl` combined with the `/p` parameter, this rule aims to flag potential malicious activities associated with ransomware and credential theft, notably used by groups like Conti and Trickbot.
+  ### Investigation Steps
+  - Review process creation logs in your EDR to identify the user account associated with the detected `esentutl` execution. Pay attention to unusual user behaviors or accounts with elevated privileges.
+  - Analyze the parent command line associated with the `esentutl` execution for additional context about how this command was invoked, potentially revealing the attack chain leading to malicious activity.
+  - Check for any related network connections or unusual outbound traffic within NDR logs that might indicate exfiltration attempts or communications with known malicious hosts.
+  - Inspect recent Active Directory changes or anomalies in security logs on domain controllers, as successful credential access may have led to unauthorized changes or further lateral movement within the network.

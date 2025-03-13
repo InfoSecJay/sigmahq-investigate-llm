@@ -1,0 +1,41 @@
+title: Suspicious PowerShell WindowStyle Option
+id: 313fbb0a-a341-4682-848d-6d6f8c4fab7c
+status: test
+description: |
+  Adversaries may use hidden windows to conceal malicious activity from the plain sight of users.
+  In some cases, windows that would typically be displayed when an application carries out an operation can be hidden
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1564.003/T1564.003.md
+author: frack113, Tim Shelton (fp AWS)
+date: 2021-10-20
+modified: 2023-01-03
+tags:
+- attack.defense-evasion
+- attack.t1564.003
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'powershell'
+    - 'WindowStyle'
+    - 'Hidden'
+  filter:
+    ScriptBlockText|contains|all:
+    - ':\Program Files\Amazon\WorkSpacesConfig\Scripts\'
+    - '$PSScriptRoot\Module\WorkspaceScriptModule\WorkspaceScriptModule'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Suspicious PowerShell WindowStyle Option" detection rule is designed to identify potentially malicious PowerShell scripts that utilize the "Hidden" window style option when executed. Adversaries may leverage this feature to obscure their activities from the user interface, making attacks less visible to end users and security analysts. The rule specifically looks for instances where the `ScriptBlockText` contains the keywords "powershell", "WindowStyle", and "Hidden" while excluding certain benign script paths associated with legitimate applications, such as those from Amazon WorkSpaces. It requires that PowerShell Script Block Logging is enabled to capture these details from process creation logs.
+  This detection approach helps surface activity that may indicate an attempt to evade detection or conceal illicit actions within a Windows environment. By monitoring these specific scripting patterns, organizations can proactively respond to potential threats before they escalate.
+  ### Investigation Steps
+  - Use your EDR to search for any recent PowerShell processes that are running with the "Hidden" window style option. Check the process hierarchy to understand the context of execution.
+  - Review the Script Block Logging events in Windows Event Logs to gather details on the specific command execution that triggered the alert, including full command-line parameters and possible related activities.
+  - Analyze network traffic logs from your NDR solution to identify any outbound communication initiated by the suspicious PowerShell script. Look for unusual destination IPs or domains.
+  - Check your AV solution for any signs of known malicious indicators that may correlate with the detected PowerShell script, as well as if it has flagged any files related to that execution.

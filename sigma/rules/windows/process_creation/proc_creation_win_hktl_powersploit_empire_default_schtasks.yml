@@ -1,0 +1,50 @@
+title: HackTool - Default PowerSploit/Empire Scheduled Task Creation
+id: 56c217c3-2de2-479b-990f-5c109ba8458f
+status: test
+description: Detects the creation of a schtask via PowerSploit or Empire Default Configuration.
+references:
+- https://github.com/0xdeadbeefJERKY/PowerSploit/blob/8690399ef70d2cad10213575ac67e8fa90ddf7c3/Persistence/Persistence.psm1
+- https://github.com/EmpireProject/Empire/blob/08cbd274bef78243d7a8ed6443b8364acd1fc48b/lib/modules/powershell/persistence/userland/schtasks.py
+author: Markus Neis, @Karneades
+date: 2018-03-06
+modified: 2023-03-03
+tags:
+- attack.execution
+- attack.persistence
+- attack.privilege-escalation
+- attack.s0111
+- attack.g0022
+- attack.g0060
+- car.2013-08-001
+- attack.t1053.005
+- attack.t1059.001
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    ParentImage|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    Image|endswith: '\schtasks.exe'
+    CommandLine|contains|all:
+    - '/Create'
+    - 'powershell.exe -NonI'
+    - '/TN Updater /TR'
+    CommandLine|contains:
+    - '/SC ONLOGON'
+    - '/SC DAILY /ST'
+    - '/SC ONIDLE'
+    - '/SC HOURLY'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies unauthorized creation of scheduled tasks using PowerSploit or Empire's default configurations. The rule captures process creation events where the parent process is PowerShell (either `powershell.exe` or `pwsh.exe`) and the child process is `schtasks.exe`, which is responsible for creating and managing scheduled tasks in Windows. Key command-line parameters such as `/Create`, `/TN Updater /TR`, and various scheduling options (e.g., `/SC ONLOGON`, `/SC DAILY /ST`) indicate a potential persistence mechanism used by attackers to execute malicious payloads automatically at specified times or events. The rule utilizes process creation logs as the primary data source, which is essential to monitor suspicious command execution.
+  ### Investigation Steps
+  - Investigate the list of scheduled tasks using the command `schtasks /query /fo LIST /v` in a command prompt to identify any suspicious entries created by the user.
+  - Review EDR logs focusing on the parent process of the detected `schtasks.exe` instance to gather more context about the PowerShell execution, including user identity and execution time.
+  - Correlate the generated alert with any external communications by analyzing proxy and firewall logs for any unusual connections made by the potentially malicious scheduled task.
+  - Check cloud logs in environments like AWS, GCP, or Azure for any unauthorized administrative actions linked to the user account that created the scheduled task, which may indicate broader compromise.

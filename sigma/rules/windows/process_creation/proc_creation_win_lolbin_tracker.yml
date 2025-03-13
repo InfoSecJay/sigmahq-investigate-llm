@@ -1,0 +1,45 @@
+title: Potential DLL Injection Or Execution Using Tracker.exe
+id: 148431ce-4b70-403d-8525-fcc2993f29ea
+status: test
+description: Detects potential DLL injection and execution using "Tracker.exe"
+references:
+- https://lolbas-project.github.io/lolbas/OtherMSBinaries/Tracker/
+author: 'Avneet Singh @v3t0_, oscd.community'
+date: 2020-10-18
+modified: 2023-01-09
+tags:
+- attack.defense-evasion
+- attack.t1055.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\tracker.exe'
+  - Description: 'Tracker'
+  selection_cli:
+    CommandLine|contains:
+    - ' /d '
+    - ' /c '
+  filter_msbuild1:
+    CommandLine|contains: ' /ERRORREPORT:PROMPT '
+  filter_msbuild2:
+        # Example:
+        #   GrandparentImage: C:\Program Files\Microsoft Visual Studio\2022\Community\Msbuild\Current\Bin\MSBuild.exe
+        #   ParentCommandLine: "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe" /nologo /nodemode:1 /nodeReuse:true /low:false
+        #   CommandLine: "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\Tracker.exe" @"C:\Users\user\AppData\Local\Temp\tmp05c7789bc5534838bf96d7a0fed1ffff.tmp" /c "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.29.30133\bin\HostX86\x64\Lib.exe"
+    ParentImage|endswith:
+    - '\Msbuild\Current\Bin\MSBuild.exe'
+    - '\Msbuild\Current\Bin\amd64\MSBuild.exe'
+  condition: all of selection_* and not 1 of filter_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies suspicious behavior associated with possible DLL injection or execution by monitoring the usage of "Tracker.exe," which is part of the Microsoft Build tools. The rule specifically looks for the execution of Tracker.exe when it is initiated by MSBuild.exe. The main indicators include the command-line parameters that suggest abnormal operations (such as "/d" or "/c"), and the description of the process must confirm it is Tracker. Additionally, the rule includes filters to limit the alerts based on specific command-line usage patterns that may indicate legitimate activity to reduce false positives. Data sources utilized for this detection include process creation logs and command-line arguments from Windows endpoints.
+  ### Investigation Steps
+  - Review the alerts in the EDR console to gather details about the invocation of Tracker.exe, specifying the parent process and command-line arguments used.
+  - Check process creation logs to determine if the Tracker.exe was executed under unusual circumstances, such as an unexpected parent process or unusual command-line parameters.
+  - Analyze the environment from which Tracker.exe was invoked to assess if it corresponds to known development activities, focusing on the presence of MSBuild activity.
+  - Correlate any identified anomalies with historical logs in the SIEM to determine if similar behavior has occurred previously, providing context for the potential risk level.

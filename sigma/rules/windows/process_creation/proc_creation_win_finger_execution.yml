@@ -1,0 +1,36 @@
+title: Finger.EXE Execution
+id: af491bca-e752-4b44-9c86-df5680533dbc
+status: test
+description: |
+  Detects execution of the "finger.exe" utility.
+  Finger.EXE or "TCPIP Finger Command" is an old utility that is still present on modern Windows installation. It Displays information about users on a specified remote computer (typically a UNIX computer) that is running the finger service or daemon.
+  Due to the old nature of this utility and the rareness of machines having the finger service. Any execution of "finger.exe" can be considered "suspicious" and worth investigating.
+references:
+- https://twitter.com/bigmacjpg/status/1349727699863011328?s=12
+- https://app.any.run/tasks/40115012-a919-4208-bfed-41e82cb3dadf/
+- http://hyp3rlinx.altervista.org/advisories/Windows_TCPIP_Finger_Command_C2_Channel_and_Bypassing_Security_Software.txt
+author: Florian Roth (Nextron Systems), omkar72, oscd.community
+date: 2021-02-24
+modified: 2024-06-27
+tags:
+- attack.command-and-control
+- attack.t1105
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - OriginalFileName: 'finger.exe'
+  - Image|endswith: '\finger.exe'
+  condition: selection
+falsepositives:
+- Admin activity (unclear what they do nowadays with finger.exe)
+level: high
+notes: |
+  ### Technical Context
+  The "Finger.EXE Execution" detection rule is designed to identify the execution of the "finger.exe" utility on Windows systems. Despite being an outdated tool, finger.exe is still present in many modern Windows installations. This utility traditionally retrieves information about users on specified remote systems running the finger service, a function that has become increasingly rare in contemporary network environments. Because of its age and the unusual nature of its use in most corporate settings, any execution of finger.exe is treated as suspicious behavior, indicating a potential command-and-control (C2) channel or other malicious activity. The rule primarily leverages process creation logs to detect instances where the original filename matches 'finger.exe' or when the execution path ends with '\finger.exe'.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR to identify the source and timing of the finger.exe execution, noting any associated user accounts.
+  - Check the command-line parameters used during the execution of finger.exe for any suspicious arguments or targets that may indicate misuse.
+  - Cross-reference network logs from the NGFW or NDR to determine if there were any unusual outbound connections made shortly before or after the execution of finger.exe.
+  - Investigate related user activity in Proxy logs and VPN connections to see if there is a context of malicious behavior or whether this was legitimate administrative activity.

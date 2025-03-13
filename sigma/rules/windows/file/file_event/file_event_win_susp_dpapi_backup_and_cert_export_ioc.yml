@@ -1,0 +1,40 @@
+title: DPAPI Backup Keys And Certificate Export Activity IOC
+id: 7892ec59-c5bb-496d-8968-e5d210ca3ac4
+status: experimental
+description: |
+  Detects file names with specific patterns seen generated and used by tools such as Mimikatz and DSInternals related to exported or stolen DPAPI backup keys and certificates.
+references:
+- https://www.dsinternals.com/en/dpapi-backup-key-theft-auditing/
+- https://github.com/MichaelGrafnetter/DSInternals/blob/39ee8a69bbdc1cfd12c9afdd7513b4788c4895d4/Src/DSInternals.Common/Data/DPAPI/DPAPIBackupKey.cs#L28-L32
+author: Nounou Mbeiri, Nasreddine Bencherchali (Nextron Systems)
+date: 2024-06-26
+tags:
+- attack.t1555
+- attack.t1552.004
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|contains:
+    - 'ntds_capi_'
+    - 'ntds_legacy_'
+    - 'ntds_unknown_'
+    TargetFilename|endswith:
+    - '.cer'
+    - '.key'
+    - '.pfx'
+    - '.pvk'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially malicious activities related to the exportation or theft of DPAPI (Data Protection Application Programming Interface) backup keys and certificates. In particular, the rule looks for file names associated with well-known tools such as Mimikatz and DSInternals, which are often used by attackers to access sensitive data stored within the Windows operating system. The rule specifically examines file events that include or end with designated patterns, signaling that backup keys or certificates are being manipulated in ways that could indicate unauthorized access or exfiltration attempts.
+  The primary data sources leveraged by this rule include Windows file event logs, which provide information on the files being created, modified, or accessed within the operating system. By analyzing these log events, security teams can identify occurrences that meet the criteria set forth in the rule, thus enabling swift detection of potential security incidents involving sensitive encryption materials.
+  ### Investigation Steps
+  - Review the context of the alert by checking the file paths and file names associated with the detected events in your EDR logs.
+  - Utilize your SIEM to correlate the alert with other events, such as process creation logs or command-line arguments, to identify the originating processes that interacted with the detected files.
+  - Assess any user accounts involved in the activity by analyzing authentication logs to determine if the actions were initiated by legitimate users, or indicate possible credential compromise.
+  - Investigate historical data and recent behavior of the systems in question using cloud logs (if applicable) to monitor for any previous unusual access or file manipulation events related to DPAPI keys or certificates.

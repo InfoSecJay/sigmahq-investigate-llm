@@ -1,0 +1,39 @@
+title: DLL Search Order Hijackig Via Additional Space in Path
+id: b6f91281-20aa-446a-b986-38a92813a18f
+status: test
+description: |
+  Detects when an attacker create a similar folder structure to windows system folders such as (Windows, Program Files...)
+  but with a space in order to trick DLL load search order and perform a "DLL Search Order Hijacking" attack
+references:
+- https://twitter.com/cyb3rops/status/1552932770464292864
+- https://www.wietzebeukema.nl/blog/hijacking-dlls-in-windows
+author: frack113, Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-30
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.defense-evasion
+- attack.t1574.002
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|startswith:
+    - 'C:\Windows \'
+    - 'C:\Program Files \'
+    - 'C:\Program Files (x86) \'
+    TargetFilename|endswith: '.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule aims to detect potential DLL Search Order Hijacking attacks that exploit a vulnerability in the Windows operating system’s DLL loading mechanism. Attackers can create directories that replicate the standard Windows folder structure—such as "C:\Windows \" or "C:\Program Files \"—but include an additional space to confuse the system. This results in the system unknowingly loading a malicious DLL from the attacker’s crafted directory instead of the intended secure path. The rule specifically monitors file events targeting DLL files within these manipulated paths, alerting on suspicious creations that can indicate ongoing exploitation efforts.
+  The data sources utilized by this rule include file event logs, which allow monitoring of the creation and modification of files across the filesystem. By analyzing these logs, the rule identifies instances where maliciously structured paths are used, providing key insights into potential security incidents that might require further investigation.
+  ### Investigation Steps
+  - Review file event logs in your EDR solution to pinpoint recent DLL file creations or modifications in suspicious folder paths, particularly those with additional spaces.
+  - Investigate command-line parameters associated with process creation events to confirm the legitimacy of processes that are attempting to load DLLs from the identified folders.
+  - Utilize your SIEM to correlate alerts with network traffic logs, specifically looking for any outbound connections from the processes identified, which may indicate data exfiltration or communication with command and control servers.
+  - Check for relevant entries in Windows Event Logs (specifically security and system logs) for user activities leading to the creation of these suspicious directory structures, assessing if they were legitimate administrative actions or indicative of compromise.

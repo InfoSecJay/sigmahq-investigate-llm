@@ -1,0 +1,33 @@
+title: Regedit as Trusted Installer
+id: 883835a7-df45-43e4-bf1d-4268768afda4
+status: test
+description: Detects a regedit started with TrustedInstaller privileges or by ProcessHacker.exe
+references:
+- https://twitter.com/1kwpeter/status/1397816101455765504
+author: Florian Roth (Nextron Systems)
+date: 2021-05-27
+modified: 2022-10-09
+tags:
+- attack.privilege-escalation
+- attack.t1548
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\regedit.exe'
+    ParentImage|endswith:
+    - '\TrustedInstaller.exe'
+    - '\ProcessHacker.exe'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify instances where the Windows registry editor (`regedit.exe`) is launched with elevated privileges, specifically from the `TrustedInstaller.exe` or `ProcessHacker.exe` parent processes. The presence of these parent processes typically indicates a potential privilege escalation attempt, as they are often used in scenarios where an attacker aims to gain higher system permissions to modify critical system settings or install malicious software. The rule focuses on process creation logs, analyzing the command used to initiate the `regedit.exe` executable and its ancestry to detect these suspicious activities. By monitoring such behavior, the security operations team can proactively respond to potential threats in the environment.
+  ### Investigation Steps
+  - Examine EDR logs to identify the process creation events for `regedit.exe` along with details about its parent process, ensuring it is either `TrustedInstaller.exe` or `ProcessHacker.exe`.
+  - Cross-reference system logs to check for any recent changes made to the registry, focusing on keys and values that could indicate a malicious alteration.
+  - Utilize AV and Endpoint tools to run scans on the machine to identify any signs of compromise or unauthorized software that may be related to the detected behavior.
+  - Review user activity logs in Windows Event Viewer to establish whether the actions taken align with legitimate administrative tasks or seem suspicious.

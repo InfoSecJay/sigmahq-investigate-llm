@@ -1,0 +1,49 @@
+title: Suspicious Where Execution
+id: 725a9768-0f5e-4cb3-aec2-bc5719c6831a
+status: test
+description: |
+  Adversaries may enumerate browser bookmarks to learn more about compromised hosts.
+  Browser bookmarks may reveal personal information about users (ex: banking sites, interests, social media, etc.) as well as details about
+  internal network resources such as servers, tools/dashboards, or other related infrastructure.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1217/T1217.md
+author: frack113, Nasreddine Bencherchali (Nextron Systems)
+date: 2021-12-13
+modified: 2022-06-29
+tags:
+- attack.discovery
+- attack.t1217
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  where_exe:
+  - Image|endswith: '\where.exe'
+  - OriginalFileName: 'where.exe'
+  where_opt:
+    CommandLine|contains:
+            # Firefox Data
+    - 'places.sqlite'
+    - 'cookies.sqlite'
+    - 'formhistory.sqlite'
+    - 'logins.json'
+    - 'key4.db'
+    - 'key3.db'
+    - 'sessionstore.jsonlz4'
+            # Chrome Data
+    - 'History'
+    - 'Bookmarks'
+    - 'Cookies'
+    - 'Login Data'
+  condition: all of where_*
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies potential malicious activity related to the execution of the `where.exe` utility, which might be used by adversaries to enumerate browser bookmarks and extract sensitive information. The rule specifically looks for the process creation events of `where.exe` where the command line includes references to common browser data files such as Firefox's `places.sqlite` and Chrome's `Bookmarks`. These files can contain valuable personal information about users, including banking sites and social media accounts, as well as internal resources pertinent to the organization's infrastructure. By monitoring these events through process creation logs, security teams can uncover suspicious enumeration behaviors that may indicate compromise or reconnaissance efforts.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR system to identify instances of `where.exe` execution, specifically focusing on its command line parameters to detect references to browser data files.
+  - Cross-reference the timestamps of the detection with user activity logs from the Proxy to identify any unusual browsing patterns that may correspond with the execution of `where.exe`.
+  - Analyze the environment and network context of the affected machine to determine if there has been any unauthorized access or lateral movement consistent with compromised credentials.
+  - Leverage endpoint protection solutions to scan the affected system for any related malicious artifacts or indicators of compromise (IoCs) that may have been deployed alongside `where.exe`.

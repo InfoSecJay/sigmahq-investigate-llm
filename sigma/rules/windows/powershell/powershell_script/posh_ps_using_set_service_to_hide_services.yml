@@ -1,0 +1,45 @@
+title: Abuse of Service Permissions to Hide Services Via Set-Service - PS
+id: 953945c5-22fe-4a92-9f8a-a9edc1e522da
+related:
+- id: 514e4c3a-c77d-4cde-a00f-046425e2301e
+  type: similar
+status: test
+description: Detects usage of the "Set-Service" powershell cmdlet to configure a new
+  SecurityDescriptor that allows a service to be hidden from other utilities such
+  as "sc.exe", "Get-Service"...etc. (Works only in powershell 7)
+references:
+- https://twitter.com/Alh4zr3d/status/1580925761996828672
+- https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/set-service?view=powershell-7.2
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-10-17
+tags:
+- attack.persistence
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.011
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'Set-Service '
+    - 'DCLCWPDTSD'
+    ScriptBlockText|contains:
+    - '-SecurityDescriptorSddl '
+    - '-sd '
+  condition: selection
+falsepositives:
+- Rare intended use of hidden services
+- Rare FP could occur due to the non linearity of the ScriptBlockText log
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential misuse of the PowerShell cmdlet "Set-Service" to hide services from common utilities like "sc.exe" and "Get-Service." Attackers may use this technique to obscure their activities by configuring new security descriptors that render certain services invisible, thereby evading detection. The detection relies on monitoring PowerShell script block logs, specifically looking for the presence of the "Set-Service" command and associated parameters like "-SecurityDescriptorSddl" or "-sd." Given the nature of these commands, Script Block Logging must be enabled on the target systems to capture this information effectively.
+  The rule is particularly relevant when using PowerShell 7, which allows more advanced configurations compared to earlier versions. Identifying this behavior can help security teams prevent unauthorized persistence mechanisms and privilege escalation efforts within Windows environments. The logs extracted from PowerShell are critical for the analysis, making this detection rule a vital component of a proactive defense strategy.
+  ### Investigation Steps
+  - Examine the PowerShell script block logs on the relevant endpoint to confirm the usage of the "Set-Service" command along with suspicious parameters. This can help establish whether the command was executed maliciously.
+  - Utilize EDR tools to investigate the process tree that led to the execution of the suspicious PowerShell command. Analyzing parent and child processes can provide insights into the attack's lateral movement.
+  - Check for related activities such as abnormal service configurations or unusual service states using "Get-Service" or "sc query" commands. This will help determine if any services were successfully hidden.
+  - Review historical logs in SIEM for other indicators of compromise that may correlate with the execution of the detected command. Look for patterns that suggest ongoing attacks or past incidents involving privilege escalation and persistence.

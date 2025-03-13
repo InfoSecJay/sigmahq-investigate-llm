@@ -1,0 +1,34 @@
+title: HackTool - RemoteKrbRelay SMB Relay Secrets Dump Module Indicators
+id: 3ab79e90-9fab-4cdf-a7b2-6522bc742adb
+status: experimental
+description: Detects the creation of file with specific names used by RemoteKrbRelay
+  SMB Relay attack module.
+references:
+- https://github.com/CICADA8-Research/RemoteKrbRelay/blob/19ec76ba7aa50c2722b23359bc4541c0a9b2611c/Exploit/RemoteKrbRelay/Relay/Attacks/RemoteRegistry.cs#L31-L40
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2024-06-27
+tags:
+- attack.command-and-control
+- attack.t1219
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|endswith:
+    - ':\windows\temp\sam.tmp'
+    - ':\windows\temp\sec.tmp'
+    - ':\windows\temp\sys.tmp'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the creation of specific temporary files (`sam.tmp`, `sec.tmp`, `sys.tmp`) within the Windows `C:\windows\temp\` directory that are associated with a known attack module used in SMB relay attacks, specifically the RemoteKrbRelay tool. When executed, this tool exploits weaknesses in the SMB protocol to relay authentication requests and can ultimately lead to unauthorized access or credential theft. The rule utilizes file event logs from the Windows operating system to monitor for these malicious file creations, indicating potential command-and-control behavior or an ongoing attack.
+  By analyzing the creation of these targeted files, incident responders can identify when an unauthorized tool potentially related to a compromise attempts to execute within the environment. This detection focuses on high-risk behaviors that could indicate an active attack.
+  ### Investigation Steps
+  - Utilize EDR tools to perform a live response on the affected endpoint, checking for any running processes associated with the RemoteKrbRelay tool.
+  - Search process creation logs to identify any unusual command-line arguments that correlate with the creation of the flagged temporary files.
+  - Review Windows event logs to track user accounts that may have been used during the time these files were created, especially looking for suspicious logon events or access attempts.
+  - Inspect network logs from the NGFW or NDR to determine if there are any abnormal SMB traffic patterns or connections indicative of an attempted relay attack at the time of the file creation.

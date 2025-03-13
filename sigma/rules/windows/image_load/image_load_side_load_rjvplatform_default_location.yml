@@ -1,0 +1,34 @@
+title: Potential RjvPlatform.DLL Sideloading From Default Location
+id: 259dda31-b7a3-444f-b7d8-17f96e8a7d0d
+status: test
+description: Detects loading of "RjvPlatform.dll" by the "SystemResetPlatform.exe"
+  binary which can be abused as a method of DLL side loading since the "$SysReset"
+  directory isn't created by default.
+references:
+- https://twitter.com/0gtweet/status/1666716511988330499
+author: X__Junior (Nextron Systems)
+date: 2023-06-09
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image: 'C:\Windows\System32\SystemResetPlatform\SystemResetPlatform.exe'
+    ImageLoaded: 'C:\$SysReset\Framework\Stack\RjvPlatform.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify a potential security risk associated with DLL side-loading, specifically focusing on the loading of the "RjvPlatform.dll" by the "SystemResetPlatform.exe" binary. The rule monitors for instances where the executable, which typically resides in the default system directory, loads a DLL from a non-standard location (specifically, the "$SysReset" directory). This behavior can indicate an attempt to exploit this default location for malicious purposes, particularly since the "$SysReset" directory is not created by default, raising suspicions about its intended use. By leveraging image load data sources from Windows logs, this rule helps in identifying instances of this potentially malicious activity in enterprise environments.
+  ### Investigation Steps
+  - Review the process creation logs to confirm the execution of "SystemResetPlatform.exe" and check for any unusual command-line arguments that may indicate malicious intent.
+  - Use the EDR tool to examine the behavior of "SystemResetPlatform.exe" after it loads "RjvPlatform.dll" to assess if there are any subsequent actions such as file modifications or network connections to suspicious domains.
+  - Query AV logs to see if "RjvPlatform.dll" or similar files have been flagged or quarantined, which can provide additional context about potential threats.
+  - Analyze firewall and proxy logs for any outbound connections initiated by "SystemResetPlatform.exe" that may imply data exfiltration or communication with known malicious IPs.

@@ -1,0 +1,30 @@
+title: Installation of TeamViewer Desktop
+id: 9711de76-5d4f-4c50-a94f-21e4e8f8384d
+status: test
+description: TeamViewer_Desktop.exe is create during install
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1219/T1219.md#atomic-test-1---teamviewer-files-detected-test-on-windows
+author: frack113
+date: 2022-01-28
+tags:
+- attack.command-and-control
+- attack.t1219
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|endswith: '\TeamViewer_Desktop.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule monitors the installation of TeamViewer, a remote access software, by identifying the creation of the executable file `TeamViewer_Desktop.exe`. It specifically looks for events in Windows file system logs that signal the creation of this file, which typically occurs during the installation process. When the installation is initiated, the relevant logs generated do not just capture the file event but also provide insight into the application behavior. As TeamViewer can be exploited for unauthorized remote access, monitoring its installation is critical for identifying potential misuse, especially in environments where remote access tools are heavily scrutinized.
+  The primary data source for this rule is Windows file event logging, which details file activity on the system. Analysts should pay attention not only to the creation event but also the context surrounding it, such as the user account that initiated the installation, the time of installation, and any related processes that may indicate a malicious intent or configuration.
+  ### Investigation Steps
+  - Review the event logs from the EDR to identify the process that initiated the installation of `TeamViewer_Desktop.exe`, checking for any unusual user accounts or timestamps.
+  - Cross-reference network activity logs from NDR for connections made to TeamViewer servers around the time of the installation to detect any unauthorized communication attempts.
+  - Analyze endpoint behavior with AV logs for additional indicators of compromise related to TeamViewer, such as known malicious signatures or unusual behavior patterns.
+  - Inspect proxy logs to identify any web requests that might have been made for downloading TeamViewer or related resources, ensuring that the installation was authorized and legitimate.

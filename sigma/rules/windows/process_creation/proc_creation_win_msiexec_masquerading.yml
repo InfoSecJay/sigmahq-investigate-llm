@@ -1,0 +1,37 @@
+title: Potential MsiExec Masquerading
+id: e22a6eb2-f8a5-44b5-8b44-a2dbd47b1144
+status: test
+description: Detects the execution of msiexec.exe from an uncommon directory
+references:
+- https://twitter.com/200_okay_/status/1194765831911215104
+author: Florian Roth (Nextron Systems)
+date: 2019-11-14
+modified: 2023-02-21
+tags:
+- attack.defense-evasion
+- attack.t1036.005
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\msiexec.exe'
+  - OriginalFileName: '\msiexec.exe'
+  filter:
+    Image|startswith:
+    - 'C:\Windows\System32\'
+    - 'C:\Windows\SysWOW64\'
+    - 'C:\Windows\WinSxS\'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule aims to identify potential masquerading tactics by monitoring the execution of `msiexec.exe`, a legitimate Windows installer executable, from directories that are not commonly associated with it. In normal operation, `msiexec.exe` resides within specific Windows system directories such as `C:\Windows\System32\`, `C:\Windows\SysWOW64\`, and `C:\Windows\WinSxS\`. The rule triggers an alert when `msiexec.exe` is executed from any directory other than these trusted paths, which could indicate malicious activity attempting to exploit or disguise harmful processes.
+  To implement this detection, the rule analyzes process creation logs, focusing on the filename and its directory location. It specifically looks for processes that have an `Image` name ending with `msiexec.exe` while filtering out those originating from the standard locations. This approach helps to catch instances where adversaries may attempt to misuse legitimate tools to evade detection and perform unauthorized tasks.
+  ### Investigation Steps
+  - Check process creation logs in your EDR solution to identify the path from which `msiexec.exe` was executed, noting any unusual directories.
+  - Review associated command-line arguments in the EDR logs, which may provide additional context about the intent behind the execution.
+  - Use your NGFW logs to assess whether any outbound connections were initiated by the process, which may indicate data exfiltration attempts or communication with a remote command and control server.
+  - Examine the historical execution patterns of `msiexec.exe` in the impacted system to determine whether there have been prior instances that could provide context or indicate a recurring issue.

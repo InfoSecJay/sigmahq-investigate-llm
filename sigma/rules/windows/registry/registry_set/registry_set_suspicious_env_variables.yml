@@ -1,0 +1,69 @@
+title: Suspicious Environment Variable Has Been Registered
+id: 966315ef-c5e1-4767-ba25-fce9c8de3660
+status: test
+description: Detects the creation of user-specific or system-wide environment variables
+  via the registry. Which contains suspicious commands and strings
+references:
+- https://infosec.exchange/@sbousseaden/109542254124022664
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-12-20
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.persistence
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection_main:
+    TargetObject|contains: '\Environment\'
+  selection_details:
+  - Details:
+    - 'powershell'
+    - 'pwsh'
+  - Details|contains:
+              # Add more suspicious strings in env variables below
+    - '\AppData\Local\Temp\'
+    - 'C:\Users\Public\'
+              # Base64 MZ Header
+    - 'TVqQAAMAAAAEAAAA'           # MZ..........
+    - 'TVpQAAIAAAAEAA8A'
+    - 'TVqAAAEAAAAEABAA'
+    - 'TVoAAAAAAAAAAAAA'
+    - 'TVpTAQEAAAAEAAAA'
+              # Base64 Invoke- (UTF-8)
+    - 'SW52b2tlL'
+    - 'ludm9rZS'
+    - 'JbnZva2Ut'
+              # Base64 Invoke- (UTF-16LE)
+    - 'SQBuAHYAbwBrAGUALQ'
+    - 'kAbgB2AG8AawBlAC0A'
+    - 'JAG4AdgBvAGsAZQAtA'
+  - Details|startswith:        # https://gist.github.com/Neo23x0/6af876ee72b51676c82a2db8d2cd3639
+    - 'SUVY'
+    - 'SQBFAF'
+    - 'SQBuAH'
+    - 'cwBhA'
+    - 'aWV4'
+    - 'aQBlA'
+    - 'R2V0'
+    - 'dmFy'
+    - 'dgBhA'
+    - 'dXNpbm'
+    - 'H4sIA'
+    - 'Y21k'
+    - 'cABhAH'
+    - 'Qzpc'
+    - 'Yzpc'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects the suspicious creation of environment variables on Windows systems, which could indicate potential defense evasion or persistence mechanisms by an attacker. The rule monitors changes in the registry related to user-specific or system-wide environment variables, particularly looking for entries that incorporate malicious commands or suspicious strings. It identifies both the creation of these environment variables and their associated characteristics, such as the presence of PowerShell commands, base64-encoded strings, or paths commonly associated with temporary or publicly accessible locations. By analyzing the registry set logs, SOC analysts can quickly pinpoint potential malicious activity that might be attempting to hide or maintain a presence on the system.
+  ### Investigation Steps
+  - Review the relevant registry changes by querying the EDR for any recent modifications to the `\Environment\` key and correlate this with user activity.
+  - Examine process creation logs in your EDR for any related execution events, particularly those involving PowerShell or other potentially suspicious command-line activities that may correspond with the registry modifications.
+  - Analyze network activity using NDR to identify any outbound connections that might be associated with the suspicious environment strings detected, looking for anomalies in traffic patterns.
+  - Query cloud platform logs (e.g., AWS CloudTrail or Azure Monitor) for any unusual configurations or policy changes linked to the affected resources that may indicate lateral movement or attempts to establish persistence.

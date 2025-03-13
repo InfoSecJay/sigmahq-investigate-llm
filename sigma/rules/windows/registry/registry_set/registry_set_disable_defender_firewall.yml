@@ -1,0 +1,37 @@
+title: Disable Microsoft Defender Firewall via Registry
+id: 974515da-6cc5-4c95-ae65-f97f9150ec7f
+status: test
+description: Adversaries may disable or modify system firewalls in order to bypass
+  controls limiting network usage
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1562.004/T1562.004.md#atomic-test-2---disable-microsoft-defender-firewall-via-registry
+author: frack113
+date: 2022-01-09
+modified: 2024-03-25
+tags:
+- attack.defense-evasion
+- attack.t1562.004
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+        # HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\DomainProfile\EnableFirewall
+        # HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PublicProfile\EnableFirewall
+        # HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\StandardProfile\EnableFirewall
+    TargetObject|contains: '\Services\SharedAccess\Parameters\FirewallPolicy\'
+    TargetObject|endswith: '\EnableFirewall'
+    Details: 'DWORD (0x00000000)'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule monitors modifications to the Windows Registry, specifically targeting the settings associated with Microsoft Defender Firewall. Adversaries often disable the firewall to bypass security controls that restrict unauthorized network access, making it crucial to identify any changes to the related registry keys. The rule looks for registry changes under three specific locations in the Windows Registry: the domain, public, and standard profiles of the firewall settings. By auditing for entries that indicate the firewall is disabled (noted by a DWORD value of '0'), the SOC can detect potential evasion techniques employed by attackers.
+  The primary data sources involved in this detection include the registry set logs from Windows. Event logs related to these registry changes are essential to trace user actions or malware behavior that may suggest an attempt to disable protective measures such as firewalls.
+  ### Investigation Steps
+  - Review the relevant Windows Registry changes by leveraging the EDR to track activities around the specified firewall settings and confirm any modifications made.
+  - Analyze process creation logs in the EDR to identify any suspicious executables or scripts that may correlate with the timing of the registry changes.
+  - Examine network traffic through the NDR to determine if any unusual outbound connections occur immediately after the firewall was disabled.
+  - Investigate any corresponding alerts from the NGFW for unauthorized access attempts or anomalous network behavior following the disabling of the firewall.

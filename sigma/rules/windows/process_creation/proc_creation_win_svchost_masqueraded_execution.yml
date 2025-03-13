@@ -1,0 +1,43 @@
+title: Suspicious Process Masquerading As SvcHost.EXE
+id: be58d2e2-06c8-4f58-b666-b99f6dc3b6cd
+related:
+- id: 01d2e2a1-5f09-44f7-9fc1-24faa7479b6d
+  type: similar
+- id: e4a6b256-3e47-40fc-89d2-7a477edd6915
+  type: similar
+status: experimental
+description: |
+  Detects a suspicious process that is masquerading as the legitimate "svchost.exe" by naming its binary "svchost.exe" and executing from an uncommon location.
+  Adversaries often disguise their malicious binaries by naming them after legitimate system processes like "svchost.exe" to evade detection.
+references:
+- https://tria.ge/240731-jh4crsycnb/behavioral2
+- https://redcanary.com/blog/threat-detection/process-masquerading/
+author: Swachchhanda Shrawan Poudel
+date: 2024-08-07
+tags:
+- attack.defense-evasion
+- attack.t1036.005
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\svchost.exe'
+  filter_main_img_location:
+    Image:
+    - 'C:\Windows\System32\svchost.exe'
+    - 'C:\Windows\SysWOW64\svchost.exe'
+  filter_main_ofn:
+    OriginalFileName: 'svchost.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule focuses on detecting potentially malicious processes that are masquerading as the legitimate Windows service host process, "svchost.exe." Adversaries often employ this tactic to evade detection by using the same name for their malicious binaries, thus attempting to blend in with legitimate system activities. The rule specifically monitors process creation logs and looks for any new instances of processes named "svchost.exe" that originate from uncommon file paths, bypassing typical locations like `C:\Windows\System32\svchost.exe` and `C:\Windows\SysWOW64\svchost.exe`. By analyzing the original file name and the execution path, the rule helps highlight discrepancies that could indicate a malicious intent, enabling incident responders to take appropriate action.
+  ### Investigation Steps
+  - Utilize EDR tools to review the details of the identified process, focusing on its parent process and any associated command-line arguments to understand its context. 
+  - Check process creation timestamps and correlate them with other security logs to determine any anomalous behavior or patterns that might indicate broader malicious activity.
+  - Analyze network connections initiated by the suspicious process using NDR tools to identify any unusual destinations or potentially malicious commands being executed.
+  - Review historical logs for similar process behavior and cross-reference with any known indicators of compromise (IOCs) to assess the likelihood of this being a true positive.

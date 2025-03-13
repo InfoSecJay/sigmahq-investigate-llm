@@ -1,0 +1,42 @@
+title: Potentially Suspicious DLL Registered Via Odbcconf.EXE
+id: ba4cfc11-d0fa-4d94-bf20-7c332c412e76
+related:
+- id: 9f0a8bf3-a65b-440a-8c1e-5cb1547c8e70
+  type: derived
+status: test
+description: Detects execution of "odbcconf" with the "REGSVR" action where the DLL
+  in question doesn't contain a ".dll" extension. Which is often used as a method
+  to evade defenses.
+references:
+- https://learn.microsoft.com/en-us/sql/odbc/odbcconf-exe?view=sql-server-ver16
+- https://lolbas-project.github.io/lolbas/Binaries/Odbcconf/
+- https://www.trendmicro.com/en_us/research/17/h/backdoor-carrying-emails-set-sights-on-russian-speaking-businesses.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-22
+tags:
+- attack.defense-evasion
+- attack.t1218.008
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\odbcconf.exe'
+  - OriginalFileName: 'odbcconf.exe'
+  selection_cli:
+        # Note: The "/A" flag is not required to call a specific action
+    CommandLine|contains: 'REGSVR '
+  filter_main_dll_ext:
+    CommandLine|contains: '.dll'
+  condition: all of selection_* and not 1 of filter_main_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule aims to identify the execution of the `odbcconf.exe` utility with the `REGSVR` action while examining the command-line parameters for incongruities. It specifically flags instances where the registered DLL does not have a `.dll` extension, a tactic frequently employed by threat actors to bypass security defenses. By focusing on the process creation logs, the rule assesses both the executable image and its command-line arguments, ensuring that alerts are raised when suspicious patterns are observed. This method allows security teams to spot potential attempts to register malicious payloads masquerading as valid DLLs, enhancing the investigation of potential lateral movement or payload delivery in a Windows environment.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to find instances of `odbcconf.exe` execution with the `REGSVR` command-line argument.
+  - Examine the command-line parameters associated with the identified `odbcconf.exe` processes to confirm that a non-standard or missing `.dll` extension is being registered.
+  - Utilize the NGFW logs to confirm if any outbound connections correlated with the suspicious DLL registration processes could have been attempted.
+  - Verify the presence of any known malicious Indicators of Compromise (IoCs) associated with the detected behavior by cross-referencing threat intelligence feeds.

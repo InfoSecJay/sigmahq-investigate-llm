@@ -1,0 +1,35 @@
+title: Arbitrary File Download Via MSEDGE_PROXY.EXE
+id: e84d89c4-f544-41ca-a6af-4b92fd38b023
+status: test
+description: Detects usage of "msedge_proxy.exe" to download arbitrary files
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/msedge_proxy/
+author: Swachchhanda Shrawan Poudel
+date: 2023-11-09
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\msedge_proxy.exe'
+  - OriginalFileName: 'msedge_proxy.exe'
+  selection_cli:
+    CommandLine|contains:
+    - 'http://'
+    - 'https://'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the usage of `msedge_proxy.exe`, a component associated with Microsoft Edge, to download arbitrary files from the internet. The detection mechanism focuses on two main aspects: the process creation logs that indicate when `msedge_proxy.exe` is executed and the command-line parameters used during its invocation. Specifically, the rule looks for instances where `msedge_proxy.exe` is launched with command-line arguments containing HTTP or HTTPS URLs, which may signal potential malicious behavior, such as unauthorized file downloads. It leverages data sources like process creation logs to capture relevant activity that could indicate attacks involving defense evasion techniques and execution of unwanted content.
+  ### Investigation Steps
+  - Review the related process creation logs in the EDR tool to confirm if `msedge_proxy.exe` was indeed used to initiate a download, noting any unusual command-line arguments.
+  - Analyze network traffic logs via the NDR to identify any connections made to external domains during the time frame of the detected activity, verifying if these domains are known or flagged as malicious.
+  - Consult the Proxy server logs to check if any significant amounts of data were sent or received around the same timeframe as the `msedge_proxy.exe` execution, which may indicate data exfiltration.
+  - Examine alert data from the AV solution to see if any associated files downloaded during this process were flagged as suspicious or malicious, further validating the potential threat.

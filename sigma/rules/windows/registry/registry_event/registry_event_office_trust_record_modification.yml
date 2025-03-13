@@ -1,0 +1,36 @@
+title: Windows Registry Trust Record Modification
+id: 295a59c1-7b79-4b47-a930-df12c15fc9c2
+related:
+- id: a166f74e-bf44-409d-b9ba-ea4b2dd8b3cd
+  type: similar
+status: test
+description: Alerts on trust record modification within the registry, indicating usage
+  of macros
+references:
+- https://outflank.nl/blog/2018/01/16/hunting-for-evil-detect-macros-being-executed/
+- http://az4n6.blogspot.com/2016/02/more-on-trust-records-macros-and.html
+- https://twitter.com/inversecos/status/1494174785621819397
+author: Antonlovesdnb, Trent Liffick (@tliffick)
+date: 2020-02-19
+modified: 2023-06-21
+tags:
+- attack.initial-access
+- attack.t1566.001
+logsource:
+  category: registry_event
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\Security\Trusted Documents\TrustRecords'
+  condition: selection
+falsepositives:
+- This will alert on legitimate macro usage as well, additional tuning is required
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying modifications to trust records within the Windows Registry, specifically targeting the registry path `\Security\Trusted Documents\TrustRecords`. Trust records are linked to the utilization of macros, which are often exploited in malicious documents to execute unauthorized scripts or payloads. By monitoring changes in this registry location, the rule aims to detect potential security incidents, particularly those involving macro-enabled files that could lead to initial access attack vectors, such as phishing. The primary data source utilized for this detection is Windows registry event logs, which capture changes made to the registry.
+  ### Investigation Steps
+  - Use EDR tools to review process creation logs around the time of the alert to identify any recently executed applications that might have interacted with macro files.
+  - Investigate the corresponding command-line parameters of these processes to determine if any were executed with macro or script-based execution methods.
+  - Check for any related alerts or events in the SIEM that indicate heightened activity from endpoints that generated the alert, particularly focusing on the timing of users' interactions with documents.
+  - Examine the Windows event logs for any indicators of legitimate macro usage versus anomalous behavior, ensuring to differentiate false positives from potential threats.

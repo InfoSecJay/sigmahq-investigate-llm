@@ -1,0 +1,38 @@
+title: Sysinternals PsSuspend Execution
+id: 48bbc537-b652-4b4e-bd1d-281172df448f
+related:
+- id: 4beb6ae0-f85b-41e2-8f18-8668abc8af78
+  type: similar
+status: test
+description: Detects usage of Sysinternals PsSuspend which can be abused to suspend
+  critical processes
+references:
+- https://learn.microsoft.com/en-us/sysinternals/downloads/pssuspend
+- https://twitter.com/0gtweet/status/1638069413717975046
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-03-23
+tags:
+- attack.discovery
+- attack.persistence
+- attack.t1543.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - OriginalFileName: 'pssuspend.exe'
+  - Image|endswith:
+    - '\pssuspend.exe'
+    - '\pssuspend64.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of Sysinternals PsSuspend, a tool often used to suspend Windows processes. While it can be legitimately employed for system maintenance, malicious actors may exploit PsSuspend to hinder the operation of security software or other critical processes, thereby facilitating further attacks. The rule works by monitoring process creation logs for instances where the `OriginalFileName` is `pssuspend.exe` or when the image path ends with either `\pssuspend.exe` or `\pssuspend64.exe`. These logs, sourced from the Windows operating system, provide key insights into potentially unauthorized process manipulation.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR to identify the user context under which PsSuspend was executed and any subsequent process activity related to it.
+  - Analyze command-line parameters associated with the detected PsSuspend execution for any suspicious arguments that could indicate malicious intent.
+  - Correlate the timestamp of the event with other security logs (e.g., Firewall or Proxy) to determine if there was unusual network activity or lateral movement during that time.
+  - Check for any related alerts or events in the SIEM that coincide with the use of PsSuspend, focusing on unusual integrations with process suspensions affecting critical system components.

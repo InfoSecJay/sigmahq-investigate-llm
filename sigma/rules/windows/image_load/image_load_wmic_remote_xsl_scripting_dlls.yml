@@ -1,0 +1,41 @@
+title: WMIC Loading Scripting Libraries
+id: 06ce37c2-61ab-4f05-9ff5-b1a96d18ae32
+status: test
+description: Detects threat actors proxy executing code and bypassing application
+  controls by leveraging wmic and the `/FORMAT` argument switch to download and execute
+  an XSL file (i.e js, vbs, etc).
+references:
+- https://securitydatasets.com/notebooks/atomic/windows/defense_evasion/SDWIN-201017061100.html
+- https://twitter.com/dez_/status/986614411711442944
+- https://lolbas-project.github.io/lolbas/Binaries/Wmic/
+author: Roberto Rodriguez (Cyb3rWard0g), OTR (Open Threat Research)
+date: 2020-10-17
+modified: 2022-10-13
+tags:
+- attack.defense-evasion
+- attack.t1220
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\wmic.exe'
+    ImageLoaded|endswith:
+    - '\jscript.dll'
+    - '\vbscript.dll'
+  condition: selection
+falsepositives:
+- The command wmic os get lastboottuptime loads vbscript.dll
+- The command wmic os get locale loads vbscript.dll
+- Since the ImageLoad event doesn't have enough information in this case. It's better
+  to look at the recent process creation events that spawned the WMIC process and
+  investigate the command line and parent/child processes to get more insights
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential misuse of the Windows Management Instrumentation Command-line (WMIC) utility, which threat actors may exploit to execute malicious scripts while bypassing conventional application controls. The rule specifically looks for instances where WMIC is used in conjunction with the `/FORMAT` argument to load specific scripting libraries, such as JScript and VBScript, indicating that an attacker is attempting to download and execute malicious payloads disguised as legitimate script files. The key technical data sources involved include image load events that capture the execution of WMIC along with any loaded DLL files, particularly `jscript.dll` and `vbscript.dll`. This indicates abnormal behavior that warrants further investigation, as it may represent an evasion technique used to circumvent security measures.
+  ### Investigation Steps
+  - Examine recent process creation events to identify the invocation of WMIC and analyze the command line arguments used. This will help determine if malicious scripts were executed.
+  - Review event logs from the EDR for any anomalies related to the WMIC process, including parent-child process relationships to assess the origin of the command.
+  - Check for unusual outbound connections or file downloads associated with the timestamps of the WMIC usage in the proxy and firewall logs.
+  - Conduct a threat intelligence lookup on any associated file paths or scripts to evaluate if they are known indicators of compromise linked to the detected behavior.

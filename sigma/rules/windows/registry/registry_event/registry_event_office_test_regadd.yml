@@ -1,0 +1,32 @@
+title: Office Application Startup - Office Test
+id: 3d27f6dd-1c74-4687-b4fa-ca849d128d1c
+status: test
+description: Detects the addition of office test registry that allows a user to specify
+  an arbitrary DLL that will be executed every time an Office application is started
+references:
+- https://unit42.paloaltonetworks.com/unit42-technical-walkthrough-office-test-persistence-method-used-in-recent-sofacy-attacks/
+author: omkar72
+date: 2020-10-25
+modified: 2023-11-08
+tags:
+- attack.persistence
+- attack.t1137.002
+logsource:
+  category: registry_event
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\Software\Microsoft\Office test\Special\Perf'
+  condition: selection
+falsepositives:
+- Unlikely
+level: medium
+notes: |
+  ### Technical Context
+  The detection rule titled "Office Application Startup 
+  - Office Test" monitors registry changes on Windows systems to identify the presence of a specific key associated with Microsoft Office applications. This key, located at `\Software\Microsoft\Office test\Special\Perf`, can be exploited by malicious actors to specify a custom Dynamic Link Library (DLL) that executes every time an Office application launches. By targeting this registry path, the rule seeks to uncover potential persistence mechanisms employed by threats like Sofacy, which can leverage such methods for maintaining access to compromised systems. The key data sources for this rule are Windows registry event logs, which capture changes made to the registry and allow for identifying unauthorized modifications.
+  ### Investigation Steps
+  - Review recent registry event logs in the EDR solution to identify any changes made to the registry path `\Software\Microsoft\Office test\Special\Perf`. Note the timestamps and user accounts associated with these changes.
+  - Correlate the detected registry changes with any active processes in your EDR to ascertain if any Office applications are currently running which may have been manipulated.
+  - Conduct an analysis of any associated or recently loaded DLLs linked to the Office applications in question, utilizing the EDR or AV tools to check for known malicious signatures.
+  - Investigate additional logs (such as proxy or cloud service logs) that might indicate unusual file downloads or external communications initiated by the affected Office applications. This can help identify if there were any preceding actions leading to the registry change.

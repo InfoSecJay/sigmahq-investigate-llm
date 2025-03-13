@@ -1,0 +1,44 @@
+title: Atbroker Registry Change
+id: 9577edbb-851f-4243-8c91-1d5b50c1a39b
+status: test
+description: Detects creation/modification of Assistive Technology applications and
+  persistence with usage of 'at'
+references:
+- http://www.hexacorn.com/blog/2016/07/22/beyond-good-ol-run-key-part-42/
+- https://lolbas-project.github.io/lolbas/Binaries/Atbroker/
+author: Mateusz Wydra, oscd.community
+date: 2020-10-13
+modified: 2023-01-19
+tags:
+- attack.defense-evasion
+- attack.t1218
+- attack.persistence
+- attack.t1547
+logsource:
+  category: registry_event
+  product: windows
+detection:
+  selection:
+    TargetObject|contains:
+    - 'Software\Microsoft\Windows NT\CurrentVersion\Accessibility\ATs'
+    - 'Software\Microsoft\Windows NT\CurrentVersion\Accessibility\Configuration'
+  filter_atbroker:
+    Image: 'C:\Windows\system32\atbroker.exe'
+    TargetObject|contains: '\Microsoft\Windows NT\CurrentVersion\Accessibility\Configuration'
+    Details: '(Empty)'
+  filter_uninstallers:
+    Image|startswith: 'C:\Windows\Installer\MSI'
+    TargetObject|contains: 'Software\Microsoft\Windows NT\CurrentVersion\Accessibility\ATs'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Creation of non-default, legitimate at usage
+level: medium
+notes: |
+  ### Technical Context
+  The "Atbroker Registry Change" detection rule is designed to monitor and flag suspicious changes related to Assistive Technology applications in the Windows registry. It specifically looks for interactions with the registry keys associated with accessibility features, particularly tracking the creation or modification of entries under `Software\Microsoft\Windows NT\CurrentVersion\Accessibility\ATs` and `Software\Microsoft\Windows NT\CurrentVersion\Accessibility\Configuration`. The rule is sensitive to operations performed by the `atbroker.exe` executable, which is integral to the functioning of assistive technologies.
+  By leveraging registry event logs as the primary data source, this detection rule targets behaviors indicative of persistence mechanisms that may be used by attackers to establish footholds. Additionally, it includes checks to differentiate between legitimate modifications and those that may signify malicious activities, such as alterations by non-default installation processes or unauthorized executables. The outcome helps analysts identify potential misuse of accessibility features for malicious purposes.
+  ### Investigation Steps
+  - Check EDR logs to identify the process associated with the registry modification, focusing on `atbroker.exe` and its parent processes to assess legitimacy.
+  - Review other relevant registry events around the same timestamp to determine if this modification was part of a larger malicious campaign or trend.
+  - Analyze command-line parameters for `atbroker.exe` in EDR logs to gather context on how it was invoked and whether it exhibits any suspicious behavior.
+  - Examine network traffic logs from the NGFW or NDR to identify any unusual connections made by systems where these registry changes occurred, which may indicate further malicious activity.

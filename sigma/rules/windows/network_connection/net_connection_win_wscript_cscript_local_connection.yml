@@ -1,0 +1,47 @@
+title: Local Network Connection Initiated By Script Interpreter
+id: 08249dc0-a28d-4555-8ba5-9255a198e08c
+related:
+- id: 992a6cae-db6a-43c8-9cec-76d7195c96fc
+  type: derived
+status: test
+description: |
+  Detects a script interpreter (Wscript/Cscript) initiating a local network connection to download or execute a script hosted on a shared folder.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/28d190330fe44de6ff4767fc400cc10fa7cd6540/atomics/T1105/T1105.md
+author: frack113
+date: 2022-08-28
+modified: 2024-05-31
+tags:
+- attack.command-and-control
+- attack.t1105
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Initiated: 'true'
+    Image|endswith:
+    - '\wscript.exe'
+    - '\cscript.exe'
+        # Note: This list is added to avoid duplicate alerting with 992a6cae-db6a-43c8-9cec-76d7195c96fc
+    DestinationIp|cidr:
+    - '127.0.0.0/8'
+    - '10.0.0.0/8'
+    - '172.16.0.0/12'
+    - '192.168.0.0/16'
+    - '169.254.0.0/16'
+    - '::1/128'          # IPv6 loopback
+    - 'fe80::/10'          # IPv6 link-local addresses
+    - 'fc00::/7'          # IPv6 private addresses
+  condition: selection
+falsepositives:
+- Legitimate scripts
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify suspicious activity involving script interpreters, specifically Wscript and Cscript, initiating local network connections. The focus of the rule is on cases where these interpreters are used to download or execute scripts hosted on shared folders within local or private networks. The detection leverages data from network connection logs, monitoring the properties of the connection attempts; it specifically looks for connections initiated by processes ending with ‘wscript.exe’ or ‘cscript.exe’, filtering for local and private IP address ranges. As network connections can be legitimate or malicious, this rule aims to flag potential command and control activities while allowing for reasonable false positives from legitimate script usage.
+  ### Investigation Steps
+  - Review alerts in EDR to correlate the initiated connections with process creations, examining the command-line parameters of any associated Wscript or Cscript instances.
+  - Check the proxy logs for any recently accessed shared folders or scripts, analyzing URLs and resources requested around the time of the alert.
+  - Validate source IP addresses and review network behavior patterns from network detection logs to discern if the activity aligns with normal operations or if it deviates suspiciously.
+  - Investigate user activity and file access logs in shared locations to identify if any unauthorized scripts were introduced or executed leading up to the alert.

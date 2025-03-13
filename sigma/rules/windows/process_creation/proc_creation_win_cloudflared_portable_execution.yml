@@ -1,0 +1,38 @@
+title: Cloudflared Portable Execution
+id: fadb84f0-4e84-4f6d-a1ce-9ef2bffb6ccd
+status: test
+description: |
+  Detects the execution of the "cloudflared" binary from a non standard location.
+references:
+- https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/
+- https://github.com/cloudflare/cloudflared
+- https://www.intrinsec.com/akira_ransomware/
+- https://www.guidepointsecurity.com/blog/tunnel-vision-cloudflared-abused-in-the-wild/
+- https://github.com/cloudflare/cloudflared/releases
+author: Nasreddine Bencherchali (Nextron Systems)
+tags:
+- attack.command-and-control
+- attack.t1090.001
+date: 2023-12-20
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\cloudflared.exe'
+  filter_main_admin_location:
+    Image|contains:
+    - ':\Program Files (x86)\cloudflared\'
+    - ':\Program Files\cloudflared\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Legitimate usage of Cloudflared portable versions
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule aims to identify the execution of the "cloudflared" binary from non-standard locations on Windows systems. Cloudflared is a tool developed by Cloudflare that allows users to create secure tunnels to their services. However, when deployed from unexpected or non-standard paths, it can indicate potential misuse, such as malicious actors attempting to circumvent security controls or establish unauthorized connections. The rule leverages process creation logs as the primary data source, specifically monitoring instances where the executable ends with 'cloudflared.exe'. To further refine the detection signal, the rule excludes executions from standard installation directories typically associated with legitimate use, such as `C:\Program Files\cloudflared\` and `C:\Program Files (x86)\cloudflared\`.
+  ### Investigation Steps
+  - Review EDR logs to identify the full command-line parameters used during the execution of the cloudflared process and correlate them with known attack patterns. 
+  - Analyze any related process creation logs that may indicate parent processes or subsequent connections made by cloudflared to assess the context of its execution.
+  - Check the firewall and proxy logs for any unusual outbound traffic patterns that may correspond to the timestamps of the cloudflared execution.
+  - Investigate any associated user accounts or access patterns that executed cloudflared to determine if the access appears legitimate or if it deviates from standard operational behavior.

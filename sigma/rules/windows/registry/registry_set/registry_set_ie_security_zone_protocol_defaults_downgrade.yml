@@ -1,0 +1,40 @@
+title: IE ZoneMap Setting Downgraded To MyComputer Zone For HTTP Protocols
+id: 3fd4c8d7-8362-4557-a8e6-83b29cc0d724
+related:
+- id: 10344bb3-7f65-46c2-b915-2d00d47be5b0
+  type: similar
+status: test
+description: |
+  Detects changes to Internet Explorer's (IE / Windows Internet properties) ZoneMap configuration of the "HTTP" and "HTTPS" protocols to point to the "My Computer" zone. This allows downloaded files from the Internet to be granted the same level of trust as files stored locally.
+references:
+- https://twitter.com/M_haggis/status/1699056847154725107
+- https://twitter.com/JAMESWT_MHT/status/1699042827261391247
+- https://learn.microsoft.com/en-us/troubleshoot/developer/browsers/security-privacy/ie-security-zones-registry-entries
+- https://www.virustotal.com/gui/file/339ff720c74dc44265b917b6d3e3ba0411d61f3cd3c328e9a2bae81592c8a6e5/content
+author: Nasreddine Bencherchali (Nextron Systems), Michael Haag (idea)
+date: 2023-09-05
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject|contains: '\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\ProtocolDefaults'
+    TargetObject|endswith:
+    - '\http'
+    - '\https'
+    Details|contains: 'DWORD (0x00000000)'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule aims to detect modifications in Internet Explorer's ZoneMap settings, specifically changes that downgrade the trust level of HTTP and HTTPS protocols to the "My Computer" zone. Such adjustments can pose significant security risks, as they enable files downloaded from the Internet to be treated with local file trust, increasing vulnerability to potentially harmful downloads. The rule utilizes data from Windows registry modification logs, specifically targeting entries under `HKEY_CURRENT_USER\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\ProtocolDefaults` that indicate a change to a DWORD value of `0x00000000` for both HTTP and HTTPS protocols.
+  By monitoring these specific registry changes, the rule helps identify potential malicious activities or misconfigurations that could lead to exploitation, thus enabling early mitigation of risks associated with internet-borne threats. This detection is particularly critical for environments heavily reliant on Internet Explorer for accessing external resources.
+  ### Investigation Steps
+  - Review Windows registry logs using EDR tools to identify when the ZoneMap settings were altered and who made the changes.
+  - Analyze the command-line parameters and process creation logs around the time the modification occurred to identify any unusual or unauthorized processes that may have executed.
+  - Check relevant network traffic logs from the firewall and proxy to monitor any outbound connections to suspicious IP addresses or domains that may correlate with the timing of the registry change.
+  - Investigate any user activity and downloaded files associated with the affected user account, particularly focusing on files downloaded just before the registry modification.

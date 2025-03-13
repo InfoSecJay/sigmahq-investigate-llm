@@ -1,0 +1,36 @@
+title: Potential WerFault ReflectDebugger Registry Value Abuse
+id: 0cf2e1c6-8d10-4273-8059-738778f981ad
+related:
+- id: fabfb3a7-3ce1-4445-9c7c-3c27f1051cdd
+  type: derived
+status: test
+description: Detects potential WerFault "ReflectDebugger" registry value abuse for
+  persistence.
+references:
+- https://cocomelonc.github.io/malware/2022/11/02/malware-pers-18.html
+- https://www.hexacorn.com/blog/2018/08/31/beyond-good-ol-run-key-part-85/
+author: X__Junior
+date: 2023-05-18
+tags:
+- attack.defense-evasion
+- attack.t1036.003
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    EventType: 'SetValue'
+    TargetObject|endswith: '\Microsoft\Windows\Windows Error Reporting\Hangs\ReflectDebugger'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potential abuse of the "ReflectDebugger" registry value within the Windows Error Reporting (WerFault) framework. The "ReflectDebugger" setting allows the application to debug itself, which malicious actors can manipulate to maintain persistence on compromised systems. By monitoring for registry changes specifically linked to the ReflectDebugger path, the rule can alert security teams to suspicious modifications that may indicate an attempt to bypass security measures.
+  Data sources involved in this detection include Windows registry logs, specifically monitoring for "SetValue" events in the target object path: `\Microsoft\Windows\Windows Error Reporting\Hangs\ReflectDebugger`. When such a change is detected, it raises an alert to signal potential misuse, enabling security teams to take appropriate investigative actions.
+  ### Investigation Steps
+  - Review EDR logs for any related process activity at the time of the registry modification to identify potential malicious processes.
+  - Analyze associated command-line parameters and parent processes of any suspicious activities to determine if they align with known malware behavior.
+  - Check Windows Event Logs to correlate the timing of the registry change with any other anomalous events that may suggest lateral movement or persistence tactics.
+  - Examine network logs (from your NGFW or NDR) for any unusual outbound connections from the affected system that may indicate data exfiltration or further compromise.

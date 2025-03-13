@@ -1,0 +1,51 @@
+title: PUA - AdvancedRun Suspicious Execution
+id: fa00b701-44c6-4679-994d-5a18afa8a707
+related:
+- id: d2b749ee-4225-417e-b20e-a8d2193cbb84
+  type: similar
+status: test
+description: Detects the execution of AdvancedRun utility in the context of the TrustedInstaller,
+  SYSTEM, Local Service or Network Service accounts
+references:
+- https://twitter.com/splinter_code/status/1483815103279603714
+- https://medium.com/s2wblog/analysis-of-destructive-malware-whispergate-targeting-ukraine-9d5d158f19f3
+- https://www.elastic.co/security-labs/operation-bleeding-bear
+- https://www.winhelponline.com/blog/run-program-as-system-localsystem-account-windows/
+author: Florian Roth (Nextron Systems)
+date: 2022-01-20
+modified: 2023-02-21
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1134.002
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    CommandLine|contains:
+    - '/EXEFilename'
+    - '/CommandLine'
+  selection_runas:
+  - CommandLine|contains:
+    - ' /RunAs 8 '
+    - ' /RunAs 4 '
+    - ' /RunAs 10 '
+    - ' /RunAs 11 '
+  - CommandLine|endswith:
+    - '/RunAs 8'
+    - '/RunAs 4'
+    - '/RunAs 10'
+    - '/RunAs 11'
+  condition: all of selection*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets the execution of the AdvancedRun utility, particularly when it's invoked under privileged accounts like TrustedInstaller, SYSTEM, Local Service, or Network Service. AdvancedRun allows users to run programs with different account privileges, and its misuse can indicate an attempt to escalate privileges or execute malicious activities undetected. The rule analyzes process creation logs focusing on specific command line parameters associated with AdvancedRun. It looks for command lines that include '/EXEFilename' or '/CommandLine', as well as specific run command parameters (e.g., '/RunAs 8', '/RunAs 4') to identify potential abuse of the tool. By correlating this data with the context of the account used, security analysts can assess the legitimacy of the execution.
+  ### Investigation Steps
+  - Review process creation logs in the EDR platform to identify instances where AdvancedRun was executed. Pay attention to the user account associated with these executions, particularly if they are privileged accounts.
+  - Analyze command line arguments for AdvancedRun executions, focusing on any instances of '/RunAs' followed by numerical identifiers indicating elevated permissions.
+  - Check for related activities in your SIEM that showcase other suspicious behavior tied to the accounts in question, particularly logins from unusual locations or times.
+  - Investigate system logs and any network traffic associated with the process to determine if there are further indicators of compromise or anomalous behavior related to the execution of AdvancedRun.

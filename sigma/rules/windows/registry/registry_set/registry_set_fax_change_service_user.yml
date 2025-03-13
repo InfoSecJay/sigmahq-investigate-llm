@@ -1,0 +1,35 @@
+title: Change User Account Associated with the FAX Service
+id: e3fdf743-f05b-4051-990a-b66919be1743
+status: test
+description: Detect change of the user account associated with the FAX service to
+  avoid the escalation problem.
+references:
+- https://twitter.com/dottor_morte/status/1544652325570191361
+- https://raw.githubusercontent.com/RiccardoAncarani/talks/master/F-Secure/unorthodox-lateral-movement.pdf
+author: frack113
+date: 2022-07-17
+modified: 2022-12-30
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject: HKLM\System\CurrentControlSet\Services\Fax\ObjectName
+  filter:
+    Details|contains: NetworkService
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This rule aims to detect unauthorized changes to the user account associated with the FAX service on Windows systems. Specifically, it monitors the Windows registry at the path `HKLM\System\CurrentControlSet\Services\Fax\ObjectName`, looking for alterations where the account is switched away from the expected "NetworkService" account. Changes here can be indicative of lateral movement tactics used by attackers to escalate privileges or establish persistence within the environment. By scrutinizing these registry modifications, the rule provides an important layer of visibility into potential defense evasion tactics being employed.
+  The data sources involved in this detection rule include Windows registry events that track modifications to service configuration settings, allowing SOC analysts to identify suspicious changes in user accounts linked to critical services. Responders can leverage this information to understand the context around potential misuse of service accounts, thereby enhancing their incident response efforts.
+  ### Investigation Steps
+  - Utilize EDR solutions to analyze the timeline of user account changes related to the FAX service, focusing on recent modifications and associated user and process information. 
+  - Review process creation logs and command-line parameters to identify any unusual processes that may have been executed around the time of the detected registry change.
+  - Check Windows event logs for security audits around service account configurations. Look for any logged events that may provide context or correlate with unauthorized changes.
+  - Analyze network logs, including traffic to and from critical systems, to look for any signs of lateral movement or suspicious behavior following the registry change alert.

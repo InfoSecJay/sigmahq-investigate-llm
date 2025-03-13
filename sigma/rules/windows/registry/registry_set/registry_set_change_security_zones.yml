@@ -1,0 +1,42 @@
+title: IE Change Domain Zone
+id: 45e112d0-7759-4c2a-aa36-9f8fb79d3393
+related:
+- id: d88d0ab2-e696-4d40-a2ed-9790064e66b3
+  type: derived
+status: test
+description: Hides the file extension through modification of the registry
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1112/T1112.md#atomic-test-4---add-domain-to-trusted-sites-zone
+- https://learn.microsoft.com/en-us/troubleshoot/developer/browsers/security-privacy/ie-security-zones-registry-entries
+author: frack113
+date: 2022-01-22
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.t1137
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection_domains:
+    TargetObject|contains: \SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\Domains\
+  filter:
+    Details:
+    - DWORD (0x00000000)         # My Computer
+    - DWORD (0x00000001)         # Local Intranet Zone
+    - '(Empty)'
+  condition: selection_domains and not filter
+falsepositives:
+- Administrative scripts
+level: medium
+notes: |
+  ### Technical Context
+  The "IE Change Domain Zone" detection rule is designed to identify unauthorized changes made to the Windows registry that could hide file extensions, specifically within the Internet Explorer security zones settings. The rule looks for modifications to the registry path `SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\Domains\` where domains can be added or altered. This activity may be indicative of security evasion techniques that allows malicious files to bypass security controls by hiding their true extensions or modifying trusted sites settings. The primary data sources for this detection include Windows registry change logs, specifically targeting `registry_set` events.
+  ### Investigation Steps
+  Investigate the system's registry modifications to confirm unauthorized changes by examining the relevant `registry_set` logs in your EDR tool.
+   
+  Check for any associated process creations or command-line executions around the time of the registry modification, especially with unusual behavior in log files or network requests.
+   
+  Analyze user activity logs in the proxy server to identify any suspicious web access or downloads that occurred following the registry change.
+   
+  Consult any antivirus logs to see if any detected malware activity correlates with the registry modification timestamp, which could indicate exploitation attempts.

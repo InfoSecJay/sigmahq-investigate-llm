@@ -1,0 +1,41 @@
+title: HackTool - Stracciatella Execution
+id: 7a4d9232-92fc-404d-8ce1-4c92e7caf539
+status: test
+description: Detects Stracciatella which executes a Powershell runspace from within
+  C# (aka SharpPick technique) with AMSI, ETW and Script Block Logging disabled based
+  on PE metadata characteristics.
+references:
+- https://github.com/mgeeky/Stracciatella
+author: pH-T (Nextron Systems)
+date: 2023-04-17
+modified: 2024-11-23
+tags:
+- attack.execution
+- attack.defense-evasion
+- attack.t1059
+- attack.t1562.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\Stracciatella.exe'
+  - OriginalFileName: 'Stracciatella.exe'
+  - Description: 'Stracciatella'
+  - Hashes|contains:
+    - 'SHA256=9d25e61ec1527e2a69d7c2a4e3fe2fe15890710c198a66a9f25d99fdf6c7b956'
+    - 'SHA256=fd16609bd9830c63b9413671678bb159b89c357d21942ddbb6b93add808d121a'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+
+notes: |
+  ### Technical Context
+  The Sigma rule titled "HackTool 
+  - Stracciatella Execution" is designed to detect the execution of a malicious tool known as Stracciatella, which exploits the SharpPick technique to run PowerShell scripts via a .NET runspace. This rule focuses on identifying the process creation of the executable file Stracciatella.exe. It leverages specific metadata characteristics of the executable, including its original file name, description, and hash signatures, while also accounting for mitigations such as AMSI and ETW logging being disabled. By monitoring process creation logs for these indicators, the rule effectively flags potentially harmful activities that align with known attack patterns, especially those related to the execution of unauthorized scripts and evasion of security mechanisms.
+  ### Investigation Steps
+  - Utilize your EDR solution to search for the execution of `Stracciatella.exe` within the relevant timeframe, checking for any related processes that may indicate further malicious activity.
+  - Review command-line parameters associated with the process in the EDR to identify any unusual or suspicious arguments that may indicate latent malware behavior or exploitation attempts.
+  - Analyze network traffic logs via NDR or proxy logs to detect any attempts made by the Stracciatella process to communicate with known malicious IP addresses or domains.
+  - Examine system event logs and audit logs in the cloud environment (if applicable) to trace the origin of the Stracciatella execution and identify any potentially compromised accounts or lateral movement paths.

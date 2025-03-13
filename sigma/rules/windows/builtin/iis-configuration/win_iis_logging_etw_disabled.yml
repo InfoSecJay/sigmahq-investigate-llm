@@ -1,0 +1,37 @@
+title: ETW Logging/Processing Option Disabled On IIS Server
+id: a5b40a90-baf5-4bf7-a6f7-373494881d22
+status: experimental
+description: Detects changes to of the IIS server configuration in order to disable/remove
+  the ETW logging/processing option.
+references:
+- https://learn.microsoft.com/en-us/iis/manage/provisioning-and-managing-iis/configure-logging-in-iis
+- https://www.microsoft.com/en-us/security/blog/2022/12/12/iis-modules-the-evolution-of-web-shells-and-how-to-detect-them/
+- https://learn.microsoft.com/en-us/iis/configuration/system.applicationhost/sites/sitedefaults/logfile/
+author: frack113, Nasreddine Bencherchali
+date: 2024-10-06
+tags:
+- attack.defense-evasion
+- attack.t1562.002
+- attack.t1505.004
+logsource:
+  product: windows
+  service: iis-configuration
+detection:
+  selection:
+    EventID: 29
+    Configuration|endswith: '@logTargetW3C'
+    OldValue|contains: 'ETW'
+  filter_main_etw_added:
+    NewValue|contains: 'ETW'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Legitimate administrator activity
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potential malicious configurations made to Internet Information Services (IIS) servers, specifically targeting changes that disable or remove ETW (Event Tracing for Windows) logging features. ETW logging is crucial for monitoring application behavior and detecting unauthorized activities. The rule examines IIS configuration logs for Event ID 29, which indicates modifications in the logging configuration. It captures instances where the old configuration included "ETW" but is being changed to exclude it, thereby signaling an intent to reduce the visibility of certain events. The primary data source for this rule involves IIS server configuration logs, which help determine if any inappropriate changes have been made to the logging mechanism.
+  ### Investigation Steps
+  - Review the IIS configuration logs within your EDR solution to identify the timestamp of the change and the user account that executed it. Correlate this information with other user activities around the same timeframe.
+  - Query the associated process creation logs to determine if any suspicious processes were initiated by the user account responsible for the IIS configuration change. Look for unusual scripts or commands that may indicate compromised behavior.
+  - Check the access logs from the web server to analyze traffic patterns before and after the configuration change. A sudden spike in traffic or attempts from known malicious IP addresses can indicate exploitation attempts.
+  - Conduct a thorough scan of the IIS server for any installed modules or web shells that may have been introduced post-configuration change. Leverage your AV and NDR tools for deeper analysis of potential threats present on the server.

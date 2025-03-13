@@ -1,0 +1,73 @@
+title: Rundll32 Execution With Uncommon DLL Extension
+id: c3a99af4-35a9-4668-879e-c09aeb4f2bdf
+status: test
+description: Detects the execution of rundll32 with a command line that doesn't contain
+  a common extension
+references:
+- https://twitter.com/mrd0x/status/1481630810495139841?s=12
+author: Tim Shelton, Florian Roth (Nextron Systems), Yassine Oukessou
+date: 2022-01-13
+modified: 2024-04-04
+tags:
+- attack.defense-evasion
+- attack.t1218.011
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\rundll32.exe'
+  - OriginalFileName: 'RUNDLL32.EXE'
+  filter_main_null:
+    CommandLine:
+  filter_main_empty:
+    CommandLine: ''
+  filter_main_known_extension:
+  - CommandLine|contains:
+              # Note: This aims to cover: single and double quotes in addition to spaces and comma "," usage.
+    - '.cpl '
+    - '.cpl,'
+    - '.cpl"'
+    - ".cpl'"
+    - '.dll '
+    - '.dll,'
+    - '.dll"'
+    - ".dll'"
+    - '.inf '
+    - '.inf,'
+    - '.inf"'
+    - ".inf'"
+  - CommandLine|endswith:
+              # Note: This aims to cover: single and double quotes in addition to spaces and comma "," usage.
+    - '.cpl'
+    - '.dll'
+    - '.inf'
+  filter_main_localserver:
+    CommandLine|contains: ' -localserver '
+  filter_main_zzzzInvokeManagedCustomActionOutOfProc:
+    ParentImage|endswith: '\msiexec.exe'
+    CommandLine|contains|all:
+    - ':\Windows\Installer\'
+    - '.tmp'
+    - 'zzzzInvokeManagedCustomActionOutOfProc'
+  filter_optional_EdgeUpdate:
+    ParentCommandLine|contains|all:
+    - ':\Users\'
+    - '\AppData\Local\Microsoft\EdgeUpdate\Install\{'
+    - '\EDGEMITMP_'
+    - '.tmp\setup.exe'
+    - '--install-archive='
+    - '--previous-version='
+    - '--msedgewebview --verbose-logging --do-not-launch-msedge --user-level'
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially malicious executions of the Windows `rundll32.exe` utility that involve uncommon Dynamic Link Library (DLL) extensions. `Rundll32.exe` is a legitimate Windows component used to execute functions stored in DLL files, but it can be exploited by attackers to run harmful scripts or malware disguised as legitimate DLLs. The rule triggers on command lines associated with `rundll32.exe` that do not include common extensions such as `.dll`, `.cpl`, or `.inf`, which are typically used for legitimate DLL executions. The detection leverages process creation logs to scrutinize command-line parameters, specifically looking for any usage of `rundll32.exe` along with filtering out known safe behaviors to reduce false positives.
+  ### Investigation Steps
+  - Review recent process creation events in your EDR tool for instances of `rundll32.exe` and analyze the associated command-line parameters to identify any anomalies or unusual extensions.
+  - Correlate the findings with your SIEM by investigating related alerts or events around the same time frame, focusing on activities involving the same user or originating from the same host.
+  - Check your antivirus and endpoint protection logs to identify whether any previously known malicious DLL files were flagged or quarantined during the execution of `rundll32.exe`.
+  - Examine network logs from your NGFW or proxy to see if there were any suspicious outbound connections made by the affected host immediately following the execution, which may indicate data exfiltration or command-and-control activity.

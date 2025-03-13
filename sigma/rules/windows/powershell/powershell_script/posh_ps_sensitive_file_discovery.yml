@@ -1,0 +1,44 @@
+title: Powershell Sensitive File Discovery
+id: 7d416556-6502-45b2-9bad-9d2f05f38997
+related:
+- id: d23f2ba5-9da0-4463-8908-8ee47f614bb9
+  type: derived
+status: test
+description: Detect adversaries enumerate sensitive files
+references:
+- https://twitter.com/malmoeb/status/1570814999370801158
+author: frack113
+date: 2022-09-16
+tags:
+- attack.discovery
+- attack.t1083
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_action:
+    ScriptBlockText|contains:
+    - ls
+    - get-childitem
+    - gci
+  selection_recurse:
+    ScriptBlockText|contains: '-recurse'
+  selection_file:
+    ScriptBlockText|contains:
+    - '.pass'
+    - '.kdbx'
+    - '.kdb'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This rule is designed to detect instances where PowerShell scripts are used to enumerate potentially sensitive files on Windows systems. The detection hinges on monitoring ScriptBlock logging, which captures the contents of PowerShell scripts as they are executed. The rule looks for specific commands such as `ls`, `get-childitem`, or its alias `gci`—especially when combined with the `-recurse` flag, indicating that the script is recursing through directories to locate files. Additionally, it checks for the presence of file extensions associated with sensitive data, such as `.pass`, `.kdbx`, and `.kdb`, which could signify an attempt to discover password stores or other secretive information. 
+  To successfully trigger an alert, all selected patterns must be present in the executed scripts, indicating that an adversary might be enumerating sensitive files for malicious purposes.
+  ### Investigation Steps
+  - Examine PowerShell logs in your EDR to identify the specific command execution and context, ensuring that Script Block Logging is enabled for thorough analysis. 
+  - Review associated process creation events to trace the parent process that initiated the PowerShell script, helping to understand the overall attack vector.
+  - Query endpoint antivirus logs for any detections or alerts that may correspond to the execution of the detected PowerShell commands.
+  - Analyze file access logs or database logs from cloud storage services (if applicable) to see if there are any anomalies related to sensitive files following the alert.

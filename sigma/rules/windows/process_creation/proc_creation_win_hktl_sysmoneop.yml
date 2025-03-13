@@ -1,0 +1,35 @@
+title: HackTool - SysmonEOP Execution
+id: 8a7e90c5-fe6e-45dc-889e-057fe4378bd9
+status: test
+description: Detects the execution of the PoC that can be used to exploit Sysmon CVE-2022-41120
+references:
+- https://github.com/Wh04m1001/SysmonEoP
+author: Florian Roth (Nextron Systems)
+date: 2022-12-04
+modified: 2024-11-23
+tags:
+- cve.2022-41120
+- attack.t1068
+- attack.privilege-escalation
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+    Image|endswith: '\SysmonEOP.exe'
+  selection_hash:
+    Hashes|contains:
+    - 'IMPHASH=22F4089EB8ABA31E1BB162C6D9BF72E5'
+    - 'IMPHASH=5123FA4C4384D431CD0D893EEB49BBEC'
+  condition: 1 of selection_*
+falsepositives:
+- Unlikely
+level: critical
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of a specific proof-of-concept (PoC) tool, SysmonEOP, which exploits a known vulnerability in Sysmon (CVE-2022-41120). It monitors process creation events on Windows systems, looking for instances where the executable file `SysmonEOP.exe` is invoked. The rule employs checks for specific Import Hashes associated with known variants of the PoC, which are characterized by unique signatures that help differentiate benign software from this potentially malicious tool. By leveraging process creation logs, this rule aids in the identification of unauthorized privilege escalation attempts in the environment.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify instances of `SysmonEOP.exe` execution. Check for timestamps and affected systems to understand potential compromise timelines.
+  - Analyze the command-line parameters associated with the detected executions to ascertain the intent behind running the PoC. Look for unusual flags that deviate from standard operational practices.
+  - Correlate the alert with additional data sources, such as AV logs, to determine if any alerts or detections were triggered by the tool's execution. This may provide context on responses or failures of preventive measures.
+  - Investigate user activity logs to identify the user or process that initiated the execution of the SysmonEOP tool. Determine if this action was within the expected boundaries of user behavior or indicative of malicious activity.

@@ -1,0 +1,48 @@
+title: Potential Recon Activity Using DriverQuery.EXE
+id: 9fc3072c-dc8f-4bf7-b231-18950000fadd
+related:
+- id: a20def93-0709-4eae-9bd2-31206e21e6b2
+  type: similar
+status: test
+description: Detect usage of the "driverquery" utility to perform reconnaissance on
+  installed drivers
+references:
+- https://thedfirreport.com/2023/01/09/unwrapping-ursnifs-gifts/
+- https://www.vmray.com/cyber-security-blog/analyzing-ursnif-behavior-malware-sandbox/
+- https://www.fireeye.com/blog/threat-research/2020/01/saigon-mysterious-ursnif-fork.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-19
+modified: 2023-09-29
+tags:
+- attack.discovery
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: 'driverquery.exe'
+  - OriginalFileName: 'drvqry.exe'
+  selection_parent:
+  - ParentImage|endswith:
+    - '\cscript.exe'
+    - '\mshta.exe'
+    - '\regsvr32.exe'
+    - '\rundll32.exe'
+    - '\wscript.exe'
+  - ParentImage|contains:
+    - '\AppData\Local\'
+    - '\Users\Public\'
+    - '\Windows\Temp\'
+  condition: all of selection_*
+falsepositives:
+- Legitimate usage by some scripts might trigger this as well
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potential reconnaissance activities that leverage the Windows utility `driverquery.exe`. Specifically, it focuses on instances where this utility may be employed by suspicious parent processes such as `cscript.exe`, `mshta.exe`, or `wscript.exe`, indicating a potentially nefarious intent. The rule targets process creation logs to track when `driverquery.exe` is executed, particularly under unusual conditions, such as originating from directory paths often associated with temporary or user-specific application data. This behavior can signify an attacker is attempting to gather information about installed drivers on a system, which can be a precursor to further exploitation.
+  By analyzing this behavior, incident responders can better understand whether `driverquery.exe` activity is a benign, legitimate task or a part of a larger malicious operation. The data sources primarily involve Windows process creation logs (capturing the execution context and parent-child process relationships) and file metadata to determine the legitimacy of the command.
+  ### Investigation Steps
+  - Review process creation logs in the EDR to identify occurrences of `driverquery.exe`, along with their parent processes, time of execution, and the user context under which they ran.
+  - Check for any corresponding activities logged in the AV solution that may have flagged or quarantined suspicious files, especially those related to the identified parent processes.
+  - Analyze network logs in the NDR or Proxy for any unusual outbound connections initiated shortly after the execution of `driverquery.exe`, which may indicate data exfiltration attempts.
+  - Correlate findings with system event logs to assess whether there are any changes to driver configurations or installations around the same timeframe, which could suggest unauthorized alterations.

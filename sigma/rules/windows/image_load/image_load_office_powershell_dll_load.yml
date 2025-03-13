@@ -1,0 +1,38 @@
+title: PowerShell Core DLL Loaded Via Office Application
+id: bb2ba6fb-95d4-4a25-89fc-30bb736c021a
+status: test
+description: Detects PowerShell core DLL being loaded by an Office Product
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-06-01
+tags:
+- attack.defense-evasion
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\excel.exe'
+    - '\mspub.exe'
+    - '\outlook.exe'
+    - '\onenote.exe'
+    - '\onenoteim.exe'         # Just in case
+    - '\powerpnt.exe'
+    - '\winword.exe'
+    ImageLoaded|contains:
+    - '\System.Management.Automation.Dll'
+    - '\System.Management.Automation.ni.Dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the anomalous loading of PowerShell core DLLs by Microsoft Office applications, specifically Excel, Publisher, Outlook, OneNote, PowerPoint, and Word. The detection mechanism focuses on image loading events within Windows where these specific Office application executables attempt to load the `System.Management.Automation.dll` or its native image counterpart. Such behavior is unusual and may indicate an attempt by threat actors to evade detection mechanisms by utilizing legitimate Office applications as a vehicle for executing PowerShell commands. By monitoring this activity, the rule aims to identify potential malicious use of Office products, thereby enhancing the security posture of the enterprise environment.
+  ### Investigation Steps
+  - Utilize the EDR tool to check the process creation logs for the Office applications mentioned in the rule around the time of the alert to identify any suspicious behaviors or command-line parameters that may indicate misuse.
+  - Review the logs from your SIEM for any unusual network activity associated with the Office applications, looking for anomalous outbound connections that could indicate data exfiltration or command-and-control communications.
+  - Inspect the security logs from the NGFW to identify any blocked traffic related to the IP addresses or domains accessed by the Office applications corresponding to the alert.
+  - Analyze the application logs or alerts from the AV to see if any known malicious scripts or behaviors were flagged during the period of interest, providing additional context to the detected anomaly.

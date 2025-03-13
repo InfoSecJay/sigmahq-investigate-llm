@@ -1,0 +1,38 @@
+title: File Encryption Using Gpg4win
+id: 550bbb84-ce5d-4e61-84ad-e590f0024dcd
+status: test
+description: Detects usage of Gpg4win to encrypt files
+references:
+- https://blogs.vmware.com/security/2022/11/batloader-the-evasive-downloader-malware.html
+- https://www.gpg4win.de/documentation.html
+- https://news.sophos.com/en-us/2022/01/19/zloader-installs-remote-access-backdoors-and-delivers-cobalt-strike/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-08-09
+tags:
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_metadata:
+  - Image|endswith:
+    - '\gpg.exe'
+    - '\gpg2.exe'
+  - Description: 'GnuPG’s OpenPGP tool'
+  selection_cli:
+    CommandLine|contains|all:
+    - ' -c '
+    - 'passphrase'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify suspicious file encryption activities using Gpg4win, specifically the GnuPG OpenPGP tool. It focuses on Windows process creation logs to look for instances where the executables `gpg.exe` or `gpg2.exe` are invoked with specific command-line parameters indicating file encryption operations, such as the presence of a passphrase and the `-c` option, which denotes symmetric encryption. By monitoring these parameters, the rule aims to flag potential malicious use of the Gpg4win suite, often exploited by threat actors to encrypt files and obfuscate their malicious activities.
+  The rule utilizes data sources such as process creation logs and command-line parameters to capture this behavior. When events are triggered, they indicate the use of tools that could be leveraged for nefarious purposes, including data exfiltration or ransomware activities. Analysts should look closely at the context of the alerts to assess whether legitimate use or malicious activity is occurring.
+  ### Investigation Steps
+  - Review the EDR logs for the process creation events related to `gpg.exe` or `gpg2.exe` to identify the user account and session context in which the command was executed.
+  - Examine command-line parameters from the process creation data to determine if they indicate file encryption and whether any suspicious patterns are present (e.g., unexpected paths or associated file types).
+  - Investigate any recent changes in user behavior or additional alerts in the SIEM that may indicate a broader compromise related to the detected command.
+  - Check proxy logs for any outbound connections around the time of the alert to see if files were sent externally after encryption, which could suggest data exfiltration.

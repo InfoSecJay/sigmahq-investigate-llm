@@ -1,0 +1,35 @@
+title: Potential RjvPlatform.DLL Sideloading From Non-Default Location
+id: 0e0bc253-07ed-43f1-816d-e1b220fe8971
+status: test
+description: Detects potential DLL sideloading of "RjvPlatform.dll" by "SystemResetPlatform.exe"
+  located in a non-default location.
+references:
+- https://twitter.com/0gtweet/status/1666716511988330499
+author: X__Junior (Nextron Systems)
+date: 2023-06-09
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\RjvPlatform.dll'
+    Image: '\SystemResetPlatform.exe'
+  filter_main_legit_path:
+    Image|startswith: 'C:\Windows\System32\SystemResetPlatform\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential DLL sideloading of `RjvPlatform.dll` by `SystemResetPlatform.exe` when this process loads the DLL from a non-default location. Typically, legitimate DLLs, such as `RjvPlatform.dll`, should reside in their standard directories, which helps in preventing malicious exploitation. This rule monitors `image_load` logs, specifically looking for instances where `RjvPlatform.dll` is loaded by `SystemResetPlatform.exe`, while ensuring the process source isn’t from its legitimate path (typically `C:\Windows\System32\SystemResetPlatform\`). If it detects a load from any other location, it flags it as a potentially malicious action indicative of an attack technique used for defense evasion and privilege escalation.
+  ### Investigation Steps
+  - Examine the EDR logs for details on the process `SystemResetPlatform.exe`, focusing on its execution context, parent processes, and any unusual command-line parameters.
+  - Review application logs in the cloud or on-premises that might reference the `RjvPlatform.dll` loading activity to determine if there are any correlated events with known malicious activity.
+  - Utilize the SIEM to query for any alerts or anomalies related to DLL loading events around the same time frame as the detected instance to identify potential lateral movement.
+  - Cross-check the integrity and digital signature of `RjvPlatform.dll` to determine its legitimacy and investigate its path to confirm if the behavior is indeed unexpected.

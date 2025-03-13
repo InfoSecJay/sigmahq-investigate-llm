@@ -1,0 +1,36 @@
+title: Python Function Execution Security Warning Disabled In Excel - Registry
+id: 17e53739-a1fc-4a62-b1b9-87711c2d5e44
+related:
+- id: 023c654f-8f16-44d9-bb2b-00ff36a62af9
+  type: similar
+status: test
+description: |
+  Detects changes to the registry value "PythonFunctionWarnings" that would prevent any warnings or alerts from showing when Python functions are about to be executed.
+  Threat actors could run malicious code through the new Microsoft Excel feature that allows Python to run within the spreadsheet.
+references:
+- https://support.microsoft.com/en-us/office/data-security-and-python-in-excel-33cc88a4-4a87-485e-9ff9-f35958278327
+author: Nasreddine Bencherchali (Nextron Systems), @Kostastsale
+date: 2024-08-23
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\Microsoft\Office\'
+    TargetObject|endswith: '\Excel\Security\PythonFunctionWarnings'
+    Details: 'DWORD (0x00000001)'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule monitors changes to a specific Windows registry setting that governs the execution of Python functions in Microsoft Excel. The registry key in question, located at `HKEY_CURRENT_USER\Software\Microsoft\Office\<version>\Excel\Security\PythonFunctionWarnings`, controls whether warnings are displayed when executing Python code within Excel. By altering this key to a value of `0x00000001`, threats actors can disable alerts, allowing potentially malicious Python scripts to run without user knowledge or consent. The rule leverages registry set logs as its primary data source, enabling the identification of unauthorized modifications indicative of evasion tactics commonly employed by malicious actors.
+  ### Investigation Steps
+  - Review the registry set logs in the Windows EDR to identify unauthorized changes to the `PythonFunctionWarnings` value, noting the timestamp and associated user.
+  - Correlate user activity from the identified timestamp with any recent Excel file access logs to determine if any Python scripts were executed or if suspicious Excel files were opened.
+  - Check for any alerts raised by the AV tool regarding unusual Python activity or the execution of Python code embedded in Excel files, as this could indicate malicious intent.
+  - Analyze network traffic logs via the proxy or NDR to detect any outbound connections established by Excel during this time, which may reveal data exfiltration or undesirable communication with known malicious IPs.

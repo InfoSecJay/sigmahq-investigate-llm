@@ -1,0 +1,34 @@
+title: UEFI Persistence Via Wpbbin - ProcessCreation
+id: 4abc0ec4-db5a-412f-9632-26659cddf145
+status: test
+description: Detects execution of the binary "wpbbin" which is used as part of the
+  UEFI based persistence method described in the reference section
+references:
+- https://grzegorztworek.medium.com/using-uefi-to-inject-executable-files-into-bitlocker-protected-drives-8ff4ca59c94c
+- https://persistence-info.github.io/Data/wpbbin.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-18
+tags:
+- attack.persistence
+- attack.defense-evasion
+- attack.t1542.001
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    Image: 'C:\Windows\System32\wpbbin.exe'
+  condition: selection
+falsepositives:
+- Legitimate usage of the file by hardware manufacturer such as lenovo (Thanks @0gtweet
+  for the tip)
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of the binary "wpbbin.exe," which is associated with a firmware-level persistence method based on UEFI (Unified Extensible Firmware Interface). The presence of this executable can indicate attempts to persist malicious payloads on systems, particularly on BitLocker-protected drives. The rule focuses on monitoring process creation logs from Windows systems, specifically looking for instances where "wpbbin.exe" is executed from the typical system directory. By identifying this process, security analysts can intervene during suspicious activity that may affect system integrity and security.
+  The detection relies on analyzing process creation logs that capture the command-line parameters and associated images. Considering that legitimate use of this file may occur from certain hardware manufacturers, incident responders must carefully evaluate alerts from this rule to differentiate between legitimate operations and potential threats.
+  ### Investigation Steps
+  - Review EDR alerts for additional contextual information on the process creation, including the parent process and command-line arguments used to launch "wpbbin.exe." This can help ascertain whether the execution was part of a legitimate software installation or a potential threat.
+  - Check system event logs for any abnormal behavior or other related process activities around the same time that "wpbbin.exe" was launched. Correlating these events can pinpoint malicious patterns of behavior.
+  - Conduct a review of AV logs to verify if the "wpbbin.exe" file has been flagged or quarantined as suspicious. This may provide insights into whether the executable has a known malicious signature.
+  - Analyze proxy and network logs for any unusual outbound communications from the host where "wpbbin.exe" was detected. Monitoring network traffic can help identify potential data exfiltration or command-and-control (C2) activities linked to the execution of this binary.

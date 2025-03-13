@@ -1,0 +1,34 @@
+title: Lolbin Unregmp2.exe Use As Proxy
+id: 727454c0-d851-48b0-8b89-385611ab0704
+status: test
+description: Detect usage of the "unregmp2.exe" binary as a proxy to launch a custom
+  version of "wmpnscfg.exe"
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Unregmp2/
+author: frack113
+date: 2022-12-29
+modified: 2024-06-04
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\unregmp2.exe'
+  - OriginalFileName: 'unregmp2.exe'
+  selection_cmd:
+    CommandLine|contains|windash: ' /HideWMP'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule "Lolbin Unregmp2.exe Use As Proxy" is designed to detect the use of the Windows binary `unregmp2.exe` as a proxy for executing an unauthorized version of the application `wmpnscfg.exe`. This rule focuses on process creation logs, particularly looking for instances where the `unregmp2.exe` binary is executed with a specific command-line argument that includes `/HideWMP`. By leveraging this command-line parameter, threat actors may be attempting to conceal malicious behavior associated with Windows Media Player configuration changes, which can be indicative of defense evasion techniques. Monitoring for such behavior allows the security operations center (SOC) to identify potential misuse of legitimate binaries, thus proactively addressing threats before they lead to significant impact.
+  ### Investigation Steps
+  - Review EDR logs to identify other processes spawned by `unregmp2.exe` to determine if additional potentially malicious activity has occurred in conjunction with this execution.
+  - Analyze the command-line arguments associated with `unregmp2.exe` to confirm the presence of the `/HideWMP` flag, which is a key indicator of its abusive use as a proxy.
+  - Check for any network connections made by `unregmp2.exe`, particularly focusing on outbound requests that may reveal data exfiltration or unauthorized access attempts.
+  - Investigate the historical usage of `unregmp2.exe` within your environment to establish baselines and identify any anomalous patterns that may warrant further scrutiny.

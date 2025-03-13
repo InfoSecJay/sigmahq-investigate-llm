@@ -1,0 +1,36 @@
+title: Potential Edputil.DLL Sideloading
+id: e4903324-1a10-4ed3-981b-f6fe3be3a2c2
+status: test
+description: Detects potential DLL sideloading of "edputil.dll"
+references:
+- https://alternativeto.net/news/2023/5/cybercriminals-use-wordpad-vulnerability-to-spread-qbot-malware/
+author: X__Junior (Nextron Systems)
+date: 2023-06-09
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\edputil.dll'
+  filter_main_generic:
+    ImageLoaded|startswith:
+    - 'C:\Windows\System32\'
+    - 'C:\Windows\SysWOW64\'
+    - 'C\Windows\WinSxS\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Potential Edputil.DLL Sideloading" aims to detect suspicious DLL loading activities associated with the file "edputil.dll" on Windows systems. DLL sideloading is a technique commonly exploited by attackers to execute malicious code by leveraging legitimate processes. In this specific case, the rule monitors the loading of "edputil.dll" while enforcing filters that only consider legitimate system directories, such as "C:\Windows\System32" and "C:\Windows\SysWOW64". If the DLL is loaded from a non-standard location, it raises an alert for potential evasion or privilege escalation attempts. This detection relies primarily on image load events captured in Windows event logs.
+  ### Investigation Steps
+  - Verify the process associated with the DLL load by examining process creation logs in your EDR solution to identify any unusual parent processes or command-line arguments.
+  - Cross-reference network activity during the time of the alert using your NDR system to check for any outbound connections to known malicious IPs or domains.
+  - Utilize your AV/EDR tools to scan the loaded DLL and the associated processes for any indicators of compromise (IoCs) or malware signatures.
+  - Review system event logs and user activity logs to track any potentially unauthorized access or abuse of privileges related to the alert.

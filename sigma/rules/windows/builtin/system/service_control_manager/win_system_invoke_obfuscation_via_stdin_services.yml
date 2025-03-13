@@ -1,0 +1,41 @@
+title: Invoke-Obfuscation Via Stdin - System
+id: 487c7524-f892-4054-b263-8a0ace63fc25
+status: test
+description: Detects Obfuscated Powershell via Stdin in Scripts
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009     # (Task28)
+author: Nikita Nazarov, oscd.community
+date: 2020-10-12
+modified: 2022-11-29
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7045
+        # ImagePath|re: '(?i)(set).*&&\s?set.*(environment|invoke|\${?input).*&&.*"'
+    ImagePath|contains|all:
+    - 'set'
+    - '&&'
+    ImagePath|contains:
+    - 'environment'
+    - 'invoke'
+    - 'input'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify obfuscated PowerShell commands executed through the Service Control Manager (SCM) on Windows systems. The rule relies on monitoring Event ID 7045, which logs the addition of a service, providing insights into how PowerShell is invoked in potentially malicious ways. Specifically, it looks for script patterns that combine commands using the "&&" operator, including keywords such as "set," "environment," "invoke," and "input." These patterns are indicative of attempts to mask the true intent of the PowerShell scripts, which aligns with various tactics used in defense evasion and script execution attacks. By catching these obfuscated command invocations, analysts can proactively respond to potential threats leveraging PowerShell for malicious purposes.
+  ### Investigation Steps
+  - Use EDR tools to analyze the creation and behavior of the services related to the detected Event ID 7045 to determine if any unauthorized changes were made.
+  - Review PowerShell execution logs for additional context around the command execution, particularly focusing on the command line for any suspicious arguments or script paths.
+  - Check network traffic logs through your NDR system to identify any outbound communications that may have occurred following the event, which could indicate potential data exfiltration.
+  - Consult AV logs to see if any detections of malicious scripts or processes occurred around the same time, providing further evidence of a compromise or attempted attack.

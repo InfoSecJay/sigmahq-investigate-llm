@@ -1,0 +1,43 @@
+title: User Added to Local Administrator Group
+id: c265cf08-3f99-46c1-8d59-328247057d57
+status: stable
+description: Detects the addition of a new member to the local administrator group,
+  which could be legitimate activity or a sign of privilege escalation activity
+references:
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4732
+- https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-identifiers
+author: Florian Roth (Nextron Systems)
+date: 2017-03-14
+modified: 2021-01-17
+tags:
+- attack.privilege-escalation
+- attack.t1078
+- attack.persistence
+- attack.t1098
+logsource:
+  product: windows
+  service: security
+detection:
+  selection_eid:
+    EventID: 4732
+  selection_group:
+  - TargetUserName|startswith: 'Administr'
+  - TargetSid: 'S-1-5-32-544'
+  filter_main_computer_accounts:
+    SubjectUserName|endswith: '$'
+  condition: all of selection_* and not 1 of filter_*
+falsepositives:
+- Legitimate administrative activity
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect activities related to the addition of a user to the local administrator group on a Windows system, specifically identifying when an account is granted elevated privileges. The rule monitors for specific event ID 4732, which logs changes to user group memberships within the local Windows security context. The key attributes analyzed include the target username, which must begin with "Administr" to indicate it pertains to the local administrator group, and the SID (Security Identifier) which matches the identifier for the local administrators group (S-1-5-32-544). Additionally, the rule filters out entries where the subject username ends with a dollar sign, thus ignoring automated system accounts typically involved in legitimate administrative activities.
+  Detecting unauthorized changes to the local admin group is critical as it could indicate potential privilege escalation, where unauthorized users may be gaining elevated rights for malicious purposes. This alert serves as an important signal for SOC analysts to investigate further to ensure that additions to the administrator group are valid and authorized.
+  ### Investigation Steps
+  Check the EDR for recent process activity linked to the user account that was added to the local administrator group to identify any suspicious behavior.
+    
+  Review security logs in the SIEM to trace back the history of changes made to the user group memberships, focusing on the specific event ID 4732.
+    
+  Examine the context of the addition using the Proxy logs to see if there were any related web activities or downloads occurring around the same timeframe.
+    
+  Validate the legitimacy of the addition by comparing it against known administrative activities and policies within the organization.

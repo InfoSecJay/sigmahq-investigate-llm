@@ -1,0 +1,77 @@
+title: Potential Browser Data Stealing
+id: 47147b5b-9e17-4d76-b8d2-7bac24c5ce1b
+related:
+- id: fc028194-969d-4122-8abe-0470d5b8f12f
+  type: derived
+status: test
+description: |
+  Adversaries may acquire credentials from web browsers by reading files specific to the target browser.
+  Web browsers commonly save credentials such as website usernames and passwords so that they do not need to be entered manually in the future.
+  Web browsers typically store the credentials in an encrypted format within a credential store.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1555.003/T1555.003.md
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-12-23
+modified: 2023-08-29
+tags:
+- attack.credential-access
+- attack.t1555.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_cmd:
+  - CommandLine|contains:
+    - 'copy-item'
+    - 'copy '
+    - 'cpi '
+    - ' cp '
+    - 'move '
+    - 'move-item'
+    - ' mi '
+    - ' mv '
+  - Image|endswith:
+    - '\xcopy.exe'
+    - '\robocopy.exe'
+  - OriginalFileName:
+    - 'XCOPY.EXE'
+    - 'robocopy.exe'
+  selection_path:
+    CommandLine|contains:
+    - '\Amigo\User Data'
+    - '\BraveSoftware\Brave-Browser\User Data'
+    - '\CentBrowser\User Data'
+    - '\Chromium\User Data'
+    - '\CocCoc\Browser\User Data'
+    - '\Comodo\Dragon\User Data'
+    - '\Elements Browser\User Data'
+    - '\Epic Privacy Browser\User Data'
+    - '\Google\Chrome Beta\User Data'
+    - '\Google\Chrome SxS\User Data'
+    - '\Google\Chrome\User Data\'
+    - '\Kometa\User Data'
+    - '\Maxthon5\Users'
+    - '\Microsoft\Edge\User Data'
+    - '\Mozilla\Firefox\Profiles'
+    - '\Nichrome\User Data'
+    - '\Opera Software\Opera GX Stable\'
+    - '\Opera Software\Opera Neon\User Data'
+    - '\Opera Software\Opera Stable\'
+    - '\Orbitum\User Data'
+    - '\QIP Surf\User Data'
+    - '\Sputnik\User Data'
+    - '\Torch\User Data'
+    - '\uCozMedia\Uran\User Data'
+    - '\Vivaldi\User Data'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Potential Browser Data Stealing" detection rule identifies unauthorized attempts by adversaries to access and exfiltrate sensitive user credentials stored by various web browsers. This rule leverages process creation logs to monitor for specific command-line operations (such as `copy-item`, `move`, and their aliases) that may signify malicious intent when used in conjunction with browser data directories. By focusing on both the commands executed and the paths associated with popular browsers like Chrome, Firefox, and Edge, the rule aims to detect potential credential theft activities. The data sources utilized in this rule primarily include process creation logs, which provide insight into command-line parameters and the images of the processes involved in suspicious actions.
+  ### Investigation Steps
+  - Review process creation logs in your EDR solution to identify instances of `copy-item`, `move`, or related commands executed from a user context.
+  - Use the SIEM to correlate the detected alerts with user activity logs to determine if the user involved has exhibited any unusual behavior prior to the alert.
+  - Investigate the associated paths identified in the alerts to check for unauthorized access or manipulations of browser user data directories across affected systems.
+  - Examine network logs via Proxy or Cloud platforms to identify any unusual outbound connections that coincide with the times of the detected suspicious activities.

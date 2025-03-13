@@ -1,0 +1,32 @@
+title: Psexec Execution
+id: 730fc21b-eaff-474b-ad23-90fd265d4988
+status: test
+description: Detects user accept agreement execution in psexec commandline
+references:
+- https://www.fireeye.com/blog/threat-research/2020/10/kegtap-and-singlemalt-with-a-ransomware-chaser.html
+author: omkar72
+date: 2020-10-30
+modified: 2023-02-28
+tags:
+- attack.execution
+- attack.t1569
+- attack.t1021
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\psexec.exe'
+  - OriginalFileName: 'psexec.c'
+  condition: selection
+falsepositives:
+- Administrative scripts.
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Psexec Execution" is designed to detect instances of the PsExec tool being executed in the enterprise environment. PsExec is a command-line utility that allows users to execute processes on remote systems, typically used for administrative tasks. This rule specifically looks for process creation events where the executable name ends with 'psexec.exe' and verifies that the original file name is 'psexec.c'. By monitoring these attributes in the process creation logs, the rule aims to identify unauthorized or suspicious use of PsExec that may indicate malicious activities, such as lateral movement by threat actors. Detection is focused on Windows systems, and logs from process creation provide the needed data source for effectively monitoring execution events.
+  ### Investigation Steps
+  - Check the process creation logs in your EDR solution to identify the initiating user account and the context in which PsExec was executed. Look for any abnormal user behavior or unusual time of execution.
+  - Review the command-line parameters used in the PsExec execution to determine if any sensitive switches or options were employed that indicate potential misuse.
+  - Investigate the source of the PsExec execution by analyzing network traffic to detect any connections made to external or unauthorized internal systems during the execution.
+  - Assess logs from AV and endpoint protection tools to see if any alerts were triggered around the same time as the PsExec execution, providing further indicators of potentially malicious activity.

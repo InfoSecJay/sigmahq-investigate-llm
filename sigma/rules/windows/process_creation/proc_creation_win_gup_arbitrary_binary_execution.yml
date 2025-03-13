@@ -1,0 +1,38 @@
+title: Arbitrary Binary Execution Using GUP Utility
+id: d65aee4d-2292-4cea-b832-83accd6cfa43
+status: test
+description: Detects execution of the Notepad++ updater (gup) to launch other commands
+  or executables
+references:
+- https://twitter.com/nas_bench/status/1535322445439180803
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-10
+modified: 2023-03-02
+tags:
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\gup.exe'
+    Image|endswith: '\explorer.exe'
+  filter:
+    Image|endswith: '\explorer.exe'
+    CommandLine|contains: '\Notepad++\notepad++.exe'
+  filter_parent:
+    ParentImage|contains: '\Notepad++\updater\'
+  filter_null:
+    CommandLine:
+  condition: selection and not 1 of filter*
+falsepositives:
+- Other parent binaries using GUP not currently identified
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious use of the Notepad++ updater (gup.exe) to execute unauthorized commands or applications. The rule specifically analyzes process creation logs, focusing on instances where gup.exe serves as the parent process for commands executed by explorer.exe, particularly those that include Notepad++'s executable, notepad++.exe, within their command line. By monitoring these specific executions, the rule aims to capture instances of arbitrary binary execution that may indicate misuse of the Notepad++ update utility, potentially indicating a compromise or malicious activity. Data sources involved include process creation logs and command line arguments, enabling SOC analysts to track the behaviors associated with these processes.
+  ### Investigation Steps
+  - Review process creation logs in the EDR to identify instances where gup.exe has executed explorer.exe with the command line referencing notepad++.exe.
+  - Cross-reference any identified incidents with your organization’s software inventory to validate whether the use of Notepad++ aligns with company policy and if the user has legitimate access.
+  - Use threat intelligence feeds to investigate any known malicious behaviors associated with the specific command line patterns, particularly focusing on the operational history of gup.exe.
+  - Check the organization's AV and endpoint security solutions for any reported malware associated with gup.exe, as well as any related alerts that may indicate broader malicious activity on the endpoint.

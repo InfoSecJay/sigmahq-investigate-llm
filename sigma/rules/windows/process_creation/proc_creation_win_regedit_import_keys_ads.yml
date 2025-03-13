@@ -1,0 +1,49 @@
+title: Imports Registry Key From an ADS
+id: 0b80ade5-6997-4b1d-99a1-71701778ea61
+related:
+- id: 73bba97f-a82d-42ce-b315-9182e76c57b1
+  type: similar
+status: test
+description: Detects the import of a alternate datastream to the registry with regedit.exe.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Regedit/
+- https://gist.github.com/api0cradle/cdd2d0d0ec9abb686f0e89306e277b8f
+author: Oddvar Moe, Sander Wiebing, oscd.community
+date: 2020-10-12
+modified: 2024-03-13
+tags:
+- attack.t1112
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\regedit.exe'
+  - OriginalFileName: 'REGEDIT.EXE'
+  selection_cli:
+    CommandLine|contains:
+    - ' /i '
+    - '.reg'
+    CommandLine|re: ':[^ \\]'
+  filter:
+    CommandLine|contains|windash:
+    - ' -e '
+    - ' -a '
+    - ' -c '
+  condition: all of selection_* and not filter
+fields:
+- ParentImage
+- CommandLine
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects potentially malicious activity involving the use of `regedit.exe` to import Windows registry keys from an Alternate Data Stream (ADS). The rule looks for specific command-line arguments associated with `regedit.exe`, such as the `/i` flag which indicates an import operation, followed by a `.reg` file. Additionally, the rule will trigger if other evasion techniques in the command line, like ' -e ', ' -a ', or ' -c ', are absent. By focusing on these command-line patterns, the rule enables detection of attempts to clandestinely modify the Windows registry, often a precursor to malware installation or persistent threats, via less visible file locations that can evade traditional security detections.
+  The primary data sources for this detection are process creation logs, which contain details about the execution of processes including their command-line parameters and the images invoked. These logs provide insight into potentially malicious behavior by exposing illegitimate attempts to modify the registry on systems.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR to identify the execution of `regedit.exe` and examine the associated command-line arguments for any indications of suspicious usage.
+  - Analyze the ParentImage field to determine the legitimacy of the process that initiated `regedit.exe`, as it could provide context regarding whether an application is attempting to elevate privileges or manipulate the registry.
+  - Check for the presence of the imported `.reg` file by correlating with file system logs or conducting a file search for alternate data streams within the relevant directories to assess the legitimacy of the file.
+  - Utilize SIEM to correlate any alerts with network traffic logs or proxy logs that might indicate unauthorized data exfiltration attempts or connections made by the application post-registry modification.

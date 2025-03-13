@@ -1,0 +1,47 @@
+title: PowerShell Download and Execution Cradles
+id: 85b0b087-eddf-4a2b-b033-d771fa2b9775
+status: test
+description: Detects PowerShell download and execution cradles.
+references:
+- https://github.com/VirtualAlllocEx/Payload-Download-Cradles/blob/88e8eca34464a547c90d9140d70e9866dcbc6a12/Download-Cradles.cmd
+- https://labs.withsecure.com/publications/fin7-target-veeam-servers
+author: Florian Roth (Nextron Systems)
+date: 2022-03-24
+modified: 2023-05-04
+tags:
+- attack.execution
+- attack.t1059
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_download:
+    CommandLine|contains:
+    - '.DownloadString('
+    - '.DownloadFile('
+    - 'Invoke-WebRequest '
+    - 'iwr '
+  selection_iex:
+    CommandLine|contains:
+    - ';iex $'
+    - '| IEX'
+    - '|IEX '
+    - 'I`E`X'
+    - 'I`EX'
+    - 'IE`X'
+    - 'iex '
+    - 'IEX ('
+    - 'IEX('
+    - 'Invoke-Expression'
+  condition: all of selection_*
+falsepositives:
+- Some PowerShell installers were seen using similar combinations. Apply filters accordingly
+level: high
+notes: |
+  ### Technical Context
+  The detection rule titled "PowerShell Download and Execution Cradles" is designed to identify suspicious PowerShell commands that may indicate malicious activity, specifically focusing on the downloading and executing of payloads. The rule operates by analyzing process creation logs for command lines that include patterns associated with downloading scripts or executing commands in memory via PowerShell. The key indicators it looks for include the use of methods like `.DownloadString()` or `.DownloadFile()`, as well as the use of `Invoke-Expression` and its variations, which could indicate an attempt to execute downloaded content. By monitoring these specific command line inputs, the rule helps to flag potential security risks from malicious actors leveraging PowerShell for nefarious purposes.
+  ### Investigation Steps
+  - Review recent PowerShell execution logs in your EDR to identify the source and origin of the suspicious commands. Look for patterns that match the rule description.
+  - Check the parent process details associated with the flagged command line. This can help determine if the execution was initiated from a legitimate application or another potentially malicious process.
+  - Correlate the timing of the alert with network activity logs from your NGFW or Proxy to identify outbound connections to known malicious domains. This might provide insight into the nature of the download.
+  - Examine cloud logs from services such as AWS, GCP, or Azure to check for any unauthorized API calls or resource usage that coincides with the suspicious PowerShell activity. This can help uncover any automated exploitation attempts.

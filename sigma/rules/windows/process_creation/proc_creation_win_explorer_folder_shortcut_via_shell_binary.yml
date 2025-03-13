@@ -1,0 +1,36 @@
+title: File Explorer Folder Opened Using Explorer Folder Shortcut Via Shell
+id: c3d76afc-93df-461e-8e67-9b2bad3f2ac4
+status: experimental
+description: |
+  Detects the initial execution of "cmd.exe" which spawns "explorer.exe" with the appropriate command line arguments for opening the "My Computer" folder.
+author: '@Kostastsale'
+references:
+- https://ss64.com/nt/shell.html
+date: 2022-12-22
+modified: 2024-08-23
+tags:
+- attack.discovery
+- attack.t1135
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    ParentImage|endswith:
+    - '\cmd.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    Image|endswith: '\explorer.exe'
+    CommandLine|contains: 'shell:mycomputerfolder'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potentially suspicious activities involving the "explorer.exe" process, specifically when it is executed by "cmd.exe", "powershell.exe", or "pwsh.exe" with the command line argument referencing "shell:mycomputerfolder". The execution of "explorer.exe" in this manner can indicate a user or automated actor attempting to access system resources. By monitoring process creation logs, particularly looking for parent-child relationships between command-line interpreters and the file explorer, the rule helps pinpoint activities that may warrant further investigation. The command-line parameters are key signals for triggering alerts, allowing for the detection of unusual or unauthorized access patterns.
+  ### Investigation Steps
+  - Examine the process creation logs in your EDR tool to identify the parent process and any subsequent child processes that are part of the event chain leading to "explorer.exe".
+  - Correlate the timestamps of the detected activity with other system logs to determine if the action coincided with any other suspicious behaviors or alerts.
+  - Review user activity logs via Windows Event Logs to assess whether the account that executed the command has a legitimate reason to perform this action.
+  - Query network traffic logs for any unusual access patterns or connections made following the launch of "explorer.exe" to check for potential data exfiltration or lateral movement attempts.

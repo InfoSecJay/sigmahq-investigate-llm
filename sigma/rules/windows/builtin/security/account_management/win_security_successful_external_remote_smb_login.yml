@@ -1,0 +1,52 @@
+title: External Remote SMB Logon from Public IP
+id: 78d5cab4-557e-454f-9fb9-a222bd0d5edc
+related:
+- id: 259a9cdf-c4dd-4fa2-b243-2269e5ab18a2
+  type: derived
+status: test
+description: Detects successful logon from public IP address via SMB. This can indicate
+  a publicly-exposed SMB port.
+references:
+- https://www.inversecos.com/2020/04/successful-4624-anonymous-logons-to.html
+- https://twitter.com/Purp1eW0lf/status/1616144561965002752
+author: Micah Babinski (@micahbabinski), Zach Mathis (@yamatosecurity)
+date: 2023-01-19
+modified: 2024-03-11
+tags:
+- attack.initial-access
+- attack.credential-access
+- attack.t1133
+- attack.t1078
+- attack.t1110
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4624
+    LogonType: 3
+  filter_main_local_ranges:
+    IpAddress|cidr:
+    - '::1/128'          # IPv6 loopback
+    - '10.0.0.0/8'
+    - '127.0.0.0/8'
+    - '172.16.0.0/12'
+    - '192.168.0.0/16'
+    - '169.254.0.0/16'
+    - 'fc00::/7'          # IPv6 private addresses
+    - 'fe80::/10'          # IPv6 link-local addresses
+  filter_main_empty:
+    IpAddress: '-'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Legitimate or intentional inbound connections from public IP addresses on the SMB
+  port.
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect successful logon events via the SMB protocol from a public IP address, which may suggest potential exposure of the SMB service to the internet. The rule specifically looks for Windows Security Event ID 4624, which indicates a successful logon, and filters on LogonType 3, signifying network logons. It excludes logon attempts where the originating IP address falls within private IP ranges (like 10.x.x.x or 192.168.x.x) and certain IPv6 addresses. By focusing on events that do not originate from these internal IP address ranges, the rule identifies connections that may pose a security risk, prompting further investigation into potentially malicious access attempts.
+  ### Investigation Steps
+  - Review the details of the logon event using EDR tools to assess the user account associated with the successful SMB logon. This will help determine whether the account is legitimate or potentially compromised.
+  - Utilize the firewall logs to identify the specific public IP address that initiated the connection. This can provide insights into whether the IP has been flagged for suspicious activity or is associated with known threats.
+  - Check for any anomaly in SMB shares accessed or modified after the logon event, and use file integrity monitoring systems to identify unauthorized changes.
+  - Conduct a review of any related network traffic in the NDR logs during the relevant time frame to ascertain if there are other correlating suspicious behaviors or data transfers.

@@ -1,0 +1,48 @@
+title: Invoke-Obfuscation VAR+ Launcher - Security
+id: dcf2db1f-f091-425b-a821-c05875b8925a
+related:
+- id: 8ca7004b-e620-4ecb-870e-86129b5b8e75
+  type: derived
+status: test
+description: Detects Obfuscated use of Environment Variables to execute PowerShell
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009      # (Task 24)
+author: Jonathan Cheong, oscd.community
+date: 2020-10-15
+modified: 2022-11-29
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  service: security
+  definition: The 'System Security Extension' audit subcategory need to be enabled
+    to log the EID 4697
+detection:
+  selection:
+    EventID: 4697
+        # ServiceFileName|re: 'cmd.{0,5}(?:\/c|\/r)(?:\s|)\"set\s[a-zA-Z]{3,6}.*(?:\{\d\}){1,}\\\"\s+?\-f(?:.*\)){1,}.*\"'
+        # Example 1: C:\winDoWs\SySTeM32\cmd.Exe /C"SET NOtI=Invoke-Expression (New-Object Net.WebClient).DownloadString&& PowERshElL -NOl SET-iteM ( 'VAR' + 'i'+ 'A' + 'blE:Ao6' + 'I0') ( [TYpe](\"{2}{3}{0}{1}\"-F 'iRoN','mENT','e','nv') ) ; ${exECUtIONCOnTEXT}.\"IN`VO`KecOmMaND\".\"inVo`KES`crIPt\"( ( ( GEt-VAriAble ( 'a' + 'o6I0') -vaLU )::(\"{1}{4}{2}{3}{0}\" -f'e','gETenvIR','NtvaRIa','BL','ONme' ).Invoke(( \"{0}{1}\"-f'n','oti' ),( \"{0}{1}\" -f'pRoC','esS') )) )"
+        # Example 2: cMD.exe /C "seT SlDb=Invoke-Expression (New-Object Net.WebClient).DownloadString&& pOWErShell .(( ^&(\"{1}{0}{2}{3}\" -f 'eT-vaR','G','iab','lE' ) (\"{0}{1}\" -f '*m','DR*' ) ).\"na`ME\"[3,11,2]-JOIN'' ) ( ( ^&(\"{0}{1}\" -f'g','CI' ) (\"{0}{1}\" -f 'ENV',':SlDb' ) ).\"VA`luE\" ) "
+    ServiceFileName|contains|all:
+    - 'cmd'
+    - '"set'
+    - '-f'
+    ServiceFileName|contains:
+    - '/c'
+    - '/r'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious use of PowerShell through command-line obfuscation techniques that leverage environment variables executed by the `cmd.exe` process. Specifically, it monitors for the creation of services (Event ID 4697) that utilize obfuscated PowerShell commands, which are commonly used by attackers to evade detection while executing their payloads. The Sigma rule looks for specific command line patterns that include sequences indicative of environment variable manipulation and PowerShell execution through `cmd.exe`, where the commands appear intentionally cluttered to mask their true intent.
+  To effectively trigger this rule, the 'System Security Extension' audit must be enabled to log Event ID 4697. Detection sources primarily include Windows security logs, focusing on critical attributes such as process creation, command-line parameters, and service attributes.
+  ### Investigation Steps
+  - Check EDR logs for the process creation details related to the identified Event ID 4697, focusing on the command lines associated with `cmd.exe` that exhibit patterns of obfuscation.
+  - Review previous logs and network connections to identify any unusual outbound traffic that may indicate data exfiltration or communication with malicious servers.
+  - Use AV and NDR tools to verify if any associated files or processes have been flagged as malicious or suspicious by threat intelligence feeds.
+  - Scrutinize user activity logs in your proxy and VPN systems to determine if there was any unauthorized access or unusual logon behavior around the time the respective commands were executed.

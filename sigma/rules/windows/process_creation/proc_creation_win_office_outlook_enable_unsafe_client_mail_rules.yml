@@ -1,0 +1,38 @@
+title: Outlook EnableUnsafeClientMailRules Setting Enabled
+id: 55f0a3a1-846e-40eb-8273-677371b8d912
+related:
+- id: 6763c6c8-bd01-4687-bc8d-4fa52cf8ba08     # Registry variation
+  type: similar
+status: test
+description: Detects an attacker trying to enable the outlook security setting "EnableUnsafeClientMailRules"
+  which allows outlook to run applications or execute macros
+references:
+- https://www.fireeye.com/blog/threat-research/2018/12/overruled-containing-a-potentially-destructive-adversary.html
+- https://speakerdeck.com/heirhabarov/hunting-for-persistence-via-microsoft-exchange-server-or-outlook?slide=44
+- https://support.microsoft.com/en-us/topic/how-to-control-the-rule-actions-to-start-an-application-or-run-a-macro-in-outlook-2016-and-outlook-2013-e4964b72-173c-959d-5d7b-ead562979048
+author: Markus Neis, Nasreddine Bencherchali (Nextron Systems)
+date: 2018-12-27
+modified: 2023-02-09
+tags:
+- attack.execution
+- attack.t1059
+- attack.t1202
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains: '\Outlook\Security\EnableUnsafeClientMailRules'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Outlook EnableUnsafeClientMailRules Setting Enabled" is designed to detect potential malicious activity within Microsoft Outlook, particularly when the security setting "EnableUnsafeClientMailRules" is enabled. This setting poses a significant risk as it allows Outlook to execute potentially harmful macros and applications embedded in emails. The rule analyzes process creation logs, specifically focusing on command-line parameters that indicate the invocation of this particular configuration. If an attacker succeeds in altering this setting, they can exploit it to initiate code execution, thereby facilitating further compromise of the system.
+  By monitoring the processes that trigger the command-line entry related to "EnableUnsafeClientMailRules," security teams can identify and respond to potential security incidents before significant damage occurs. This rule serves as an early warning to the incident response team and allows for proactive investigation into any suspicious activity related to Outlook.
+  ### Investigation Steps
+  - Utilize the EDR tool to review process creation logs related to Outlook and search for instances of the command line containing `\Outlook\Security\EnableUnsafeClientMailRules`.
+  - Cross-reference the identified alerts with user activity logs in the SIEM to determine if the behavior aligns with normal user patterns or unusual activity.
+  - Examine any recent changes in Outlook configurations or related registry entries using forensic tools or the relevant registry viewer.
+  - Investigate email communication around the time of the alert through the email gateway or proxy logs to look for suspicious emails that may have triggered the enabling of unsafe rules.

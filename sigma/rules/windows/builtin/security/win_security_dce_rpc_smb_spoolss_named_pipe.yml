@@ -1,0 +1,36 @@
+title: DCERPC SMB Spoolss Named Pipe
+id: 214e8f95-100a-4e04-bb31-ef6cba8ce07e
+status: test
+description: Detects the use of the spoolss named pipe over SMB. This can be used
+  to trigger the authentication via NTLM of any machine that has the spoolservice
+  enabled.
+references:
+- https://posts.specterops.io/hunting-in-active-directory-unconstrained-delegation-forests-trusts-71f2b33688e1
+- https://dirkjanm.io/a-different-way-of-abusing-zerologon/
+- https://twitter.com/_dirkjan/status/1309214379003588608
+author: OTR (Open Threat Research)
+date: 2018-11-28
+modified: 2022-08-11
+tags:
+- attack.lateral-movement
+- attack.t1021.002
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 5145
+    ShareName: '\\\\\*\\IPC$'     # looking for the string \\*\IPC$
+    RelativeTargetName: spoolss
+  condition: selection
+falsepositives:
+- 'Domain Controllers acting as printer servers too? :)'
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects the use of the "spoolss" named pipe over the Server Message Block (SMB) protocol, specifically monitoring for Event ID 5145 in Windows security logs. The spoolss service is a crucial component that manages print spooling in Windows environments, and its misuse can indicate potential lateral movement tactics by threat actors. The rule looks for SMB connections to the IPC$ share with the string "spoolss" in the relative target name, which can trigger NTLM authentication and facilitate unauthorized access to sensitive systems. By focusing on these specific log patterns, incident responders can swiftly identify and mitigate anomalies associated with malicious activity in Active Directory environments.
+  ### Investigation Steps
+  - Review recent Event ID 5145 logs from the Windows security logs to identify any SMB access to the IPC$ share involving the spoolss named pipe. 
+  - Utilize EDR tools to search for related process activities and connections that could indicate lateral movement associated with the identified SMB events.
+  - Examine network logs from the NDR to trace IP addresses involved in the SMB connection, correlating them with known devices in the network to identify any unauthorized access attempts.
+  - Check for anomalies in NTLM authentication logs across the enterprise to detect potential credential misuse related to the detected SMB interactions.

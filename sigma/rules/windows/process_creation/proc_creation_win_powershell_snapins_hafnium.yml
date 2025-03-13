@@ -1,0 +1,51 @@
+title: Exchange PowerShell Snap-Ins Usage
+id: 25676e10-2121-446e-80a4-71ff8506af47
+status: test
+description: Detects adding and using Exchange PowerShell snap-ins to export mailbox
+  data. As seen used by HAFNIUM and APT27
+references:
+- https://www.volexity.com/blog/2021/03/02/active-exploitation-of-microsoft-exchange-zero-day-vulnerabilities/
+- https://www.microsoft.com/security/blog/2021/03/02/hafnium-targeting-exchange-servers/
+- https://www.intrinsec.com/apt27-analysis/
+author: FPT.EagleEye, Nasreddine Bencherchali (Nextron Systems)
+date: 2021-03-03
+modified: 2023-03-24
+tags:
+- attack.execution
+- attack.t1059.001
+- attack.collection
+- attack.t1114
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+  - OriginalFileName:
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+  selection_cli:
+    CommandLine|contains: 'Add-PSSnapin'
+  selection_module:
+    CommandLine|contains:
+    - 'Microsoft.Exchange.Powershell.Snapin'
+    - 'Microsoft.Exchange.Management.PowerShell.SnapIn'
+  filter_msiexec:
+        # ParentCommandLine: C:\Windows\System32\MsiExec.exe -Embedding C9138ECE2536CB4821EB5F55D300D88E E Global\MSI0000
+    ParentImage: 'C:\Windows\System32\msiexec.exe'
+    CommandLine|contains: '$exserver=Get-ExchangeServer ([Environment]::MachineName)
+      -ErrorVariable exerr 2> $null'
+  condition: all of selection_* and not 1 of filter_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying the use of Microsoft Exchange PowerShell snap-ins, a technique often leveraged by threat actors such as HAFNIUM and APT27 to exfiltrate mailbox data from compromised Exchange servers. The rule monitors for specific process creation events involving PowerShell and pwsh, tracking command line parameters that include 'Add-PSSnapin' and references to Exchange PowerShell snap-ins, such as 'Microsoft.Exchange.Powershell.Snapin' and 'Microsoft.Exchange.Management.PowerShell.SnapIn'. Additionally, it evaluates if the command originates from the msiexec process, which can indicate a deceptive method of execution that seeks to hide malicious activities. By analyzing these insights, the rule aids in detecting potential exploitation attempts against Exchange servers.
+  ### Investigation Steps
+  - Review EDR logs for any PowerShell or pwsh process executions that match the detected criteria, paying close attention to the command line and parent process information.
+  - Check AV logs for any alerts or blocks that correlate with suspicious PowerShell usage related to Exchange snap-ins.
+  - Utilize Proxy logs to identify unusual outbound traffic patterns or connections that may suggest data exfiltration after the use of PowerShell commands.
+  - Investigate cloud platform logs (Azure, AWS) for any unauthorized access or abnormal activities in relation to Exchange services that could be linked to the malicious PowerShell execution.

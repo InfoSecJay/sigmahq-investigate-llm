@@ -1,0 +1,33 @@
+title: Disable Windows Firewall by Registry
+id: e78c408a-e2ea-43cd-b5ea-51975cf358c0
+status: test
+description: Detect set EnableFirewall to 0 to disable the Windows firewall
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/40b77d63808dd4f4eafb83949805636735a1fd15/atomics/T1562.004/T1562.004.md
+author: frack113
+date: 2022-08-19
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1562.004
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith:
+    - \SOFTWARE\Policies\Microsoft\WindowsFirewall\StandardProfile\EnableFirewall
+    - \SOFTWARE\Policies\Microsoft\WindowsFirewall\DomainProfile\EnableFirewall
+    Details: DWORD (0x00000000)
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule aims to detect attempts to disable the Windows Firewall on enterprise systems by monitoring specific registry settings. Specifically, it looks for changes to the `EnableFirewall` key in both the Standard and Domain profiles of Windows Firewall, checking for a value of `0` (DWORD), which indicates that the firewall is disabled. By targeting the Windows Registry, this rule leverages event logs related to registry modifications, allowing security teams to identify potential defense evasion tactics employed by attackers who might seek to bypass security measures and gain unauthorized access to the network. The data sources involved primarily include registry set events on Windows endpoints.
+  ### Investigation Steps
+  - Review recent registry modification logs for changes to the `EnableFirewall` settings in both the Standard and Domain profiles using EDR tools.
+  - Examine process creation logs around the time of the suspected firewall modification to identify any associated executables or scripts that may have initiated the change. 
+  - Correlate network logs from the NGFW to determine if any suspicious inbound or outbound traffic patterns correspond with the time of the firewall disablement.
+  - Check endpoint logs for any alerts from AV or EDR solutions that may indicate malicious activity or unauthorized access attempts leading up to the registry change.

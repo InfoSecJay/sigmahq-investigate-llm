@@ -1,0 +1,39 @@
+title: Tamper Windows Defender Remove-MpPreference
+id: 07e3cb2c-0608-410d-be4b-1511cb1a0448
+related:
+- id: ae2bdd58-0681-48ac-be7f-58ab4e593458
+  type: similar
+status: test
+description: Detects attempts to remove Windows Defender configurations using the
+  'MpPreference' cmdlet
+references:
+- https://techcommunity.microsoft.com/t5/core-infrastructure-and-security/windows-10-controlled-folder-access-event-search/ba-p/2326088
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-05
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_remove:
+    CommandLine|contains: 'Remove-MpPreference'
+  selection_tamper:
+    CommandLine|contains:
+    - '-ControlledFolderAccessProtectedFolders '
+    - '-AttackSurfaceReductionRules_Ids '
+    - '-AttackSurfaceReductionRules_Actions '
+    - '-CheckForSignaturesBeforeRunningScan '
+  condition: all of selection_*
+falsepositives:
+- Legitimate PowerShell scripts
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule "Tamper Windows Defender Remove-MpPreference" is designed to detect unauthorized attempts to modify Windows Defender settings using the `Remove-MpPreference` cmdlet. It focuses on identifying process creation events that include this specific command line or variations that indicate the tampering of security configurations, such as adjustments to Controlled Folder Access or Attack Surface Reduction rules. The rule aggregates data from Windows process creation logs, leveraging the command line parameters associated with PowerShell executions to flag potential security incidents. This functionality is crucial to maintaining endpoint protections, as attackers may employ such tactics to disable or bypass security controls that Windows Defender provides.
+  ### Investigation Steps
+  - Query the EDR for the specific endpoints involved when the alert was triggered, examining the associated PowerShell activities around the time of the incident.
+  - Review process creation logs for the detected command line entry to identify any patterns or recurring source processes that may indicate malicious activity.
+  - Check the AV logs to determine if any attempts have been made to disable or modify Windows Defender settings, correlating this with the timestamp of the alert.
+  - Analyze the organization's Proxy and firewall logs to see if there were any unusual outbound connections made by the processes implicated, which could signify further malicious behavior.

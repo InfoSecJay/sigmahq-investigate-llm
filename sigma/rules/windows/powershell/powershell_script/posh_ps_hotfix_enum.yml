@@ -1,0 +1,32 @@
+title: PowerShell Hotfix Enumeration
+id: f5d1def8-1de0-4a0e-9794-1f6f27dd605c
+status: test
+description: Detects call to "Win32_QuickFixEngineering" in order to enumerate installed
+  hotfixes often used in "enum" scripts by attackers
+references:
+- https://github.com/411Hall/JAWS/blob/233f142fcb1488172aa74228a666f6b3c5c48f1d/jaws-enum.ps1
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-21
+tags:
+- attack.discovery
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'Win32_QuickFixEngineering'
+    - 'HotFixID'
+  condition: selection
+falsepositives:
+- Legitimate administration scripts
+level: medium
+notes: |
+  ### Technical Context
+  The "PowerShell Hotfix Enumeration" Sigma rule is designed to detect potential enumeration activities by monitoring PowerShell scripts that invoke the `Win32_QuickFixEngineering` class—a Windows Management Instrumentation (WMI) class used to query installed hotfixes on Windows systems. This type of activity is often associated with malicious scripts that aim to gather information about current patch statuses to exploit known vulnerabilities. The rule analyzes PowerShell script block logs, specifically looking for the presence of terms such as `Win32_QuickFixEngineering` and `HotFixID`, which indicate attempts to enumerate hotfixes. To effectively trigger this detection, script block logging must be enabled on target systems.
+  ### Investigation Steps
+  - Check the EDR for any recent PowerShell executions associated with the detected script to assess context and potential impact.
+  - Review script logs and investigate the specific command and execution time to understand if the activity aligns with expected administrative tasks.
+  - Use the SIEM to correlate the PowerShell activity with other events, such as unusual user logins or privilege escalation attempts, to identify potential malicious behavior.
+  - Examine the proxy logs for any outbound connections made by the user or system executing the PowerShell command, which could indicate data exfiltration or further malicious activity.

@@ -1,0 +1,44 @@
+title: Zip A Folder With PowerShell For Staging In Temp  - PowerShell Module
+id: daf7eb81-35fd-410d-9d7a-657837e602bb # PowerShell Module
+related:
+- id: 71ff406e-b633-4989-96ec-bc49d825a412     # PowerShell Classic
+  type: similar
+- id: b7a3c9a3-09ea-4934-8864-6a32cacd98d9     # PowerShell Script
+  type: similar
+- id: 85a8e5ba-bd03-4bfb-bbfa-a4409a8f8b98     # Process Creation
+  type: similar
+status: test
+description: |
+  Detects PowerShell scripts that make use of the "Compress-Archive" Cmdlet in order to compress folders and files where the output is stored in a potentially suspicious location that is used often by malware for exfiltration.
+  An adversary might compress data (e.g., sensitive documents) that is collected prior to exfiltration in order to make it portable and minimize the amount of data sent over the network.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1074.001/T1074.001.md
+- https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-347a
+author: Nasreddine Bencherchali (Nextron Systems), frack113
+date: 2021-07-20
+modified: 2023-12-18
+tags:
+- attack.collection
+- attack.t1074.001
+logsource:
+  product: windows
+  category: ps_module
+  definition: 0ad03ef1-f21b-4a79-8ce8-e6900c54b65b
+detection:
+  selection:
+    ContextInfo|contains|all:
+    - 'Compress-Archive -Path*-DestinationPath $env:TEMP'
+    - 'Compress-Archive -Path*-DestinationPath*\AppData\Local\Temp\'
+    - 'Compress-Archive -Path*-DestinationPath*:\Windows\Temp\'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious use of PowerShell's `Compress-Archive` cmdlet when it is utilized to compress folders and files, particularly when the output is directed to common temporary locations like the Windows Temp directory or a user's AppData local Temp directory. Adversaries often use this technique to package sensitive data for exfiltration, as compressing files minimizes the size and makes it easier to transfer over the network. The rule analyzes process creation logs for specific command-line parameters that indicate this activity, highlighting the use of the `$env:TEMP` variable and other similar paths that could signify an attempt to conceal the exfiltration process.
+  ### Investigation Steps
+  - Review recent PowerShell command execution logs for instances of the `Compress-Archive` cmdlet being used, particularly targeting temporary directories.
+  - Utilize EDR tools to assess the processes that executed these PowerShell commands and correlate with any other associated suspicious activity.
+  - Inspect network logs for outbound connections that coincide with the timing of the use of the `Compress-Archive` cmdlet to identify possible data exfiltration attempts.
+  - Analyze file creation and modification timestamps in the specified Temp directories to look for unusual patterns or bulk file changes that might suggest preparatory actions before data theft.

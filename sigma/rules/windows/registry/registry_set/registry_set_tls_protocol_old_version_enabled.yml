@@ -1,0 +1,33 @@
+title: Old TLS1.0/TLS1.1 Protocol Version Enabled
+id: 439957a7-ad86-4a8f-9705-a28131c6821b
+status: test
+description: Detects applications or users re-enabling old TLS versions by setting
+  the "Enabled" value to "1" for the "Protocols" registry key.
+references:
+- https://techcommunity.microsoft.com/t5/windows-it-pro-blog/tls-1-0-and-tls-1-1-soon-to-be-disabled-in-windows/ba-p/3887947
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-09-05
+tags:
+- attack.defense-evasion
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains:
+    - '\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\'
+    - '\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\'
+    TargetObject|endswith: '\Enabled'
+    Details: 'DWORD (0x00000001)'
+  condition: selection
+falsepositives:
+- Legitimate enabling of the old tls versions due to incompatibility
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule monitors the Windows registry for changes that indicate the re-enabling of obsolete TLS protocols, specifically TLS 1.0 and TLS 1.1. It looks for modifications to the registry keys associated with these protocols, particularly the "Enabled" value set to '1', which allows the protocols to remain operational despite their deprecated status. Such actions could indicate a bypassing of normal security practices and potentially expose the enterprise to vulnerabilities associated with weakened encryption standards. By probing the Windows registry logs, the rule helps flag any attempts by applications or users to revert to these outdated protocols, thus promoting compliance with modern security protocols.
+  ### Investigation Steps
+  - Use your EDR solution to review alerts for registry changes associated with TLS 1.0 and TLS 1.1. Investigate the source and context of these modifications, including user accounts involved and timestamps.
+  - Check the Windows Event Logs on affected systems for any related events that accompany the registry changes. Look for application discrepancies or user logins that coincide with the timing of the modifications.
+  - Query network logs from your NGFW or NDR systems to identify any traffic using deprecated TLS versions. This can offer insight into potential exploit attempts targeting systems with lowered security.
+  - Examine any recent changes to application configurations or software updates that may have led to a legitimate need to enable old TLS versions. This helps assess whether the activity is a false positive or indicative of a security concern.

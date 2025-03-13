@@ -1,0 +1,50 @@
+title: HackTool - KrbRelayUp Execution
+id: 12827a56-61a4-476a-a9cb-f3068f191073
+status: test
+description: Detects KrbRelayUp used to perform a universal no-fix local privilege
+  escalation in Windows domain environments where LDAP signing is not enforced
+references:
+- https://github.com/Dec0ne/KrbRelayUp
+author: Florian Roth (Nextron Systems)
+date: 2022-04-26
+modified: 2023-02-04
+tags:
+- attack.credential-access
+- attack.t1558.003
+- attack.lateral-movement
+- attack.t1550.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\KrbRelayUp.exe'
+  - OriginalFileName: 'KrbRelayUp.exe'       # In case the file has been renamed after compilation
+  selection_cli_1:
+    CommandLine|contains|all:
+    - ' relay '
+    - ' -Domain '
+    - ' -ComputerName '
+  selection_cli_2:
+    CommandLine|contains|all:
+    - ' krbscm '
+    - ' -sc '
+  selection_cli_3:
+    CommandLine|contains|all:
+    - ' spawn '
+    - ' -d '
+    - ' -cn '
+    - ' -cp '
+  condition: 1 of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "HackTool 
+  - KrbRelayUp Execution" is designed to detect the execution of the KrbRelayUp tool, which is used for local privilege escalation in Windows domain environments where LDAP signing is not enforced. This rule looks specifically for process creation logs indicating the execution of `KrbRelayUp.exe`, either by its file name or its original file name, to account for potential renaming after compilation. The rule also monitors specific command-line parameters associated with the tool's execution, including keywords such as 'relay', '-Domain', '-ComputerName', and variations based on its usage context. By focusing on these criteria, the rule helps identify potentially malicious attempts to exploit Kerberos authentication within the environment.
+  ### Investigation Steps
+  - Use EDR tools to analyze the process creation logs for instances of `KrbRelayUp.exe` and review any associated command-line parameters to identify matches with the detection criteria.
+  - Investigate related processes initiated by `KrbRelayUp.exe` to determine if any lateral movements or unauthorized privileges were obtained during the execution.
+  - Examine network logs from the NGFW and Proxy to identify any suspicious outbound connections or data exfiltration attempts that might correlate with the timing of the detected execution.
+  - Review event logs from Active Directory to check for unusual authentication attempts or changes in user privileges that coincide with the execution of KrbRelayUp.

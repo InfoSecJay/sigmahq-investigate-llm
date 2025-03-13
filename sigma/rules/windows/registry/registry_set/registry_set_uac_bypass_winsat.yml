@@ -1,0 +1,35 @@
+title: UAC Bypass Abusing Winsat Path Parsing - Registry
+id: 6597be7b-ac61-4ac8-bef4-d3ec88174853
+status: test
+description: Detects the pattern of UAC Bypass using a path parsing issue in winsat.exe
+  (UACMe 52)
+references:
+- https://github.com/hfiref0x/UACME
+author: Christian Burkard (Nextron Systems)
+date: 2021-08-30
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\Root\InventoryApplicationFile\winsat.exe|'
+    TargetObject|endswith: '\LowerCaseLongPath'
+    Details|startswith: 'c:\users\'
+    Details|endswith: '\appdata\local\temp\system32\winsat.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies attempts to bypass User Account Control (UAC) through the exploitation of a path parsing vulnerability associated with the Windows System Assessment Tool (winsat.exe). The rule focuses on specific registry set actions that indicate manipulative behaviors targeting the winsat executable. By analyzing the structure of the registry modifications, the rule looks for certain patterns in the 'TargetObject' and 'Details' fields. It checks whether the path contains a reference to winsat.exe, indicating an attempt to misdirect application launching via the Windows registry. This monitoring utilizes Windows registry logs, which provide insights into unauthorized or anomalous changes to executable paths that could signal privilege escalation attempts.
+  ### Investigation Steps
+  - Review EDR logs for any associated process activities linked to winsat.exe, focusing on creation timestamps and parent-child process relationships.
+  - Verify the command-line parameters used in conjunction with the detected registry modifications to identify potential attempts at exploitation.
+  - Cross-reference logs from the SIEM for additional anomalous activities or indicators of compromise, such as repeated registry changes or suspicious user behaviors around the time of the alert.
+  - Check for related entries in the AV logs that may detail any attempts to execute winsat.exe from the temporary directory, which could reflect bypass attempts.

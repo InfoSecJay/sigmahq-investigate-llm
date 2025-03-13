@@ -1,0 +1,75 @@
+title: Suspicious WindowsTerminal Child Processes
+id: 8de89e52-f6e1-4b5b-afd1-41ecfa300d48
+status: test
+description: Detects suspicious children spawned via the Windows Terminal application
+  which could be a sign of persistence via WindowsTerminal (see references section)
+references:
+- https://persistence-info.github.io/Data/windowsterminalprofile.html
+- https://twitter.com/nas_bench/status/1550836225652686848
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-25
+modified: 2023-02-14
+tags:
+- attack.execution
+- attack.persistence
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|endswith:
+    - '\WindowsTerminal.exe'
+    - '\wt.exe'
+  selection_susp:
+  - Image|endswith:
+              # Add more LOLBINS
+    - '\rundll32.exe'
+    - '\regsvr32.exe'
+    - '\certutil.exe'
+    - '\cscript.exe'
+    - '\wscript.exe'
+    - '\csc.exe'
+  - Image|contains:
+              # Add more suspicious paths
+    - 'C:\Users\Public\'
+    - '\Downloads\'
+    - '\Desktop\'
+    - '\AppData\Local\Temp\'
+    - '\Windows\TEMP\'
+  - CommandLine|contains:
+              # Add more suspicious commandline
+    - ' iex '
+    - ' icm'
+    - 'Invoke-'
+    - 'Import-Module '
+    - 'ipmo '
+    - 'DownloadString('
+    - ' /c '
+    - ' /k '
+    - ' /r '
+  filter_builtin_visual_studio_shell:
+    CommandLine|contains|all:
+    - 'Import-Module'
+    - 'Microsoft.VisualStudio.DevShell.dll'
+    - 'Enter-VsDevShell'
+  filter_open_settings:
+    CommandLine|contains|all:
+    - '\AppData\Local\Packages\Microsoft.WindowsTerminal_'
+    - '\LocalState\settings.json'
+  filter_vsdevcmd:
+    CommandLine|contains|all:
+    - 'C:\Program Files\Microsoft Visual Studio\'
+    - '\Common7\Tools\VsDevCmd.bat'
+  condition: all of selection_* and not 1 of filter_*
+falsepositives:
+- Other legitimate "Windows Terminal" profiles
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule aims to identify potentially malicious child processes spawned from the Windows Terminal application (`WindowsTerminal.exe` or `wt.exe`). It focuses on processes that are often leveraged by attackers for persistent entry into a system. Specifically, the rule looks for child processes that are well-known living off the land binaries (LOLBins) such as `rundll32.exe`, `regsvr32.exe`, and typical script execution commands like `cscript.exe` and `wscript.exe`. The presence of these processes, particularly when they originate from directories commonly associated with user-generated files (like `C:\Users\Public\` or `\Downloads\`) or when their command-line arguments include suspicious patterns, raises red flags.
+  The technical data sources utilized in this rule include process creation logs that capture parent-child process relationships, as well as command-line parameters that can reveal the intent behind the execution of these processes. By detecting abnormal patterns tied to Windows Terminal, this rule can assist SOC analysts in identifying potential persistence mechanisms in play and respond appropriately.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify the parent-child relationships involving `WindowsTerminal.exe` and any child processes flagged by this rule.
+  - Analyze the command-line parameters associated with the suspicious child processes for indicators of nefarious activity, focusing on any usage of known LOLBins or dubious scripts.
+  - Cross-reference the user account associated with the execution with any potential unauthorized access or anomalies in user behavior logs within your SIEM platform.
+  - Check network traffic logs from the NDR solution to determine if any outbound connections were established by the child processes that might indicate data exfiltration or communication with malicious infrastructure.

@@ -1,0 +1,41 @@
+title: Invoke-Obfuscation COMPRESS OBFUSCATION - System
+id: 175997c5-803c-4b08-8bb0-70b099f47595
+status: test
+description: Detects Obfuscated Powershell via COMPRESS OBFUSCATION
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009     # (Task 19)
+author: Timur Zinniatullin, oscd.community
+date: 2020-10-18
+modified: 2022-11-29
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7045
+    ImagePath|contains|all:
+    - 'new-object'
+    - 'text.encoding]::ascii'
+    - 'readtoend'
+    ImagePath|contains:
+    - ':system.io.compression.deflatestream'
+    - 'system.io.streamreader'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential obfuscated PowerShell scripts being executed on a Windows system via the use of compression techniques. Specifically, it monitors for Event ID 7045 entries, which relate to service installation events logged by the Service Control Manager. The rule looks for indications that a PowerShell command is constructing and executing a compressed payload by leveraging .NET methods such as `System.IO.Compression.DeflateStream` and `System.IO.StreamReader`. This combination often suggests an attempt to hide malicious activities, making it an important behavior to detect in defense against advanced persistent threats (APTs) that employ obfuscation to evade detection.
+  The key log sources for triggering this rule are Windows system logs, particularly those detailing service management events. By analyzing the command-line parameters and the associated image path, the rule effectively detects suspicious patterns that indicate potential misuse of PowerShell for obfuscation purposes.
+  ### Investigation Steps
+  - Review the Event ID 7045 logs in the Windows Event Viewer to identify the context and source of the service creation event triggered by PowerShell.
+  - Utilize your EDR solution to investigate the process tree of the identified event to track the execution flow and any parent processes that may have initiated the PowerShell command.
+  - Examine related PowerShell logs (e.g., transcript logs or the PowerShell event log) for additional context regarding the commands that were executed during the session.
+  - Analyze network traffic logs via your NDR solutions to determine if any external communications occurred during the execution of the obfuscated PowerShell script, which could indicate potential data exfiltration or command-and-control activity.

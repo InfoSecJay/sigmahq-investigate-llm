@@ -1,0 +1,48 @@
+title: 7Zip Compressing Dump Files
+id: ec570e53-4c76-45a9-804d-dc3f355ff7a7
+related:
+- id: 1ac14d38-3dfc-4635-92c7-e3fd1c5f5bfc
+  type: derived
+status: test
+description: Detects execution of 7z in order to compress a file with a ".dmp"/".dump"
+  extension, which could be a step in a process of dump file exfiltration.
+references:
+- https://thedfirreport.com/2022/09/26/bumblebee-round-two/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-27
+modified: 2023-09-12
+tags:
+- attack.collection
+- attack.t1560.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Description|contains: '7-Zip'
+  - Image|endswith:
+    - '\7z.exe'
+    - '\7zr.exe'
+    - '\7za.exe'
+  - OriginalFileName:
+    - '7z.exe'
+    - '7za.exe'
+  selection_extension:
+    CommandLine|contains:
+    - '.dmp'
+    - '.dump'
+    - '.hdmp'
+  condition: all of selection_*
+falsepositives:
+- Legitimate use of 7z with a command line in which ".dmp" or ".dump" appears accidentally
+- Legitimate use of 7z to compress WER ".dmp" files for troubleshooting
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of 7-Zip (7z) commands that involve compressing files with extensions such as ".dmp" or ".dump." These file types are often associated with memory dump files, which can contain sensitive information and may be targeted for exfiltration by malicious actors. The rule leverages process creation logs to monitor specific 7-Zip executable calls, filtering on command line parameters that indicate the presence of dump files. By identifying instances where 7-Zip is used to handle these types of files, security analysts can proactively investigate potential data leakage or other malicious activities.
+  The rule focuses on checking various attributes of the process execution, including the image name and a portion of the command line that suggests compressing a dump file. This allows for a targeted detection strategy that minimizes false positives, emphasizing workflows that are more likely to indicate suspicious behavior.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR system to identify any recent instances of 7-Zip being executed with the specified command line parameters.
+  - Cross-reference users associated with the detected 7-Zip events using your identity and access management logs to determine if the activity aligns with their typical behavior.
+  - Check for any related network activity in your Proxy or NDR logs that may indicate data exfiltration attempts following the use of 7-Zip to compress dump files.
+  - Analyze any associated file activity captured in your AV and Endpoint logs to uncover whether these dump files were subsequently transferred to an external or suspicious destination.

@@ -1,0 +1,40 @@
+title: RDP Over Reverse SSH Tunnel
+id: 5f699bc5-5446-4a4a-a0b7-5ef2885a3eb4
+status: test
+description: Detects svchost hosting RDP termsvcs communicating with the loopback
+  address and on TCP port 3389
+references:
+- https://twitter.com/cyb3rops/status/1096842275437625346
+author: Samir Bousseaden
+date: 2019-02-16
+modified: 2024-03-12
+tags:
+- attack.command-and-control
+- attack.t1572
+- attack.lateral-movement
+- attack.t1021.001
+- car.2013-07-002
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection_img:
+    Image|endswith: '\svchost.exe'
+    Initiated: 'true'
+    SourcePort: 3389
+  selection_destination:
+    DestinationIp|cidr:
+    - '127.0.0.0/8'
+    - '::1/128'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The detection rule identifies potential malicious activity involving Remote Desktop Protocol (RDP) sessions that are being facilitated through a reverse SSH tunnel. It specifically looks for instances where the Windows system process `svchost.exe` (which is commonly used to host various services) is communicating over the loopback address (127.0.0.1) on TCP port 3389, which is the default port for RDP. The rule leverages network connection logs as its data source, focusing on specific properties such as the image path, initiation of the session, and port number. By analyzing these factors, the rule aims to surface unauthorized lateral movement or command-and-control (C2) activity that may indicate a security incident.
+  ### Investigation Steps
+  - Investigate the EDR logs for the process `svchost.exe` and its associated command-line execution to understand its behavior and context within the system.
+  - Check the network connection logs to confirm the outbound connections being made on TCP port 3389 and whether they correlate with legitimate users or machines.
+  - Conduct a review of user accounts and access logs to identify any unauthorized or unusual RDP activities that coincide with the detected event.
+  - Utilize the SIEM to correlate the alert with other security events or anomalies within the environment to determine if it is part of a broader attack pattern.

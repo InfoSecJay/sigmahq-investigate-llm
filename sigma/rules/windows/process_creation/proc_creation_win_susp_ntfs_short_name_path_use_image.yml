@@ -1,0 +1,57 @@
+title: Use Short Name Path in Image
+id: a96970af-f126-420d-90e1-d37bf25e50e1
+related:
+- id: 349d891d-fef0-4fe4-bc53-eee623a15969
+  type: similar
+status: test
+description: Detect use of the Windows 8.3 short name. Which could be used as a method
+  to avoid Image detection
+references:
+- https://www.acunetix.com/blog/articles/windows-short-8-3-filenames-web-security-problem/
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-2000-server/cc959352(v=technet.10)
+- https://twitter.com/frack113/status/1555830623633375232
+author: frack113, Nasreddine Bencherchali
+date: 2022-08-07
+modified: 2023-03-21
+tags:
+- attack.defense-evasion
+- attack.t1564.004
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|contains:
+    - '~1\'
+    - '~2\'
+  filter1:
+  - ParentImage:
+    - C:\Windows\System32\Dism.exe
+    - C:\Windows\System32\cleanmgr.exe            # Spawns DismHost.exe with a shortened username (if too long)
+  - ParentImage|endswith:
+    - '\WebEx\WebexHost.exe'            # Spawns a shortened version of the CLI and Image processes
+    - '\thor\thor64.exe'
+  - Product: 'InstallShield (R)'
+  - Description: 'InstallShield (R) Setup Engine'
+  - Company: 'InstallShield Software Corporation'
+  filter_installers:
+  - Image|contains|all:
+    - '\AppData\'
+    - '\Temp\'
+  - Image|endswith:
+    - '~1\unzip.exe'
+    - '~1\7zG.exe'
+  condition: selection and not 1 of filter*
+falsepositives:
+- Applications could use this notation occasionally which might generate some false
+  positives. In that case Investigate the parent and child process.
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects the use of Windows 8.3 short names (also known as abbreviated file names) within process creation events. Attackers may utilize these short names to bypass security detection mechanisms by obscuring the true file path of an executable. The rule focuses on identifying process executions that contain these abbreviated paths, specifically looking for instances where the path includes characters such as `~1` or `~2`, which indicate the use of short names. The detection is particularly calibrated to log sources that track process creation on Windows, engaging with key data points like the Image, ParentImage, Product, Description, and Company properties associated with the process.
+  The rule includes filters to refine the detections to potentially malicious activity by examining the parent processes that are known to spawn other executables, such as Dism.exe and cleanmgr.exe, or specific installer products like InstallShield. By monitoring these execution patterns, the SOC can identify and respond to potential evasion tactics employed by malware.
+  ### Investigation Steps
+  - Review process creation logs in your EDR to identify instances of process initiation that utilize Windows 8.3 short names, focusing on the paths indicated by the rule.
+  - Investigate the parent process to determine its legitimacy; check for known processes like Dism.exe or InstallShield. 
+  - Cross-reference IP or domain traffic in your proxy logs and network detections to identify any anomalous connections initiated by the flagged processes.
+  - Check for anomalies or irregularities in the cloud platform logs for the relevant applications, especially any unauthorized access patterns or other suspicious behavior linked to the processes in question.

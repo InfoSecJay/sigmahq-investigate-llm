@@ -1,0 +1,43 @@
+title: DLL Loaded via CertOC.EXE
+id: 242301bc-f92f-4476-8718-78004a6efd9f
+related:
+- id: 84232095-ecca-4015-b0d7-7726507ee793
+  type: similar
+status: test
+description: Detects when a user installs certificates by using CertOC.exe to loads
+  the target DLL file.
+references:
+- https://twitter.com/sblmsrsn/status/1445758411803480072?s=20
+- https://github.com/elastic/protections-artifacts/commit/746086721fd385d9f5c6647cada1788db4aea95f#diff-fe98e74189873d6df72a15df2eaa0315c59ba9cdaca93ecd68afc4ea09194ef2
+- https://lolbas-project.github.io/lolbas/Binaries/Certoc/
+author: Austin Songer @austinsonger
+date: 2021-10-23
+modified: 2024-03-05
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\certoc.exe'
+  - OriginalFileName: 'CertOC.exe'
+  selection_cli:
+    CommandLine|contains|windash: ' -LoadDLL '
+  condition: all of selection_*
+fields:
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "DLL Loaded via CertOC.EXE" is designed to detect potentially malicious behavior associated with the usage of CertOC.exe, a legitimate tool for certificate installation. The rule primarily focuses on instances where CertOC.exe is utilized to load a DLL dynamically through specific command-line parameters, specifically looking for the occurrence of " -LoadDLL " in the command line. The detection capably identifies actions stemming from the process creation logs of Windows systems, relying on both the image path and the original filename of CertOC.exe to ascertain legitimacy versus malicious intent.
+  The basis of this detection is grounded in the understanding that attackers may exploit CertOC.exe to install unwanted certificates or execute other nefarious DLLs under the guise of a legitimate process. By monitoring for the presence of specified command-line arguments during the process creation phase, incident responders can promptly investigate unusual certificate installation activities that may indicate an attempt at defense evasion or other attack vectors.
+  ### Investigation Steps
+  - Query the EDR logs for instances of CertOC.exe executing with " -LoadDLL " in the command line and check the associated command line parameters for any unexpected DLLs.
+  - Review the process creation logs to identify the parent process of CertOC.exe, which can provide context on how the command was initiated and help assess its legitimacy. 
+  - Utilize AV and threat intelligence feeds to determine if the loaded DLL is known to be malicious or if it has a reputation suggesting it may be associated with known attacks.
+  - Analyze network traffic through NDR and proxy logs to look for any outbound connections that may correlate with the timestamps of the CertOC.exe execution, indicating potential further malicious activity following the DLL load.

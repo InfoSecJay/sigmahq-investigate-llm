@@ -1,0 +1,53 @@
+title: Suspicious Process Parents
+id: cbec226f-63d9-4eca-9f52-dfb6652f24df
+status: test
+description: Detects suspicious parent processes that should not have any children
+  or should only have a single possible child program
+references:
+- https://twitter.com/x86matthew/status/1505476263464607744?s=12
+- https://svch0st.medium.com/stats-from-hunting-cobalt-strike-beacons-c17e56255f9b
+author: Florian Roth (Nextron Systems)
+date: 2022-03-21
+modified: 2022-09-08
+tags:
+- attack.defense-evasion
+- attack.t1036
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith:
+    - '\minesweeper.exe'
+    - '\winver.exe'
+    - '\bitsadmin.exe'
+  selection_special:
+    ParentImage|endswith:
+    - '\csrss.exe'
+    - '\certutil.exe'
+         # - '\schtasks.exe'
+    - '\eventvwr.exe'
+    - '\calc.exe'
+    - '\notepad.exe'
+  filter_special:
+    Image|endswith:
+    - '\WerFault.exe'
+    - '\wermgr.exe'
+    - '\conhost.exe'         # csrss.exe, certutil.exe
+    - '\mmc.exe'             # eventvwr.exe
+    - '\win32calc.exe'         # calc.exe
+    - '\notepad.exe'
+  filter_null:
+    Image:
+  condition: selection or ( selection_special and not 1 of filter_* )
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Suspicious Process Parents" detection rule is designed to identify potentially malicious activity based on the relationship between processes on a Windows system. Specifically, it looks for certain parent processes that typically do not launch child processes or are known to have very limited child programs under normal conditions. The rule targets processes like `minesweeper.exe`, `winver.exe`, and other benign applications that, when acting as a parent, indicate an abnormal behavior if they spawn child processes. It leverages process creation logs to evaluate the hierarchy and nature of these processes, filtering for cases where a parent process could create a child process that is either unexpected or uncommon, such as `WerFault.exe` or `conhost.exe`, thus pointing to possible evasion techniques employed by attackers.
+  ### Investigation Steps
+  - Use EDR to review the execution history of the detected parent process to understand its launch context and any associated child processes.
+  - Correlate event logs from the SIEM to identify any additional anomalous behavior or patterns related to the parent process, especially around the time of alert.
+  - Investigate network connections via NDR or NGFW logs to see if any unusual inbound or outbound traffic corresponds with the triggering event.
+  - Examine system logs and application logs in Windows Event Viewer for any errors or events that coincide with the timing of the detected processes to gather further context on potential compromises.

@@ -1,0 +1,37 @@
+title: HackTool - Mimikatz Kirbi File Creation
+id: 9e099d99-44c2-42b6-a6d8-54c3545cab29
+related:
+- id: 034affe8-6170-11ec-844f-0f78aa0c4d66
+  type: obsolete
+status: test
+description: Detects the creation of files created by mimikatz such as ".kirbi", "mimilsa.log",
+  etc.
+references:
+- https://cobalt.io/blog/kerberoast-attack-techniques
+- https://pentestlab.blog/2019/10/21/persistence-security-support-provider/
+author: Florian Roth (Nextron Systems), David ANDRE
+date: 2021-11-08
+modified: 2024-06-27
+tags:
+- attack.credential-access
+- attack.t1558
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|endswith:
+    - '.kirbi'         # Kerberos tickets
+    - 'mimilsa.log'         # MemSSP default file
+  condition: selection
+falsepositives:
+- Unlikely
+level: critical
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation of specific file types associated with the Mimikatz tool, particularly files ending in ".kirbi" (Kerberos tickets) and "mimilsa.log" (related to the MEMSSP attack vector). Mimikatz is widely recognized for its ability to extract credentials and perform various credential access tactics, making its detection critical for preventing post-exploitation activities. The rule primarily analyzes file event logs on Windows systems, focusing on file creation events that correspond with these high-risk file extensions. By leveraging this information, analysts can identify potential credential theft activities and take timely action to mitigate risks.
+  ### Investigation Steps
+  - Utilize EDR tools to examine process activity around the time of the file creation event to identify any suspicious processes that may be linked to the execution of Mimikatz.
+  - Review command-line arguments in process logs to detect any commands that may have triggered the creation of ".kirbi" or "mimilsa.log" files, indicating potential misuse of legitimate utilities.
+  - Search through Windows Security Event logs for any associated authentication attempts or Kerberos ticket requests that coincide with the file creation timeframe.
+  - Investigate user behavior through proxy logs to identify any unusual access patterns or connections to external services that may suggest an attempted data exfiltration after credential theft.

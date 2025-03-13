@@ -1,0 +1,38 @@
+title: Suspicious Invoke-Item From Mount-DiskImage
+id: 902cedee-0398-4e3a-8183-6f3a89773a96
+status: test
+description: Adversaries may abuse container files such as disk image (.iso, .vhd)
+  file formats to deliver malicious payloads that may not be tagged with MOTW.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1553.005/T1553.005.md#atomic-test-2---mount-an-iso-image-and-run-executable-from-the-iso
+- https://learn.microsoft.com/en-us/powershell/module/storage/mount-diskimage?view=windowsserver2022-ps
+author: frack113
+date: 2022-02-01
+tags:
+- attack.defense-evasion
+- attack.t1553.005
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'Mount-DiskImage '
+    - '-ImagePath '
+    - Get-Volume
+    - '.DriveLetter'
+    - 'invoke-item '
+    - '):\'
+  condition: selection
+falsepositives:
+- Legitimate PowerShell scripts
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential abuse of PowerShell commands, specifically aimed at leveraging the `Mount-DiskImage` cmdlet. Adversaries often use .iso or .vhd disk image files to deliver malicious payloads that may not be flagged with the Mark of the Web (MOTW). The rule looks for specific PowerShell script block texts that indicate an image is being mounted and then executed through the `Invoke-Item` command. By monitoring the logs from enabled PowerShell Script Block Logging, along with other contextual information such as drive letter retrievals, it enables the detection of suspicious activities typical of covert lateral movements or execution of payloads from non-trusted sources.
+  ### Investigation Steps
+  - Review the PowerShell logs in the EDR to identify the full context of the `Mount-DiskImage` and `Invoke-Item` commands executed, including any associated user accounts.
+  - Analyze the source of the mounted disk image by checking file properties and hashes against known threat intelligence databases to ascertain if it is legitimate or malicious.
+  - Utilize proxy logs to identify any unusual network activity or communications that may have been initiated by the malicious payloads that were executed from the mounted disk image.
+  - Investigate any recent changes made to the system, focusing on the installation or downloads of ISO or VHD files. This may involve checking user behavior analytics or file access logs.

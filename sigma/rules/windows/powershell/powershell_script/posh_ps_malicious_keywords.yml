@@ -1,0 +1,53 @@
+title: Malicious PowerShell Keywords
+id: f62176f3-8128-4faa-bf6c-83261322e5eb
+status: test
+description: Detects keywords from well-known PowerShell exploitation frameworks
+references:
+- https://adsecurity.org/?p=2921
+author: Sean Metcalf (source), Florian Roth (Nextron Systems)
+date: 2017-03-05
+modified: 2023-06-20
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains:
+    - 'AdjustTokenPrivileges'
+    - 'IMAGE_NT_OPTIONAL_HDR64_MAGIC'
+            # - 'LSA_UNICODE_STRING'
+    - 'Metasploit'
+    - 'Microsoft.Win32.UnsafeNativeMethods'
+    - 'Mimikatz'
+    - 'MiniDumpWriteDump'
+    - 'PAGE_EXECUTE_READ'
+    - 'ReadProcessMemory.Invoke'
+    - 'SE_PRIVILEGE_ENABLED'
+    - 'SECURITY_DELEGATION'
+    - 'TOKEN_ADJUST_PRIVILEGES'
+    - 'TOKEN_ALL_ACCESS'
+    - 'TOKEN_ASSIGN_PRIMARY'
+    - 'TOKEN_DUPLICATE'
+    - 'TOKEN_ELEVATION'
+    - 'TOKEN_IMPERSONATE'
+    - 'TOKEN_INFORMATION_CLASS'
+    - 'TOKEN_PRIVILEGES'
+    - 'TOKEN_QUERY'
+  condition: selection
+falsepositives:
+- Depending on the scripts, this rule might require some initial tuning to fit the
+  environment
+level: medium
+notes: |
+  ### Technical Context
+  The "Malicious PowerShell Keywords" detection rule identifies potential malicious activity by searching for specific keywords commonly associated with PowerShell exploitation frameworks, such as Metasploit and Mimikatz. The rule leverages Windows Script Block Logging, which must be enabled, to monitor and analyze PowerShell script execution. By focusing on keywords that indicate potentially harmful operations—such as privilege escalation, process memory manipulation, and token adjustments—this rule helps in identifying suspicious PowerShell commands that could be exploited by an attacker.
+  The detection works by examining the content of PowerShell script blocks, looking for critical keywords that may signify an attack in progress. These keywords have been identified as frequently utilized in known exploitation techniques, offering a proactive approach to threat detection based on established malicious behaviors. As a result, this rule aids incident responders in swiftly pinpointing and categorizing PowerShell-related threats in a Windows environment.
+  ### Investigation Steps
+  - Utilize EDR tools to analyze the endpoint behavior surrounding the alert. Look for any suspicious activity or abnormal patterns correlating with the execution timestamps.
+  - Review the script block logs to identify the complete context of the PowerShell execution. Focus on script block contents and other commands executed before and after the detected keywords.
+  - Query the SIEM for related security events, such as failed logins or unusual account activities that could signify an attacker's presence or lateral movement attempts.
+  - Check network logs from the NGFW or proxy to determine if there were any connections made to known malicious IPs or domains during the time of the alert.

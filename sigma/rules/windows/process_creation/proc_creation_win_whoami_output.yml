@@ -1,0 +1,42 @@
+title: Whoami.EXE Execution With Output Option
+id: c30fb093-1109-4dc8-88a8-b30d11c95a5d
+status: test
+description: Detects the execution of "whoami.exe" with the "/FO" flag to choose CSV
+  as output format or with redirection options to export the results to a file for
+  later use.
+references:
+- https://brica.de/alerts/alert/public/1247926/agent-tesla-keylogger-delivered-inside-a-power-iso-daa-archive/
+- https://app.any.run/tasks/7eaba74e-c1ea-400f-9c17-5e30eee89906/
+- https://www.youtube.com/watch?v=DsJ9ByX84o4&t=6s
+author: Florian Roth (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2023-02-28
+modified: 2023-12-04
+tags:
+- attack.discovery
+- attack.t1033
+- car.2016-03-001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_main_img:
+  - Image|endswith: '\whoami.exe'
+  - OriginalFileName: 'whoami.exe'
+  selection_main_cli:
+    CommandLine|contains:
+    - ' /FO CSV'
+    - ' -FO CSV'
+  selection_special:
+    CommandLine|contains: 'whoami*>'
+  condition: all of selection_main_* or selection_special
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects the execution of the Windows command-line utility `whoami.exe` with specific flags that suggest potential reconnaissance activities. The rule targets executions where `whoami.exe` is invoked with the `/FO CSV` option, which formats the output in CSV, or when the output is redirected to a file using `whoami*>`. Such behavior can be indicative of attackers attempting to collect system information for later use or exfiltration. The primary data sources utilized in this detection are process creation logs, which capture details such as the command line arguments passed during the execution of processes on Windows systems. By monitoring this data, organizations can identify potential misuse of legitimate tools in malicious contexts.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR to identify any instances of `whoami.exe` executed with the `/FO CSV` flag or output redirection.
+  - Analyze the command-line parameters for additional suspicious flags or unexpected user accounts to determine the context of the execution.
+  - Check the output files created as a result of the command to identify what information was gathered and if it contains sensitive data.
+  - Correlate findings with network logs from the firewall or proxy to see if there were any outbound connections initiated shortly after the execution that may indicate data exfiltration.

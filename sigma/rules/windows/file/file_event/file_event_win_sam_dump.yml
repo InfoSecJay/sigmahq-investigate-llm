@@ -1,0 +1,55 @@
+title: Potential SAM Database Dump
+id: 4e87b8e2-2ee9-4b2a-a715-4727d297ece0
+status: test
+description: Detects the creation of files that look like exports of the local SAM
+  (Security Account Manager)
+references:
+- https://github.com/search?q=CVE-2021-36934
+- https://web.archive.org/web/20210725081645/https://github.com/cube0x0/CVE-2021-36934
+- https://www.google.com/search?q=%22reg.exe+save%22+sam
+- https://github.com/HuskyHacks/ShadowSteal
+- https://github.com/FireFart/hivenightmare
+author: Florian Roth (Nextron Systems)
+date: 2022-02-11
+modified: 2023-01-05
+tags:
+- attack.credential-access
+- attack.t1003.002
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+  - TargetFilename|endswith:
+    - '\Temp\sam'
+    - '\sam.sav'
+    - '\Intel\sam'
+    - '\sam.hive'
+    - '\Perflogs\sam'
+    - '\ProgramData\sam'
+    - '\Users\Public\sam'
+    - '\AppData\Local\sam'
+    - '\AppData\Roaming\sam'
+    - '_ShadowSteal.zip'                 # https://github.com/HuskyHacks/ShadowSteal
+    - '\Documents\SAM.export'            # https://github.com/n3tsurge/CVE-2021-36934/
+    - ':\sam'
+  - TargetFilename|contains:
+    - '\hive_sam_'                       # https://github.com/FireFart/hivenightmare
+    - '\sam.save'
+    - '\sam.export'
+    - '\~reg_sam.save'
+    - '\sam_backup'
+    - '\sam.bck'
+    - '\sam.backup'
+  condition: selection
+falsepositives:
+- Rare cases of administrative activity
+level: high
+notes: |
+  ### Technical Context
+  This detection rule aims to identify suspicious file creation events that resemble attempts to export the local Security Account Manager (SAM) database. The SAM database is critical for storing user account information, including hashed passwords. Attackers may exploit vulnerabilities, such as CVE-2021-36934, to extract or manipulate this sensitive data. The detection leverages file event logs to track specific filenames that often indicate a SAM export, particularly within various directories such as `Temp`, `AppData`, and `Documents`. By monitoring for the creation of files that include patterns like `sam`, `sam.save`, and others linked to common exploits, the rule helps detect potential unauthorized activities prior to any data breach.
+  ### Investigation Steps
+  - Review EDR logs for process creation events leading up to the file creation to identify any suspicious commands or executables running in proximity to the alert.
+  - Check Antivirus logs for any detections or alerts related to known SAM export techniques or tools that could indicate malicious activity.
+  - Inspect file access history with the SIEM to correlate any other unusual or unauthorized access attempts to sensitive directories containing user credentials.
+  - Analyze Proxy and VPN logs for unusual outbound connections or data transfers that may suggest an attempted exfiltration of the SAM database or its contents.

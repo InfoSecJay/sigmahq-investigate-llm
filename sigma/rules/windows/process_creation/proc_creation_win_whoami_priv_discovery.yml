@@ -1,0 +1,39 @@
+title: Security Privileges Enumeration Via Whoami.EXE
+id: 97a80ec7-0e2f-4d05-9ef4-65760e634f6b
+status: test
+description: Detects a whoami.exe executed with the /priv command line flag instructing
+  the tool to show all current user privileges. This is often used after a privilege
+  escalation attempt.
+references:
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/whoami
+author: Florian Roth (Nextron Systems)
+date: 2021-05-05
+modified: 2023-02-28
+tags:
+- attack.privilege-escalation
+- attack.discovery
+- attack.t1033
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\whoami.exe'
+  - OriginalFileName: 'whoami.exe'
+  selection_cli:
+    CommandLine|contains:
+    - ' /priv'
+    - ' -priv'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potential privilege escalation tactics within a Windows environment by monitoring the execution of the `whoami.exe` tool with the `/priv` command-line flag. The `whoami.exe`, a built-in Windows command-line utility, is commonly used to display user account information, including privileges associated with the current user. When executed with the `/priv` switch, it reveals all privileges granted to that user. This behavior is suspicious, especially if it occurs after an attempted privilege escalation, as attackers often use this information to enumerate available privileges before executing further malicious actions.
+  The rule analyzes process creation logs to detect instances where `whoami.exe` is called with the specified command-line arguments. The relevant data sources include process creation logs that capture the image name and the command-line parameters used during execution. If the defined conditions are met, a significant alert is triggered, indicating a potential security concern warranting further investigation.
+  ### Investigation Steps
+  - Review the EDR logs to identify the user account associated with the `whoami.exe` execution and analyze its recent activity for any suspicious behavior.
+  - Investigate the command-line parameters used with `whoami.exe` for any additional flags or unusual arguments that could indicate automated enumeration or exploitation attempts.
+  - Check Windows Event Logs, particularly security and system logs, to see if there were any recent privilege escalation attempts or other related suspicious activities leading up to the execution of `whoami.exe`.
+  - Correlate findings with network activity extracted from the NDR or firewall logs to identify any external connections or lateral movement attempts that coincide with the time of the execution.

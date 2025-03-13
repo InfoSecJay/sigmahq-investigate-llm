@@ -1,0 +1,41 @@
+title: Stop Windows Service Via PowerShell Stop-Service
+id: c49c5062-0966-4170-9efd-9968c913a6cf
+related:
+- id: eb87818d-db5d-49cc-a987-d5da331fbd90
+  type: obsolete
+status: test
+description: Detects the stopping of a Windows service via the PowerShell Cmdlet "Stop-Service"
+references:
+- https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/stop-service?view=powershell-7.4
+author: Jakob Weinzettl, oscd.community, Nasreddine Bencherchali (Nextron Systems)
+date: 2023-03-05
+tags:
+- attack.impact
+- attack.t1489
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_sc_net_img:
+  - OriginalFileName:
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+  - Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+  selection_cli:
+    CommandLine|contains: 'Stop-Service '
+  condition: all of selection_*
+falsepositives:
+- There are many legitimate reasons to stop a service. This rule isn't looking for
+  any suspicious behaviour in particular. Filter legitimate activity accordingly
+level: low
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify instances where a Windows service is stopped using the PowerShell cmdlet `Stop-Service`. The rule specifically monitors process creation events to capture when PowerShell is invoked with the command line parameter containing "Stop-Service". It focuses on logs from PowerShell (both `powershell.exe` and `pwsh.exe`) and relevant command line execution details to ascertain whether this potentially disruptive operation is underway. Since stopping services can be legitimate but also malicious when used to disrupt security controls or services, this rule is essential for identifying potentially harmful actions taken by an attacker or an insider.
+  The technical data sources involved typically include process creation logs that track the initiation of PowerShell commands, while command line parameters help refine the detection to specific actions that may warrant further investigation, considering the context of the environment. Analysts should be aware that while the rule flags such activities, the nature of stopping services can often be legitimate, thus requiring careful handling of alerts to avoid unnecessary investigations.
+  ### Investigation Steps
+  - Review recent PowerShell command execution logs in the EDR to determine the context of the `Stop-Service` command and the specific service that was stopped. 
+  - Cross-reference the timestamps of the alerts with any related activity in the SIEM, such as changes in activity or anomalies to identify potential malicious behavior.
+  - Analyze if the service being stopped is critical to the security of the environment using the organization's service documentation and configuration management database. 
+  - Investigate user account activity to ascertain whether the account executing the command has a legitimate reason for performing this action, checking for unusual logins or patterns that could indicate compromised credentials.

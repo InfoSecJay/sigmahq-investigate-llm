@@ -1,0 +1,35 @@
+title: Execution DLL of Choice Using WAB.EXE
+id: fc014922-5def-4da9-a0fc-28c973f41bfb
+status: test
+description: This rule detects that the path to the DLL written in the registry is
+  different from the default one. Launched WAB.exe tries to load the DLL from Registry.
+references:
+- https://github.com/LOLBAS-Project/LOLBAS/blob/8283d8d91552213ded165fd36deb6cb9534cb443/yml/OSBinaries/Wab.yml
+- https://twitter.com/Hexacorn/status/991447379864932352
+- http://www.hexacorn.com/blog/2018/05/01/wab-exe-as-a-lolbin/
+author: oscd.community, Natalia Shornikova
+date: 2020-10-13
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: '\Software\Microsoft\WAB\DLLPath'
+  filter:
+    Details: '%CommonProgramFiles%\System\wab32.dll'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential abuse of the Windows Address Book (WAB) executable, `WAB.EXE`, which can be misused by malicious actors to load custom Dynamic Link Libraries (DLLs) on a system. The rule specifically watches for changes in the registry path for the DLL used by WAB.EXE, alerting when the specified DLL path deviates from the default (`%CommonProgramFiles%\System\wab32.dll`). By monitoring the registry keys related to WAB, analysts can identify if an unauthorized DLL is being used, indicating a possible attempt at executing malicious code or evading detection mechanisms. The primary data source for this detection comes from registry set logs on Windows systems.
+  ### Investigation Steps
+  - Check the Windows registry for the `DLLPath` entry under `Software\Microsoft\WAB`. Use the EDR tool to confirm the currently loaded DLL path and verify if it matches known good entries.
+  - Investigate the process creation logs around the time the alert was triggered. Look for any instances where `WAB.EXE` was executed, examining command-line arguments for anomalies.
+  - Correlate network traffic logs via the NDR to assess if any suspicious connections were made following the execution of `WAB.EXE`. This may indicate further malicious activity.
+  - Review antivirus alerts and proxy logs for additional context or detections related to `WAB.EXE` or the loaded DLL. This step can help determine if the activity is part of a broader threat landscape.

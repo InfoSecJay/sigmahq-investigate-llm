@@ -1,0 +1,49 @@
+title: Suspicious File Created In PerfLogs
+id: bbb7e38c-0b41-4a11-b306-d2a457b7ac2b
+status: test
+description: Detects suspicious file based on their extension being created in "C:\PerfLogs\".
+  Note that this directory mostly contains ".etl" files
+references:
+- Internal Research
+- https://labs.withsecure.com/publications/fin7-target-veeam-servers
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-05
+tags:
+- attack.execution
+- attack.t1059
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|startswith: 'C:\PerfLogs\'
+    TargetFilename|endswith:
+    - '.7z'
+    - '.bat'
+    - '.bin'
+    - '.chm'
+    - '.dll'
+    - '.exe'
+    - '.hta'
+    - '.lnk'
+    - '.ps1'
+    - '.psm1'
+    - '.py'
+    - '.scr'
+    - '.sys'
+    - '.vbe'
+    - '.vbs'
+    - '.zip'
+  condition: selection
+falsepositives:
+- Unlikely
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule "Suspicious File Created In PerfLogs" is designed to detect the creation of potentially malicious files within the "C:\PerfLogs\" directory on Windows systems. This directory is typically used for storing performance logs, primarily in the format of ".etl" files. The rule specifically monitors for file creations that have extensions commonly associated with suspicious or executable content, such as ".exe", ".bat", ".ps1", and other script or archive formats. By tracking these file types, the rule aims to identify unauthorized or unusual activity that may indicate an attempt to execute harmful actions on the system or establish persistence.
+  To function, the detection leverages file event logs that capture information about file creation activities, including the full target filename and its associated extensions. This enables a proactive approach to identifying suspicious behaviors that could lead to data breaches or system compromise.
+  ### Investigation Steps
+  - Review EDR logs focused on the "C:\PerfLogs\" directory to identify additional context around the file creation event, such as the user and the process that executed the action.
+  - Analyze any related command-line parameters in the EDR to determine if the newly created file was executed or utilized shortly after creation, which could indicate malicious intent.
+  - Investigate proxy logs for any outbound connections initiated by processes that interacted with the suspicious files, to identify potential data exfiltration or command and control communications.
+  - Check system and application event logs for anomalies or errors related to the creation of these files to assess if there were any preceding events that might have contributed to the situation.

@@ -1,0 +1,78 @@
+title: Suspicious Execution Of Renamed Sysinternals Tools - Registry
+id: f50f3c09-557d-492d-81db-9064a8d4e211
+related:
+- id: 25ffa65d-76d8-4da5-a832-3f2b0136e133
+  type: derived
+- id: 8023f872-3f1d-4301-a384-801889917ab4
+  type: similar
+status: test
+description: Detects the creation of the "accepteula" key related to the Sysinternals
+  tools being created from executables with the wrong name (e.g. a renamed Sysinternals
+  tool)
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-24
+modified: 2023-02-07
+tags:
+- attack.resource-development
+- attack.t1588.002
+logsource:
+  product: windows
+  category: registry_add
+detection:
+  selection:
+    EventType: CreateKey
+    TargetObject|contains:
+            # Please add new values while respecting the alphabetical order
+    - '\Active Directory Explorer'
+    - '\Handle'
+    - '\LiveKd'
+    - '\ProcDump'
+    - '\Process Explorer'
+    - '\PsExec'
+    - '\PsLoggedon'
+    - '\PsLoglist'
+    - '\PsPasswd'
+    - '\PsPing'
+    - '\PsService'
+    - '\SDelete'
+    TargetObject|endswith: '\EulaAccepted'
+  filter:
+    Image|endswith:
+            # Please add new values while respecting the alphabetical order
+    - '\ADExplorer.exe'
+    - '\ADExplorer64.exe'
+    - '\handle.exe'
+    - '\handle64.exe'
+    - '\livekd.exe'
+    - '\livekd64.exe'
+    - '\procdump.exe'
+    - '\procdump64.exe'
+    - '\procexp.exe'
+    - '\procexp64.exe'
+    - '\PsExec.exe'
+    - '\PsExec64.exe'
+    - '\PsLoggedon.exe'
+    - '\PsLoggedon64.exe'
+    - '\psloglist.exe'
+    - '\psloglist64.exe'
+    - '\pspasswd.exe'
+    - '\pspasswd64.exe'
+    - '\PsPing.exe'
+    - '\PsPing64.exe'
+    - '\PsService.exe'
+    - '\PsService64.exe'
+    - '\sdelete.exe'
+  condition: selection and not filter
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule aims to detect suspicious activities related to the misuse of Sysinternals tools on Windows systems. Specifically, it monitors the Windows Registry for the creation of the "accepteula" key, which indicates that a user has accepted the End User License Agreement (EULA) for various Sysinternals utilities. However, the rule is crafted to identify instances where these utilities are executed under misleading or unrecognized names, suggesting potentially malicious intent. The critical data sources for this detection include registry change events, focusing on entries that imply an EULA acceptance procedure. When tools are renamed, or unexpected executables are executed, they often evade security scrutiny, thereby escalating risks to the enterprise environment.
+  ### Investigation Steps
+  - Review the generated alert details in the SIEM to understand which specific Registry keys were created and correlate them with the execution context of the identified Sysinternals tools.
+  - Utilize EDR platform capabilities to analyze the process execution history surrounding the alert, checking for any recently modified executables and their parent processes.
+  - Check the endpoints connected to the alert using the AV logs to identify if there were any associated alerts or detections triggered by the renamed executables.
+  - Examine network traffic logs from the NGFW or Proxy to see if there were any unusual outbound connections or attempted data exfiltration related to the processes detected.

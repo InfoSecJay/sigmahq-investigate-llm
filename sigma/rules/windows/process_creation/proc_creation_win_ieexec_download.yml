@@ -1,0 +1,36 @@
+title: File Download And Execution Via IEExec.EXE
+id: 9801abb8-e297-4dbf-9fbd-57dde0e830ad
+status: test
+description: Detects execution of the IEExec utility to download and execute files
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Ieexec/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-05-16
+modified: 2023-11-09
+tags:
+- attack.command-and-control
+- attack.t1105
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\IEExec.exe'
+  - OriginalFileName: 'IEExec.exe'
+  selection_cli:
+    CommandLine|contains:
+    - 'http://'
+    - 'https://'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule aims to detect the execution of the Internet Explorer Execution (IEExec.exe) utility, which is often leveraged by attackers for malicious downloads and command-and-control activities. The rule captures process creation logs specifically looking for instances where IEExec.exe is being executed, accompanied by command-line parameters containing HTTP or HTTPS URLs. By monitoring these patterns, security teams can identify potentially harmful behaviors associated with file downloads initiated by IEExec.exe, thereby strengthening the organization’s overall threat detection capability.
+  The key data sources involved in this detection are Windows process creation logs that record details about running processes, including the image name of the executable and any command-line parameters utilized upon execution. An anomaly detected in this behavior could indicate unauthorized file downloads or exploitation attempts, requiring immediate investigation.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR system to identify instances of IEExec.exe execution, noting the timestamps and user accounts involved.
+  - Analyze the command-line parameters associated with the detected process to confirm the nature of the downloads and ensure they are intended for legitimate use.
+  - Utilize the AV tool to scan any files downloaded via suspicious IEExec.exe executions for malware or indicators of compromise.
+  - Check the Web Proxy logs for related web traffic that corresponds with the URLs found in the command-line parameters to ascertain if any undesirable content was accessed or downloaded.

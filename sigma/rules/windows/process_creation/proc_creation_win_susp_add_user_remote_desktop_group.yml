@@ -1,0 +1,49 @@
+title: User Added to Remote Desktop Users Group
+id: ffa28e60-bdb1-46e0-9f82-05f7a61cc06e
+related:
+- id: ad720b90-25ad-43ff-9b5e-5c841facc8e5     # Admin groups
+  type: similar
+- id: 10fb649c-3600-4d37-b1e6-56ea90bb7e09     # Privileged groups
+  type: similar
+status: test
+description: Detects addition of users to the local Remote Desktop Users group via
+  "Net" or "Add-LocalGroupMember".
+references:
+- https://www.microsoft.com/security/blog/2021/11/16/evolving-trends-in-iranian-threat-actor-activity-mstic-presentation-at-cyberwarcon-2021/
+author: Florian Roth (Nextron Systems)
+date: 2021-12-06
+modified: 2022-09-09
+tags:
+- attack.persistence
+- attack.lateral-movement
+- attack.t1133
+- attack.t1136.001
+- attack.t1021.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_main:
+  - CommandLine|contains|all:
+    - 'localgroup '
+    - ' /add'
+  - CommandLine|contains|all:
+    - 'Add-LocalGroupMember '
+    - ' -Group '
+  selection_group:
+    CommandLine|contains:
+    - 'Remote Desktop Users'
+    - 'Utilisateurs du Bureau à distance'         # French for "Remote Desktop Users"
+    - 'Usuarios de escritorio remoto'         # Spanish for "Remote Desktop Users"
+  condition: all of selection_*
+falsepositives:
+- Administrative activity
+level: high
+notes: |
+  ### Technical Context
+  The "User Added to Remote Desktop Users Group" detection rule is designed to identify potentially unauthorized additions of users to the Remote Desktop Users group on Windows systems. This could indicate an attempt to enable remote access without proper oversight, which poses a significant security risk, especially if performed maliciously. The rule specifically monitors for command line activities associated with the "Net" command or "Add-LocalGroupMember" command, particularly when they include adding users to the Remote Desktop Users group. Relevant data sources for this detection include process creation logs, which capture command line parameters and system calls made during user account management operations. The detection targets common phrases found in these command lines, such as "localgroup /add" and "Remote Desktop Users" in various languages.
+  ### Investigation Steps
+  - Review EDR logs to trace the command execution details, identifying the user and process involved in the group modification.
+  - Check for simultaneous logins or other suspicious activity around the time of the event using VPN and Remote Desktop logs.
+  - Correlate modified account permissions with recent user activity records in SIEM to identify patterns or anomalies.
+  - Analyze firewall logs and Proxy records for unusual outbound connections from the modified user account, indicating possible exploitation attempts.

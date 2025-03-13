@@ -1,0 +1,36 @@
+title: Suspicious Teams Application Related ObjectAcess Event
+id: 25cde13e-8e20-4c29-b949-4e795b76f16f
+status: test
+description: Detects an access to authentication tokens and accounts of Microsoft
+  Teams desktop application.
+references:
+- https://www.bleepingcomputer.com/news/security/microsoft-teams-stores-auth-tokens-as-cleartext-in-windows-linux-macs/
+- https://www.vectra.ai/blogpost/undermining-microsoft-teams-security-by-mining-tokens
+author: '@SerkinValery'
+date: 2022-09-16
+tags:
+- attack.credential-access
+- attack.t1528
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4663
+    ObjectName|contains:
+    - '\Microsoft\Teams\Cookies'
+    - '\Microsoft\Teams\Local Storage\leveldb'
+  filter:
+    ProcessName|contains: '\Microsoft\Teams\current\Teams.exe'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify suspicious access events related to the Microsoft Teams application, specifically targeting the authentication tokens and account-related data stored by Teams. It looks for security events logged with Event ID 4663, indicating an access attempt to sensitive objects like cookies and local storage associated with Teams. The rule filters these events to focus only on accesses performed by the Teams executable, ensuring that potential malicious activities are highlighted. By monitoring these interactions, organizations can detect attempts to compromise user credentials or manipulate Teams account data, which can lead to broader security breaches.
+  ### Investigation Steps
+  - Review the EDR logs to identify when the suspicious access attempt occurred, and correlate this timestamp with other system activities to contextualize the event.
+  - Analyze the process tree for the Teams application to ensure that the access event was legitimate or part of expected user behavior.
+  - Cross-reference the affected user account with authentication logs from the identity provider to check for any unusual login attempts or activity.
+  - Inspect network connections associated with the Teams application during the timeframe of the event to identify any unusual or unauthorized data exfiltration attempts.

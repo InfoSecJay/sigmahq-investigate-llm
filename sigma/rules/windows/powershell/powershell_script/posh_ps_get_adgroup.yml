@@ -1,0 +1,35 @@
+title: Active Directory Group Enumeration With Get-AdGroup
+id: 8c3a6607-b7dc-4f0d-a646-ef38c00b76ee
+status: test
+description: Detects usage of the "Get-AdGroup" cmdlet to enumerate Groups within
+  Active Directory
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1018/T1018.md
+author: frack113
+date: 2022-03-17
+modified: 2022-11-17
+tags:
+- attack.discovery
+- attack.t1069.002
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'Get-AdGroup '
+    - '-Filter'
+  condition: selection
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the usage of the PowerShell cmdlet `Get-AdGroup`, which is commonly employed to enumerate Active Directory groups. The rule specifically monitors for script block logging events where the command line includes both the `Get-AdGroup` cmdlet and the `-Filter` parameter, which indicates an intention to filter results based on specific criteria. Detection relies on Windows logs that capture PowerShell script interactions and are contingent upon having script block logging enabled.
+  By focusing on script block logs, the rule aims to identify instances where an attacker or unauthorized user might be attempting to map out the organization's Active Directory groups, which is a fundamental step in later stages of an attack for privilege escalation or lateral movement. Understanding this activity is crucial for incident responders as it can indicate preparatory actions before a more serious compromise.
+  ### Investigation Steps
+  - Utilize EDR tools to search for recent PowerShell activity, specifically looking for instances of the `Get-AdGroup` command across endpoints.
+  - Review Windows event logs that capture PowerShell script block logging to gather contextual information about when and how the command was executed.
+  - Cross-reference any detected activities with user accounts to verify whether the observed behavior aligns with the expected actions of authorized personnel.
+  - Analyze network traffic logs from the NGFW or NDR tools to identify any unusual connections or communications that coincide with the timing of the detected command execution.

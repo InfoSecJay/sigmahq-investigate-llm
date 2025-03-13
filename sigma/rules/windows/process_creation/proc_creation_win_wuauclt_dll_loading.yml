@@ -1,0 +1,58 @@
+title: Proxy Execution Via Wuauclt.EXE
+id: af77cf95-c469-471c-b6a0-946c685c4798
+related:
+- id: ba1bb0cb-73da-42de-ad3a-de10c643a5d0
+  type: obsolete
+- id: d7825193-b70a-48a4-b992-8b5b3015cc11
+  type: obsolete
+status: test
+description: Detects the use of the Windows Update Client binary (wuauclt.exe) for
+  proxy execution.
+references:
+- https://dtm.uk/wuauclt/
+- https://blog.malwarebytes.com/threat-intelligence/2022/01/north-koreas-lazarus-apt-leverages-windows-update-client-github-in-latest-campaign/
+author: Roberto Rodriguez (Cyb3rWard0g), OTR (Open Threat Research), Florian Roth
+  (Nextron Systems), Sreeman, FPT.EagleEye Team
+date: 2020-10-12
+modified: 2023-11-11
+tags:
+- attack.defense-evasion
+- attack.t1218
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\wuauclt.exe'
+  - OriginalFileName: 'wuauclt.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'UpdateDeploymentProvider'
+    - 'RunHandlerComServer'
+  filter_main_generic:
+        # Note: Please enhance this if you find the full path
+    CommandLine|contains: ' /UpdateDeploymentProvider UpdateDeploymentProvider.dll '
+  filter_main_wuaueng:
+        # Note: Please enhance this if you find the full path
+    CommandLine|contains: ' wuaueng.dll '
+  filter_main_uus:
+    CommandLine|contains:
+    - ':\Windows\UUS\Packages\Preview\amd64\updatedeploy.dll /ClassId'
+    - ':\Windows\UUS\amd64\UpdateDeploy.dll /ClassId'
+  filter_main_winsxs:
+    CommandLine|contains|all:
+    - ':\Windows\WinSxS\'
+    - '\UpdateDeploy.dll /ClassId '
+  condition: all of selection_* and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Proxy Execution Via Wuauclt.EXE" is designed to detect potentially malicious use of the Windows Update Client binary, `wuauclt.exe`. This executable is typically used by Windows to manage software updates but can be exploited by threat actors for proxy execution, potentially bypassing security controls. The rule analyzes process creation logs to identify suspicious command line arguments associated with `wuauclt.exe`. Specifically, it looks for instances where the command line contains specific strings indicative of abnormal behavior, such as `UpdateDeploymentProvider` and associated DLLs. By monitoring these indicators, the rule aims to alert analysts to potential covert execution methods employed by attackers, particularly notable in campaigns associated with groups like North Korea’s Lazarus APT.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR for instances of `wuauclt.exe` with the identified command line indicators. 
+  - Cross-reference the timestamps of the alerts with firewall logs and network traffic to determine whether the `wuauclt.exe` process initiated any outbound proxy connections.
+  - Investigate the system's AV logs for any detected threats or unusual behavior within the primary directory associated with Windows Update operations.
+  - Check cloud platform logs (if applicable) for any user accounts that used `wuauclt.exe` within the specified timeframe, which might indicate unauthorized access or compromised user credentials.

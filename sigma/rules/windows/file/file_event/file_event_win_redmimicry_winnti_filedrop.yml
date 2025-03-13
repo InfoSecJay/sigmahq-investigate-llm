@@ -1,0 +1,33 @@
+title: Potential Winnti Dropper Activity
+id: 130c9e58-28ac-4f83-8574-0a4cc913b97e
+status: test
+description: Detects files dropped by Winnti as described in RedMimicry Winnti playbook
+references:
+- https://redmimicry.com/posts/redmimicry-winnti/#dropper
+author: Alexander Rausch
+date: 2020-06-24
+modified: 2023-01-05
+tags:
+- attack.defense-evasion
+- attack.t1027
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|endswith:
+    - '\gthread-3.6.dll'
+    - '\sigcmm-2.4.dll'
+    - '\Windows\Temp\tmp.bat'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Potential Winnti Dropper Activity" is designed to detect potentially malicious file activities associated with the Winnti threat group, known for using dropper tactics to deploy malware. The rule specifically looks for file creation events ending with known dropper file names such as `gthread-3.6.dll`, `sigcmm-2.4.dll`, and `tmp.bat` located in the Windows Temp directory. These files are indicative of the Winnti malware deployment process, which often aims to obfuscate malicious activity amidst legitimate operations. By leveraging Windows file event logs as a data source, this detection mechanism provides SOC analysts with the necessary visibility into potentially sophisticated evasion techniques used by attackers.
+  ### Investigation Steps
+  - Examine the file event logs in the Windows environment to identify the creation of any specified dropper files. Verify the timestamps and source paths of these files for correlation with authorized changes.
+  - Utilize EDR tools to investigate any processes associated with the identified dropper files. This includes checking for abnormal execution paths or command-line parameters that may indicate malicious behavior.
+  - Review previous logs from the AV and NGFW tools to identify any additional alerts or anomalies related to these dropper files or their parent processes. This helps establish if there were any previous attempts at similar activities.
+  - Conduct a forensic analysis on the affected endpoints to determine the extent of compromise. Analyze network connections and outbound traffic to identify potential C2 communication or further adversarial behavior related to the Winnti group.

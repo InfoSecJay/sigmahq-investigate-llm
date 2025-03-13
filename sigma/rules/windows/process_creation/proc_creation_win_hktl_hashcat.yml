@@ -1,0 +1,37 @@
+title: HackTool - Hashcat Password Cracker Execution
+id: 39b31e81-5f5f-4898-9c0e-2160cfc0f9bf
+status: test
+description: Execute Hashcat.exe with provided SAM file from registry of Windows and
+  Password list to crack against
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1110.002/T1110.002.md#atomic-test-1---password-cracking-with-hashcat
+- https://hashcat.net/wiki/doku.php?id=hashcat
+author: frack113
+date: 2021-12-27
+modified: 2023-02-04
+tags:
+- attack.credential-access
+- attack.t1110.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+    Image|endswith: '\hashcat.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - '-a '
+    - '-m 1000 '
+    - '-r '
+  condition: 1 of selection_*
+falsepositives:
+- Tools that use similar command line flags and values
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects the execution of Hashcat, a well-known password-cracking tool, on Windows systems. The rule focuses on process creation logs where Hashcat.exe is invoked with specific command-line arguments typical for running password cracking operations, including options like `-a` (attack mode), `-m 1000` (hash type for NTLM), and `-r` (rules for the attack). By monitoring for these patterns, the rule aims to identify potential unauthorized access attempts where an attacker might use Hashcat to crack user credentials stored in the Windows registry. The primary data sources involved are process creation logs, which capture details about launched applications and their respective command-line parameters.
+  ### Investigation Steps
+  - Utilize the EDR tool to search for instances of `Hashcat.exe` execution and correlated processes to assess the context of the execution event.
+  - Review command-line arguments associated with the detected process to determine if they match the listed suspicious parameters indicative of password cracking activity.
+  - Inspect logs from the Windows registry to identify any SAM file access or alterations that coincide with the Hashcat execution timestamps.
+  - Investigate network traffic and proxy logs for any unusual outbound connections or data exfiltration attempts that may accompany this type of malicious activity.

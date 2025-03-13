@@ -1,0 +1,45 @@
+title: Potentially Suspicious DMP/HDMP File Creation
+id: aba15bdd-657f-422a-bab3-ac2d2a0d6f1c
+related:
+- id: 3a525307-d100-48ae-b3b9-0964699d7f97
+  type: similar
+status: test
+description: Detects the creation of a file with the ".dmp"/".hdmp" extension by a
+  shell or scripting application such as "cmd", "powershell", etc. Often created by
+  software during a crash. Memory dumps can sometimes contain sensitive information
+  such as credentials. It's best to determine the source of the crash.
+references:
+- https://learn.microsoft.com/en-us/windows/win32/wer/collecting-user-mode-dumps
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-09-07
+tags:
+- attack.defense-evasion
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\cmd.exe'
+    - '\cscript.exe'
+    - '\mshta.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\wscript.exe'
+    TargetFilename|endswith:
+    - '.dmp'
+    - '.dump'
+    - '.hdmp'
+  condition: selection
+falsepositives:
+- Some administrative PowerShell or VB scripts might have the ability to collect dumps
+  and move them to other folders which might trigger a false positive.
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the creation of memory dump files with extensions such as ".dmp", ".hdmp", or ".dump" by shell or scripting applications, including cmd.exe, powershell.exe, and others. These file types can be generated when a program crashes, potentially revealing sensitive information, such as passwords or cryptographic keys, embedded within the memory contents. The rule focuses on the 'file_event' log source from Windows, examining process creation events where these applications are involved in creating memory dump files. When triggered, it indicates that a potentially suspicious incident may have occurred, warranting further investigation to determine the root cause and intent behind the dump file creation.
+  ### Investigation Steps
+  - Verify the originating process by searching for recent activity for the involved shell or scripting applications in your EDR solution to ascertain if this behavior aligns with known processes.
+  - Analyze the context and contents of the generated dump files using appropriate forensic tools to identify if any sensitive data exists within them.
+  - Review system and application logs around the time of the dump file creation for any anomalies, such as application crashes or unexpected user interactions.
+  - Check for any recent administrative tasks or scripts that could explain the dump file generation, especially if they were executed using administrative privileges or during non-standard operations.

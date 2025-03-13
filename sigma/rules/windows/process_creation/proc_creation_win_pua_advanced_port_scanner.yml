@@ -1,0 +1,38 @@
+title: PUA - Advanced Port Scanner Execution
+id: 54773c5f-f1cc-4703-9126-2f797d96a69d
+status: test
+description: Detects the use of Advanced Port Scanner.
+references:
+- https://github.com/3CORESec/MAL-CL/tree/master/Descriptors/Other/Advanced%20Port%20Scanner
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2021-12-18
+modified: 2023-02-07
+tags:
+- attack.discovery
+- attack.t1046
+- attack.t1135
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|contains: '\advanced_port_scanner'
+  - OriginalFileName|contains: 'advanced_port_scanner'       # Covers also advanced_port_scanner_console.exe
+  - Description|contains: 'Advanced Port Scanner'
+  selection_cli:
+    CommandLine|contains|all:
+    - '/portable'
+    - '/lng'
+  condition: 1 of selection_*
+falsepositives:
+- Legitimate administrative use
+- Tools with similar commandline (very rare)
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects the execution of the Advanced Port Scanner tool, a utility often used for network mapping and vulnerability scanning. The rule identifies instances where the tool's executable is run and examines specific conditions in the command-line parameters associated with the execution. It specifically looks for indicators such as the presence of "advanced_port_scanner" in the image name or original file name, or mentions of "Advanced Port Scanner" in the file description. Moreover, it checks for specific command-line flags like `/portable` and `/lng`, which indicate its typical usage patterns. By monitoring these data sources, particularly process creation logs, the rule aims to flag potential unauthorized use of the tool, which could indicate malicious intent in network reconnaissance activities.
+  ### Investigation Steps
+  - Check EDR logs to identify the user context under which the Advanced Port Scanner was executed, including account type and permissions.
+  - Review recent process creation events and correlate them with known network scanning activity timestamps to determine scope and intent.
+  - Utilize network traffic data from your NDR solution to identify any subsequent scans or connections initiated by the detected instance of the scanner.
+  - Analyze firewall and proxy logs for external connections made by the scanner to assess whether there was any unauthorized information gathering from outside the organization.

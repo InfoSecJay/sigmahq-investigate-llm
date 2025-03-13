@@ -1,0 +1,40 @@
+title: Removal Of Index Value to Hide Schedule Task - Registry
+id: 526cc8bc-1cdc-48ad-8b26-f19bff969cec
+related:
+- id: acd74772-5f88-45c7-956b-6a7b36c294d2
+  type: similar
+- id: 5b16df71-8615-4f7f-ac9b-6c43c0509e61
+  type: similar
+status: test
+description: Detects when the "index" value of a scheduled task is removed or deleted
+  from the registry. Which effectively hides it from any tooling such as "schtasks
+  /query"
+references:
+- https://blog.qualys.com/vulnerabilities-threat-research/2022/06/20/defending-against-scheduled-task-attacks-in-windows-environments
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-26
+modified: 2023-02-08
+tags:
+- attack.defense-evasion
+- attack.t1562
+logsource:
+  product: windows
+  category: registry_delete
+detection:
+  selection:
+    EventType: DeleteKey
+    TargetObject|contains|all:
+    - '\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\'
+    - 'Index'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies malicious actions where an attacker attempts to evade detection by removing the "index" value from a scheduled task within the Windows registry. The "index" value is associated with scheduled tasks and its removal will render the task undetectable by standard tools like "schtasks /query." The rule monitors Registry Delete events, specifically focusing on alterations that target the TaskCache within the Windows registry, signaling potential defense evasion tactics indicative of compromise or exploitation. By capturing these Registry interactions, the SOC can identify suspicious activities aiming to manipulate system functionalities.
+  ### Investigation Steps
+  - Review EDR logs for related Registry Delete events around the time of the alert to gather context on user actions and associated processes.
+  - Check the scheduled tasks configuration using tools like "schtasks" or through the Task Scheduler GUI to determine if any tasks were hidden or modified.
+  - Analyze any accompanying process creation logs to identify the source application or user that initiated the registry modification, looking for non-standard behavior.
+  - Examine other relevant logs, such as AV and NGFW alerts, for any prior indicators of compromise or unusual network activity that may correlate with the suspected evasion.

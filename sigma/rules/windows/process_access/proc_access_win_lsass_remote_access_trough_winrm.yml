@@ -1,0 +1,40 @@
+title: Remote LSASS Process Access Through Windows Remote Management
+id: aa35a627-33fb-4d04-a165-d33b4afca3e8
+status: stable
+description: Detects remote access to the LSASS process via WinRM. This could be a
+  sign of credential dumping from tools like mimikatz.
+references:
+- https://pentestlab.blog/2018/05/15/lateral-movement-winrm/
+author: Patryk Prauze - ING Tech
+date: 2019-05-20
+modified: 2023-11-29
+tags:
+- attack.credential-access
+- attack.execution
+- attack.t1003.001
+- attack.t1059.001
+- attack.lateral-movement
+- attack.t1021.006
+- attack.s0002
+logsource:
+  category: process_access
+  product: windows
+detection:
+  selection:
+    TargetImage|endswith: '\lsass.exe'
+    SourceImage|endswith: ':\Windows\system32\wsmprovhost.exe'
+  filter_main_access:
+    GrantedAccess: '0x80000000'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect unauthorized remote access attempts to the LSASS (Local Security Authority Subsystem Service) process via Windows Remote Management (WinRM). Specifically, the rule monitors for instances where the `wsmprovhost.exe` process attempts to access the `lsass.exe` process, which is a critical component responsible for managing credentials and security policies on Windows systems. The detection logic focuses on identifying access events that suggest credential dumping activities, commonly leveraged by attackers using tools like Mimikatz. The key indicators include the target image being `lsass.exe` and the source image being `wsmprovhost.exe`, with a specific permission check to detect elevated access rights.
+  Log sources for this rule include process access logs from Windows, capturing events related to process interactions. By filtering these events based on process names and access rights, the rule aims to flag potentially malicious behavior that could indicate an attempt to extract sensitive credentials remotely.
+  ### Investigation Steps
+  - Review the EDR alerts related to the detected `wsmprovhost.exe` process to identify any associated processes or parent-child relationships that suggest lateral movement.
+  - Analyze the process access logs for any legitimate WinRM usage patterns to distinguish between normal administrative activities and potential threats.
+  - Check Event Logs on the target machine for unusual remote connection attempts around the same time of the alert, focusing on service startup and authentication events.
+  - Correlate findings with network traffic logs to determine if there were any suspicious connections or data exfiltration attempts that might accompany the `lsass.exe` access.

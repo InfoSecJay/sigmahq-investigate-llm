@@ -1,0 +1,47 @@
+title: Backup Files Deleted
+id: 06125661-3814-4e03-bfa2-1e4411c60ac3
+status: test
+description: Detects deletion of files with extensions often used for backup files.
+  Adversaries may delete or remove built-in operating system data and turn off services
+  designed to aid in the recovery of a corrupted system to prevent recovery.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1490/T1490.md#atomic-test-6---windows---delete-backup-files
+author: frack113
+date: 2022-01-02
+modified: 2023-02-15
+tags:
+- attack.impact
+- attack.t1490
+logsource:
+  product: windows
+  category: file_delete
+detection:
+  selection:
+    Image|endswith:
+    - '\cmd.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\wt.exe'
+    - '\rundll32.exe'
+    - '\regsvr32.exe'
+    TargetFilename|endswith:
+    - '.VHD'
+    - '.bac'
+    - '.bak'
+    - '.wbcat'
+    - '.bkf'
+    - '.set'
+    - '.win'
+    - '.dsk'
+  condition: selection
+falsepositives:
+- Legitimate usage
+level: medium
+notes: |
+  ### Technical Context
+  The "Backup Files Deleted" detection rule is designed to identify potential malicious activity related to the deletion of files with extensions typically associated with backup files, such as `.bak`, `.vhd`, and `.bkf`. Adversaries may attempt to erase these file types to obstruct recovery mechanisms in an effort to facilitate data exfiltration or system compromise. This rule analyzes process creation logs, specifically monitoring commands executed by common Windows utilities such as `cmd.exe`, `powershell.exe`, and `rundll32.exe`, which can be employed to execute file deletion operations. When a process associated with these executables is responsible for deleting files with the specified extensions, the rule triggers an alert. The information obtained helps incident responders quickly identify and assess possible unauthorized deletions, contributing to improved incident management and response times.
+  ### Investigation Steps
+  - Review the alert timeline and cross-reference the command-line arguments in the EDR logs to determine the specifics of the deletion command.
+  - Investigate the user account associated with the deletion event in the Active Directory logs to assess its legitimacy and identify any prior suspicious activities.
+  - Check for any other related system or application logs that may indicate attempts to disable backup services or additional actions taken before or after the deletions.
+  - Analyze network traffic through the Proxy or NDR tools to identify any communication to external IP addresses that could indicate data exfiltration following the deletion of backup files.

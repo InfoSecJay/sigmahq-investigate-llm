@@ -1,0 +1,42 @@
+title: Suspicious Network Connection Binary No CommandLine
+id: 20384606-a124-4fec-acbb-8bd373728613
+status: test
+description: Detects suspicious network connections made by a well-known Windows binary
+  run with no command line parameters
+references:
+- https://redcanary.com/blog/raspberry-robin/
+author: Florian Roth (Nextron Systems)
+date: 2022-07-03
+tags:
+- attack.defense-evasion
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Initiated: 'true'
+    Image|endswith:
+    - '\regsvr32.exe'
+    - '\rundll32.exe'
+    - '\dllhost.exe'
+    CommandLine|endswith:
+    - '\regsvr32.exe'
+    - '\rundll32.exe'
+    - '\dllhost.exe'
+  filter_no_cmdline:
+    CommandLine: ''
+  filter_null:   # e.g. Sysmon has no CommandLine field in network events with ID 3
+    CommandLine:
+  condition: selection and not 1 of filter*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious network connections initiated by well-known Windows binaries—specifically `regsvr32.exe`, `rundll32.exe`, and `dllhost.exe`—when they are executed without any command line parameters. The absence of command line arguments raises red flags, as legitimate uses of these binaries typically involve providing specific command line inputs. The rule correlates data from network connection logs to identify instances where these processes initiate outbound connections, allowing incident responders to investigate potentially malicious behavior linked to exploitation techniques or malware using these binaries.
+  The primary data sources leveraged include Windows network connection logs, which are critical for capturing the activity of these processes. Additionally, the rule takes into account entries where the command line is either an empty string or not present (as seen in certain event logging configurations such as Sysmon). By triggering alerts on these specific conditions, the rule enhances visibility into potentially covert activities and enables further scrutiny of network communications to and from these binaries.
+  ### Investigation Steps
+  - Examine network connection logs for instances of `regsvr32.exe`, `rundll32.exe`, or `dllhost.exe` to confirm the source and destination IP addresses involved in the suspicious connections.
+  - Utilize EDR tools to investigate the captured processes, focusing on their execution context and any associated parent processes that may indicate how the binary was launched.
+  - Check for historical command line usage in the EDR solution to see if these binaries have been executed with parameters before, which could indicate a baseline behavior.
+  - Review firewall and proxy logs for any unusual outbound connections correlated with the detected binaries, especially connections made to known suspicious domains or IP addresses.

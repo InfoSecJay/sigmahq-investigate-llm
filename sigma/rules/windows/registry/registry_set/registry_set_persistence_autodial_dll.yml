@@ -1,0 +1,32 @@
+title: Potential Persistence Via AutodialDLL
+id: e6fe26ee-d063-4f5b-b007-39e90aaf50e3
+status: test
+description: Detects change the the "AutodialDLL" key which could be used as a persistence
+  method to load custom DLL via the "ws2_32" library
+references:
+- https://www.hexacorn.com/blog/2015/01/13/beyond-good-ol-run-key-part-24/
+- https://persistence-info.github.io/Data/autodialdll.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-10
+modified: 2023-08-17
+tags:
+- attack.persistence
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\Services\WinSock2\Parameters\AutodialDLL'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The "Potential Persistence Via AutodialDLL" Sigma rule is designed to identify unauthorized changes made to the Windows Registry key `AutodialDLL` located under `\Services\WinSock2\Parameters`. Alterations to this key can be exploited by threat actors to achieve persistence on a compromised system by loading custom Dynamic Link Libraries (DLLs) through the `ws2_32` library. The rule operates by monitoring Registry set logs for suspicious modifications, triggering alerts when conditions match the specified criteria. This detection aims to proactively identify potential malicious persistence mechanisms before they can facilitate further compromise or exfiltration of data.
+  The primary data source engaged by this detection rule is Windows Registry change logs. Security teams should focus on investigating these changes to determine if they are legitimate or indicative of malicious activity. Continuous monitoring of such Registry keys is crucial as they can serve as attack vectors for maintaining persistence within an affected environment.
+  ### Investigation Steps
+  - Query the EDR platform for recent process creation events around the time the Registry change occurred to identify any related suspicious activities.
+  - Check the cloud logs if the endpoint is cloud-integrated, ensuring that no abnormal access patterns corresponding to the device exist.
+  - Utilize the SIEM to correlate events leading up to the Registry modification, looking for signs of lateral movement or other persistence mechanisms being employed.
+  - Review network traffic through the NGFW to identify any connections established by suspicious processes that may have leveraged the modified DLL for nefarious purposes.

@@ -1,0 +1,43 @@
+title: Potential Command Line Path Traversal Evasion Attempt
+id: 1327381e-6ab0-4f38-b583-4c1b8346a56b
+status: test
+description: Detects potential evasion or obfuscation attempts using bogus path traversal
+  via the commandline
+references:
+- https://twitter.com/hexacorn/status/1448037865435320323
+- https://twitter.com/Gal_B1t/status/1062971006078345217
+author: Christian Burkard (Nextron Systems)
+date: 2021-10-26
+modified: 2023-03-29
+tags:
+- attack.defense-evasion
+- attack.t1036
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_1:
+    Image|contains: '\Windows\'
+    CommandLine|contains:
+    - '\..\Windows\'
+    - '\..\System32\'
+    - '\..\..\'
+  selection_2:
+    CommandLine|contains: '.exe\..\'
+  filter_optional_google_drive:
+    CommandLine|contains: '\Google\Drive\googledrivesync.exe\..\'
+  filter_optional_citrix:
+    CommandLine|contains: '\Citrix\Virtual Smart Card\Citrix.Authentication.VirtualSmartcard.Launcher.exe\..\'
+  condition: 1 of selection_* and not 1 of filter_optional_*
+falsepositives:
+- Google Drive
+- Citrix
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potential command line path traversal evasion attempts on Windows systems. Attackers may try to obfuscate their command execution by using directory traversal patterns, such as `..\`, to evade detection mechanisms and execute unauthorized actions. This rule monitors process creation events, focusing on instances where the command line contains specific traversal strings that suggest suspicious activity. Data sources involved in this detection include Windows process creation logs, which capture the command line parameters used during the execution of processes. By analyzing these parameters, the rule can flag potentially malicious behavior while filtering out benign activity associated with known applications like Google Drive or Citrix.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR to identify the specific process associated with the alert and examine its full command line parameter.
+  - Cross-reference the flagged command with the known paths and executables in your environment to assess whether it aligns with legitimate application use.
+  - Check event logs for any prior suspicious activities correlated with detected processes to establish a pattern or potential lateral movement.
+  - Utilize your AV and NGFW tools to perform a broader scan and network connection assessment related to the identified process for any indicators of compromise.

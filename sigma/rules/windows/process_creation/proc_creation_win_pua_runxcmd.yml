@@ -1,0 +1,40 @@
+title: PUA - RunXCmd Execution
+id: 93199800-b52a-4dec-b762-75212c196542
+status: test
+description: Detects the use of the RunXCmd tool to execute commands with System or
+  TrustedInstaller accounts
+references:
+- https://www.d7xtech.com/free-software/runx/
+- https://www.winhelponline.com/blog/run-program-as-system-localsystem-account-windows/
+author: Florian Roth (Nextron Systems)
+date: 2022-01-24
+modified: 2023-02-14
+tags:
+- attack.execution
+- attack.t1569.002
+- attack.s0029
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_account:
+    CommandLine|contains:
+    - ' /account=system '
+    - ' /account=ti '
+  selection_exec:
+    CommandLine|contains: '/exec='
+  condition: all of selection_*
+fields:
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Legitimate use by administrators
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the execution of the RunXCmd tool, a utility used to run programs as the System or TrustedInstaller accounts on Windows systems. The rule monitors process creation logs, specifically looking for command-line parameters that include `/account=system` or `/account=ti`, alongside the `/exec=` parameter. By capturing these specific command line inputs, the rule facilitates the detection of potential misuse of RunXCmd, which may indicate malicious activities or attempts to execute unauthorized commands with elevated privileges. It is critical for incident responders to recognize these patterns, as they may signify a security risk within the environment.
+  ### Investigation Steps
+  - Review process creation logs in your EDR tool to identify instances of RunXCmd execution, paying special attention to the CommandLine parameters that indicate elevated privileges.
+  - Correlate alerts from the SIEM to find if there are any related high-risk activities or lateral movement patterns that coincide with the timing of the RunXCmd execution.
+  - Examine the ParentCommandLine in the execution logs to determine the parent process that initiated the RunXCmd command, as this could reveal the context or intent behind the execution.
+  - Utilize AV and NDR tools to check for additional signs of compromise or unusual behavior on the affected systems, as these logs may provide further insights into potential exploitation attempts.

@@ -1,0 +1,36 @@
+title: New Process Created Via Taskmgr.EXE
+id: 3d7679bd-0c00-440c-97b0-3f204273e6c7
+status: test
+description: Detects the creation of a process via the Windows task manager. This
+  might be an attempt to bypass UAC
+references:
+- https://twitter.com/ReneFreingruber/status/1172244989335810049
+author: Florian Roth (Nextron Systems)
+date: 2018-03-13
+modified: 2024-01-18
+tags:
+- attack.defense-evasion
+- attack.t1036
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\taskmgr.exe'
+  filter_main_generic:
+    Image|endswith:
+    - ':\Windows\System32\mmc.exe'
+    - ':\Windows\System32\resmon.exe'
+    - ':\Windows\System32\Taskmgr.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Administrative activity
+level: low
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the creation of a new process initiated via `taskmgr.exe`, the Windows Task Manager application. Specifically, it focuses on instances where a process is spawned as a child of `taskmgr.exe`, which might indicate an attempt to evade User Account Control (UAC) protections. The rule leverages process creation logs to monitor the relationship between `taskmgr.exe` and the newly created processes, filtering out common administrative tasks such as those involving `mmc.exe`, `resmon.exe`, or instances of `Taskmgr.exe` itself. By evaluating these parameters, this rule helps to uncover potential suspicious activities that exploit legitimate Windows functionalities for malicious purposes.
+  ### Investigation Steps
+  - **Review Process Creation Logs:** Utilize EDR to investigate the lineage of the detected process creation event, focusing on the parent-child relationships involved.
+  - **Analyze User Activity History:** Check user activity logs to determine if the user account involved had appropriate administrative rights or if any anomalies are visible during the time of the process creation.
+  - **Correlate with UAC Configurations:** Verify current UAC settings in the Windows environment to assess if user commands are indicative of attempts to bypass security mechanisms.
+  - **Conduct Network Traffic Analysis:** Use NDR or firewall logs to check for unusual outbound connections made by the newly created process, identifying any signs of communication with potentially malicious domains.

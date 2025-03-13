@@ -1,0 +1,39 @@
+title: Service StartupType Change Via PowerShell Set-Service
+id: 62b20d44-1546-4e61-afce-8e175eb9473c
+status: test
+description: Detects the use of the PowerShell "Set-Service" cmdlet to change the
+  startup type of a service to "disabled" or "manual"
+references:
+- https://www.virustotal.com/gui/file/38283b775552da8981452941ea74191aa0d203edd3f61fb2dee7b0aea3514955
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-03-04
+tags:
+- attack.execution
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\powershell.exe'
+  - OriginalFileName: 'PowerShell.EXE'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'Set-Service'
+    - '-StartupType'
+    CommandLine|contains:
+    - 'Disabled'
+    - 'Manual'
+  condition: all of selection_*
+falsepositives:
+- False positives may occur with troubleshooting scripts
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activity involving the PowerShell cmdlet "Set-Service", which is used to change the startup type of Windows services. Specifically, the rule looks for instances where the startup type is set to "disabled" or "manual," as these changes may indicate an attempt to evade detection mechanisms by preventing critical services from running. The rule leverages process creation logs to capture instances where the PowerShell executable (`powershell.exe`) is invoked with the "Set-Service" command and arguments that modify service states. Monitoring command-line parameters enables the detection of deviations from normal service management behavior, which could signify an attempt to compromise system integrity.
+  ### Investigation Steps
+  - Examine the EDR logs for any recent executions of PowerShell with the "Set-Service" cmdlet, particularly with "disabled" or "manual" startup types.
+  - Review process creation logs to identify any other associated processes that may have executed immediately before or after the PowerShell command.
+  - Investigate the user context under which the PowerShell command was executed to determine if any unauthorized users or accounts were involved.
+  - Cross-reference with AV and NDR logs to identify any other suspicious activities or behaviors that coincide with the time frame of the detected rule firing.

@@ -1,0 +1,59 @@
+title: Suspicious File Created Via OneNote Application
+id: fcc6d700-68d9-4241-9a1a-06874d621b06
+status: test
+description: Detects suspicious files created via the OneNote application. This could
+  indicate a potential malicious ".one"/".onepkg" file was executed as seen being
+  used in malware activity in the wild
+references:
+- https://www.bleepingcomputer.com/news/security/hackers-now-use-microsoft-onenote-attachments-to-spread-malware/
+- https://blog.osarmor.com/319/onenote-attachment-delivers-asyncrat-malware/
+- https://twitter.com/MaD_c4t/status/1623414582382567424
+- https://labs.withsecure.com/publications/detecting-onenote-abuse
+- https://www.trustedsec.com/blog/new-attacks-old-tricks-how-onenote-malware-is-evolving/
+- https://app.any.run/tasks/17f2d378-6d11-4d6f-8340-954b04f35e83/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-02-09
+modified: 2023-02-27
+tags:
+- attack.defense-evasion
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\onenote.exe'
+    - '\onenotem.exe'
+    - '\onenoteim.exe'
+    TargetFilename|contains: '\AppData\Local\Temp\OneNote\'
+    TargetFilename|endswith:
+            # TODO: Add more suspicious extensions
+    - '.bat'
+    - '.chm'
+    - '.cmd'
+    - '.dll'
+    - '.exe'
+    - '.hta'
+    - '.htm'
+    - '.html'
+    - '.js'
+    - '.lnk'
+    - '.ps1'
+    - '.vbe'
+    - '.vbs'
+    - '.wsf'
+  condition: selection
+falsepositives:
+- False positives should be very low with the extensions list cited. Especially if
+  you don't heavily utilize OneNote.
+- Occasional FPs might occur if OneNote is used internally to share different embedded
+  documents
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation of potentially malicious files via the OneNote application on Windows systems. It is designed to flag instances where OneNote, specifically its executables (onenote.exe, onenotem.exe, onenoteim.exe), generates files that match specific suspicious extensions (.bat, .chm, .dll, etc.) within the OneNote temporary directory. The behavior indicated by this rule reflects recent malware tactics in which threat actors exploit the OneNote application to distribute malicious payloads disguised as legitimate files. By monitoring the relevant file creation events logged in Windows, the rule aims to detect and prevent the execution of potentially harmful content before it can compromise system integrity.
+  ### Investigation Steps
+  - Check EDR logs for any recent execution of OneNote along with file creation events in the specified temporary directory. This helps confirm if the alert correlates with actual use of the application.
+  - Review command-line parameters associated with OneNote executable runs to gather additional context on the action that led to the file creation and to identify any anomalies.
+  - Search for the flagged suspicious file extensions in the organization’s antivirus (AV) and endpoint logs to check if they have been previously identified as threats.
+  - Correlate findings with network traffic logs via NDR tools to determine if there was any outgoing traffic to known malicious domains shortly after the file creation, suggesting command-and-control communication.

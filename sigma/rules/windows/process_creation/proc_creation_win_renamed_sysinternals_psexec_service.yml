@@ -1,0 +1,32 @@
+title: Renamed PsExec Service Execution
+id: 51ae86a2-e2e1-4097-ad85-c46cb6851de4
+status: test
+description: Detects suspicious launch of a renamed version of the PSEXESVC service
+  with, which is not often used by legitimate administrators
+references:
+- https://learn.microsoft.com/en-us/sysinternals/downloads/psexec
+- https://www.youtube.com/watch?v=ro2QuZTIMBM
+author: Florian Roth (Nextron Systems)
+date: 2022-07-21
+tags:
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    OriginalFileName: 'psexesvc.exe'
+  filter:
+    Image: 'C:\Windows\PSEXESVC.exe'
+  condition: selection and not filter
+falsepositives:
+- Legitimate administrative tasks
+level: high
+notes: |
+  ### Technical Context
+  The "Renamed PsExec Service Execution" detection rule identifies potentially malicious use of the PsExec service by monitoring for instances where variations of the service's executable name (`psexesvc.exe`) are used inappropriately. The rule specifically scans process creation logs for events where the `OriginalFileName` equals `psexesvc.exe`, but the `Image` path differs from the typical location, indicating a renamed or modified executable. Since PsExec is a legitimate tool primarily used by system administrators for remote execution of commands, tracking its misuse can highlight unauthorized administrative actions or post-exploitation activities. The rule primarily utilizes Windows process creation logs to flag such suspicious behavior.
+  ### Investigation Steps
+  - Review recent process creation logs in your EDR tool to identify any instances of renamed PsExec service execution, paying close attention to the `Image` and `OriginalFileName` fields. 
+  - Cross-reference the timestamp of the alert with user activity logs from your SIEM to determine if there were legitimate administrative actions occurring around the same time.
+  - Examine endpoint logs for any related command-line arguments used with the PsExec service to understand the context in which it was executed.
+  - Investigate network traffic logs from the NDR to identify any unusual or unauthorized outbound connections associated with the execution of the renamed service.

@@ -1,0 +1,29 @@
+title: Sysmon Blocked File Shredding
+id: c3e5c1b1-45e9-4632-b242-27939c170239
+status: test
+description: Triggers on any Sysmon "FileBlockShredding" event, which indicates a
+  violation of the configured shredding policy.
+references:
+- https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+author: frack113
+date: 2023-07-20
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    EventID: 28      # this is fine, we want to match any FileBlockShredding event
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets the Sysmon event type labeled "FileBlockShredding," which is generated when a process attempts to overwrite or erase files in a manner that violates defined shredding policies. Such events are indicative of attempts at data destruction and may represent malicious activity or unauthorized actions taken by users or processes. The key data source for this rule is event logs collected from Microsoft's Sysinternals Sysmon, specifically EventID 28, which tracks file operation violations related to shredding policy. By monitoring these events, security teams can gain insights into potential incidents of data exfiltration, integrity attacks, or rogue file manipulation.
+  ### Investigation Steps
+  - Examine Sysmon logs in your EDR or logging solution to identify the source process that triggered the "FileBlockShredding" event, including command-line arguments that may provide additional context.
+  - Cross-reference the file paths associated with the triggering events to determine if they are sensitive files or critical to business operations.
+  - Utilize your Antivirus (AV) solution to check for any associated malware signatures or alerts that may correlate with the timing of the shredding violation.
+  - If applicable, review user activity logs from your Proxy or VPN to understand user behavior leading up to the event, identifying any unusual access patterns or high-risk connections.

@@ -1,0 +1,44 @@
+title: EVTX Created In Uncommon Location
+id: 65236ec7-ace0-4f0c-82fd-737b04fd4dcb
+status: test
+description: |
+  Detects the creation of new files with the ".evtx" extension in non-common or non-standard location.
+  This could indicate tampering with default EVTX locations in order to evade security controls or simply exfiltration of event log to search for sensitive information within.
+  Note that backup software and legitimate administrator might perform similar actions during troubleshooting.
+references:
+- https://learn.microsoft.com/en-us/windows/win32/eventlog/eventlog-key
+author: D3F7A5105
+date: 2023-01-02
+modified: 2024-03-26
+tags:
+- attack.defense-evasion
+- attack.t1562.002
+logsource:
+  category: file_event
+  product: windows
+  definition: 'Requirements: The ".evtx" extension should be monitored via a Sysmon
+    configuration. Example: <TargetFilename condition="end with">.evtx<TargetFilename>'
+detection:
+  selection:
+    TargetFilename|endswith: '.evtx'
+  filter_main_path:
+    TargetFilename|startswith: 'C:\Windows\System32\winevt\Logs\'
+  filter_main_baseimage:
+    TargetFilename|startswith: 'C:\ProgramData\Microsoft\Windows\Containers\BaseImages\'
+    TargetFilename|endswith: '\Windows\System32\winevt\Logs\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Administrator or backup activity
+- An unknown bug seems to trigger the Windows "svchost" process to drop EVTX files
+  in the "C:\Windows\Temp" directory in the form "<log_name">_<uuid>.evtx". See 
+  https://superuser.com/questions/1371229/low-disk-space-after-filling-up-c-windows-temp-with-evtx-and-txt-files
+level: medium
+notes: |
+  ### Technical Context
+  The "EVTX Created In Uncommon Location" detection rule aims to identify the creation of new files with the ".evtx" extension in locations that are not typically associated with Windows event logs. Standard Windows event logs are generally found in the `C:\Windows\System32\winevt\Logs\` directory. This rule leverages file event logs, primarily generated from Sysmon, to monitor for unusual activities that may indicate attempts to evade security controls or exfiltrate sensitive information.
+  The rule specifically tracks any newly created `.evtx` files that do not originate from the standard locations, helping analysts identify potentially malicious activities. By filtering out legitimate actions, such as those performed by administrators or backup software, the rule focuses on suspicious behavior that could signify an attack or a security incident.
+  ### Investigation Steps
+  - Review the file creation logs in the EDR for `.evtx` files. Look for creation times and associated processes to identify potential sources of the activity.
+  - Correlate the detections with existing log sources like Windows Security Events to determine if any authorized users accessed the system around the same timeframe.
+  - Investigate network traffic through the NGFW and Proxy, focusing on any outbound connections that may correlate with the creation of the suspicious logs, as they could indicate exfiltration attempts.
+  - Cross-reference cloud logs (such as Azure Monitor or AWS CloudTrail) to check for any anomalous administrative actions performed by users that coincide with the event log creation, which may help in contextualizing the activity.

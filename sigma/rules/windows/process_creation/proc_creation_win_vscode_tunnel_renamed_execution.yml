@@ -1,0 +1,61 @@
+title: Renamed Visual Studio Code Tunnel Execution
+id: 2cf29f11-e356-4f61-98c0-1bdb9393d6da
+status: test
+description: Detects renamed Visual Studio Code tunnel execution. Attackers can abuse
+  this functionality to establish a C2 channel
+references:
+- https://ipfyx.fr/post/visual-studio-code-tunnel/
+- https://badoption.eu/blog/2023/01/31/code_c2.html
+- https://code.visualstudio.com/docs/remote/tunnels
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-09-28
+tags:
+- attack.command-and-control
+- attack.t1071.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_image_only_tunnel:
+    OriginalFileName:
+    CommandLine|endswith: '.exe tunnel'
+  selection_image_tunnel_args:
+    CommandLine|contains|all:
+    - '.exe tunnel'
+    - '--name '
+    - '--accept-server-license-terms'
+  selection_image_tunnel_service:
+    CommandLine|contains|all:
+    - 'tunnel '
+    - 'service'
+    - 'internal-run'
+    - 'tunnel-service.log'
+  selection_parent_tunnel:
+    ParentCommandLine|endswith: ' tunnel'
+    Image|endswith: '\cmd.exe'
+    CommandLine|contains|all:
+    - '/d /c '
+    - '\servers\Stable-'
+    - 'code-server.cmd'
+  filter_main_parent_code:
+    ParentImage|endswith:
+    - '\code-tunnel.exe'
+    - '\code.exe'
+  filter_main_image_code:
+    Image|endswith:
+    - '\code-tunnel.exe'
+    - '\code.exe'
+  condition: (1 of selection_image_* and not 1 of filter_main_image_*) or (selection_parent_tunnel
+    and not 1 of filter_main_parent_*)
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects potentially malicious usage of the Visual Studio Code tunnel functionality, which might be exploited by attackers to establish a command-and-control (C2) channel. The rule focuses on identifying specific command-line patterns associated with the execution of the Visual Studio Code tunnel and its related processes. It examines process creation logs for commands that include terminologies such as “.exe tunnel” and arguments that indicate the tunnel is being serviced, possibly pointing to abnormal usage. The key data sources utilized for detection include process creation logs, which capture details about processes executed in the Windows environment, specifically focusing on command-line parameters and parent-child process relationships.
+  By identifying anomalies in these command-line patterns, the rule helps incident responders pinpoint unauthorized or suspicious activities linked to Visual Studio Code tunneling, enabling further investigation into potential security threats.
+  ### Investigation Steps
+  - Review EDR logs for any instances of `code-tunnel.exe` or `code.exe` execution that match the detected command-line patterns. Determine the context and legitimacy of these processes.
+  - Examine any related parent process entries to trace the execution path and identify if known good parent processes initiated the tunneling commands.
+  - Query network logs from the NGFW or NDR to detect unusual outbound connections that may correspond to the identified tunneling activity, particularly connections to unfamiliar IPs.
+  - Analyze cloud access logs in AWS, GCP, or Azure for any suspicious activity that aligns with the creation or usage of remote access tunnels or services initiated by the Visual Studio Code plugin.

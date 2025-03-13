@@ -1,0 +1,42 @@
+title: Potential Persistence Via DLLPathOverride
+id: a1b1fd53-9c4a-444c-bae0-34a330fc7aa8
+status: test
+description: Detects when an attacker adds a new "DLLPathOverride" value to the "Natural
+  Language" key in order to achieve persistence which will get invoked by "SearchIndexer.exe"
+  process
+references:
+- https://persistence-info.github.io/Data/naturallanguage6.html
+- https://www.hexacorn.com/blog/2018/12/30/beyond-good-ol-run-key-part-98/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-21
+modified: 2023-08-17
+tags:
+- attack.persistence
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection_root:
+        # The path can be for multiple languages
+        # Example:  HKLM\System\CurrentControlSet\Control\ContentIndex\Language\English_UK
+        #           HKLM\System\CurrentControlSet\Control\ContentIndex\Language\English_US
+        #           HKLM\System\CurrentControlSet\Control\ContentIndex\Language\Neutral
+    TargetObject|contains: '\SYSTEM\CurrentControlSet\Control\ContentIndex\Language\'
+  selection_values:
+    TargetObject|contains:
+    - '\StemmerDLLPathOverride'
+    - '\WBDLLPathOverride'
+    - '\StemmerClass'
+    - '\WBreakerClass'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential persistence mechanisms used by attackers on Windows systems through modifications in the Windows Registry. Specifically, it targets additions to the "DLLPathOverride" values within the "Natural Language" key, which can affect the behavior of the `SearchIndexer.exe` process. By monitoring for these changes in registry settings (especially under paths related to content indexing in different languages), the rule flags any unauthorized alterations that could allow a malicious DLL to be used for persistence. The primary data sources involved in this detection include Windows Registry set logs, which capture changes to system configurations that may indicate persistence techniques employed by threat actors.
+  ### Investigation Steps
+  - Review recent registry modifications in the associated paths using the EDR tool to identify when and by which process the changes were made.
+  - Correlate the modification timestamps with user activity logs to ascertain if any suspicious or unauthorized actions preceded the registry change. 
+  - Check for the existence of any registry values such as `StemmerDLLPathOverride` or `WBDLLPathOverride` that may be linked to known malware or unauthorized applications.
+  - Conduct an analysis of `SearchIndexer.exe` execution activity in the process logs to determine if the altered DLL paths have been invoked, which could indicate potential exploitation attempts.

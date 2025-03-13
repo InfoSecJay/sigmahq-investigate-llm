@@ -1,0 +1,33 @@
+title: Suspicious Query of MachineGUID
+id: f5240972-3938-4e56-8e4b-e33893176c1f
+status: test
+description: Use of reg to get MachineGuid information
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1082/T1082.md#atomic-test-8---windows-machineguid-discovery
+author: frack113
+date: 2022-01-01
+tags:
+- attack.discovery
+- attack.t1082
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\reg.exe'
+    CommandLine|contains|all:
+    - 'SOFTWARE\Microsoft\Cryptography'
+    - '/v '
+    - 'MachineGuid'
+  condition: selection
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  The "Suspicious Query of MachineGUID" Sigma rule is designed to identify instances where the Windows `reg.exe` utility is used to query or retrieve the MachineGUID from the system registry. The rule specifically looks for process creation events where the command line includes requests to access the `SOFTWARE\Microsoft\Cryptography` registry key and specifically targets the `MachineGuid` value. By monitoring these command-line parameters in conjunction with the use of `reg.exe`, this rule helps detect potentially unauthorized attempts to gain machine identification that can be exploited during reconnaissance phases of an attack. The primary data source for this detection is the process creation logs which provide insights into what processes are being executed on the endpoints.
+  ### Investigation Steps
+  - Use EDR tools to identify any recent executions of `reg.exe` on the affected host, checking the process tree for any parent processes that may indicate how this command was initiated. 
+  - Review the command-line parameters associated with the process creation events to confirm if they align with the criteria defined in the Sigma rule, especially focusing on the reference to `MachineGuid`.
+  - Correlate the timeline of the detected event with other security logs (e.g., Windows Event logs) to identify any other suspicious activities that occurred around the same time, which may indicate a broader attack attempt.
+  - Check for any alerts in the AV or NGFW logs that might signal an attempted exploitation or malicious behavior following the querying of the MachineGUID.

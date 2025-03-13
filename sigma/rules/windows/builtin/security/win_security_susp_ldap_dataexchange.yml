@@ -1,0 +1,46 @@
+title: Suspicious LDAP-Attributes Used
+id: d00a9a72-2c09-4459-ad03-5e0a23351e36
+status: test
+description: Detects the usage of particular AttributeLDAPDisplayNames, which are
+  known for data exchange via LDAP by the tool LDAPFragger and are additionally not
+  commonly used in companies.
+references:
+- https://medium.com/@ivecodoe/detecting-ldapfragger-a-newly-released-cobalt-strike-beacon-using-ldap-for-c2-communication-c274a7f00961
+- https://blog.fox-it.com/2020/03/19/ldapfragger-command-and-control-over-ldap-attributes/
+- https://github.com/fox-it/LDAPFragger
+author: xknow @xknow_infosec
+date: 2019-03-24
+modified: 2022-10-05
+tags:
+- attack.t1001.003
+- attack.command-and-control
+logsource:
+  product: windows
+  service: security
+  definition: The "Audit Directory Service Changes" logging policy must be configured
+    in order to receive events. Audit events are generated only for objects with configured
+    system access control lists (SACLs). Audit events are generated only for objects
+    with configured system access control lists (SACLs) and only when accessed in
+    a manner that matches their SACL settings. This policy covers the following events
+    ids - 5136, 5137, 5138, 5139, 5141. Note that the default policy does not cover
+    User objects. For that a custom AuditRule need to be setup (See https://github.com/OTRF/Set-AuditRule)
+detection:
+  selection:
+    EventID: 5136
+    AttributeValue|contains: '*'
+    AttributeLDAPDisplayName:
+    - 'primaryInternationalISDNNumber'
+    - 'otherFacsimileTelephoneNumber'
+    - 'primaryTelexNumber'
+  condition: selection
+falsepositives:
+- Companies, who may use these default LDAP-Attributes for personal information
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets anomalous usage of certain Lightweight Directory Access Protocol (LDAP) attributes known to be associated with the LDAPFragger tool, which is commonly used for command and control (C2) communication by threat actors. The rule specifically looks for the occurrence of attributes such as `primaryInternationalISDNNumber`, `otherFacsimileTelephoneNumber`, and `primaryTelexNumber`, which are not typically utilized within legitimate organizational contexts, making their presence indicative of potential malicious activity. By utilizing Windows security logs, particularly Event ID 5136, the rule captures events related to changes in directory service objects that meet certain criteria. This helps analysts identify suspicious modifications or data exfiltration attempts leveraging these uncommon LDAP attributes.
+  ### Investigation Steps
+  - Review security event logs for Event ID 5136 to identify any changes associated with the suspected LDAP attributes. Correlate the timestamps of these events with any other reported suspicious activities.
+  - Use the EDR solution to trace the process lineage for any identified events, focusing on detecting unusual applications that may have initiated LDAP transactions.
+  - Check firewall and proxy logs for outbound connections that could indicate communication attempts with known malicious IP addresses while using these attributes.
+  - Search cloud service logs (e.g., AWS CloudTrail or Azure Activity Logs) for associated user actions to determine if the requests originated from a compromised account or an unauthorized external source.

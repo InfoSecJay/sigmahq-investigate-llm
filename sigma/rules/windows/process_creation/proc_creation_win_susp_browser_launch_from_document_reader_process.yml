@@ -1,0 +1,47 @@
+title: Potential Suspicious Browser Launch From Document Reader Process
+id: 1193d960-2369-499f-a158-7b50a31df682
+status: experimental
+description: |
+  Detects when a browser process or browser tab is launched from an application that handles document files such as Adobe, Microsoft Office, etc. And connects to a web application over http(s), this could indicate a possible phishing attempt.
+references:
+- https://app.any.run/tasks/69c5abaa-92ad-45ba-8c53-c11e23e05d04/     # PDF Document
+- https://app.any.run/tasks/64043a79-165f-4052-bcba-e6e49f847ec1/     # Office Document
+author: Joseph Kamau
+date: 2024-05-27
+tags:
+- attack.execution
+- attack.t1204.002
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    ParentImage|contains:
+    - 'Acrobat Reader'
+    - 'Microsoft Office'
+    - 'PDF Reader'
+    Image|endswith:
+    - '\brave.exe'
+    - '\chrome.exe'
+    - '\firefox.exe'
+    - '\msedge.exe'
+    - '\opera.exe'
+    - '\maxthon.exe'
+    - '\seamonkey.exe'
+    - '\vivaldi.exe'
+    - ''
+    CommandLine|contains: 'http'
+  condition: selection
+falsepositives:
+- Unlikely in most cases, further investigation should be done in the commandline
+  of the browser process to determine the context of the URL accessed.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where a web browser is launched from commonly used document reader processes, such as Adobe Acrobat Reader or Microsoft Office applications. By analyzing process creation logs, the rule looks for events where these document handling applications serve as the parent process for a browser (like Chrome, Firefox, or Edge) as the child process, specifically when the command line contains 'http'. This behavior is suspicious and could indicate potential phishing attempts or other malicious activity as it suggests an unexpected interaction between file documents and web applications. 
+  Technical data sources involved include process creation logs, which provide critical details about the parent and child processes, and command-line parameters that show what actions the browser is executing upon launch. Analysts should note that while this detection signal may indicate suspicious activity, further examination is necessary to confirm malicious intent.
+  ### Investigation Steps
+  - Review the EDR logs to identify the specific browser process that was launched and the command-line parameters associated with it for context regarding the URL accessed.
+  - Check for any abnormal behavior or patterns in the network traffic using the NDR tool to see if the launched browser accessed suspicious or known phishing domains.
+  - Utilize the SIEM to correlate any alerts regarding the parent document readers (such as Acrobat or Microsoft Office) to determine if there were any previous security events related to those applications.
+  - Examine historical proxy logs for any prior traffic to the URL accessed by the browser during this event to assess whether it has been reported for phishing or malicious activity.

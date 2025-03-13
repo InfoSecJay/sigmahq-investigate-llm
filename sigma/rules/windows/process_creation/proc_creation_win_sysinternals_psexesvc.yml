@@ -1,0 +1,35 @@
+title: PsExec Service Execution
+id: fdfcbd78-48f1-4a4b-90ac-d82241e368c5
+related:
+- id: fa91cc36-24c9-41ce-b3c8-3bbc3f2f67ba
+  type: obsolete
+status: test
+description: Detects launch of the PSEXESVC service, which means that this system
+  was the target of a psexec remote execution
+references:
+- https://learn.microsoft.com/en-us/sysinternals/downloads/psexec
+- https://www.youtube.com/watch?v=ro2QuZTIMBM
+author: Thomas Patzke, Romaissa Adjailia, Florian Roth (Nextron Systems)
+date: 2017-06-12
+modified: 2023-02-28
+tags:
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image: 'C:\Windows\PSEXESVC.exe'
+  - OriginalFileName: 'psexesvc.exe'
+  condition: selection
+falsepositives:
+- Legitimate administrative tasks
+level: medium
+notes: |
+  ### Technical Context
+  The "PsExec Service Execution" rule is designed to detect unauthorized remote executions via the PsExec tool, specifically monitoring the launch of the PSEXESVC service. PsExec is a utility used for executing processes on remote systems, and its detection is crucial for recognizing potential misuse in a network environment. This rule focuses on specific indicators of compromise, namely the execution of the `PSEXESVC.exe` process, and analyzes process creation logs from Windows to identify this activity. By evaluating the process image path and original file name, the rule aims to flag instances where PSEXESVC is initiated, indicating that the system may have been targeted for remote command execution.
+  ### Investigation Steps
+  - Utilize EDR to review recent process creation events related to `PSEXESVC.exe` and determine the user context under which the service was initiated.
+  - Check command-line parameters associated with the PsExec execution to identify any suspicious or unauthorized command executions.
+  - Analyze firewall and proxy logs to ascertain any unusual outbound connections that may have been established in conjunction with the PSEXESVC execution.
+  - Correlate findings with user access logs to confirm whether the account that executed the service has legitimate administrative privileges or if it resembles compromised credentials.

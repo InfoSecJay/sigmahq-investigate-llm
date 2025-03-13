@@ -1,0 +1,44 @@
+title: System Network Connections Discovery Via Net.EXE
+id: 1c67a717-32ba-409b-a45d-0fb704a73a81
+status: test
+description: Adversaries may attempt to get a listing of network connections to or
+  from the compromised system they are currently accessing or from remote systems
+  by querying for information over the network.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1049/T1049.md#atomic-test-1---system-network-connections-discovery
+author: frack113
+date: 2021-12-10
+modified: 2023-02-21
+tags:
+- attack.discovery
+- attack.t1049
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\net.exe'
+    - '\net1.exe'
+  - OriginalFileName:
+    - 'net.exe'
+    - 'net1.exe'
+  selection_cli:
+  - CommandLine|endswith:
+    - ' use'
+    - ' sessions'
+  - CommandLine|contains:
+    - ' use '
+    - ' sessions '
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies the use of the Windows command-line utility `net.exe` or its variant `net1.exe`, which can be utilized by adversaries to enumerate network connections on a targeted system. The rule generates alerts when these executables are executed with command-line arguments related to network connections, such as "use" or "sessions." The relevant data sources for this detection include process creation logs that capture information about command-line activity, alongside details like the original file name of the executable. By monitoring for suspicious command usage of these tools, the rule helps to flag potential reconnaissance activities indicative of an ongoing attack or compromise within the network.
+  ### Investigation Steps
+  - Review process creation logs from the EDR to identify any instances of `net.exe` or `net1.exe` being executed within the environment, particularly focusing on their command-line parameters.
+  - Correlate the timestamps of the detected commands with other security alerts in the SIEM to assess whether they align with any known malicious activity or compromises.
+  - Inspect outbound network connections in the firewall logs to see if any connections were established using the information gathered from the execution of `net.exe` or `net1.exe`.
+  - Analyze user and device behavior within the VPN logs and cloud platform access logs to identify any unusual access patterns or unauthorized credentials around the time of the command execution.

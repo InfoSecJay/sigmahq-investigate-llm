@@ -1,0 +1,36 @@
+title: Suspicious Creation with Colorcpl
+id: e15b518d-b4ce-4410-a9cd-501f23ce4a18
+status: test
+description: Once executed, colorcpl.exe will copy the arbitrary file to c:\windows\system32\spool\drivers\color\
+references:
+- https://twitter.com/eral4m/status/1480468728324231172?s=20
+author: frack113
+date: 2022-01-21
+modified: 2023-01-05
+tags:
+- attack.defense-evasion
+- attack.t1564
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    Image|endswith: '\colorcpl.exe'
+  filter_ext:
+    TargetFilename|endswith:
+    - '.icm'
+    - '.gmmp'
+    - '.cdmp'
+    - '.camp'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule identifies potentially malicious activity involving the executable "colorcpl.exe," which is commonly associated with the Windows color management system. When executed, this file can copy arbitrary files to the directory `C:\Windows\System32\spool\drivers\color\`, which may indicate an attempt to evade detection by hiding nefarious files in a system directory. The rule specifically looks for event logs where the process name ends with "colorcpl.exe" and additionally filters for the creation of files with specific extensions known to be used in color profiles (.icm, .gmmp, .cdmp, .camp). The primary data sources involved in this detection are file event logs from Windows, which capture file creation and modification activities.
+  ### Investigation Steps
+  - Review the relevant EDR alerts for instances of "colorcpl.exe" execution and verify the process lineage to determine its origin and legitimacy.
+  - Examine the Windows file event logs for any file creation events targeting the directory `C:\Windows\System32\spool\drivers\color\`, paying special attention to the file types listed in the rule.
+  - Search firewall and proxy logs for any suspicious outbound connections from the host on which "colorcpl.exe" was executed, looking for indicators of data exfiltration.
+  - Correlate the findings with historical logs from the organization’s AV solution to identify any previous detections or misconfigurations related to "colorcpl.exe" and associated file extensions.

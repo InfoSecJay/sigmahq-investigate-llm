@@ -1,0 +1,35 @@
+title: Network Communication Initiated To Portmap.IO Domain
+id: 07837ab9-60e1-481f-a74d-c31fb496a94c
+status: experimental
+description: Detects an executable accessing the portmap.io domain, which could be
+  a sign of forbidden C2 traffic or data exfiltration by malicious actors
+references:
+- https://portmap.io/
+- https://github.com/rapid7/metasploit-framework/issues/11337
+- https://pro.twitter.com/JaromirHorejsi/status/1795001037746761892/photo/2
+author: Florian Roth (Nextron Systems)
+date: 2024-05-31
+tags:
+- attack.t1041
+- attack.command-and-control
+- attack.t1090.002
+- attack.exfiltration
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Initiated: 'true'
+    DestinationHostname|endswith: '.portmap.io'
+  condition: selection
+falsepositives:
+- Legitimate use of portmap.io domains
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies network communication initiated by executables accessing the `portmap.io` domain, which is often associated with Command and Control (C2) activities or illicit data exfiltration efforts by malicious actors. The rule monitors network connection logs specifically for instances where the destination hostname ends with `.portmap.io`, indicating a potential security breach. The primary technical data sourced for this detection includes network connection logs on Windows environments, which record details such as the process ID, user information, and the destination hostname linked to outbound network traffic. By focusing on the initiation of these connections, the rule aids in highlighting unusual or unauthorized activity that may require further investigation.
+  ### Investigation Steps
+  - Utilize EDR tools to correlate process names and IDs associated with the network connections to identify the originating executable and assess its legitimacy.
+  - Search for any previous alerts or incidents involving the same process to determine whether this is a recurring issue or a newly emerging threat.
+  - Review outgoing traffic logs via the organization's firewall or proxy to analyze the frequency and volume of communications to `portmap.io` and identify other endpoints involved.
+  - Query endpoint logs for any related activity such as process creation or suspicious command-line arguments that may provide context about the nature of the execution linked to the detected network communication.

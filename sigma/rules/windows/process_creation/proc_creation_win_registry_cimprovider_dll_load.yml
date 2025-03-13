@@ -1,0 +1,36 @@
+title: DLL Execution Via Register-cimprovider.exe
+id: a2910908-e86f-4687-aeba-76a5f996e652
+status: test
+description: Detects using register-cimprovider.exe to execute arbitrary dll file.
+references:
+- https://twitter.com/PhilipTsukerman/status/992021361106268161
+- https://lolbas-project.github.io/lolbas/Binaries/Register-cimprovider/
+author: Ivan Dyachkov, Yulia Fomina, oscd.community
+date: 2020-10-07
+modified: 2021-11-27
+tags:
+- attack.defense-evasion
+- attack.t1574
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\register-cimprovider.exe'
+    CommandLine|contains|all:
+    - '-path'
+    - 'dll'
+  condition: selection
+fields:
+- CommandLine
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of arbitrary Dynamic Link Library (DLL) files using the `register-cimprovider.exe` utility in Windows operating systems. The rule focuses on the process creation logs, specifically looking for instances where the `register-cimprovider.exe` executable is invoked with command-line parameters that include `-path` and indicate a DLL file. The presence of these command-line arguments suggests a potential evasion tactic, where attackers might attempt to register a malicious DLL to execute arbitrary code or perform other malicious actions without triggering conventional security measures. By monitoring this specific behavior, security teams can respond swiftly to potential threats that leverage this method of DLL execution.
+  ### Investigation Steps
+  - Check the EDR logs to identify the execution context of `register-cimprovider.exe`, including the user account and associated processes that may indicate suspicious activity.
+  - Review the command-line arguments used in the execution to determine the specific DLL being registered and assess its legitimacy by comparing it against known file repositories.
+  - Utilize your AV solution to perform a scan on the detected DLL and the associated binaries to check for any known indicators of compromise (IOCs) or malware signatures.
+  - Analyze network traffic from the NDR tool to identify any communication to external domains or IP addresses originating from the system that executed the command, which could indicate further malicious activity.

@@ -1,0 +1,40 @@
+title: Uncommon Extension In Keyboard Layout IME File Registry Value
+id: b888e3f2-224d-4435-b00b-9dd66e9ea1f1
+related:
+- id: 9d8f9bb8-01af-4e15-a3a2-349071530530
+  type: derived
+status: test
+description: |
+  Detects usage of Windows Input Method Editor (IME) keyboard layout feature, which allows an attacker to load a DLL into the process after sending the WM_INPUTLANGCHANGEREQUEST message.
+  Before doing this, the client needs to register the DLL in a special registry key that is assumed to implement this keyboard layout. This registry key should store a value named "Ime File" with a DLL path.
+  IMEs are essential for languages that have more characters than can be represented on a standard keyboard, such as Chinese, Japanese, and Korean.
+references:
+- https://www.linkedin.com/pulse/guntior-story-advanced-bootkit-doesnt-rely-windows-disk-baranov-wue8e/
+author: X__Junior (Nextron Systems)
+date: 2023-11-21
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject|contains|all:
+    - '\Control\Keyboard Layouts\'
+    - 'Ime File'
+  filter_main_known_extension:
+    Details|endswith: '.ime'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- IMEs are essential for languages that have more characters than can be represented
+  on a standard keyboard, such as Chinese, Japanese, and Korean.
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential misuse of the Windows Input Method Editor (IME) by monitoring registry modifications related to IME configurations. Specifically, it looks for the addition of a DLL path to the "Ime File" registry value under the `\Control\Keyboard Layouts\` path, which could indicate the use of non-standard extensions in IME files. Attackers may exploit this legitimate functionality to load malicious DLLs by sending a `WM_INPUTLANGCHANGEREQUEST` message, which alters the input language and can execute arbitrary code without triggering typical security controls. The detection leverages registry set logs as the data source to highlight unusual extensions that may signify malicious intent.
+  ### Investigation Steps
+  - Check for any recent changes in the registry pertaining to `\Control\Keyboard Layouts\` using EDR tools to correlate with the alert timestamp.
+  - Investigate the specified DLL paths registered under "Ime File" for known malicious signatures or behaviors using AV and threat intelligence sources.
+  - Review process creation logs around the time of the alert to identify any processes that may have executed the IME or related DLLs.
+  - Conduct a thorough analysis of user access logs through the proxy or cloud platforms to detect any unusual user activity that might correlate with the use of malicious IMEs.

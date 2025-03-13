@@ -1,0 +1,41 @@
+title: Copy .DMP/.DUMP Files From Remote Share Via Cmd.EXE
+id: 044ba588-dff4-4918-9808-3f95e8160606
+status: test
+description: Detects usage of the copy builtin cmd command to copy files with the
+  ".dmp"/".dump" extension from a remote share
+references:
+- https://thedfirreport.com/2022/09/26/bumblebee-round-two/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-27
+modified: 2023-09-12
+tags:
+- attack.credential-access
+logsource:
+  category: process_creation
+  product: windows
+detection:
+    # Example: copy \\<host>\\<folder>\\process.dmp C:\Users\process.dmp
+  selection_img:
+  - Image|endswith: '\cmd.exe'
+  - OriginalFileName: 'Cmd.Exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'copy '
+    - ' \\\\'
+    CommandLine|contains:
+    - '.dmp'
+    - '.dump'
+    - '.hdmp'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets the unauthorized copying of memory dump files (.dmp, .dump) from a remote share using the Windows command line utility, `cmd.exe`. The rule inspects process creation logs for instances of the `copy` command being executed in contexts that suggest a potential malicious activity, specifically focusing on commands that reference remote share paths. By examining both the command-line arguments and the associated executable name (i.e., `cmd.exe`), the rule looks to identify any patterns that match recursive file copying behavior from potentially compromised or unauthorized sources.
+  The critical data sources involved in the detection are Windows process creation logs, which provide insights into the execution of commands, including any parameters like remote paths where the files are being copied from. By correlating process execution with suspicious command structures, this rule helps identify activities that may be associated with credential theft or other malicious intents.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify instances of `cmd.exe` executing the `copy` command with `.dmp` or `.dump` file extensions coming from remote shares.
+  - Examine the full command-line parameters associated with the detected processes; pay special attention to the source paths and any unusual destination directories.
+  - Cross-reference the timestamps and source IP addresses of the alerts with your network logs, using the SIEM to investigate any suspicious external connections to remote shares during the same timeframe.
+  - Conduct a thorough analysis of the affected system's security events and processes around the time of the copy action to determine if other signs of compromise are present (e.g., foreign account logins, unusual process behavior).

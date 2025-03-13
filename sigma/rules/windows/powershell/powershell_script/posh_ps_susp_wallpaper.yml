@@ -1,0 +1,38 @@
+title: Replace Desktop Wallpaper by Powershell
+id: c5ac6a1e-9407-45f5-a0ce-ca9a0806a287
+status: test
+description: |
+  An adversary may deface systems internal to an organization in an attempt to intimidate or mislead users.
+  This may take the form of modifications to internal websites, or directly to user systems with the replacement of the desktop wallpaper
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1491.001/T1491.001.md
+author: frack113
+date: 2021-12-26
+tags:
+- attack.impact
+- attack.t1491.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_1:
+    ScriptBlockText|contains|all:
+    - 'Get-ItemProperty'
+    - 'Registry::'
+    - 'HKEY_CURRENT_USER\Control Panel\Desktop\'
+    - 'WallPaper'
+  selection_2:
+    ScriptBlockText|contains: SystemParametersInfo(20,0,*,3)
+  condition: 1 of selection_*
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activities aimed at altering user environments by changing the desktop wallpaper via PowerShell scripts. The rule specifically monitors for PowerShell script block logging and looks for indicators that suggest an adversary is attempting to modify the desktop wallpaper setting stored in the Windows registry at `HKEY_CURRENT_USER\Control Panel\Desktop\WallPaper`. The script blocks containing calls to `Get-ItemProperty`, as well as usage of the `SystemParametersInfo` function with the parameter corresponding to wallpaper changes, are flagged. By focusing on these specific calls, the rule helps to uncover potential defacement actions that might intimidate or mislead users within the organization.
+  ### Investigation Steps
+  - Check the EDR alerts for any recent PowerShell executions that match the detection criteria. Analyze the command-line arguments used and any parent processes that initiated the PowerShell script.
+  - Review Windows event logs, specifically focusing on Event ID 4104 (PowerShell script block logging), to gather context around the executed scripts and identify patterns related to user actions or other anomalous behavior.
+  - Investigate the user activity around the time of the detection to determine if there were any other security events or suspicious activities that could indicate a broader attack or user compromise.
+  - Search through the registry logs or utilize the NSI tools to confirm if unauthorized modifications were made to the desktop wallpaper, and identify all user accounts affected by this change.

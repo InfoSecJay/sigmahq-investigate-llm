@@ -1,0 +1,30 @@
+title: DiagTrackEoP Default Login Username
+id: 2111118f-7e46-4fc8-974a-59fd8ec95196
+status: test
+description: Detects the default "UserName" used by the DiagTrackEoP POC
+references:
+- https://github.com/Wh04m1001/DiagTrackEoP/blob/3a2fc99c9700623eb7dc7d4b5f314fd9ce5ef51f/main.cpp#L46
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-03
+tags:
+- attack.privilege-escalation
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4624
+    LogonType: 9
+    TargetOutboundUserName: 'thisisnotvaliduser'
+  condition: selection
+falsepositives:
+- Unlikely
+level: critical
+notes: |
+  ### Technical Context
+  The DiagTrackEoP Default Login Username rule is designed to identify suspicious login attempts utilizing a default username associated with the DiagTrackEoP Proof of Concept (PoC), specifically "thisisnotvaliduser". This detection leverages Windows Security Event logs, focusing on Event ID 4624, which records logon events. The rule is triggered when a user with the specified username attempts a logon using Logon Type 9, indicating that it is a service logon, which is often used by background processes. Since the username in question is atypical and not likely to be legitimately used in a standard enterprise environment, its detection can indicate potential attempts to exploit privilege escalation vulnerabilities.
+  ### Investigation Steps
+  - Review recent Event ID 4624 entries in the Windows Security logs to verify instances of the username "thisisnotvaliduser" related to logon type 9.
+  - Utilize EDR tools to analyze the endpoints from where the suspicious logon attempts originated, checking for any unusual processes or activities.
+  - Correlate findings with network traffic data from the NDR to identify any connections or data exfiltration attempts associated with the detected logons.
+  - Examine authentication records in the cloud logs (if applicable) to determine if there are any related authentication attempts across cloud resources that might indicate a broader attack initiative.

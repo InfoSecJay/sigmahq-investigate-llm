@@ -1,0 +1,48 @@
+title: Suspicious Msiexec Quiet Install From Remote Location
+id: 8150732a-0c9d-4a99-82b9-9efb9b90c40c
+related:
+- id: f7b5f842-a6af-4da5-9e95-e32478f3cd2f
+  type: similar
+status: test
+description: Detects usage of Msiexec.exe to install packages hosted remotely quietly
+references:
+- https://www.microsoft.com/en-us/security/blog/2022/10/27/raspberry-robin-worm-part-of-larger-ecosystem-facilitating-pre-ransomware-activity/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-10-28
+modified: 2024-03-13
+tags:
+- attack.defense-evasion
+- attack.t1218.007
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\msiexec.exe'
+  - OriginalFileName: 'msiexec.exe'
+  selection_cli:
+        # Note that there is no space before and after the arguments because it's possible to write a commandline as such
+        # Example: msiexec -q/i [MSI Package]
+    CommandLine|contains|windash:
+    - '-i'
+    - '-package'
+    - '-a'
+    - '-j'
+  selection_quiet:
+    CommandLine|contains|windash: '-q'
+  selection_remote:
+    CommandLine|contains:
+    - 'http'
+    - '\\\\'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious use of `msiexec.exe` to install software packages quietly from a remote location. The rule specifically monitors for processes that execute `msiexec.exe` with parameters suggesting a quiet installation (`-q`) while simultaneously referencing remote resources, such as files hosted on HTTP servers or accessed via UNC paths. The key data sources involved in this detection include process creation logs that capture process executions, command-line parameters used during these executions, and the original file name of the running process. By correlating these factors, the rule aims to identify behavior consistent with pre-ransomware activities, such as those associated with known malware.
+  ### Investigation Steps
+  - Verify the process creation logs in your EDR solution to identify the specific instances of `msiexec.exe` launching with relevant command-line arguments.
+  - Check for any associated network traffic using your NDR tools to confirm if the process accessed external resources over HTTP or via UNC paths.
+  - Review your AV logs to determine if the installed package or the execution of `msiexec.exe` was flagged or considered suspicious.
+  - Utilize cloud logging from AWS, GCP, or Azure to investigate if there were any unauthorized or unusual deployments linked to the time of the detected activity.

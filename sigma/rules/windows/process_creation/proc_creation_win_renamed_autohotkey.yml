@@ -1,0 +1,48 @@
+title: Renamed AutoHotkey.EXE Execution
+id: 0f16d9cf-0616-45c8-8fad-becc11b5a41c
+status: test
+description: Detects execution of a renamed autohotkey.exe binary based on PE metadata
+  fields
+references:
+- https://www.autohotkey.com/download/
+- https://thedfirreport.com/2023/02/06/collect-exfiltrate-sleep-repeat/
+author: Nasreddine Bencherchali
+date: 2023-02-07
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Product|contains: 'AutoHotkey'
+  - Description|contains: 'AutoHotkey'
+  - OriginalFileName:
+    - 'AutoHotkey.exe'
+    - 'AutoHotkey.rc'
+  filter:
+  - Image|endswith:
+    - '\AutoHotkey.exe'
+    - '\AutoHotkey32.exe'
+    - '\AutoHotkey32_UIA.exe'
+    - '\AutoHotkey64.exe'
+    - '\AutoHotkey64_UIA.exe'
+    - '\AutoHotkeyA32.exe'
+    - '\AutoHotkeyA32_UIA.exe'
+    - '\AutoHotkeyU32.exe'
+    - '\AutoHotkeyU32_UIA.exe'
+    - '\AutoHotkeyU64.exe'
+    - '\AutoHotkeyU64_UIA.exe'
+  - Image|contains: '\AutoHotkey'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies suspicious execution of the AutoHotkey scripting engine, specifically when the binary has been renamed or manipulated. AutoHotkey is often employed by attackers for automating tasks and executing malicious scripts, making it crucial to monitor its usage carefully. The rule looks for the presence of process creation logs that reference the AutoHotkey product name or its description, particularly examining the original file names in the executable metadata. It focuses on binaries associated with AutoHotkey that end with specific file names or contain the term "AutoHotkey" in their paths while confirming that the product or description is valid. If the execution is flagged and meets the specified criteria without being filtered out by common variants, it triggers an alert for further analysis.
+  ### Investigation Steps
+  - Review process creation logs in the EDR to identify the context and user associated with the execution of the renamed AutoHotkey binary.
+  - Analyze the command-line parameters used during the execution to determine the intent and potential actions of the script.
+  - Check for associated network activity in Proxy or NDR logs to see if any external communication occurred during the execution time, which can indicate exfiltration or command and control behavior.
+  - Query the SIEM for additional alerts or anomalies linked to the user account and machine to gauge whether this behavior is part of a larger incident or isolated activity.

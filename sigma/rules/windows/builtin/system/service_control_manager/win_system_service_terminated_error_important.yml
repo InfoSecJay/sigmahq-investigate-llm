@@ -1,0 +1,53 @@
+title: Important Windows Service Terminated With Error
+id: d6b5520d-3934-48b4-928c-2aa3f92d6963
+related:
+- id: acfa2210-0d71-4eeb-b477-afab494d596c
+  type: similar
+status: test
+description: Detects important or interesting Windows services that got terminated
+  for whatever reason
+references:
+- https://www.microsoft.com/en-us/security/blog/2023/04/11/guidance-for-investigating-attacks-using-cve-2022-21894-the-blacklotus-campaign/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-04-14
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  service: system
+detection:
+  selection_eid:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7023     # The X Service service terminated with the following error
+  selection_name:
+  - param1|contains:
+              # Note that these names are "Display Names" and are language specific. If you're using a non-english system these can and will be different
+    - ' Antivirus'
+    - ' Firewall'
+    - 'Application Guard'
+    - 'BitLocker Drive Encryption Service'
+    - 'Encrypting File System'
+    - 'Microsoft Defender'
+    - 'Threat Protection'
+    - 'Windows Event Log'
+        # Use this If you collect the binary value provided from this event, which is the wide hex encoded value of the service name.
+  - Binary|contains:
+    - '770069006e0064006500660065006e006400'           # windefend (Microsoft Defender Antivirus Service)
+    - '4500760065006e0074004c006f006700'           # EventLog
+    - '6d0070007300730076006300'           # mpssvc (Windows Defender Firewall)
+    - '530065006e0073006500'           # Sense (Windows Defender Advanced Threat Protection Service)
+    - '450046005300'           # EFS (Encrypting File System)
+    - '420044004500530056004300'           # BDESVC (BitLocker Drive Encryption Service)
+  condition: all of selection_*
+falsepositives:
+- Rare false positives could occur since service termination could happen due to multiple
+  reasons
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect instances where critical Windows services are stopped or terminated unexpectedly, particularly focusing on those that are essential for system security and integrity. It leverages Windows Event ID 7023 emitted by the Service Control Manager to identify when important services, such as antivirus and firewall components, encounter errors during termination. The rule looks for specific service names, as well as binary representations of these services, to ensure that only relevant incidents are flagged. By monitoring these events, security analysts can identify and respond to potential threats that may indicate a breach or misconfiguration within the system, leading to the disabling of security functionalities.
+  ### Investigation Steps
+  - Review the Windows Event Logs in the EDR to locate the specific Event ID 7023 entries associated with the terminated services to gather context about the incident.
+  - Correlate the timestamps of the service terminations with other events in the SIEM, such as unauthorized access attempts or unusual process behaviors, to determine potential cause-and-effect relationships.
+  - Query the endpoint using the EDR solution to analyze running services and processes at the time of the termination, checking for anomalies or the presence of malicious activity.
+  - Investigate network traffic via the NDR to assess if any suspicious communications were initiated by the affected services before their termination, which may indicate external tampering or internal compromise.

@@ -1,0 +1,57 @@
+title: Uncommon Outbound Kerberos Connection - Security
+id: eca91c7c-9214-47b9-b4c5-cb1d7e4f2350
+related:
+- id: e54979bd-c5f9-4d6c-967b-a04b19ac4c74
+  type: similar
+status: test
+description: |
+  Detects uncommon outbound network activity via Kerberos default port indicating possible lateral movement or first stage PrivEsc via delegation.
+references:
+- https://github.com/GhostPack/Rubeus
+author: Ilyas Ochkov, oscd.community
+date: 2019-10-24
+modified: 2024-03-15
+tags:
+- attack.lateral-movement
+- attack.t1558.003
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 5156
+    DestPort: 88
+  filter_main_lsass:
+    Application|startswith:
+    - '\device\harddiskvolume'
+    - 'C:'
+    Application|endswith: '\Windows\System32\lsass.exe'
+  filter_optional_chrome:
+    Application|startswith:
+    - '\device\harddiskvolume'
+    - 'C:'
+    Application|endswith:
+    - '\Program Files (x86)\Google\Chrome\Application\chrome.exe'
+    - '\Program Files\Google\Chrome\Application\chrome.exe'
+  filter_optional_firefox:
+    Application|startswith:
+    - '\device\harddiskvolume'
+    - 'C:'
+    Application|endswith:
+    - '\Program Files (x86)\Mozilla Firefox\firefox.exe'
+    - '\Program Files\Mozilla Firefox\firefox.exe'
+  filter_optional_tomcat:
+    Application|endswith: '\tomcat\bin\tomcat8.exe'
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- Web Browsers and third party application might generate similar activity. An initial
+  baseline is required.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potentially suspicious outbound network activity using the Kerberos authentication protocol, which typically operates over UDP port 88. The rule focuses specifically on Event ID 5156, which logs successful attempts to create outbound connections. By analyzing the source applications of these connections, the rule filters out legitimate processes such as the Windows Local Security Authority Subsystem Service (lsass.exe) and popular web browsers (Chrome and Firefox) to reduce false positives. The primary purpose of this detection is to flag uncommon Kerberos traffic, which might indicate malicious lateral movement within the network or unauthorized privilege escalation attempts, allowing timely intervention by incident responders.
+  ### Investigation Steps
+  - Use EDR tools to identify and investigate the process that initiated the outbound connection, checking its integrity and behavior for signs of compromise.
+  - Analyze the destination addresses in the outbound connections by cross-referencing them in your threat intelligence sources to determine if they have been linked to known malicious activity.
+  - Review firewall logs from the NGFW to uncover any other unusual outbound connection patterns or repeated access attempts to the same rare endpoints.
+  - Examine authentication logs in Active Directory or relevant cloud platforms to assess whether the user account associated with the process was recently accessed or has irregular login behavior.

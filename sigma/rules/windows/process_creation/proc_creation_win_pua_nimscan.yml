@@ -1,0 +1,38 @@
+title: PUA - NimScan Execution
+id: 4fd6b1c7-19b8-4488-97f6-00f0924991a3
+status: test
+description: |
+  Detects usage of NimScan, a portscanner utility.
+  In early 2025, adversaries were observed using this utility to scan for open ports on remote hosts in a compromised environment.
+  This rule identifies the execution of NimScan based on the process image name and specific hash values associated with different versions of the tool.
+references:
+- https://x.com/cyberfeeddigest/status/1887041526397587859
+- https://github.com/elddy/NimScan
+author: Swachchhanda Shrawan Poudel (Nextron Systems)
+date: 2025-02-05
+tags:
+- attack.discovery
+- attack.t1046
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\NimScan.exe'       # Other metadata fields such as originalfilename and product were omitted because they were null
+  - Hashes|contains:
+    - 'IMPHASH=41BB1C7571B3A724EB83A1D2B96DBB8C'           # v1.0.8
+    - 'IMPHASH=B1B6ADACB172795480179EFD18A29549'           # v1.0.6
+    - 'IMPHASH=0D1F896DC7642AD8384F9042F30279C2'           # v1.0.4 and v1.0.2
+  condition: selection
+falsepositives:
+- Legitimate administrator activity
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "PUA 
+  - NimScan Execution" is designed to detect the execution of NimScan, a port scanning utility, which has been utilized by adversaries for reconnaissance activities in compromised environments. This rule looks specifically for process creation events where the executable file ends with "NimScan.exe" and filters these events using hash values that correlate to specific versions of the tool. The rule targets process creation logs from Windows systems, ensuring that alerts are raised when the known signed hashes indicative of NimScan are observed. By identifying potentially malicious use of this utility, the rule aids in uncovering unauthorized port scanning activities that could signal a deeper compromise in network environments.
+  ### Investigation Steps
+  - Review the relevant EDR logs to trace the execution path of NimScan, including any associated parent processes or command-line arguments that may provide context on how and why the utility was executed.
+  - Check firewall and network logs for any unusual outbound traffic patterns or connections to external IPs that may coincide with the execution of NimScan, as this could indicate scanning or probing activity.
+  - Analyze host and system logs for signs of lateral movement or exploitation attempts correlating with the timestamps when NimScan was detected, focusing on account activity and authentication logs.
+  - Consult cloud service logs (AWS, GCP, Azure) if applicable to identify any related activities that may suggest a broader reconnaissance effort or exfiltration attempt linked to the detected NimScan execution.

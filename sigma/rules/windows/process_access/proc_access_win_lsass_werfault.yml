@@ -1,0 +1,36 @@
+title: Credential Dumping Attempt Via WerFault
+id: e5b33f7d-eb93-48b6-9851-09e1e610b6d7
+status: test
+description: Detects process LSASS memory dump using Mimikatz, NanoDump, Invoke-Mimikatz,
+  Procdump or Taskmgr based on the CallTrace pointing to ntdll.dll, dbghelp.dll or
+  dbgcore.dll for win10, server2016 and up.
+references:
+- https://github.com/helpsystems/nanodump/commit/578116faea3d278d53d70ea932e2bbfe42569507
+author: Florian Roth (Nextron Systems)
+date: 2012-06-27
+modified: 2023-11-29
+tags:
+- attack.credential-access
+- attack.t1003.001
+- attack.s0002
+logsource:
+  category: process_access
+  product: windows
+detection:
+  selection:
+    SourceImage|endswith: '\WerFault.exe'
+    TargetImage|endswith: '\lsass.exe'
+    GrantedAccess: '0x1FFFFF'
+  condition: selection
+falsepositives:
+- Actual failures in lsass.exe that trigger a crash dump (unlikely)
+- Unknown cases in which WerFault accesses lsass.exe
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect attempts to dump credentials from the Local Security Authority Subsystem Service (LSASS) process using the WerFault.exe process in Windows, which is typically associated with handling application errors. The rule monitors for specific characteristics indicative of credential dumping tools such as Mimikatz, NanoDump, and others that may use WerFault to access LSASS memory. When the WerFault.exe process is detected accessing LSASS.exe with high privilege access (indicated by the GrantedAccess flag), this may signal a credential dumping attempt. The detection leverages process access logs, specifically focusing on interactions involving the ntdll.dll, dbghelp.dll, or dbgcore.dll libraries for Windows 10 and Server 2016 and later.
+  ### Investigation Steps
+  - Utilize your EDR platform to identify instances of WerFault.exe accessing LSASS.exe. Look for elevated permissions and any associated process trees.
+  - Review historical logs from the SIEM to check for anomalies related to credential dumping events, particularly around the time of the alert generation.
+  - Correlate data from AV solutions to determine if any known credential-dumping tools were detected during the time frame of the suspicious activity.
+  - Analyze Windows Event Logs for any process creation events or failures that correspond with the LSASS access, paying close attention to unusual command-line arguments and parent-child process relationships.

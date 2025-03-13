@@ -1,0 +1,34 @@
+title: Renamed Microsoft Teams Execution
+id: 88f46b67-14d4-4f45-ac2c-d66984f22191
+status: experimental
+description: Detects the execution of a renamed Microsoft Teams binary.
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2024-07-12
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    OriginalFileName:
+    - 'msteams.exe'
+    - 'teams.exe'
+  filter_main_legit_names:
+    Image|endswith:
+    - '\msteams.exe'
+    - '\teams.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Renamed Microsoft Teams Execution" rule is designed to detect instances where the legitimate Microsoft Teams application binary has been renamed or altered before execution. This detection focuses on process creation events where the original file names 'msteams.exe' and 'teams.exe' are indicated, but the actual execution path differs from the expected legitimate locations. Such behavior can signify attempts by malicious actors to bypass security measures, using a familiar application name to conceal nefarious activities. The primary technical data sources involved in this detection are Windows process creation logs, which capture details about executed applications, including their paths and original file names.
+  ### Investigation Steps
+  - Examine the EDR alerts associated with the detected process to gather contextual information about the execution, such as the user account that initiated it and the command-line parameters used.
+  - Review the Windows event logs for related events in the timeframe surrounding the alert to identify any abnormal behaviors or patterns linked to the renamed binary execution.
+  - Cross-reference any associated network traffic captured by the NGFW or NDR tools to determine if there are any outbound connections to suspicious or known malicious endpoints.
+  - Investigate the user account activity in the identity and access management logs to assess any unusual login behavior or privilege escalation attempts leading to the execution of the renamed Teams binary.

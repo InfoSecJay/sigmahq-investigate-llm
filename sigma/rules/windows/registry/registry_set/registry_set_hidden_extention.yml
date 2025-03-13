@@ -1,0 +1,37 @@
+title: Registry Modification to Hidden File Extension
+id: 5df86130-4e95-4a54-90f7-26541b40aec2
+status: test
+description: Hides the file extension through modification of the registry
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1112/T1112.md#atomic-test-1---modify-registry-of-current-user-profile---cmd
+- https://unit42.paloaltonetworks.com/ransomware-families/
+- https://www.microsoft.com/en-us/wdsi/threats/malware-encyclopedia-description?name=TrojanSpy%3aMSIL%2fHakey.A
+author: frack113
+date: 2022-01-22
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.t1137
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection_HideFileExt:
+    TargetObject|endswith: '\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\HideFileExt'
+    Details: 'DWORD (0x00000001)'
+  selection_Hidden:
+    TargetObject|endswith: '\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\Hidden'
+    Details: 'DWORD (0x00000002)'
+  condition: 1 of selection_*
+falsepositives:
+- Administrative scripts
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activity by monitoring specific changes to the Windows registry that affect file visibility. The rule observes modifications to specific registry keys related to file extension visibility and show/hide options within Windows Explorer. More specifically, it looks for changes indicating that file extensions are being hidden by checking for values set to `DWORD (0x00000001)` in the `HideFileExt` key, and `DWORD (0x00000002)` in the `Hidden` key. Given that attackers often manipulate these settings to obscure their activities, detecting such changes can be crucial in identifying potential threats like ransomware or other persistence mechanisms.
+  Technical data sources involved in this detection include Windows registry set logs, which record changes to the system's registry. By tracking these changes, analysts can differentiate between legitimate administrative actions and potentially harmful modifications that may signify a compromise.
+  ### Investigation Steps
+  - Query the EDR solution for the specific registry changes logged around the time the alert was generated. Review the process history that led to these changes for more context.
+  - Examine recent process creations in the target endpoint to identify any suspicious executables that may correlate with the modification time of the registry.
+  - Use the SIEM to assess any related logs from network traffic to ensure there are no command and control communications around the same timeframe.
+  - Check user activity logs for any anomalies in administrative account usage or logins, especially if the changes were made by non-administrative users.

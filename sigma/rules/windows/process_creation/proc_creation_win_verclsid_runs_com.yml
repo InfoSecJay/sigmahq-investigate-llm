@@ -1,0 +1,39 @@
+title: Verclsid.exe Runs COM Object
+id: d06be4b9-8045-428b-a567-740a26d9db25
+status: test
+description: Detects when verclsid.exe is used to run COM object via GUID
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Verclsid/
+- https://gist.github.com/NickTyrer/0598b60112eaafe6d07789f7964290d5
+- https://bohops.com/2018/08/18/abusing-the-com-registry-structure-part-2-loading-techniques-for-evasion-and-persistence/
+author: Victor Sergeev, oscd.community
+date: 2020-10-09
+modified: 2022-07-11
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\verclsid.exe'
+  - OriginalFileName: 'verclsid.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - '/S'
+    - '/C'
+  condition: all of selection_*
+fields:
+- CommandLine
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Verclsid.exe Runs COM Object" is designed to detect potential misuse of the `verclsid.exe` process, which is a legitimate Windows tool used for verifying the registration of COM objects. Attackers may exploit this tool to execute malicious commands or to maintain persistence on compromised systems. The detection focuses on instances where `verclsid.exe` is run with specific command-line parameters, particularly those containing `/S` and `/C`, which typically indicate scripted or automated execution. By monitoring process creation logs, the rule captures indications of potentially malicious activity tied to `verclsid.exe`, which might otherwise go unnoticed.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify instances where `verclsid.exe` was invoked, paying close attention to the command-line parameters used in each occurrence.
+  - Cross-reference the timestamps of the detected alerts with other relevant logs, such as user activity on machines or suspicious login attempts, to establish context around the execution of `verclsid.exe`.
+  - Investigate any associated parent processes and the overall command-line context to discern whether this activity supports legitimate administrative tasks or suggests a deeper security incident.
+  - Utilize your SIEM to analyze historical data around the identified alerts, looking for patterns of behavior or repeated instances that may indicate ongoing malicious activity or an adversarial presence on the network.

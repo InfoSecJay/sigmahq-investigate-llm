@@ -1,0 +1,42 @@
+title: Suspicious Keyboard Layout Load
+id: 34aa0252-6039-40ff-951f-939fd6ce47d8
+status: test
+description: Detects the keyboard preload installation with a suspicious keyboard
+  layout, e.g. Chinese, Iranian or Vietnamese layout load in user session on systems
+  maintained by US staff only
+references:
+- https://renenyffenegger.ch/notes/Windows/registry/tree/HKEY_CURRENT_USER/Keyboard-Layout/Preload/index
+- https://github.com/SwiftOnSecurity/sysmon-config/pull/92/files
+author: Florian Roth (Nextron Systems)
+date: 2019-10-12
+modified: 2023-08-17
+tags:
+- attack.resource-development
+- attack.t1588.002
+logsource:
+  category: registry_set
+  product: windows
+  definition: 'Requirements: Sysmon config that monitors \Keyboard Layout\Preload
+    subkey of the HKLU hives - see https://github.com/SwiftOnSecurity/sysmon-config/pull/92/files'
+detection:
+  selection_registry:
+    TargetObject|contains:
+    - '\Keyboard Layout\Preload\'
+    - '\Keyboard Layout\Substitutes\'
+    Details|contains:
+    - 00000429          # Persian (Iran)
+    - 00050429          # Persian (Iran)
+    - 0000042a          # Vietnamese
+  condition: selection_registry
+falsepositives:
+- Administrators or users that actually use the selected keyboard layouts (heavily
+  depends on the organisation's user base)
+level: medium
+notes: |
+  ### Technical Context
+  The "Suspicious Keyboard Layout Load" detection rule identifies potentially unauthorized or malicious keyboard layouts loaded in user sessions on Windows systems maintained by US staff. Specifically, it focuses on registry changes that introduce non-standard keyboard layouts, such as those associated with Iranian, Chinese, or Vietnamese languages. By monitoring the Windows registry under the `HKEY_CURRENT_USER\Keyboard Layout\Preload` subkey, this rule detects when a user's session preloads these keyboard layouts, which could signify a security misconfiguration or an intrusion attempt. The data sources involved in this detection mainly include registry set logs captured by Sysmon, particularly looking for specific values that correspond to the targeted layouts.
+  ### Investigation Steps
+  - Review the registry logs in Sysmon to identify any recent additions to the `HKEY_CURRENT_USER\Keyboard Layout\Preload` subkey for affected users.
+  - Use EDR tools to inspect the process creation logs around the time the suspicious layout was loaded to check for any associated processes that might indicate malicious activity.
+  - Correlate findings with proxy logs to see if there were any suspicious external connections made by the user prior to the layout change, which may indicate compromise.
+  - Check user accounts against known personnel to confirm whether their roles justify the use of the loaded keyboard layouts; engage with the user if discrepancies are found.

@@ -1,0 +1,41 @@
+title: New ODBC Driver Registered
+id: 3390fbef-c98d-4bdd-a863-d65ed7c610dd
+status: test
+description: Detects the registration of a new ODBC driver.
+references:
+- https://www.hexacorn.com/blog/2020/08/23/odbcconf-lolbin-trifecta/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-23
+modified: 2023-08-17
+tags:
+- attack.persistence
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\SOFTWARE\ODBC\ODBCINST.INI\'
+    TargetObject|endswith: '\Driver'
+  filter_main_sqlserver:
+    TargetObject|contains: '\SQL Server\'
+    Details: '%WINDIR%\System32\SQLSRV32.dll'
+  filter_optional_office_access:
+    TargetObject|contains: '\Microsoft Access '
+    Details|startswith: 'C:\Progra'
+    Details|endswith: '\ACEODBC.DLL'
+  filter_optional_office_excel:
+    TargetObject|contains: '\Microsoft Excel Driver'
+    Details|startswith: 'C:\Progra'
+    Details|endswith: '\ACEODBC.DLL'
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- Likely
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule detects the registration of a new ODBC (Open Database Connectivity) driver on Windows systems, specifically looking for changes in the registry under the ODBC configuration path. The rule primarily examines registry modification logs, focusing on specific target objects related to ODBC drivers, such as `\SOFTWARE\ODBC\ODBCINST.INI\` and those ending with `\Driver`. It also incorporates filters to exclude known benign registrations, such as those pertaining to SQL Server, Microsoft Access, and Microsoft Excel, ensuring that the detection is aimed at potentially malicious ODBC driver registrations that may indicate persistence or other nefarious activities. By monitoring these registry changes, we can identify unwanted driver installations that may facilitate lateral movement or data exfiltration by adversaries.
+  ### Investigation Steps
+  - Review the registry changes identified in the alert using Windows EDR tools to determine the origin and legitimacy of the new ODBC driver registration. 
+  - Examine process creation logs around the time of registration to identify any unusual processes that may have initiated the registration process.
+  - Cross-reference the details of the new ODBC driver with known good and malicious indicators using threat intelligence platforms or AV logs to assess risk.
+  - Investigate network traffic logs from the NGFW or NDR to determine if there were any abnormal outbound connections made by the associated application immediately after ODBC driver registration.

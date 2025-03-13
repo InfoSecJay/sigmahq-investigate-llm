@@ -1,0 +1,36 @@
+title: Remove Account From Domain Admin Group
+id: 48a45d45-8112-416b-8a67-46e03a4b2107
+status: test
+description: |
+  Adversaries may interrupt availability of system and network resources by inhibiting access to accounts utilized by legitimate users.
+  Accounts may be deleted, locked, or manipulated (ex: changed credentials) to remove access to accounts.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1531/T1531.md#atomic-test-3---remove-account-from-domain-admin-group
+author: frack113
+date: 2021-12-26
+tags:
+- attack.impact
+- attack.t1531
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'Remove-ADGroupMember'
+    - '-Identity '
+    - '-Members '
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially malicious activity involving the removal of accounts from the Domain Admin group within an Active Directory environment. Specifically, it monitors PowerShell scripts for commands containing “Remove-ADGroupMember” along with the parameters that specify the identity of the group and the members to be removed. When an adversary seeks to disrupt access to critical accounts, they may use this command to manipulate permissions, thereby inhibiting legitimate users' access to system and network resources. The primary data source for this detection is PowerShell script block logging, which captures detailed command execution details.
+  Effective implementation of this rule requires that Script Block Logging is enabled on monitored Windows systems, allowing security teams to analyze PowerShell activity for unusual patterns indicative of account manipulation. Investigating alerts triggered by this rule can help identify potential unauthorized attempts to compromise administrative access.
+  ### Investigation Steps
+  - Review the detected PowerShell script execution in the EDR for context regarding the user account and system where the command was executed. 
+  - Analyze system event logs for any prior events that may indicate suspicious behavior leading up to the removal action.
+  - Cross-reference the incident with recent account activity in the Active Directory logs to uncover any unauthorized changes to user permissions.
+  - Use the SIEM to search for related indicators of compromise (IOCs) that may provide additional evidence of a broader attack related to account privilege escalation or abuse.

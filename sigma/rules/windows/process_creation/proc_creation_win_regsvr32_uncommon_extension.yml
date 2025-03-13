@@ -1,0 +1,50 @@
+title: Regsvr32 DLL Execution With Uncommon Extension
+id: 50919691-7302-437f-8e10-1fe088afa145
+status: test
+description: Detects a "regsvr32" execution where the DLL doesn't contain a common
+  file extension.
+references:
+- https://app.any.run/tasks/34221348-072d-4b70-93f3-aa71f6ebecad/
+author: Florian Roth (Nextron Systems)
+date: 2019-07-17
+modified: 2023-05-24
+tags:
+- attack.defense-evasion
+- attack.t1574
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\regsvr32.exe'
+  - OriginalFileName: 'REGSVR32.EXE'
+  filter_main_legit_ext:
+    CommandLine|contains:
+            # Note: For better accuracy you might not want to use contains
+    - '.ax'
+    - '.cpl'
+    - '.dll'         # Covers ".dll.mui"
+    - '.ocx'
+  filter_optional_pascal:
+    CommandLine|contains: '.ppl'
+  filter_optional_avg:
+    CommandLine|contains: '.bav'
+  filter_main_null_4688:
+    CommandLine:
+  filter_main_empty_4688:
+    CommandLine: ''
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- Other legitimate extensions currently not in the list either from third party or
+  specific Windows components.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying the execution of `regsvr32.exe`, particularly when invoked with uncommon file extensions for DLL files. Regsvr32 is a legitimate Windows utility used for registering and unregistering OLE controls like DLLs. However, malicious actors often exploit this tool to execute harmful code disguised as legitimate DLLs, especially when these malicious files use uncommon extensions that are not typical for standard DLLs (e.g., extensions other than `.dll`, `.ocx`, etc.). The rule monitors process creation logs on Windows systems by looking for instances where `regsvr32.exe` is executed, filtering out commands that contain commonly accepted extensions, while highlighting those that do not. 
+  Critical data sources include process creation logs, which contain information on command-line parameters used during the execution of processes. Detecting such occurrences can provide early warning signs of potential evasion tactics being employed by attackers, making it essential for incident responders to investigate these alerts promptly.
+  ### Investigation Steps
+  - Review process creation logs in the EDR to identify the instance of `regsvr32.exe` execution along with the command-line parameters used.
+  - Correlate the investigation with network logs if the `regsvr32` command initiated any outbound connections to check for potential data exfiltration or communication with known malicious IPs.
+  - Utilize Antivirus (AV) and Endpoint Detection and Response (EDR) tools to scan the associated DLL file or any other files involved to determine if they have been flagged as malicious.
+  - Check the system and application event logs for any unusual behavior or errors that coincide with the execution time of `regsvr32.exe` to gather further context for the investigation.

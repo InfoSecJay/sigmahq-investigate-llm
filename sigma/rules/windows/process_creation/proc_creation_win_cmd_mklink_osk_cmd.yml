@@ -1,0 +1,40 @@
+title: Potential Privilege Escalation Using Symlink Between Osk and Cmd
+id: e9b61244-893f-427c-b287-3e708f321c6b
+status: test
+description: Detects the creation of a symbolic link between "cmd.exe" and the accessibility
+  on-screen keyboard binary (osk.exe) using "mklink". This technique provides an elevated
+  command prompt to the user from the login screen without the need to log in.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/5c1e6f1b4fafd01c8d1ece85f510160fc1275fbf/atomics/T1546.008/T1546.008.md
+- https://ss64.com/nt/mklink.html
+author: frack113
+date: 2022-12-11
+modified: 2022-12-20
+tags:
+- attack.privilege-escalation
+- attack.persistence
+- attack.t1546.008
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith: '\cmd.exe'
+  - OriginalFileName: 'Cmd.Exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'mklink'
+    - '\osk.exe'
+    - '\cmd.exe'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule focuses on detecting a specific privilege escalation technique involving the manipulation of symbolic links in a Windows environment. It highlights an attack vector where an attacker creates a symbolic link between the on-screen keyboard (osk.exe) and the command prompt (cmd.exe) using the `mklink` command. This method allows unauthorized users to open an elevated command prompt from the Windows login screen, thereby bypassing normal user authentication. The detection strategy relies on monitoring process creation logs, specifically looking for instances where `cmd.exe` is created with a command line that includes both `mklink` and references to `osk.exe`. This combination indicates an attempt to exploit the Windows OS to gain inappropriate access and perform actions with higher privileges.
+  ### Investigation Steps
+  - Review the EDR logs for process creation events related to `cmd.exe` that include the command line execution of `mklink`. Look for instances that have `osk.exe` linked to `cmd.exe`.
+  - Analyze user accounts that initiated the symbolic link creation to determine if there are any unusual or unauthorized accounts that performed this action.
+  - Check the system logs to identify if any other potentially malicious activity occurred around the same timeframe, as this tactic could be part of a larger attack.
+  - If applicable, assess the integrity of other system binaries and configurations to ensure no additional unauthorized privilege escalation techniques have been implemented on the affected system.

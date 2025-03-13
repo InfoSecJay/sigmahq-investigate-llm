@@ -1,0 +1,35 @@
+title: Ping Hex IP
+id: 1a0d4aba-7668-4365-9ce4-6d79ab088dfd
+status: test
+description: Detects a ping command that uses a hex encoded IP address
+references:
+- https://github.com/vysecurity/Aggressor-VYSEC/blob/0d61c80387b9432dab64b8b8a9fb52d20cfef80e/ping.cna
+- https://twitter.com/vysecurity/status/977198418354491392
+author: Florian Roth (Nextron Systems)
+date: 2018-03-23
+modified: 2022-01-07
+tags:
+- attack.defense-evasion
+- attack.t1140
+- attack.t1027
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\ping.exe'
+    CommandLine|contains: '0x'
+  condition: selection
+fields:
+- ParentCommandLine
+falsepositives:
+- Unlikely, because no sane admin pings IP addresses in a hexadecimal form
+level: high
+notes: |
+  ### Technical Context
+  The "Ping Hex IP" detection rule focuses on identifying potentially malicious activity where an attacker is attempting to obfuscate a network request by using a hexadecimal-encoded IP address in a ping command. This technique can be associated with evasion tactics, making it difficult for traditional security measures to recognize suspicious behavior. The rule operates by monitoring process creation logs, particularly targeting instances of `ping.exe` where the command line includes the hex format (indicated by the presence of "0x"). This method effectively captures anomalies in network activity that might suggest ongoing reconnaissance or other nefarious activities aimed at bypassing security controls. By leveraging data from process creation, the rule aims to support incident responders in detecting and investigating potentially harmful commands executed within the Windows environment.
+  ### Investigation Steps
+  - Use EDR tools to track the execution of `ping.exe` by examining the associated process creation logs for the specific command line and parent command line to assess context.
+  - Review network logs on NGFW or NDR to identify outgoing packets to the hex-encoded IP address and analyze any established connections or traffic patterns.
+  - Check associated historical logs in the event that the hexadecimal IP corresponds to known malicious indicators or further reconnaissance actions.
+  - Validate the presence of any unusual activity prior to and after the ping command execution using endpoint telemetry, which can help determine if this was part of a broader attack sequence.

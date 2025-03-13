@@ -1,0 +1,35 @@
+title: Visual Studio Code Tunnel Service Installation
+id: 30bf1789-379d-4fdc-900f-55cd0a90a801
+status: test
+description: Detects the installation of VsCode tunnel (code-tunnel) as a service.
+references:
+- https://ipfyx.fr/post/visual-studio-code-tunnel/
+- https://badoption.eu/blog/2023/01/31/code_c2.html
+- https://code.visualstudio.com/docs/remote/tunnels
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-10-25
+tags:
+- attack.command-and-control
+- attack.t1071.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - 'tunnel '
+    - 'service'
+    - 'internal-run'
+    - 'tunnel-service.log'
+  condition: selection
+falsepositives:
+- Legitimate installation of code-tunnel as a service
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the installation of the Visual Studio Code Tunnel Service, a feature designed to facilitate remote development but can also be exploited for covert command-and-control (C2) activities. The rule looks for specific command-line parameters associated with the process creation of the tunnel service, such as "tunnel," "service," "internal-run," and "tunnel-service.log." By monitoring the process creation logs from Windows systems, which contain information about executed commands and associated parameters, the rule flags potential unauthorized installations or misuse of the Visual Studio Code Tunnel feature. This helps SOC analysts ascertain whether the service was legitimately set up for development purposes or may indicate malicious activity.
+  ### Investigation Steps
+  - Review process creation logs in your EDR to identify the user and context under which the Visual Studio Code Tunnel Service was installed.
+  - Check the command-line parameters associated with the process to determine if they match the suspected malicious patterns outlined in the rule.
+  - Analyze proxy logs for any unusual outbound connections initiated by the Visual Studio Code Tunnel Service to identify potential C2 communications.
+  - Validate the legitimacy of the installation by cross-referencing with your organization's authorized software list and checking for user activity related to Visual Studio Code.

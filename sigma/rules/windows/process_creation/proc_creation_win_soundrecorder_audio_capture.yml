@@ -1,0 +1,32 @@
+title: Audio Capture via SoundRecorder
+id: 83865853-59aa-449e-9600-74b9d89a6d6e
+status: test
+description: Detect attacker collecting audio via SoundRecorder application.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1123/T1123.md
+- https://eqllib.readthedocs.io/en/latest/analytics/f72a98cb-7b3d-4100-99c3-a138b6e9ff6e.html
+author: E.M. Anhaus (originally from Atomic Blue Detections, Endgame), oscd.community
+date: 2019-10-24
+modified: 2021-11-27
+tags:
+- attack.collection
+- attack.t1123
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\SoundRecorder.exe'
+    CommandLine|contains: '/FILE'
+  condition: selection
+falsepositives:
+- Legitimate audio capture by legitimate user.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify instances where the Windows application SoundRecorder is used to capture audio, a behavior typically associated with unauthorized data collection. The rule specifically looks for the executable file `SoundRecorder.exe` and checks the command-line parameters for the presence of `/FILE`, which indicates that an audio file is specified for saving the recording. By monitoring process creation logs, this rule alerts SOC analysts to potentially malicious activity where an attacker may be attempting to gather sensitive audio data from the environment. The data sources primarily involved are Windows process creation logs, which provide insight into the applications initiated by users and their command-line arguments.
+  ### Investigation Steps
+  - Review process creation logs in the EDR to identify the user context and any unusual activities surrounding the `SoundRecorder.exe` execution.
+  - Check the command-line parameters used with `SoundRecorder.exe` to determine if any unexpected or suspicious file pathways were utilized.
+  - Analyze endpoint logs for additional indicators of compromise, such as any unusual outbound connections that may have occurred during or after the audio recording.
+  - Consult user activity logs to establish whether the individual identified was authorized to execute the SoundRecorder application for legitimate purposes.

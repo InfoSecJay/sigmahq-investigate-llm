@@ -1,0 +1,40 @@
+title: Active Directory Computers Enumeration With Get-AdComputer
+id: 36bed6b2-e9a0-4fff-beeb-413a92b86138
+status: test
+description: Detects usage of the "Get-AdComputer" to enumerate Computers or properties
+  within Active Directory.
+references:
+- https://learn.microsoft.com/en-us/powershell/module/activedirectory/get-adcomputer
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1018/T1018.md
+- https://github.com/redcanaryco/atomic-red-team/blob/02cb591f75064ffe1e0df9ac3ed5972a2e491c97/atomics/T1087.002/T1087.002.md
+author: frack113
+date: 2022-03-17
+modified: 2023-07-08
+tags:
+- attack.discovery
+- attack.t1018
+- attack.t1087.002
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_cmdlet:
+    ScriptBlockText|contains: 'Get-AdComputer '
+  selection_option:
+    ScriptBlockText|contains:
+    - '-Filter '
+    - '-LDAPFilter '
+    - '-Properties '
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule identifies the use of the PowerShell cmdlet `Get-AdComputer`, which is commonly leveraged to enumerate computer objects and their properties within an Active Directory (AD) environment. Once attackers gain access to a network, they may utilize this command to gather information about available computers, which can assist in further attacks or lateral movement. The rule specifically looks for instances where the command is called with significant parameters such as `-Filter`, `-LDAPFilter`, or `-Properties`, suggesting a deeper inquiry into the AD structure. It is critical for script block logging to be enabled on Windows systems for this detection to work effectively, as the command details are logged under the 'ps_script' category.
+  ### Investigation Steps
+  - Review recent PowerShell logs in your EDR tool to identify the context and user account associated with the execution of the `Get-AdComputer` cmdlet.
+  - Investigate the command-line parameters used with `Get-AdComputer`, particularly any filters or properties specified, to assess the intent and scope of the query.
+  - Cross-reference the user account executing the command with Active Directory logs to check for any unusual or unauthorized access patterns.
+  - Conduct a network analysis via AV or NDR solutions to determine if any suspicious network communications occurred following the execution of the command.

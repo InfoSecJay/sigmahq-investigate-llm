@@ -1,0 +1,41 @@
+title: Service Reconnaissance Via Wmic.EXE
+id: 76f55eaa-d27f-4213-9d45-7b0e4b60bbae
+related:
+- id: 68bcd73b-37ef-49cb-95fc-edc809730be6
+  type: similar
+status: test
+description: |
+  An adversary might use WMI to check if a certain remote service is running on a remote device.
+  When the test completes, a service information will be displayed on the screen if it exists.
+  A common feedback message is that "No instance(s) Available" if the service queried is not running.
+  A common error message is "Node - (provided IP or default) ERROR Description =The RPC server is unavailable" if the provided remote host is unreachable
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1047/T1047.md
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/wmic
+author: frack113, Nasreddine Bencherchali (Nextron Systems)
+date: 2023-02-14
+tags:
+- attack.execution
+- attack.t1047
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\WMIC.exe'
+  - OriginalFileName: 'wmic.exe'
+  selection_cli:
+    CommandLine|contains: 'service'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects potential service reconnaissance activities performed via the Windows Management Instrumentation Command-line (WMIC) tool. Adversaries can use WMIC to query remote systems for specific services, enabling them to assess which services are operational. The rule specifically looks for process creation events where the WMIC executable is invoked, identifying commands containing the keyword "service." If a queried service is not running, the output commonly returns messages indicating that no instances are available or that the target host is unreachable, which can signify probing activities by an attacker.
+  The key technical data sources involved in this detection rule include process creation logs that track the execution of WMIC along with the command-line parameters used in these executions. By monitoring these specific patterns, security teams can identify and respond to potentially malicious reconnaissance behavior within their network.
+  ### Investigation Steps
+  - Examine EDR logs for the execution of `WMIC.exe`, paying close attention to the command-line arguments used. Look for queries that contain the keyword "service" to determine the intent behind the actions.
+  - Verify the source of the WMIC command to identify the user account or machine responsible for issuing the command. Check for any anomalies or theft of credentials related to the account.
+  - Review historical proxy logs for outbound connections made to the target hosts in the WMIC command, especially if the commands are directed toward external IP addresses.
+  - Cross-reference findings with cloud service logs (if applicable) to assess any unusual activities or service queries related to cloud resources that may indicate a broader reconnaissance effort.

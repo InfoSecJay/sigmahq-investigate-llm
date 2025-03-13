@@ -1,0 +1,61 @@
+title: Security Software Discovery Via Powershell Script
+id: 904e8e61-8edf-4350-b59c-b905fc8e810c
+status: test
+description: |
+  Detects calls to "get-process" where the output is piped to a "where-object" filter to search for security solution processes.
+  Adversaries may attempt to get a listing of security software, configurations, defensive tools, and sensors that are installed on a system or in a cloud environment. This may include things such as firewall rules and anti-virus
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1518.001/T1518.001.md#atomic-test-2---security-software-discovery---powershell
+author: frack113, Anish Bogati, Nasreddine Bencherchali (Nextron Systems)
+date: 2021-12-16
+modified: 2023-10-24
+tags:
+- attack.discovery
+- attack.t1518.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_cmdlet:
+    ScriptBlockText|contains:
+    - 'get-process | \?'
+    - 'get-process | where'
+    - 'gps | \?'
+    - 'gps | where'
+  selection_field:
+    ScriptBlockText|contains:
+    - 'Company -like'
+    - 'Description -like'
+    - 'Name -like'
+    - 'Path -like'
+    - 'Product -like'
+  selection_keywords:
+    ScriptBlockText|contains:
+            # Note: These strings are using wildcard assuming the search is using the "-like" operator.
+            #       You can add specific variant with the actual process names to increase coverage
+    - '\*avira\*'
+    - '\*carbonblack\*'
+    - '\*cylance\*'
+    - '\*defender\*'
+    - '\*kaspersky\*'
+    - '\*malware\*'
+    - '\*sentinel\*'
+    - '\*symantec\*'
+    - '\*virus\*'
+  condition: all of selection_*
+falsepositives:
+- False positives might occur due to the nature of the ScriptBlock being ingested
+  as a big blob. Initial tuning is required.
+- As the "selection_cmdlet" is common in scripts the matching engine might slow down
+  the search. Change into regex or a more accurate string to avoid heavy resource
+  consumption if experienced
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying suspicious PowerShell commands that leverage the `get-process` cmdlet, specifically when its output is filtered using `where-object`. Adversaries often utilize such commands to inventory security software, configurations, and defensive tools present on a system or within a cloud environment. The rule looks for specific patterns in the ScriptBlockText associated with PowerShell script execution, particularly those that may indicate a search for security-related processes—such as antivirus solutions or endpoint protection agents. It relies on Windows process creation logs, requiring that Script Block Logging is enabled to capture these activities effectively.
+  ### Investigation Steps
+  - Review PowerShell command logs within the EDR for instances matching the rule's detection criteria to confirm whether the command was executed legitimately or as part of a potential attack.
+  - Investigate the user or process context that executed the suspicious PowerShell command by checking relevant logs from the SIEM to understand the intent behind the action.
+  - Analyze the process tree associated with the detected command to track any subsequent malicious activity or lateral movement following the initial footprint.
+  - Cross-reference with your AV/EDR solutions to determine if any alerts were triggered around the time of the detected activity, providing further context on any protective measures in place at the time.

@@ -1,0 +1,50 @@
+title: PsExec Tool Execution From Suspicious Locations - PipeName
+id: 41504465-5e3a-4a5b-a5b4-2a0baadd4463
+related:
+- id: f3f3a972-f982-40ad-b63c-bca6afdfad7c
+  type: derived
+status: test
+description: Detects PsExec default pipe creation where the image executed is located
+  in a suspicious location. Which could indicate that the tool is being used in an
+  attack
+references:
+- https://www.jpcert.or.jp/english/pub/sr/ir_research.html
+- https://jpcertcc.github.io/ToolAnalysisResultSheet
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-04
+modified: 2023-09-20
+tags:
+- attack.execution
+- attack.t1569.002
+- attack.s0029
+logsource:
+  category: pipe_created
+  product: windows
+  definition: 'Note that you have to configure logging for Named Pipe Events in Sysmon
+    config (Event ID 17 and Event ID 18). The basic configuration is in popular sysmon
+    configuration (https://github.com/SwiftOnSecurity/sysmon-config), but it is worth
+    verifying. You can also use other repo, e.g. https://github.com/Neo23x0/sysmon-config,
+    https://github.com/olafhartong/sysmon-modular. How to test detection? You can
+    check powershell script from this site https://svch0st.medium.com/guide-to-named-pipes-and-hunting-for-cobalt-strike-pipes-dc46b2c5f575'
+detection:
+  selection:
+    PipeName: '\PSEXESVC'
+    Image|contains:     # Add or remove locations depending on how and if you execute Psexec in your env
+    - ':\Users\Public\'
+    - ':\Windows\Temp\'
+    - '\AppData\Local\Temp\'
+    - '\Desktop\'
+    - '\Downloads\'
+  condition: selection
+falsepositives:
+- Rare legitimate use of psexec from the locations mentioned above. This will require
+  initial tuning based on your environment.
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects execution of the PsExec tool when it creates a named pipe from suspicious locations on a Windows system. PsExec is a legitimate Windows administration tool often exploited by attackers to execute commands on remote systems. The rule leverages Sysmon’s logging capabilities to monitor for the creation of named pipes—specifically targeting the "\PSEXESVC" pipe name, which is a common indicator of PsExec usage. The rule looks for the execution of the tool from directories that are typically associated with malicious behavior or temporary files, such as "C:\Users\Public\", "C:\Windows\Temp\", and user-specific temporary directories. By analyzing these logs, the detection aims to help identify potential misuse of PsExec in an environment that could signal a compromise or lateral movement.
+  ### Investigation Steps
+  - Review the Sysmon logs for Event ID 17 and Event ID 18 to analyze the creation of the "\PSEXESVC" pipe and identify the process initiating this action.
+  - Collect and analyze process creation logs from the EDR tool to determine the parent process of the PsExec execution and confirm its legitimacy.
+  - Check network connections logs (e.g., from an NDR solution) to identify any suspicious outbound traffic or connections associated with the timestamp of the detected event.
+  - Investigate user activity logs for any anomalies in usage patterns, especially focusing on accounts with unusual access to the specified paths that might indicate compromise.

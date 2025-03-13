@@ -1,0 +1,42 @@
+title: PowerShell Logging Disabled Via Registry Key Tampering
+id: fecfd1a1-cc78-4313-a1ea-2ee2e8ec27a7
+status: test
+description: Detects changes to the registry for the currently logged-in user. In
+  order to disable PowerShell module logging, script block logging or transcription
+  and script execution logging
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1112/T1112.md#atomic-test-32---windows-powershell-logging-disabled
+author: frack113
+date: 2022-04-02
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1564.001
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains:
+    - '\Microsoft\Windows\PowerShell\'         # PowerShell 5
+    - '\Microsoft\PowerShellCore\'         # PowerShell 7
+    TargetObject|endswith:
+    - '\ModuleLogging\EnableModuleLogging'
+    - '\ScriptBlockLogging\EnableScriptBlockLogging'
+    - '\ScriptBlockLogging\EnableScriptBlockInvocationLogging'
+    - '\Transcription\EnableTranscripting'
+    - '\Transcription\EnableInvocationHeader'
+    - '\EnableScripts'
+    Details: 'DWORD (0x00000000)'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential tampering with PowerShell logging settings on Windows systems by monitoring changes made to specific registry keys associated with PowerShell logging. PowerShell provides various logging features, such as module logging, script block logging, and transcription, which are crucial for tracking and auditing the execution of scripts and commands. The rule specifically looks for modifications to the registry keys that disable these logging capabilities (setting their values to `DWORD (0x00000000)`), which indicates an attempt to cover up malicious activities or evade security measures. The relevant logs originate from the Windows Registry, with a focus on entries related to PowerShell 5 and PowerShell 7 logging configurations. 
+  ### Investigation Steps
+  - Utilize your EDR tool to examine the process execution history for any PowerShell activity immediately preceding the registry changes, focusing on scripts that may have been executed.
+  - Check for any suspicious Command-Line Interface (CLI) commands associated with PowerShell processes in process creation logs to identify potentially malicious intent.
+  - Review the registry change history to determine the origin of the modification, including user account details and timestamps of the changes.
+  - Correlate the findings with network traffic logs from the NGFW or NDR to detect any outbound connections that may align with the timing of the registry changes, especially to known malicious IPs or domains.

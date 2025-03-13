@@ -1,0 +1,38 @@
+title: Suspicious Msbuild Execution By Uncommon Parent Process
+id: 33be4333-2c6b-44f4-ae28-102cdbde0a31
+status: test
+description: Detects suspicious execution of 'Msbuild.exe' by a uncommon parent process
+references:
+- https://app.any.run/tasks/abdf586e-df0c-4d39-89a7-06bf24913401/
+- https://www.echotrail.io/insights/search/msbuild.exe
+author: frack113
+date: 2022-11-17
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\MSBuild.exe'
+  - OriginalFileName: 'MSBuild.exe'
+  filter_parent:
+    ParentImage|endswith:
+    - '\devenv.exe'
+    - '\cmd.exe'
+    - '\msbuild.exe'
+    - '\python.exe'
+    - '\explorer.exe'
+    - '\nuget.exe'
+  condition: selection and not filter_parent
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially malicious execution of `Msbuild.exe`, a legitimate Microsoft build engine, when it is initiated by uncommon parent processes. Typically, `Msbuild.exe` is invoked by development environments or command-line interfaces, such as `devenv.exe` or `cmd.exe`. This rule looks specifically for instances where `Msbuild.exe` is executed by processes not commonly associated with it, suggesting a possible tool used in an attack, such as an unauthorized script or tool attempting to compile or execute code. The detection leverages Windows process creation logs and checks for the `Image` and `OriginalFileName` fields to confirm the legitimacy of the executable while filtering out expected parent processes.
+  ### Investigation Steps
+  - Use EDR tools to search for recent executions of `Msbuild.exe`, focusing on the parent processes identified in the alert for anomalous patterns.
+  - Review process creation logs to identify any additional command-line arguments passed to `Msbuild.exe`, which could provide context for its use.
+  - Investigate the processes initiating the `Msbuild.exe` execution to determine their legitimacy and whether they have any known vulnerabilities or malicious behavior.
+  - Analyze network traffic using NDR solutions to check for any unusual connections made by the processes associated with this execution, which may indicate data exfiltration or communication with command and control servers.

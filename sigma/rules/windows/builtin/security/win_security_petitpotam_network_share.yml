@@ -1,0 +1,37 @@
+title: Possible PetitPotam Coerce Authentication Attempt
+id: 1ce8c8a3-2723-48ed-8246-906ac91061a6
+status: test
+description: Detect PetitPotam coerced authentication activity.
+references:
+- https://github.com/topotam/PetitPotam
+- https://github.com/splunk/security_content/blob/0dd6de32de2118b2818550df9e65255f4109a56d/detections/endpoint/petitpotam_network_share_access_request.yml
+author: Mauricio Velazco, Michael Haag
+date: 2021-09-02
+modified: 2022-08-11
+tags:
+- attack.credential-access
+- attack.t1187
+logsource:
+  product: windows
+  service: security
+  definition: 'The advanced audit policy setting "Object Access > Detailed File Share"
+    must be configured for Success/Failure'
+detection:
+  selection:
+    EventID: 5145
+    ShareName|startswith: '\\\\'     # looking for the string \\somethink\IPC$
+    ShareName|endswith: '\IPC$'
+    RelativeTargetName: lsarpc
+    SubjectUserName: ANONYMOUS LOGON
+  condition: selection
+falsepositives:
+- Unknown. Feedback welcomed.
+level: high
+notes: |
+  ### Technical Context
+  The "Possible PetitPotam Coerce Authentication Attempt" detection rule identifies potential instances of unauthorized access attempts through a method known as PetitPotam, which coerces authentication to SMB shares. Specifically, the rule examines Windows Security Event ID 5145, which logs file share access events. The detection focuses on events where the share name begins with "\\" and ends with "\IPC$", indicating a network share typically used for inter-process communication. A key indicator of concern is the use of "ANONYMOUS LOGON" as the subject username, which implies an unauthorized attempt is being made to access resources without proper credentials. Properly configuring the advanced audit policy setting "Object Access > Detailed File Share" is critical for this detection to function correctly.
+  ### Investigation Steps
+  - Review the security logs in the EDR platform for Event ID 5145 around the time of the alert to gather more context about the unauthorized access attempts.
+  - Utilize the SIEM tool to correlate the logged share access events with other network activity, such as DNS queries or remote connections, to identify suspicious patterns.
+  - Check Proxy logs for unusual outbound traffic that may correlate with the detected event, as this can help establish if any data exfiltration is taking place following the access attempt.
+  - Investigate any associated accounts or systems involved in the attempted access to determine if they are linked to known vulnerabilities or previous incidents.

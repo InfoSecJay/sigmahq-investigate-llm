@@ -1,0 +1,47 @@
+title: HackTool - SharpMove Tool Execution
+id: 055fb54c-a8f4-4aee-bd44-f74cf30a0d9d
+status: test
+description: |
+  Detects the execution of SharpMove, a .NET utility performing multiple tasks such as "Task Creation", "SCM" query, VBScript execution using WMI via its PE metadata and command line options.
+references:
+- https://github.com/0xthirteen/SharpMove/
+- https://pentestlab.blog/tag/sharpmove/
+author: Luca Di Bartolomeo (CrimpSec)
+date: 2024-01-29
+tags:
+- attack.lateral-movement
+- attack.t1021.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\SharpMove.exe'
+  - OriginalFileName: SharpMove.exe
+  selection_cli_computer:
+        # In its current implementation the "computername" flag is required in all actions
+    CommandLine|contains: 'computername='
+  selection_cli_actions:
+    CommandLine|contains:
+    - 'action=create'
+    - 'action=dcom'
+    - 'action=executevbs'
+    - 'action=hijackdcom'
+    - 'action=modschtask'
+    - 'action=modsvc'
+    - 'action=query'
+    - 'action=scm'
+    - 'action=startservice'
+    - 'action=taskscheduler'
+  condition: selection_img or all of selection_cli_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of SharpMove, a .NET utility often misused in lateral movement and other malicious activities within a network. The rule monitors process creation logs for any instance of `SharpMove.exe`, whether it's invoked directly or via command line. Specifically, it focuses on identifying the use of key command line arguments associated with potentially suspicious actions, such as creating tasks, executing VBScript, or manipulating services and DCOM. By correlating the presence of the `computername` flag with certain actions (e.g., `action=create`, `action=query`), the rule effectively detects attempts to utilize SharpMove for unauthorized lateral movement and task automation.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR to confirm the execution of `SharpMove.exe` along with the associated command line parameters to verify the context of its use. 
+  - Investigate originating hosts and analyze any network connections made during the execution, utilizing NDR tools to detect any anomalous lateral movement patterns.
+  - Query the Windows Event Logs for related activities within the timeframe of the alert, focusing on task creation or modifications indicative of use cases for SharpMove.
+  - Conduct a thorough check of system and service configurations using standard management tools to identify any unauthorized changes triggered by the detected actions.

@@ -1,0 +1,76 @@
+title: Suspicious Windows Defender Registry Key Tampering Via Reg.EXE
+id: 452bce90-6fb0-43cc-97a5-affc283139b3
+status: test
+description: Detects the usage of "reg.exe" to tamper with different Windows Defender
+  registry keys in order to disable some important features related to protection
+  and detection
+references:
+- https://thedfirreport.com/2022/03/21/apt35-automates-initial-access-using-proxyshell/
+- https://github.com/swagkarna/Defeat-Defender-V1.2.0
+- https://www.elevenforum.com/t/video-guide-how-to-completely-disable-microsoft-defender-antivirus.14608/page-2
+author: Florian Roth (Nextron Systems), Swachchhanda Shrawan Poudel, Nasreddine Bencherchali
+  (Nextron Systems)
+date: 2022-03-22
+modified: 2023-06-05
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_root_img:
+  - Image|endswith: '\reg.exe'
+  - OriginalFileName: 'reg.exe'
+  selection_root_path:
+    CommandLine|contains:
+    - 'SOFTWARE\Microsoft\Windows Defender\'
+    - 'SOFTWARE\Policies\Microsoft\Windows Defender Security Center'
+    - 'SOFTWARE\Policies\Microsoft\Windows Defender\'
+  selection_dword_0:
+    CommandLine|contains|all:
+    - ' add '
+    - 'd 0'
+    CommandLine|contains:
+    - 'DisallowExploitProtectionOverride'
+    - 'EnableControlledFolderAccess'
+    - 'MpEnablePus'
+    - 'PUAProtection'
+    - 'SpynetReporting'
+    - 'SubmitSamplesConsent'
+    - 'TamperProtection'
+  selection_dword_1:
+    CommandLine|contains|all:
+    - ' add '
+    - 'd 1'
+    CommandLine|contains:
+    - 'DisableAntiSpyware'
+    - 'DisableAntiSpywareRealtimeProtection'
+    - 'DisableAntiVirus'
+    - 'DisableArchiveScanning'
+    - 'DisableBehaviorMonitoring'
+    - 'DisableBlockAtFirstSeen'
+    - 'DisableConfig'
+    - 'DisableEnhancedNotifications'
+    - 'DisableIntrusionPreventionSystem'
+    - 'DisableIOAVProtection'
+    - 'DisableOnAccessProtection'
+    - 'DisablePrivacyMode'
+    - 'DisableRealtimeMonitoring'
+    - 'DisableRoutinelyTakingAction'
+    - 'DisableScanOnRealtimeEnable'
+    - 'DisableScriptScanning'
+    - 'Notification_Suppress'
+    - 'SignatureDisableUpdateOnStartupWithoutEngine'
+  condition: all of selection_root_* and 1 of selection_dword_*
+falsepositives:
+- Rare legitimate use by administrators to test software (should always be investigated)
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects potential tampering with crucial Windows Defender registry keys through the use of the "reg.exe" command-line tool. The rule focuses on identifying suspicious modifications to the registry that could disable essential security features of Windows Defender, thereby allowing threat actors to bypass detection and protection mechanisms. Key indicators include the invocation of "reg.exe" with specific command line parameters that target Windows Defender registry paths related to exploit protection, anti-virus capabilities, and other key security settings. The data sources involved primarily include process creation logs, which capture the execution of processes and their command-line arguments, allowing for effective detection of malicious behavior.
+  ### Investigation Steps
+  - Review process creation logs in your EDR solution for instances of "reg.exe" with command-line parameters indicating changes to Windows Defender settings.
+  - Analyze the context of the alert, particularly focusing on the user account that initiated the registry changes, to determine if it aligns with expected administrative activity.
+  - Check for any corresponding alerts or logs from Windows Defender, AV systems, or other endpoint protection tools to see if they have flagged any suspicious activity during the timeframe of the registry modifications.
+  - Investigate historical changes in the registry keys associated with Windows Defender to identify if these changes are part of an ongoing campaign or isolated incidents, and escalate findings as necessary.

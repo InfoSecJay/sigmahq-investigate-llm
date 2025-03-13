@@ -1,0 +1,31 @@
+title: Unsigned Image Loaded Into LSASS Process
+id: 857c8db3-c89b-42fb-882b-f681c7cf4da2
+status: test
+description: Loading unsigned image (DLL, EXE) into LSASS process
+references:
+- https://www.slideshare.net/heirhabarov/hunting-for-credentials-dumping-in-windows-environment
+author: Teymur Kheirkhabarov, oscd.community
+date: 2019-10-22
+modified: 2021-11-27
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\lsass.exe'
+    Signed: 'false'
+  condition: selection
+falsepositives:
+- Valid user connecting using RDP
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule identifies the loading of unsigned images (such as DLLs or EXEs) into the LSASS (Local Security Authority Subsystem Service) process on Windows systems. LSASS is critical for managing security policies, user authentication, and handling various security-related operations, making it a common target for attackers seeking to dump credentials. The rule checks for any process image that ends with "lsass.exe" and has been flagged as unsigned, indicating a potential malicious activity, as legitimate applications usually come signed for authenticity. The relevant technical data sources for this detection include image load logs, which monitor the execution of processes and their associated signatures.
+  ### Investigation Steps
+  - Review EDR logs to identify any recent activity related to the LSASS process and analyze any unsigned images that were loaded during that time frame.
+  - Inspect process creation logs for unusual parent-child relationships, especially looking for processes that may have spawned the LSASS process.
+  - Utilize antivirus (AV) and endpoint protection tools to check for alerts related to the unsigned images detected, as they might correlate with known malicious indicators.
+  - Check network logs, including proxy and VPN logs, for suspicious outbound connections made by the LSASS process, which could indicate compromised credentials being exfiltrated.

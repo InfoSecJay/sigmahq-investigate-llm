@@ -1,0 +1,42 @@
+title: Detection of PowerShell Execution via Sqlps.exe
+id: 0152550d-3a26-4efd-9f0e-54a0b28ae2f3
+status: test
+description: |
+  This rule detects execution of a PowerShell code through the sqlps.exe utility, which is included in the standard set of utilities supplied with the MSSQL Server.
+  Script blocks are not logged in this case, so this utility helps to bypass protection mechanisms based on the analysis of these logs.
+references:
+- https://learn.microsoft.com/en-us/sql/tools/sqlps-utility?view=sql-server-ver15
+- https://lolbas-project.github.io/lolbas/OtherMSBinaries/Sqlps/
+- https://twitter.com/bryon_/status/975835709587075072
+author: 'Agro (@agro_sev) oscd.community'
+date: 2020-10-10
+modified: 2022-12-09
+tags:
+- attack.execution
+- attack.t1059.001
+- attack.defense-evasion
+- attack.t1127
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|endswith: '\sqlps.exe'
+  selection_image:
+  - Image|endswith: '\sqlps.exe'
+  - OriginalFileName: 'sqlps.exe'
+  filter_image:
+    ParentImage|endswith: '\sqlagent.exe'
+  condition: selection_parent or (selection_image and not filter_image)
+falsepositives:
+- Direct PS command execution through SQLPS.exe is uncommon, childprocess sqlps.exe
+  spawned by sqlagent.exe is a legitimate action.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule aims to identify potential misuse of the `sqlps.exe` utility for executing PowerShell scripts. `sqlps.exe` is a command-line tool that comes with Microsoft SQL Server, traditionally used for managing SQL Server instances through PowerShell commands. The concern lies in the fact that `sqlps.exe` can be exploited for executing arbitrary PowerShell code, which can bypass standard logging mechanisms that typically monitor PowerShell execution. When this rule is triggered, it indicates that either `sqlps.exe` is invoked directly or a process has a parent-child relationship with `sqlagent.exe`, but without being a legitimate invocation from the latter. By analyzing process creation logs, particularly focusing on the command line parameters and parent process structure, the detection intends to highlight potential abuse or suspicious activity that may require further investigation.
+  ### Investigation Steps
+  - Check the EDR solution for detailed process creation logs related to `sqlps.exe`, focusing specifically on the command-line arguments used during execution.
+  - Review the connections made by the host using the proxy and examine any outgoing requests for unusual or unauthorized data transmissions related to the execution of the PowerShell script.
+  - Capture and analyze any alerts or logs from the SQL Server logs to confirm if there were expected operations around the time of the suspicious execution.
+  - Utilize the SIEM to correlate findings across different data sources, such as network traffic, to detect any patterns or matches with known indicators of compromise related to PowerShell abuse.

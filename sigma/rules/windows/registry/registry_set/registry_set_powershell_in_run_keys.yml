@@ -1,0 +1,52 @@
+title: Suspicious Powershell In Registry Run Keys
+id: 8d85cf08-bf97-4260-ba49-986a2a65129c
+status: test
+description: Detects potential PowerShell commands or code within registry run keys
+references:
+- https://github.com/frack113/atomic-red-team/blob/a9051c38de8a5320b31c7039efcbd3b56cf2d65a/atomics/T1547.001/T1547.001.md#atomic-test-9---systembc-malware-as-a-service-registry
+- https://www.trendmicro.com/en_us/research/22/j/lv-ransomware-exploits-proxyshell-in-attack.html
+author: frack113, Florian Roth (Nextron Systems)
+date: 2022-03-17
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.t1547.001
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\Software\Microsoft\Windows\CurrentVersion\Run'     # Also covers "RunOnce" and "RunOnceEx"
+    Details|contains:
+    - 'powershell'
+    - 'pwsh '
+    - 'FromBase64String'
+    - '.DownloadFile('
+    - '.DownloadString('
+    - ' -w hidden '
+    - ' -w 1 '
+    - '-windowstyle hidden'
+    - '-window hidden'
+    - ' -nop '
+    - ' -encodedcommand '
+    - '-ExecutionPolicy Bypass'
+    - 'Invoke-Expression'
+    - 'IEX ('
+    - 'Invoke-Command'
+    - 'ICM -'
+    - 'Invoke-WebRequest'
+    - 'IWR '
+    - ' -noni '
+    - ' -noninteractive '
+  condition: selection
+falsepositives:
+- Legitimate admin or third party scripts. Baseline according to your environment
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potential malicious use of PowerShell commands embedded within the Windows Registry Run keys. It specifically monitors changes to the registry keys under `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run` and its variants like `RunOnce` and `RunOnceEx`. By evaluating the details of registry entries, this rule looks for a series of suspicious indicators associated with PowerShell, including common flags and commands typically employed by attackers to execute scripts covertly. The detection relies on registry set log data, which captures modifications to these specific keys, allowing security teams to spot potentially harmful scripts that could lead to persistent threats within the environment.
+  ### Investigation Steps
+  - Review the EDR logs to identify the context of the detected registry changes, including the user account that made the modifications and the associated process.
+  - Analyze the associated PowerShell execution logs if available, particularly focusing on the command history to decipher the nature of commands executed by PowerShell.
+  - Utilize the SIEM platform to correlate the timing of the registry entries with other suspicious activities or alerts generated within a broader timeframe.
+  - Assess the baseline of legitimate administrative actions and third-party software in your environment to distinguish between normal behavior and potential threats.

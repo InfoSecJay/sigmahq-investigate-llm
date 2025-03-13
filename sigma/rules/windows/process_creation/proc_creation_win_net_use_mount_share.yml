@@ -1,0 +1,42 @@
+title: Windows Share Mount Via Net.EXE
+id: f117933c-980c-4f78-b384-e3d838111165
+related:
+- id: 3abd6094-7027-475f-9630-8ab9be7b9725
+  type: similar
+status: test
+description: Detects when a share is mounted using the "net.exe" utility
+references:
+- https://drive.google.com/file/d/1lKya3_mLnR3UQuCoiYruO3qgu052_iS_/view
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-02-02
+modified: 2023-02-21
+tags:
+- attack.lateral-movement
+- attack.t1021.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\net.exe'
+    - '\net1.exe'
+  - OriginalFileName:
+    - 'net.exe'
+    - 'net1.exe'
+  selection_cli:
+    CommandLine|contains:
+    - ' use '
+    - ' \\\\'
+  condition: all of selection_*
+falsepositives:
+- Legitimate activity by administrators and scripts
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies the use of the "net.exe" utility on Windows systems to mount network shares. Specifically, the rule looks for process creation events involving "net.exe" (or "net1.exe") and checks the command-line parameters for specific indicators of share mounting, such as the presence of the "use" command and a double backslash, which typically signifies a UNC path. The data sources involved in this detection include process creation logs, which provide visibility into what processes are being executed and with what arguments. This is critical for identifying unauthorized lateral movement attempts within the network, as attackers often exploit legitimate tools like "net.exe" to access shared resources.
+  ### Investigation Steps
+  - Review the EDR logs for the timestamps of the detected "net.exe" process creation to correlate with any relevant user activity or other suspicious events.
+  - Check the command-line arguments in the process creation logs to assess the context of the share being mounted, ensuring it does not point to known malicious destinations.
+  - Utilize the SIEM to analyze the activity around the time of the alert, searching for any associated network traffic or file access patterns that could indicate unauthorized access.
+  - Validate whether the detected activity was initiated by legitimate administrative users or scripts, as this may result in false positives.

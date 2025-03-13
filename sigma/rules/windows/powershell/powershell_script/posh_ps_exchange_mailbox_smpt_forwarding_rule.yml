@@ -1,0 +1,33 @@
+title: Suspicious PowerShell Mailbox SMTP Forward Rule
+id: 15b7abbb-8b40-4d01-9ee2-b51994b1d474
+status: test
+description: Detects usage of the powerShell Set-Mailbox Cmdlet to set-up an SMTP
+  forwarding rule.
+references:
+- https://m365internals.com/2022/10/07/hunting-in-on-premises-exchange-server-logs/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-10-26
+tags:
+- attack.exfiltration
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'Set-Mailbox '
+    - ' -DeliverToMailboxAndForward '
+    - ' -ForwardingSmtpAddress '
+  condition: selection
+falsepositives:
+- Legitimate usage of the cmdlet to forward emails
+level: medium
+notes: |
+  ### Technical Context
+  The "Suspicious PowerShell Mailbox SMTP Forward Rule" is designed to identify potentially malicious behavior where an attacker sets up email forwarding rules through the PowerShell Set-Mailbox Cmdlet. This cmdlet can be misused to forward emails to external addresses without the knowledge of the mailbox owner, which is a common tactic used in data exfiltration scenarios. The rule looks for specific keywords within the PowerShell script blocks that indicate the execution of this cmdlet. For effective detection, it is crucial that Script Block Logging is enabled on the Windows systems where these commands might be executed, as this provides the necessary data sources, including process execution logs and command-line parameters, for monitoring suspicious activities.
+  ### Investigation Steps
+  Investigate the affected user account in the EDR to determine if there are any unauthorized access attempts or suspicious activity patterns prior to the alert.
+  Review the PowerShell command execution logs to identify the context in which the Set-Mailbox cmdlet was executed, specifically looking for unusual timestamps or access from unexpected devices.
+  Check SMTP logs within your email infrastructure to track any emails that were forwarded during the period of suspicious activity and validate whether those emails were sent to unauthorized external addresses.
+  Correlate findings with user behavior analytics to establish whether the email forwarding rule aligns with legitimate business operations or indicates compromised credentials.

@@ -1,0 +1,37 @@
+title: BitLockerTogo.EXE Execution
+id: 7f2376f9-42ee-4dfc-9360-fecff9a88fc8
+status: experimental
+description: |
+  Detects the execution of "BitLockerToGo.EXE".
+  BitLocker To Go is BitLocker Drive Encryption on removable data drives. This feature includes the encryption of, USB flash drives, SD cards, External hard disk drives, Other drives that are formatted by using the NTFS, FAT16, FAT32, or exFAT file system.
+  This is a rarely used application and usage of it at all is worth investigating.
+  Malware such as Lumma stealer has been seen using this process as a target for process hollowing.
+references:
+- https://tria.ge/240521-ynezpagf56/behavioral1
+- https://any.run/report/6eea2773c1b4b5c6fb7c142933e220c96f9a4ec89055bf0cf54accdcde7df535/a407f006-ee45-420d-b576-f259094df091
+- https://bazaar.abuse.ch/sample/8c75f8e94486f5bbf461505823f5779f328c5b37f1387c18791e0c21f3fdd576/
+- https://bazaar.abuse.ch/sample/64e6605496919cd76554915cbed88e56fdec10dec6523918a631754664b8c8d3/
+author: Josh Nickels, mttaggart
+date: 2024-07-11
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\BitLockerToGo.exe'
+  condition: selection
+falsepositives:
+- Legitimate usage of BitLockerToGo.exe to encrypt portable devices.
+level: low
+notes: |
+  ### Technical Context
+  The detection rule for "BitLockerToGo.EXE Execution" focuses on identifying the execution of the BitLocker To Go application, which is used to encrypt removable drives such as USB flash drives and external hard disks. This application is infrequently used within enterprise environments, making any instances of its execution notable and worthy of investigation. The rule specifically looks for entries in process creation logs where the Image path ends with '\BitLockerToGo.exe'. In recent threat intelligence reports, malware such as Lumma stealer has exploited this process for nefarious activities like process hollowing, further underscoring the importance of monitoring its execution.
+  To effectively utilize this detection rule, analysts should be familiar with process creation logs as the primary data source. This data will help confirm the legitimacy of the application’s invocation and assist in distinguishing potentially malicious activity from benign uses by authorized personnel.
+  ### Investigation Steps
+  - Review process creation logs within the EDR tool to identify the user context and process lineage for any alerts related to BitLockerToGo.EXE executions.
+  - Investigate any associated file system activity, especially on removable devices, to verify if unauthorized encryption operations occurred using forensic tools or system logs.
+  - Utilize network logs from the NGFW and Proxy to identify outbound communications initiated by the process, which could suggest additional malicious behavior or data exfiltration.
+  - Cross-reference with antivirus and threat intelligence feeds to ascertain if any known malicious actors or malware signatures are linked with the observed execution of BitLockerToGo.EXE.

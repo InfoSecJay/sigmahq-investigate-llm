@@ -1,0 +1,50 @@
+title: Control Panel Items
+id: 0ba863e6-def5-4e50-9cea-4dd8c7dc46a4
+status: test
+description: Detects the malicious use of a control panel item
+references:
+- https://ired.team/offensive-security/code-execution/code-execution-through-control-panel-add-ins
+author: Kyaw Min Thein, Furkan Caliskan (@caliskanfurkan_)
+date: 2020-06-22
+modified: 2023-10-11
+tags:
+- attack.execution
+- attack.defense-evasion
+- attack.t1218.002
+- attack.persistence
+- attack.t1546
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_reg_img:
+  - Image|endswith: '\reg.exe'
+  - OriginalFileName: 'reg.exe'
+  selection_reg_cli:
+    CommandLine|contains|all:
+    - 'add'
+    - 'CurrentVersion\Control Panel\CPLs'
+  selection_cpl:
+    CommandLine|endswith: '.cpl'
+  filter_cpl_sys:
+    CommandLine|contains:
+    - '\System32\'
+    - '%System%'
+    - '|C:\Windows\system32|'
+  filter_cpl_igfx:
+    CommandLine|contains|all:
+    - 'regsvr32 '
+    - ' /s '
+    - 'igfxCPL.cpl'
+  condition: all of selection_reg_* or (selection_cpl and not 1 of filter_cpl_*)
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially malicious attempts to execute Control Panel items in Windows by specifically monitoring for the use of `reg.exe` and the execution of `.cpl` (Control Panel item) files. It looks for process creation logs where the command line includes keywords that are characteristic of adding or registering Control Panel items, particularly focusing on entries that reference the `Control Panel\CPLs` registry path. The detection logic filters for legitimate use cases by checking if the command lines are originating from standard system directories, while also catching suspicious registrations related to certain Control Panel items like `igfxCPL.cpl`. The combination of these checks helps identify potential exploitation attempts such as code execution through malicious control panel add-ins.
+  ### Investigation Steps
+  - Review the EDR logs for any process creation events that include `reg.exe` and `.cpl` file executions. Pay attention to the command lines for any unusual arguments or sources.
+  - Check for recent activity in the Windows Registry that corresponds with the suspicious executions by querying the relevant `Control Panel\CPLs` location for unauthorized changes.
+  - Analyze network logs from the proxy to identify any outbound connections that may have been initiated as part of the suspicious activity, especially if data exfiltration is suspected.
+  - Utilize AV logs to verify whether any antivirus solutions flagged the processes or files involved in this detection, helping to determine if this was a known malicious attempt.

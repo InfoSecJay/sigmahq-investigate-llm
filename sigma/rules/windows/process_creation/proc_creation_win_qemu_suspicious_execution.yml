@@ -1,0 +1,46 @@
+title: Potentially Suspicious Usage Of Qemu
+id: 5fc297ae-25b6-488a-8f25-cc12ac29b744
+status: experimental
+description: |
+  Detects potentially suspicious execution of the Qemu utility in a Windows environment.
+  Threat actors have leveraged this utility and this technique for achieving network access as reported by Kaspersky.
+references:
+- https://securelist.com/network-tunneling-with-qemu/111803/
+- https://www.qemu.org/docs/master/system/invocation.html#hxtool-5
+author: Muhammad Faisal (@faisalusuf), Hunter Juhan (@threatHNTR)
+date: 2024-06-03
+tags:
+- attack.command-and-control
+- attack.t1090
+- attack.t1572
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains:
+    - '-m 1M'         # VM with just 1MB of ram is insufficient this is a suspicious flag
+    - '-m 2M'
+    - '-m 3M'
+    CommandLine|contains|all:
+    - 'restrict=off'
+    - '-netdev '
+    - 'connect='
+    - '-nographic'         # This is also a key detection no one invoke without UI from console usually its a flag.
+  filter_main_normal_usecase:
+    CommandLine|contains:
+    - ' -cdrom '         # Normal usage cases
+    - ' type=virt '
+    - ' -blockdev '
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potentially suspicious usage of the Qemu utility within Windows environments. Qemu is a popular open-source machine emulator and virtualizer often leveraged in threat scenarios for network access, particularly by cybercriminals. The rule focuses on specific command-line parameters associated with Qemu, such as '-m 1M', '-m 2M', and '-m 3M', which indicate abnormal memory allocations that could alert analysts to misuse. It also looks for flags like 'restrict=off', '-netdev', 'connect=', and '-nographic', which, combined, suggest that Qemu is being invoked without a graphical user interface—an oddity for typical operations. Conversely, the rule excludes common usage patterns involving parameters such as '-cdrom', 'type=virt', and '-blockdev', thereby minimizing false positives and honing in on truly suspicious behavior.
+  ### Investigation Steps
+  - Utilize EDR tools to examine the process creation logs and specifically search for instances of Qemu execution with the command-line patterns highlighted in the detection rule. This will help narrow down potentially malicious activities.
+  - Correlate identified Qemu instances with network logs to determine if any unusual connections were made during the period surrounding the Qemu execution, which may indicate command-and-control activities.
+  - Review historical AV logs to check if the executed Qemu process triggered any alerts, which can provide context into whether known malware was involved or if the process was recognized as a routine application.
+  - Analyze cloud platform logs (AWS, GCP, Azure) for any unusual activity or configurations that coincided with the suspicious execution, such as irregular virtual machine deployments which may link back to the use of Qemu.

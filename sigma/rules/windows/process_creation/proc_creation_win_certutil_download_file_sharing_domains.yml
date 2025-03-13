@@ -1,0 +1,78 @@
+title: Suspicious File Downloaded From File-Sharing Website Via Certutil.EXE
+id: 42a5f1e7-9603-4f6d-97ae-3f37d130d794
+related:
+- id: 19b08b1c-861d-4e75-a1ef-ea0c1baf202b     # Direct IP download
+  type: similar
+- id: 13e6fe51-d478-4c7e-b0f2-6da9b400a829     # Generic download
+  type: similar
+status: experimental
+description: Detects the execution of certutil with certain flags that allow the utility
+  to download files from file-sharing websites.
+references:
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/certutil
+- https://forensicitguy.github.io/agenttesla-vba-certutil-download/
+- https://news.sophos.com/en-us/2021/04/13/compromised-exchange-server-hosting-cryptojacker-targeting-other-exchange-servers/
+- https://twitter.com/egre55/status/1087685529016193025
+- https://lolbas-project.github.io/lolbas/Binaries/Certutil/
+- https://www.microsoft.com/en-us/security/blog/2024/01/17/new-ttps-observed-in-mint-sandstorm-campaign-targeting-high-profile-individuals-at-universities-and-research-orgs/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-02-15
+modified: 2024-08-22
+tags:
+- attack.defense-evasion
+- attack.t1027
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\certutil.exe'
+  - OriginalFileName: 'CertUtil.exe'
+  selection_flags:
+    CommandLine|contains:
+    - 'urlcache '
+    - 'verifyctl '
+  selection_http:
+    CommandLine|contains:
+    - '.githubusercontent.com'               # Includes both gists and github repositories / Michael Haag (idea)
+    - 'anonfiles.com'
+    - 'cdn.discordapp.com'
+    - 'ddns.net'
+    - 'dl.dropboxusercontent.com'
+    - 'ghostbin.co'
+    - 'glitch.me'
+    - 'gofile.io'
+    - 'hastebin.com'
+    - 'mediafire.com'
+    - 'mega.nz'
+    - 'onrender.com'
+    - 'pages.dev'
+    - 'paste.ee'
+    - 'pastebin.com'
+    - 'pastebin.pl'
+    - 'pastetext.net'
+    - 'privatlab.com'
+    - 'privatlab.net'
+    - 'send.exploit.in'
+    - 'sendspace.com'
+    - 'storage.googleapis.com'
+    - 'storjshare.io'
+    - 'supabase.co'
+    - 'temp.sh'
+    - 'transfer.sh'
+    - 'trycloudflare.com'
+    - 'ufile.io'
+    - 'w3spaces.com'
+    - 'workers.dev'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activity involving `certutil.exe`, a built-in Windows utility often leveraged for network-related tasks, including downloading files. The rule specifically looks for instances where `certutil.exe` is executed with command-line parameters that suggest it is being used to download files from known file-sharing websites. It checks for certain flags, like `urlcache` and `verifyctl`, in conjunction with specific domains associated with file sharing and paste services. By analyzing process creation logs and command-line parameters, this rule helps detect the suspicious use of `certutil.exe`, which can indicate attempts to bypass security measures and execute malicious payloads.
+  ### Investigation Steps
+  - Retrieve any recent process creation logs from the EDR to identify instances of `certutil.exe` and examine their command-line arguments for suspicious flags.
+  - Analyze network traffic logs from the NGFW and Proxy to verify any connections to the identified file-sharing domains and track file downloads associated with these processes.
+  - Check any downloaded files against AV solutions or sandboxing tools to confirm whether they exhibit malicious characteristics or behaviors.
+  - Review cloud logs from AWS, GCP, or Azure for any further associated activity or services leveraging `certutil.exe` that may indicate broader compromises or operations.

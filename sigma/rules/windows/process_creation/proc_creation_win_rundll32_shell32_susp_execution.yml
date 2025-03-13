@@ -1,0 +1,45 @@
+title: Shell32 DLL Execution in Suspicious Directory
+id: 32b96012-7892-429e-b26c-ac2bf46066ff
+status: test
+description: Detects shell32.dll executing a DLL in a suspicious directory
+references:
+- https://www.group-ib.com/resources/threat-research/red-curl-2.html
+author: Christian Burkard (Nextron Systems)
+date: 2021-11-24
+modified: 2023-02-09
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1218.011
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\rundll32.exe'
+  - OriginalFileName: 'RUNDLL32.EXE'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'shell32.dll'
+    - 'Control_RunDLL'
+    CommandLine|contains:
+    - '%AppData%'
+    - '%LocalAppData%'
+    - '%Temp%'
+    - '%tmp%'
+    - '\AppData\'
+    - '\Temp\'
+    - '\Users\Public\'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of the Windows `rundll32.exe` process when it attempts to load the `shell32.dll` library from suspicious directories such as AppData, LocalAppData, and Temp folders. These directories are often targeted by malicious actors to store and execute malware as they provide a hiding place from standard monitoring practices. By analyzing process creation logs, the rule identifies instances where the `rundll32.exe` executable, which is commonly used to run DLL files, has invoked `shell32.dll` with specific command line arguments indicative of potential malware activity.
+  The detection focuses on two main elements: the image name, which must end with `rundll32.exe`, and the command line parameters, which must include both `shell32.dll` and `Control_RunDLL`, while also checking for location keywords that suggest execution from less secure directories. This heuristic helps in identifying possible evasion tactics used by attackers in executing their payloads.
+  ### Investigation Steps
+  - Review the process creation logs to confirm instances of `rundll32.exe` executing `shell32.dll` along with the specified command line arguments.
+  - Utilize EDR solutions to gather detailed behavioral telemetry for the detected process, focusing on parent processes and any subsequent network activity.
+  - Inspect the filesystem for recent changes or anomalies in the identified suspicious directories (%AppData%, %LocalAppData%, %Temp%, etc.) to uncover any deployed malicious files or alterations.
+  - Correlate findings with relevant threat intelligence and logs from network (NDR) and endpoint (AV) solutions to determine if the detected behavior matches known malicious patterns or tactics.

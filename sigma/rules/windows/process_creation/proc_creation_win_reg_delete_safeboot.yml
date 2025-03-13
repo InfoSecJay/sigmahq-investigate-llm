@@ -1,0 +1,40 @@
+title: SafeBoot Registry Key Deleted Via Reg.EXE
+id: fc0e89b5-adb0-43c1-b749-c12a10ec37de
+related:
+- id: d7662ff6-9e97-4596-a61d-9839e32dee8d
+  type: similar
+status: test
+description: Detects execution of "reg.exe" commands with the "delete" flag on safe
+  boot registry keys. Often used by attacker to prevent safeboot execution of security
+  products
+references:
+- https://www.trendmicro.com/en_us/research/22/e/avoslocker-ransomware-variant-abuses-driver-file-to-disable-anti-Virus-scans-log4shell.html
+author: Nasreddine Bencherchali (Nextron Systems), Tim Shelton
+date: 2022-08-08
+modified: 2023-02-04
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: 'reg.exe'
+  - OriginalFileName: 'reg.exe'
+  selection_delete:
+    CommandLine|contains|all:
+    - ' delete '
+    - '\SYSTEM\CurrentControlSet\Control\SafeBoot'
+  condition: all of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify instances where the Windows utility `reg.exe` is used to execute commands that delete registry keys associated with Safe Boot configurations. Safe Boot is a vital recovery mode in Windows that helps maintain system integrity during malware scans or updates. Attackers often target Safe Boot settings, removing critical registry entries to prevent security products, such as antivirus solutions, from functioning properly during system startup. The rule relies on monitoring process creation logs, specifically focusing on the execution of `reg.exe` commands with the "delete" flag containing references to the Safe Boot registry path (`\SYSTEM\CurrentControlSet\Control\SafeBoot`). By detecting these activities, security analysts can identify potential defense evasion techniques employed by threat actors.
+  ### Investigation Steps
+  - Use the EDR tool to query for the specific execution of `reg.exe` and check the associated command line for any instances where the "delete" flag is used along with the Safe Boot registry path.
+  - Investigate the timeline of the event by checking for any related process creation events that occurred shortly before or after the reg.exe execution to identify any suspicious activities or unauthorized changes.
+  - Review logs from the NGFW or Proxy to identify any outbound connections that might have been made by the system in question around the time of the violation, which could indicate communication with a command-and-control server.
+  - Correlate the detected activity with user account logs in the SIEM to understand who initiated the command, and review their recent activity for any signs of compromise or unusual behavior.

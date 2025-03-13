@@ -1,0 +1,53 @@
+title: WMImplant Hack Tool
+id: 8028c2c3-e25a-46e3-827f-bbb5abf181d7
+status: test
+description: Detects parameters used by WMImplant
+references:
+- https://github.com/FortyNorthSecurity/WMImplant
+author: NVISO
+date: 2020-03-26
+modified: 2022-12-25
+tags:
+- attack.execution
+- attack.t1047
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains:
+    - 'WMImplant'
+    - ' change_user '
+    - ' gen_cli '
+    - ' command_exec '
+    - ' disable_wdigest '
+    - ' disable_winrm '
+    - ' enable_wdigest '
+    - ' enable_winrm '
+    - ' registry_mod '
+    - ' remote_posh '
+    - ' sched_job '
+    - ' service_mod '
+    - ' process_kill '
+            # - ' process_start '
+    - ' active_users '
+    - ' basic_info '
+            # - ' drive_list '
+            # - ' installed_programs '
+    - ' power_off '
+    - ' vacant_system '
+    - ' logon_events '
+  condition: selection
+falsepositives:
+- Administrative scripts that use the same keywords.
+level: high
+notes: |
+  ### Technical Context
+  The WMImplant Hack Tool detection rule identifies potentially malicious activities associated with the WMImplant framework, which is known for its various malicious functionalities, including user impersonation and remote command execution. The rule analyzes PowerShell script block logs for specific keywords that are typically utilized by WMImplant scripts. It looks for occurrences of script block text that includes terms like 'change_user', 'enable_winrm', and 'disable_wdigest', indicating an attempt to manipulate system configurations or execute commands. To effectively capture these actions, it requires that PowerShell Script Block Logging is enabled on the target systems, which provides detailed logs on executed script blocks and the parameters passed.
+  ### Investigation Steps
+  - Review the PowerShell script block logs for any instances of WMImplant keywords identified in the alert. This can help confirm whether the detected activity is legitimate or malicious.
+  - Check EDR telemetry for any additional malicious behaviors associated with the script executions, such as unusual process creations or network connections initiated by the scripts.
+  - Analyze user activity logs to ascertain if the operations correspond to normatively scheduled administrative tasks or if they appear anomalous, focusing on the timestamps and user accounts involved.
+  - Inspect firewall and proxy logs to identify any external communications initiated by the system post-execution, as this can reveal attempts to connect to command and control servers or other malicious infrastructures.

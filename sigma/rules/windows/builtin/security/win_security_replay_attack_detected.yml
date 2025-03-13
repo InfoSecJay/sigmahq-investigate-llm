@@ -1,0 +1,32 @@
+title: Replay Attack Detected
+id: 5a44727c-3b85-4713-8c44-4401d5499629
+status: test
+description: Detects possible Kerberos Replay Attack on the domain controllers when
+  "KRB_AP_ERR_REPEAT" Kerberos response is sent to the client
+references:
+- https://github.com/Yamato-Security/EnableWindowsLogSettings/blob/7f6d755d45ac7cc9fc35b0cbf498e6aa4ef19def/ConfiguringSecurityLogAuditPolicies.md
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4649
+author: frack113
+date: 2022-10-14
+tags:
+- attack.credential-access
+- attack.t1558
+logsource:
+  service: security
+  product: windows
+detection:
+  selection:
+    EventID: 4649
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Replay Attack Detected" detection rule is designed to identify potential Kerberos replay attacks targeting domain controllers. A Kerberos replay attack occurs when a valid authentication request is intercepted and reused by an attacker to gain unauthorized access. This rule specifically monitors for Event ID 4649, which indicates that a Kerberos response with an error code of "KRB_AP_ERR_REPEAT" has been sent to a client during authentication attempts. The detection relies on Windows security logs which capture critical authentication events, allowing analysts to investigate unauthorized access attempts effectively. 
+  When a domain controller encounters a repeated request from a client that was already processed, it responds with this error, signifying that the initial request has already been utilized. By detecting these repeated attempts, we can help mitigate threats associated with credential theft and replay attacks.
+  ### Investigation Steps
+  - Review the security logs in EDR for Event ID 4649 and analyze the source IP addresses and user accounts associated with the alerts. 
+  - Cross-reference the timestamps of the detected replay attempts with VPN or Proxy logs to determine if there were any suspicious activities originating from the same or related IP addresses.
+  - Check for any related behavioral anomalies on affected accounts in the identity management system to assess if there were unauthorized access or modifications.
+  - Investigate the domain controller's configuration and logs for additional indicators of compromise or abnormal authentication patterns that could suggest a broader attack vector.

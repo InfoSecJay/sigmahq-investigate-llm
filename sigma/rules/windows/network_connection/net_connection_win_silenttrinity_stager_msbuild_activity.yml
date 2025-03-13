@@ -1,0 +1,35 @@
+title: Silenttrinity Stager Msbuild Activity
+id: 50e54b8d-ad73-43f8-96a1-5191685b17a4
+status: test
+description: Detects a possible remote connections to Silenttrinity c2
+references:
+- https://www.blackhillsinfosec.com/my-first-joyride-with-silenttrinity/
+author: Kiran kumar s, oscd.community
+date: 2020-10-11
+modified: 2022-10-05
+tags:
+- attack.execution
+- attack.t1127.001
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\msbuild.exe'
+  filter:
+    DestinationPort:
+    - 80
+    - 443
+    Initiated: 'true'
+  condition: selection and filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Silenttrinity Stager Msbuild Activity" Sigma rule is designed to detect potentially malicious activities associated with the Silent Trinity framework, specifically focusing on connections to command and control (C2) servers. This rule triggers when a network connection involves `msbuild.exe`, often used in legitimate development environments but also exploited by attackers for executing payloads. The detection criteria include monitoring outbound connections initiated by `msbuild.exe` targeting ports 80 and 443, which are commonly used for HTTP and HTTPS traffic. By analyzing logs from network connections, the rule identifies anomalies in the behavior of the `msbuild.exe` process that may indicate an attacker’s attempt to establish remote connections to their C2 infrastructure.
+  ### Investigation Steps
+  - Analyze the EDR logs for the `msbuild.exe` process to confirm its execution context. Check for any unusual parameters or command-line arguments that might suggest malicious intent.
+  - Review the destination IP addresses and domains correlated with the detected connections in your network logs. Use threat intelligence to determine if any of these are known C2 hosts.
+  - Inspect firewall logs to trace the flow of traffic associated with the detected outbound connections. Look for any other suspicious activities around the same timestamps.
+  - Check for any related alerts or incidents involving the same host and process. This will help confirm if this behavior is isolated or part of a larger attack pattern.

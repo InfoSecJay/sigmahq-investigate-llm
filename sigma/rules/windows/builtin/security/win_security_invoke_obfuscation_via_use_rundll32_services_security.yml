@@ -1,0 +1,48 @@
+title: Invoke-Obfuscation Via Use Rundll32 - Security
+id: cd0f7229-d16f-42de-8fe3-fba365fbcb3a
+related:
+- id: 641a4bfb-c017-44f7-800c-2aee0184ce9b
+  type: derived
+status: test
+description: Detects Obfuscated Powershell via use Rundll32 in Scripts
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009     # (Task30)
+author: Nikita Nazarov, oscd.community
+date: 2020-10-09
+modified: 2022-11-29
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  service: security
+  definition: The 'System Security Extension' audit subcategory need to be enabled
+    to log the EID 4697
+detection:
+  selection:
+    EventID: 4697
+    ServiceFileName|contains|all:
+    - '&&'
+    - 'rundll32'
+    - 'shell32.dll'
+    - 'shellexec_rundll'
+    ServiceFileName|contains:
+    - value
+    - invoke
+    - comspec
+    - iex
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule, titled "Invoke-Obfuscation Via Use Rundll32 
+  - Security," is designed to detect potentially malicious use of rundll32.exe to execute obfuscated PowerShell commands. This technique often exploits the legitimate functionality of rundll32.exe to circumvent security measures by manipulating shell operations and executing scripts hidden within command-line parameters. The rule focuses on specific criteria based on Event ID 4697, which can capture suspicious service creation events in Windows. By monitoring the ServiceFileName field for certain keywords—such as 'rundll32', 'shell32.dll', and various obfuscation patterns (e.g., '&&', 'invoke')—the rule effectively identifies attempts to execute PowerShell scripts in an obfuscated manner, allowing for early detection of potential threats leveraging this technique.
+  ### Investigation Steps
+  - Review the EDR logs for the event associated with Event ID 4697 to identify any processes that match the detection criteria, including rundll32.exe invocations.
+  - Examine the command-line arguments and the associated script files to understand the context and intent behind the execution of PowerShell commands.
+  - Query the SIEM for any related activities or anomalies that occurred around the same time as the detected event to establish a timeline of potential malicious activity.
+  - Assess network activity via Proxy or NDR logs for outbound connections made by the detected processes, which may indicate data exfiltration or command-and-control communications.

@@ -1,0 +1,38 @@
+title: Active Directory Kerberos DLL Loaded Via Office Application
+id: 7417e29e-c2e7-4cf6-a2e8-767228c64837
+status: test
+description: Detects Kerberos DLL being loaded by an Office Product
+references:
+- https://medium.com/threatpunter/detecting-adversary-tradecraft-with-image-load-event-logging-and-eql-8de93338c16
+author: Antonlovesdnb
+date: 2020-02-19
+modified: 2023-03-28
+tags:
+- attack.execution
+- attack.t1204.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\excel.exe'
+    - '\mspub.exe'
+    - '\onenote.exe'
+    - '\onenoteim.exe'         # Just in case
+    - '\outlook.exe'
+    - '\powerpnt.exe'
+    - '\winword.exe'
+    ImageLoaded|endswith: '\kerberos.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This rule is designed to detect potential malicious activity related to the loading of the Kerberos DLL file (`kerberos.dll`) by Microsoft Office applications, such as Excel, PowerPoint, and Word. The Kerberos DLL is a critical component for authentication in Windows environments, and its improper usage can indicate malicious intent, especially when invoked by common Office tools that users regularly interact with. The rule leverages Windows image load event logs to identify when a process matching one of the specified Office applications ends with the loading of the `kerberos.dll` file. By monitoring these specific events, the detection rule aims to flag potentially unauthorized access attempts or exploitation of legitimate tools as part of an attacker's strategy. 
+  ### Investigation Steps
+  - Review EDR logs to confirm the loading of `kerberos.dll` by the specified Office applications and analyze the associated process ID for any suspicious behavior.
+  - Check the command-line parameters for the detected Office application to understand the context in which `kerberos.dll` was loaded, focusing on unusual arguments or patterns indicating exploitation.
+  - Query proxy logs to identify external communications initiated by the Office application at or around the time of the event, looking for connections to known malicious IP addresses or domains.
+  - Investigate Microsoft 365 or Azure activity logs to determine if any suspicious user logins or access patterns coincide with the usage of the identified Office application and loading of the DLL.

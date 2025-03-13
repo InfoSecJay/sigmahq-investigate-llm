@@ -1,0 +1,45 @@
+title: Potential Credential Dumping Attempt Using New NetworkProvider - REG
+id: 0442defa-b4a2-41c9-ae2c-ea7042fc4701
+related:
+- id: baef1ec6-2ca9-47a3-97cc-4cf2bda10b77
+  type: similar
+status: test
+description: Detects when an attacker tries to add a new network provider in order
+  to dump clear text credentials, similar to how the NPPSpy tool does it
+references:
+- https://learn.microsoft.com/en-us/troubleshoot/windows-client/setup-upgrade-and-drivers/network-provider-settings-removed-in-place-upgrade
+- https://github.com/gtworek/PSBits/tree/master/PasswordStealing/NPPSpy
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-23
+modified: 2023-08-17
+tags:
+- attack.credential-access
+- attack.t1003
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains|all:
+    - '\System\CurrentControlSet\Services\'
+    - '\NetworkProvider'
+  filter:
+    TargetObject|contains:
+    - '\System\CurrentControlSet\Services\WebClient\NetworkProvider'
+    - '\System\CurrentControlSet\Services\LanmanWorkstation\NetworkProvider'
+    - '\System\CurrentControlSet\Services\RDPNP\NetworkProvider'
+            # - '\System\CurrentControlSet\Services\P9NP\NetworkProvider' # Related to WSL remove the comment if you use WSL in your ENV
+  filter_valid_procs:
+    Image: C:\Windows\System32\poqexec.exe
+  condition: selection and not 1 of filter*
+falsepositives:
+- Other legitimate network providers used and not filtred in this rule
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential credential dumping attempts when an attacker tries to register a new network provider in Windows. Specifically, it looks for registry modifications within the path that contains network provider settings. The rule focuses on changes to specific services related to network providers, such as WebClient, LanmanWorkstation, and RDPNP, that are commonly targeted by malicious actors to gain access to clear text credentials. By monitoring registry set events, this rule is designed to flag any additions akin to techniques used by tools like NPPSpy, which are employed to extract credentials from compromised systems. The primary technical data sources leveraged by this rule are Windows registry logs, particularly those capturing modifications under the relevant key paths.
+  ### Investigation Steps
+  - Review the registry change events using your EDR solution, focusing on the logs that show modifications to the `NetworkProvider` settings in the Windows registry. Look for suspicious entries or unexpected values.
+  - Check the associated process that triggered the registry modification by cross-referencing the process creation logs. Specifically, verify whether `poqexec.exe` was the originating process and assess its command-line parameters for signs of malicious activity.
+  - Analyze network traffic logs via your NDR tools to identify any unusual outbound connections made shortly after the registry change, which could indicate data exfiltration attempts.
+  - Consult AV and threat intelligence feeds for recent indicators of compromise (IOCs) associated with credential dumping tools. This will help determine if the associated behavior aligns with known threats or exploits.

@@ -1,0 +1,41 @@
+title: PowerShell Script Dropped Via PowerShell.EXE
+id: 576426ad-0131-4001-ae01-be175da0c108
+status: test
+description: Detects PowerShell creating a PowerShell file (.ps1). While often times
+  this behavior is benign, sometimes it can be a sign of a dropper script trying to
+  achieve persistence.
+references:
+- https://www.zscaler.com/blogs/security-research/onenote-growing-threat-malware-distribution
+author: frack113
+date: 2023-05-09
+tags:
+- attack.persistence
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    TargetFilename|endswith: '.ps1'
+  filter_main_psscriptpolicytest:
+    TargetFilename|contains: '__PSScriptPolicyTest_'
+  filter_main_appdata:
+    TargetFilename|startswith: 'C:\Users\'
+    TargetFilename|contains: '\AppData\Local\Temp\'
+  filter_main_windows_temp:
+    TargetFilename|startswith: 'C:\Windows\Temp\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- False positives will differ depending on the environment and scripts used. Apply
+  additional filters accordingly.
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where PowerShell is used to create PowerShell script files (.ps1) on Windows systems, which could indicate potential malicious activity. The rule specifically analyzes logs from Windows file events, focusing on PowerShell executable processes, such as `powershell.exe` and `pwsh.exe`. It looks for script files being created in common temporary directories, like `C:\Users\...\AppData\Local\Temp\` and `C:\Windows\Temp\`, while also excluding specific benign patterns that might indicate legitimate administrative tasks or testing. A significant number of threats, including droppers and persistence mechanisms, utilize such methods to deliver malware. Though this behavior can sometimes be legitimate, it merits investigation to confirm the intention behind the script creation.
+  ### Investigation Steps
+  - Review EDR alerts to track process execution history for the PowerShell instances that triggered the rule, examining command-line parameters for potentially suspicious content.
+  - Analyze the created PowerShell script in the identified paths, determining its contents and researching any uncommon commands or obfuscated code.
+  - Check user activity logs for any anomalies or suspicious user behavior around the time the script was created, including logins from unusual IP addresses or outside normal work hours.
+  - Inspect firewall and proxy logs to assess any outbound connections made by the PowerShell process or the created script, which could indicate data exfiltration or further malicious activity.

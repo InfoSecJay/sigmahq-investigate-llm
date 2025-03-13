@@ -1,0 +1,60 @@
+title: Potential Provlaunch.EXE Binary Proxy Execution Abuse
+id: 7f5d1c9a-3e83-48df-95a7-2b98aae6c13c
+related:
+- id: f9999590-1f94-4a34-a91e-951e47bedefd     # CLI Abuse
+  type: similar
+- id: 2a4b3e61-9d22-4e4a-b60f-6e8f0cde6f25     # CLI Registry
+  type: similar
+- id: 7021255e-5db3-4946-a8b9-0ba7a4644a69     # Registry
+  type: similar
+status: test
+description: Detects child processes of "provlaunch.exe" which might indicate potential
+  abuse to proxy execution.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Provlaunch/
+- https://twitter.com/0gtweet/status/1674399582162153472
+author: Nasreddine Bencherchali (Nextron Systems), Swachchhanda Shrawan Poudel
+date: 2023-08-08
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\provlaunch.exe'
+  filter_main_covered_children:
+        # Note: this filter is here to avoid duplicate alerting by f9999590-1f94-4a34-a91e-951e47bedefd
+  - Image|endswith:
+    - '\calc.exe'
+    - '\cmd.exe'
+    - '\cscript.exe'
+    - '\mshta.exe'
+    - '\notepad.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\regsvr32.exe'
+    - '\rundll32.exe'
+    - '\wscript.exe'
+  - Image|contains:
+    - ':\PerfLogs\'
+    - ':\Temp\'
+    - ':\Users\Public\'
+    - '\AppData\Temp\'
+    - '\Windows\System32\Tasks\'
+    - '\Windows\Tasks\'
+    - '\Windows\Temp\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Potential Provlaunch.EXE Binary Proxy Execution Abuse" is designed to identify suspicious activity involving the Windows process `provlaunch.exe`. This process, typically associated with provisioning for Windows applications, can be misused by malicious actors to execute harmful binaries, particularly child processes that exhibit potential abuse patterns, such as launching known scripting engines or command-line interpreters. The rule specifically monitors process creation logs for instances where `provlaunch.exe` serves as a parent to executable files like `cmd.exe`, `powershell.exe`, and others. It also filters out instances that originate from common temporary directories to reduce false positives, effectively focusing on anomalous behavior.
+  The detection relies on process creation logs as its primary data source, enabling the SOC to capture a timeline of related events and assess the legitimacy of processes spawned from `provlaunch.exe`. By analyzing the relationships between parent and child processes, investigators can identify potential misuse and further scrutinize any suspicious activities related to proxy execution abuse.
+  ### Investigation Steps
+  - **Review Process Creation Logs**: Start by examining the process creation logs for instances of `provlaunch.exe` and its child processes to confirm whether they align with expected application behavior.
+  - **Correlate with EDR Data**: Utilize EDR tools to investigate further details about the context and timing of the process execution, noting any anomalies in user activity or system configuration.
+  - **Check for File Locations**: Analyze where the child processes are being executed from, specifically checking for unusual paths like temporary directories or user directories, which may indicate malicious activity.
+  - **Analyze Network Activity**: Use network detection tools to monitor any outbound connections initiated by the suspect processes, looking for suspicious patterns or endpoints that could signify data exfiltration or command and control communications.

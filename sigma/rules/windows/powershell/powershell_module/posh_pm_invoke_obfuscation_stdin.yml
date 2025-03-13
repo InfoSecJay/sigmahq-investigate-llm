@@ -1,0 +1,36 @@
+title: Invoke-Obfuscation STDIN+ Launcher - PowerShell Module
+id: 9ac8b09b-45de-4a07-9da1-0de8c09304a3
+related:
+- id: 779c8c12-0eb1-11eb-adc1-0242ac120002
+  type: derived
+status: test
+description: Detects Obfuscated use of stdin to execute PowerShell
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009      # (Task 25)
+author: Jonathan Cheong, oscd.community
+date: 2020-10-15
+modified: 2024-04-05
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_module
+  definition: 0ad03ef1-f21b-4a79-8ce8-e6900c54b65b
+detection:
+  selection_4103:
+    Payload|re: 'cmd.{0,5}(?:/c|/r).+powershell.+(?:\$\{?input\}?|noexit).+"'
+  condition: selection_4103
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Invoke-Obfuscation STDIN+ Launcher" detection rule is designed to identify obfuscated uses of PowerShell through commands that utilize standard input (stdin). Attackers often leverage obfuscation techniques to evade detection mechanisms and execute harmful PowerShell commands. This rule specifically analyzes process creation logs to detect patterns where PowerShell is invoked with specific command-line arguments that suggest obfuscated execution. The main focus is on detecting sequences in which `cmd.exe` invokes PowerShell using flags like `/c` or `/r`, especially when related to the `$input` variable or when using the `noexit` parameter. Effective monitoring of these command-line parameters can help in recognizing potential threats before they escalate.
+  ### Investigation Steps
+  - Review the EDR logs for the specific process creation logs associated with PowerShell and `cmd.exe`. Look for entries matching the regex pattern indicating obfuscated command execution.
+  - Analyze the command-line arguments in the processes to identify and assess any potentially harmful payloads that align with the SQL or command hidden patterns.
+  - Utilize the SIEM to correlate alerts and check for other suspicious activities or detections that may provide additional context on the malicious intent behind the command execution.
+  - Query Cloud trail logs in AWS or logs in GCP/Azure if the PowerShell execution is linked to a cloud resource, ensuring to include any suspicious API calls that coincide with the detected activity.

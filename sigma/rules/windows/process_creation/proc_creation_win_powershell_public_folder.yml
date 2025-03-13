@@ -1,0 +1,48 @@
+title: Execution of Powershell Script in Public Folder
+id: fb9d3ff7-7348-46ab-af8c-b55f5fbf39b4
+status: test
+description: This rule detects execution of PowerShell scripts located in the "C:\Users\Public"
+  folder
+references:
+- https://www.mandiant.com/resources/evolution-of-fin7
+author: Max Altgelt (Nextron Systems)
+date: 2022-04-06
+modified: 2022-07-14
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    CommandLine|contains:
+    - '-f C:\Users\Public'
+    - '-f "C:\Users\Public'
+    - '-f %Public%'
+    - '-fi C:\Users\Public'
+    - '-fi "C:\Users\Public'
+    - '-fi %Public%'
+    - '-fil C:\Users\Public'
+    - '-fil "C:\Users\Public'
+    - '-fil %Public%'
+    - '-file C:\Users\Public'
+    - '-file "C:\Users\Public'
+    - '-file %Public%'
+  condition: selection
+fields:
+- CommandLine
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of PowerShell scripts that are located in the "C:\Users\Public" directory on Windows systems. The rule monitors process creation events, specifically looking for instances where PowerShell (both `powershell.exe` and `pwsh.exe`) is launched with a command-line argument that specifies the execution of a script from this public folder. The command-line parameters that the rule tracks include various flags such as `-f`, `-fi`, `-fil`, and `-file`, which are commonly used to point to a PowerShell script for execution. Detecting such executions is crucial because the Public folder is a common target for adversaries looking to distribute malicious scripts, leveraging public accessibility to lower detection rates and increase their chances of successful exploitation.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR tool to identify all instances of `powershell.exe` or `pwsh.exe` execution, particularly focusing on the command-line arguments associated with these processes.
+  - Check for any associated file creation or modification events in the "C:\Users\Public" directory via file audit logs to determine if any suspicious scripts were recently placed there.
+  - Utilize threat intelligence platforms to examine the legitimacy of any detected PowerShell scripts, including checking hashes against known malware signatures.
+  - Investigate network traffic logs for unusual outbound connections initiated by these PowerShell instances, as this may indicate data exfiltration or communication with command-and-control servers.

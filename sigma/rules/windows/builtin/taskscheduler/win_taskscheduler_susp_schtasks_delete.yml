@@ -1,0 +1,50 @@
+title: Important Scheduled Task Deleted
+id: 9e3cb244-bdb8-4632-8c90-6079c8f4f16d
+related:
+- id: dbc1f800-0fe0-4bc0-9c66-292c2abe3f78     # ProcCreation schtasks delete
+  type: similar
+- id: 7595ba94-cf3b-4471-aa03-4f6baa9e5fad     # Security-Audting Eventlog
+  type: similar
+status: test
+description: |
+  Detects when adversaries try to stop system services or processes by deleting their respective scheduled tasks in order to conduct data destructive activities
+references:
+- https://www.socinvestigation.com/most-common-windows-event-ids-to-hunt-mind-map/
+author: frack113
+date: 2023-01-13
+modified: 2023-02-07
+tags:
+- attack.impact
+- attack.t1489
+logsource:
+  product: windows
+  service: taskscheduler
+  definition: 'Requirements: The "Microsoft-Windows-TaskScheduler/Operational" is
+    disabled by default and needs to be enabled in order for this detection to trigger'
+detection:
+  selection:
+    EventID: 141
+    TaskName|contains:
+    - '\Windows\SystemRestore\SR'
+    - '\Windows\Windows Defender\'
+    - '\Windows\BitLocker'
+    - '\Windows\WindowsBackup\'
+    - '\Windows\WindowsUpdate\'
+    - '\Windows\UpdateOrchestrator\'
+    - '\Windows\ExploitGuard'
+  filter:
+    UserName|contains:
+    - 'AUTHORI'
+    - 'AUTORI'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential malicious activity by monitoring the deletion of important scheduled tasks on Windows systems. Specifically, it looks for Event ID 141, which indicates that a scheduled task has been deleted. The rule targets well-known system tasks crucial for system stability and security, such as those related to System Restore, Windows Defender, BitLocker, Windows Backup, Windows Update, and Exploit Guard. It filters out actions taken by users with usernames that contain 'AUTHORI' or 'AUTORI', which may indicate automated or routine maintenance tasks, thus helping to focus on potentially unauthorized deletion activities. The log source for this detection is the Microsoft-Windows-TaskScheduler/Operational log, which needs to be enabled for the events to be captured. 
+  ### Investigation Steps
+  - Review the Event Logs in the Task Scheduler to confirm the deletion of the identified scheduled tasks and to gather details such as the timestamp and user account responsible.
+  - Utilize EDR tools to check for any additional malicious activities or processes that may be correlated with the same timeframe and user account involved in the task deletion.
+  - Search Proxy and VPN logs to identify any external access attempts or suspicious traffic patterns related to the same user account before and after the event was logged.
+  - Investigate the integrity of other related tasks and the overall state of the system to determine if this deletion was part of a broader attack vector.

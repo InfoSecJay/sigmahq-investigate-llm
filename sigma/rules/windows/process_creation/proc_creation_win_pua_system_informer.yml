@@ -1,0 +1,51 @@
+title: PUA - System Informer Execution
+id: 5722dff1-4bdd-4949-86ab-fbaf707e767a
+related:
+- id: 811e0002-b13b-4a15-9d00-a613fce66e42
+  type: similar
+status: test
+description: Detects the execution of System Informer, a task manager tool to view
+  and manipulate processes, kernel options and other low level operations
+references:
+- https://github.com/winsiderss/systeminformer
+author: Florian Roth (Nextron Systems)
+date: 2023-05-08
+modified: 2024-11-23
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.discovery
+- attack.defense-evasion
+- attack.t1082
+- attack.t1564
+- attack.t1543
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\SystemInformer.exe'
+  - OriginalFileName: 'SystemInformer.exe'
+  - Description: 'System Informer'
+  - Product: 'System Informer'
+  - Hashes|contains:
+              # Note: add other hashes as needed
+              # 3.0.11077.6550
+    - 'MD5=19426363A37C03C3ED6FEDF57B6696EC'
+    - 'SHA1=8B12C6DA8FAC0D5E8AB999C31E5EA04AF32D53DC'
+    - 'SHA256=8EE9D84DE50803545937A63C686822388A3338497CDDB660D5D69CF68B68F287'
+    - 'IMPHASH=B68908ADAEB5D662F87F2528AF318F12'
+  condition: selection
+falsepositives:
+- System Informer is regularly used legitimately by system administrators or developers.
+  Apply additional filters accordingly
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "PUA 
+  - System Informer Execution" is designed to detect the execution of the System Informer application, which is a task manager tool used to view and manipulate processes and system settings at a low level. This application may be misused by attackers for persistence and privilege escalation, which could lead to unauthorized control of systems and sensitive information. The detection leverages process creation logs, specifically searching for instances where the image name ends with `SystemInformer.exe`, alongside specific file attributes such as the original filename, description, product name, and unique hash values. By monitoring these details, the rule helps identify suspicious use of the application, guiding analysts in assessing whether the execution is legitimate or part of a potential attack vector.
+  ### Investigation Steps
+  - Review recent process creation logs in the EDR platform to identify the execution context of `SystemInformer.exe`, including user accounts and parent processes.
+  - Cross-reference the time of detection with log entries from the firewall or proxy to identify any unusual outbound connections or unusual data transfers initiated by the host.
+  - Check the system's scheduled tasks and startup programs to determine if `SystemInformer.exe` has been set to run automatically, indicating potential persistence mechanisms.
+  - Validate the identified file hashes against known benign or malicious software to determine the legitimacy of the version of System Informer being executed.

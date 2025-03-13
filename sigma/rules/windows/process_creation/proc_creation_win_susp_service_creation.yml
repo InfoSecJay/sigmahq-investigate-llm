@@ -1,0 +1,64 @@
+title: Suspicious New Service Creation
+id: 17a1be64-8d88-40bf-b5ff-a4f7a50ebcc8
+related:
+- id: 7fe71fc9-de3b-432a-8d57-8c809efc10ab
+  type: derived
+status: test
+description: Detects creation of a new service via "sc" command or the powershell
+  "new-service" cmdlet with suspicious binary paths
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1543.003/T1543.003.md
+- https://web.archive.org/web/20180331144337/https://www.fireeye.com/blog/threat-research/2018/03/sanny-malware-delivery-method-updated-in-recently-observed-attacks.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-14
+modified: 2022-11-18
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1543.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_sc:
+    Image|endswith: '\sc.exe'
+    CommandLine|contains|all:
+    - 'create'
+    - 'binPath='
+  selection_posh:
+    CommandLine|contains|all:
+    - 'New-Service'
+    - '-BinaryPathName'
+  susp_binpath:
+    CommandLine|contains:
+            # Add more suspicious commands or binaries
+    - 'powershell'
+    - 'mshta'
+    - 'wscript'
+    - 'cscript'
+    - 'svchost'
+    - 'dllhost'
+    - 'cmd '
+    - 'cmd.exe /c'
+    - 'cmd.exe /k'
+    - 'cmd.exe /r'
+    - 'rundll32'
+            # Add more suspicious paths
+    - 'C:\Users\Public'
+    - '\Downloads\'
+    - '\Desktop\'
+    - '\Microsoft\Windows\Start Menu\Programs\Startup\'
+    - 'C:\Windows\TEMP\'
+    - '\AppData\Local\Temp'
+  condition: 1 of selection* and susp_binpath
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potentially malicious activities related to the creation of new Windows services. It specifically looks for the usage of the "sc" command or the PowerShell "New-Service" cmdlet, accompanied by command-line parameters that include suspicious binary paths. By monitoring process creation logs, the rule assesses processes spawned by these commands, particularly targeting scenarios where the specified binary paths are known to be used by malware or other unauthorized applications. Such locations might include user folders like 'Downloads' or 'Desktop,' as well as common temporary directories. Detecting unusual service creation is critical since attackers often utilize services to maintain persistence on compromised systems.
+  ### Investigation Steps
+  - Review EDR logs for any recent service creation activity using the "sc" command or PowerShell's "New-Service" cmdlet to verify the source of the request.
+  - Analyze the command-line parameters associated with the process creation to identify any suspicious binary paths or associated files that could indicate malicious intent.
+  - Check historical AV and threat intelligence logs to correlate the identified binaries with known malicious activities or conduct a hash lookup for reputation analysis.
+  - Assess firewall and proxy logs for outbound connections made by the newly created services to detect any other potential indicators of compromise or data exfiltration activities.

@@ -1,0 +1,33 @@
+title: Renamed SysInternals DebugView Execution
+id: cd764533-2e07-40d6-a718-cfeec7f2da7f
+status: test
+description: Detects suspicious renamed SysInternals DebugView execution
+references:
+- https://www.epicturla.com/blog/sysinturla
+author: Florian Roth (Nextron Systems)
+date: 2020-05-28
+modified: 2023-02-14
+tags:
+- attack.resource-development
+- attack.t1588.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Product: 'Sysinternals DebugView'
+  filter:
+    OriginalFileName: 'Dbgview.exe'
+    Image|endswith: '\Dbgview.exe'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule aims to detect potentially malicious usage of SysInternals DebugView, a tool often leveraged by attackers to monitor and log debug output from other applications. The rule looks for process creation events specifically related to the execution of SysInternals DebugView while ensuring that its original filename, "Dbgview.exe," has been altered or renamed in some way. The detection relies on process creation logs to identify instances where the process is initiated with a modified Image name while maintaining its functionality. This behavior may indicate an attempt to obscure the tool's presence during illicit activities, highlighting a potential threat requiring further investigation.
+  ### Investigation Steps
+  - Examine the process creation logs in your EDR solution to identify the execution of SysInternals DebugView. Look for any inconsistencies or unusual patterns in the command-line parameters that might indicate malicious intent.
+  - Correlate findings with logs from the NGFW or Proxy to determine if there were any suspicious outbound connections made by the executed process. This may provide insights into any exfiltration attempts or command-and-control activities.
+  - Review user activity logs to check whether the process execution aligns with known user behavior or policies. If the execution came from an unexpected user or context, escalate the investigation accordingly.
+  - Analyze related network traffic using NDR solutions to identify any connections to known malicious IP addresses or domains that coincided with the use of the DebugView tool. This can help establish if the activity is part of a larger attack strategy.

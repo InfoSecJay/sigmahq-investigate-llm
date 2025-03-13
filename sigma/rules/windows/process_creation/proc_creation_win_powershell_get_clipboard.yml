@@ -1,0 +1,35 @@
+title: PowerShell Get-Clipboard Cmdlet Via CLI
+id: b9aeac14-2ffd-4ad3-b967-1354a4e628c3
+related:
+- id: 4cbd4f12-2e22-43e3-882f-bff3247ffb78
+  type: derived
+status: test
+description: Detects usage of the 'Get-Clipboard' cmdlet via CLI
+references:
+- https://github.com/OTRF/detection-hackathon-apt29/issues/16
+- https://github.com/OTRF/ThreatHunter-Playbook/blob/2d4257f630f4c9770f78d0c1df059f891ffc3fec/docs/evals/apt29/detections/3.B.2_C36B49B5-DF58-4A34-9FE9-56189B9DEFEA.md
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2020-05-02
+modified: 2022-12-25
+tags:
+- attack.collection
+- attack.t1115
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains: 'Get-Clipboard'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where the PowerShell cmdlet `Get-Clipboard` is executed through the command line interface (CLI). The `Get-Clipboard` cmdlet is often used to access the content of the clipboard on a Windows system, potentially indicating data exfiltration or malicious activities. The rule processes log data from the Windows process creation logs, specifically looking for command lines that include the term `Get-Clipboard`. Detection of this cmdlet in a manner not typically expected in standard operations may suggest that an attacker is attempting to access sensitive information without direct user interaction.
+  By monitoring for this specific cmdlet execution, incident responders can alert on potentially suspicious activities that warrant further scrutiny. The rule not only correlates with tactics from the MITRE ATT&CK framework under the techniques of `T1115 (Clipboard Data)** but also supports ongoing efforts to mitigate risks, such as insider threats or external exploitation of systems.
+  ### Investigation Steps
+  - Review EDR logs for the endpoint that triggered the alert to understand the process tree and related activities leading up to the command execution.
+  - Check the timeline of user activity across various systems to see if there are any unusual user behavior patterns that coincide with the use of `Get-Clipboard`.
+  - Analyze network traffic logs via NDR to identify any unusual outbound connections that may coincide with the clipboard access, indicating potential data exfiltration.
+  - Investigate proxy logs to determine if there were any connections made to suspicious external domains or URLs following the execution of the cmdlet.

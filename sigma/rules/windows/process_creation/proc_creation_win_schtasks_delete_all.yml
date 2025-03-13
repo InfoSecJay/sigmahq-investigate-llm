@@ -1,0 +1,35 @@
+title: Delete All Scheduled Tasks
+id: 220457c1-1c9f-4c2e-afe6-9598926222c1
+status: test
+description: Detects the usage of schtasks with the delete flag and the asterisk symbol
+  to delete all tasks from the schedule of the local computer, including tasks scheduled
+  by other users.
+references:
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks-delete
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-09
+tags:
+- attack.impact
+- attack.t1489
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\schtasks.exe'
+    CommandLine|contains|all:
+    - ' /delete '
+    - '/tn \*'
+    - ' /f'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect attempts to delete all scheduled tasks on a Windows system using the `schtasks.exe` command-line utility. Specifically, it looks for process creation logs where the `Image` ends with `schtasks.exe` and the `CommandLine` includes the flags ` /delete `, `/tn *`, and ` /f`. The use of these parameters indicates an intent to forcibly delete all scheduled tasks without specifying individual task names, posing a significant risk of impacting system operations and any critical processes that rely on scheduled automation. This detection relies primarily on process creation logs sourced from the Windows operating system, enabling quick identification of potentially malicious activities related to task management.
+  ### Investigation Steps
+  - Utilize your EDR solution to identify any instances of `schtasks.exe` execution around the time of the alert and verify the complete command line used for context.
+  - Cross-reference the user accounts that executed the command against your organization's user activity logs to understand the legitimacy of the action.
+  - Investigate the scheduled tasks on the affected system using task scheduler logs to ascertain the specific tasks that were present prior to the deletion attempt, and assess any potential disruptions.
+  - Review logs from the firewall, proxy, and network monitoring tools to identify any preceding or subsequent unusual network activity that could correlate with this command execution.

@@ -1,0 +1,62 @@
+title: Suspicious Mshta.EXE Execution Patterns
+id: e32f92d1-523e-49c3-9374-bdb13b46a3ba
+status: test
+description: Detects suspicious mshta process execution patterns
+references:
+- https://en.wikipedia.org/wiki/HTML_Application
+- https://www.echotrail.io/insights/search/mshta.exe
+- https://app.any.run/tasks/34221348-072d-4b70-93f3-aa71f6ebecad/
+author: Florian Roth (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2021-07-17
+modified: 2023-02-21
+tags:
+- attack.execution
+- attack.t1106
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\mshta.exe'
+  - OriginalFileName: 'MSHTA.EXE'
+  selection_susp:
+        # Suspicious parents
+    ParentImage|endswith:
+    - '\cmd.exe'
+    - '\cscript.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\regsvr32.exe'
+    - '\rundll32.exe'
+    - '\wscript.exe'
+        # Suspicious folders
+    CommandLine|contains:
+    - '\AppData\Local\'
+    - 'C:\ProgramData\'
+    - 'C:\Users\Public\'
+    - 'C:\Windows\Temp\'
+  filter_img:
+        # Filter legit Locations
+  - Image|startswith:
+    - 'C:\Windows\System32\'
+    - 'C:\Windows\SysWOW64\'
+        # Suspicious extensions
+  - CommandLine|contains:
+    - '.htm'
+    - '.hta'
+        # Filter simple execution
+  - CommandLine|endswith:
+    - 'mshta.exe'
+    - 'mshta'
+  condition: all of selection_* or (selection_img and not filter_img)
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This rule detects suspicious execution patterns associated with the `mshta.exe` process, which is often exploited by attackers to execute HTML application files. The rule specifically identifies instances where `mshta.exe` is executed with suspicious parent processes such as `cmd.exe`, `powershell.exe`, or `wscript.exe`, indicating a potential misuse. The detection relies on monitoring process creation logs to check for execution paths and command-line parameters related to `mshta.exe`. It filters out legitimate executions by verifying that the image path does not belong to trusted Windows system directories while looking for command-line arguments that might indicate malicious intent, such as the presence of `htm` or `hta` file types.
+  ### Investigation Steps
+  - Utilize EDR tools to examine the process tree and determine the parent-child relationship of the `mshta.exe` execution. This can provide context on how the process was initiated.
+  - Review the command-line arguments associated with the `mshta.exe` process in your system logs to identify any suspicious or unexpected inputs that could indicate a malicious payload.
+  - Check endpoint logs for recent activities in the directories often associated with `mshta.exe`, such as `C:\Windows\Temp\` or user-specific local app data, to identify any unusual file creations or modifications.
+  - Analyze network traffic through the Proxy or NDR tools to establish if the execution of `mshta.exe` correlates with any outbound connection attempts to suspicious or known malicious domains.

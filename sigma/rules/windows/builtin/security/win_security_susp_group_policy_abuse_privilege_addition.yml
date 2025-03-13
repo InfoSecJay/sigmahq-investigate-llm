@@ -1,0 +1,36 @@
+title: Group Policy Abuse for Privilege Addition
+id: 1c480e10-7ee1-46d4-8ed2-85f9789e3ce4
+status: experimental
+description: |
+  Detects the first occurrence of a modification to Group Policy Object Attributes to add privileges to user accounts or use them to add users as local admins.
+author: Elastic, Josh Nickels, Marius Rothenbücher
+references:
+- https://www.elastic.co/guide/en/security/current/group-policy-abuse-for-privilege-addition.html#_setup_275
+date: 2024-09-04
+tags:
+- attack.privilege-escalation
+- attack.t1484.001
+logsource:
+  product: windows
+  service: security
+  definition: 'Requirements: The "Audit Directory Service Changes" logging policy
+    must be configured in order to receive events.'
+detection:
+  selection:
+    EventID: 5136
+    AttributeLDAPDisplayName: 'gPCMachineExtensionNames'
+    AttributeValue|contains:
+    - '827D319E-6EAC-11D2-A4EA-00C04F79F83A'
+    - '803E14A0-B4FB-11D0-A0D0-00A0C90F574B'
+  condition: selection
+falsepositives:
+- Users allowed to perform these modifications (user found in field SubjectUserName)
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect modifications to Group Policy Object (GPO) attributes that may indicate an attempt to escalate privileges within a Windows environment. Specifically, it monitors for events where the `gPCMachineExtensionNames` attribute has been altered to include predefined GUIDs associated with potentially malicious privilege escalation actions. The rule leverages security event logs, primarily focusing on the Event ID 5136, which records changes made to directory service objects. To ensure accurate detection, the organization must have the "Audit Directory Service Changes" logging policy enabled. Analysts should be aware that legitimate administrative actions may trigger these alerts, so context is critical for proper investigation.
+  ### Investigation Steps
+  - Review the Windows security event logs to identify Event ID 5136 and examine the specific changes made to Group Policy Objects related to user privileges.
+  - Cross-reference the affected `SubjectUserName` with known administrative accounts to determine if the modification was made by authorized personnel.
+  - Investigate any recent changes in user roles and access permissions to establish whether there is a legitimate business justification for the privilege escalation.
+  - Conduct a forensic analysis of related endpoint logs using EDR tools to trace the actions leading up to the modification event and identify any potential malicious activity.

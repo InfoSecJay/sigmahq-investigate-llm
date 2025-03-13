@@ -1,0 +1,35 @@
+title: PUA - WebBrowserPassView Execution
+id: d0dae994-26c6-4d2d-83b5-b3c8b79ae513
+status: test
+description: Detects the execution of WebBrowserPassView.exe. A password recovery
+  tool that reveals the passwords stored by the following Web browsers, Internet Explorer
+  (Version 4.0 - 11.0), Mozilla Firefox (All Versions), Google Chrome, Safari, and
+  Opera
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/40b77d63808dd4f4eafb83949805636735a1fd15/atomics/T1555.003/T1555.003.md
+author: frack113
+date: 2022-08-20
+modified: 2023-02-14
+tags:
+- attack.credential-access
+- attack.t1555.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Description: 'Web Browser Password Viewer'
+  - Image|endswith: '\WebBrowserPassView.exe'
+  condition: selection
+falsepositives:
+- Legitimate use
+level: medium
+notes: |
+  ### Technical Context
+  The "PUA 
+  - WebBrowserPassView Execution" detection rule is designed to identify when the executable WebBrowserPassView.exe is executed on Windows systems. This application is known to be a password recovery tool that can extract and display stored passwords from popular web browsers, including Internet Explorer, Mozilla Firefox, Google Chrome, and others. The rule looks for specific attributes in process creation logs, particularly the image file name ending with 'WebBrowserPassView.exe' and a description indicating its function as a password viewer. By monitoring process creation events, the rule helps to flag potentially risky activities that may indicate unauthorized access to sensitive credential information.
+  ### Investigation Steps
+  - Check recent process creation logs in your EDR platform to identify the user who executed WebBrowserPassView.exe and the relevant timestamps for the activity.
+  - Review any associated command-line parameters from the EDR data that might reveal further context about how the tool was launched and its intended use.
+  - Investigate network activity around the same timestamp using your NDR tools to determine if there were any unusual outbound connections that could indicate data exfiltration.
+  - Analyze communication logs from relevant web proxies to see if any web sessions coincided with the execution of the password recovery tool, which may provide insight into the user's intent.

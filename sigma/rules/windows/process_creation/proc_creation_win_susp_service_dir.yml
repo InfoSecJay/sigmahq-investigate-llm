@@ -1,0 +1,44 @@
+title: Suspicious Service Binary Directory
+id: 883faa95-175a-4e22-8181-e5761aeb373c
+status: test
+description: Detects a service binary running in a suspicious directory
+references:
+- https://blog.truesec.com/2021/03/07/exchange-zero-day-proxylogon-and-hafnium/
+author: Florian Roth (Nextron Systems)
+date: 2021-03-09
+modified: 2022-10-09
+tags:
+- attack.defense-evasion
+- attack.t1202
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|contains:
+    - '\Users\Public\'
+    - '\$Recycle.bin'
+    - '\Users\All Users\'
+    - '\Users\Default\'
+    - '\Users\Contacts\'
+    - '\Users\Searches\'
+    - 'C:\Perflogs\'
+    - '\config\systemprofile\'
+    - '\Windows\Fonts\'
+    - '\Windows\IME\'
+    - '\Windows\addins\'
+    ParentImage|endswith:
+    - '\services.exe'
+    - '\svchost.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Suspicious Service Binary Directory" detection rule is designed to identify potentially malicious service binaries running from uncommon or suspicious directories within a Windows operating system. This is accomplished by monitoring process creation events and looking for specific parent processes (`services.exe` or `svchost.exe`) that originate from executable files located in unlikely directories, such as user profiles or the `C:\` drive's system folders. The ability of malicious actors to hide processes within these directories often complicates detection, making this rule crucial for preventing unauthorized activities that utilize legitimate Windows services as a cover. The primary data sources involved in this detection include process creation logs which capture details about executed binaries and their originating paths.
+  ### Investigation Steps
+  - Utilize the EDR tool to analyze the specific process identified by the alert, reviewing its creation time, user account, and associated parent processes.
+  - Check command-line parameters for the suspicious process to identify unusual flags or options that may indicate malicious intent.
+  - Review recent changes or events in the service management logs to determine if the suspicious binary was recently registered or modified.
+  - Correlate with other data sources, such as AV and firewall logs, to identify any potential malicious network activity that may be related to the detected service.

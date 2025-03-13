@@ -1,0 +1,35 @@
+title: Mesh Agent Service Installation
+id: e0d1ad53-c7eb-48ec-a87a-72393cc6cedc
+status: test
+description: Detects a Mesh Agent service installation. Mesh Agent is used to remotely
+  manage computers
+references:
+- https://thedfirreport.com/2022/11/28/emotet-strikes-again-lnk-file-leads-to-domain-wide-ransomware/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-11-28
+tags:
+- attack.command-and-control
+- attack.t1219
+logsource:
+  product: windows
+  service: system
+detection:
+  selection_root:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7045
+  selection_service:
+  - ImagePath|contains: 'MeshAgent.exe'
+  - ServiceName|contains: 'Mesh Agent'
+  condition: all of selection_*
+falsepositives:
+- Legitimate use of the tool
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the installation of the Mesh Agent service, which is commonly used for remote management of computers. The rule looks for specific event logs originating from the Windows Service Control Manager, particularly Event ID 7045, which indicates the creation of a new service. The rule checks the `ImagePath` for references to 'MeshAgent.exe' and the `ServiceName` for 'Mesh Agent'. If both conditions are met, an alert is triggered, indicating a potential installation of Mesh Agent, which can be associated with malicious activity such as remote access by threat actors.
+  In an enterprise environment, monitoring for unauthorized service installations is critical for maintaining security posture. The presence of the Mesh Agent may suggest compromise or the establishment of unauthorized remote control capabilities, hence requiring thorough investigation.
+  ### Investigation Steps
+  - Review the relevant Event ID 7045 logs in the EDR system to confirm the installation details, such as the timestamp and the user account involved.
+  - Analyze the process creation logs around the same time to check for any suspicious command-line arguments or parent processes that may indicate malicious activity.
+  - Query the Antivirus logs for any detections or alerts related to MeshAgent.exe or associated processes that could indicate previous compromise.
+  - Check network traffic logs via the NDR for any outbound connections initiated by the Mesh Agent, which may help identify communication with a command-and-control server.

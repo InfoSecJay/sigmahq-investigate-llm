@@ -1,0 +1,31 @@
+title: Remote DLL Load Via Rundll32.EXE
+id: f40017b3-cb2e-4335-ab5d-3babf679c1de
+status: test
+description: Detects a remote DLL load event via "rundll32.exe".
+references:
+- https://github.com/gabe-k/themebleed
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-09-18
+tags:
+- attack.execution
+- attack.t1204.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\rundll32.exe'
+    ImageLoaded|startswith: '\\\\'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potentially malicious uses of the `rundll32.exe` process to load dynamic link libraries (DLLs) from remote locations. In a typical exploitation scenario, attackers may leverage `rundll32.exe` as a way to execute DLLs hosted on external servers, taking advantage of its legitimate functionality to run various code without being easily detected. The rule inspects image load events in Windows environments, specifically targeting instances where the process name ends with `rundll32.exe` while simultaneously verifying that the loaded DLL originates from a remote path (denoted by the prefix `\\`). Data sources involved in this detection include process creation logs and image load events to ensure that any abnormal behavior associated with remote DLL execution is captured.
+  ### Investigation Steps
+  - Review the EDR logs for any recent executions of `rundll32.exe` to identify the process context and user activity surrounding the alert.
+  - Check the command-line parameters used with `rundll32.exe` to evaluate if any suspicious actions or unusual paths were provided during execution.
+  - Investigate network traffic through the NDR or firewall logs to determine if there were connections made to any external servers from the host in question.
+  - Analyze the loaded DLLs in the process to assess their legitimacy and correlate with threat intelligence to identify potential indicators of compromise.

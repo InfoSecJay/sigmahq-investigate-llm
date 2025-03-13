@@ -1,0 +1,36 @@
+title: DNS Query To Ufile.io
+id: 1cbbeaaf-3c8c-4e4c-9d72-49485b6a176b
+related:
+- id: 090ffaad-c01a-4879-850c-6d57da98452d
+  type: similar
+status: test
+description: Detects DNS queries to "ufile.io", which was seen abused by malware and
+  threat actors as a method for data exfiltration
+references:
+- https://thedfirreport.com/2021/12/13/diavol-ransomware/
+author: yatinwad, TheDFIRReport
+date: 2022-06-23
+modified: 2023-09-18
+tags:
+- attack.exfiltration
+- attack.t1567.002
+logsource:
+  product: windows
+  category: dns_query
+detection:
+  selection:
+    QueryName|contains: 'ufile.io'
+  condition: selection
+falsepositives:
+- DNS queries for "ufile" are not malicious by nature necessarily. Investigate the
+  source to determine the necessary actions to take
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies DNS queries that contain the term "ufile.io," a domain that has been associated with malware and cybercriminal activities, particularly data exfiltration. By monitoring DNS logs, the rule leverages data sources such as DNS query logs to detect suspicious activity where devices within the network attempt to communicate with this specific domain. The presence of such queries can indicate an attempt to exfiltrate sensitive data or other malicious activities occurring within the environment, warranting further investigation to uncover potential threats.
+  This rule is particularly pertinent in the context of ransomware and data breaches, as threat actors often utilize specific domains like "ufile.io" to facilitate communication with compromised devices. Incident responders should use this rule as an initial indicator of potential exfiltration events or other malicious behavior linked to this domain.
+  ### Investigation Steps
+  - Review EDR logs for any processes or applications that initiated the DNS query to "ufile.io" to identify the source of the request.
+  - Check network traffic logs on the NGFW or NDR to determine if there was any outbound communication to "ufile.io" that followed the DNS query.
+  - Analyze proxy logs for any user activities or downloads associated with "ufile.io" to assess if any sensitive data may have been transmitted.
+  - Investigate the user or system behaviors leading up to the DNS query, including recent alerts, to evaluate whether this is part of a larger compromise or benign activity.

@@ -1,0 +1,38 @@
+title: Netcat The Powershell Version
+id: c5b20776-639a-49bf-94c7-84f912b91c15
+related:
+- id: bf7286e7-c0be-460b-a7e8-5b2e07ecc2f2
+  type: derived
+status: test
+description: Adversaries may use a non-application layer protocol for communication
+  between host and C2 server or among infected hosts within a network
+references:
+- https://nmap.org/ncat/
+- https://github.com/besimorhino/powercat
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1095/T1095.md
+author: frack113
+date: 2021-07-21
+modified: 2023-10-27
+tags:
+- attack.command-and-control
+- attack.t1095
+logsource:
+  product: windows
+  category: ps_classic_start
+detection:
+  selection:
+    Data|contains:
+    - 'powercat '
+    - 'powercat.ps1'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The rule titled "Netcat The Powershell Version" is designed to detect the use of PowerShell scripts that may facilitate non-application layer protocol communications, similar to what the popular netcat utility does. Specifically, it looks for command invocations that contain the keywords 'powercat' or 'powercat.ps1', which are indicative of a PowerShell-based tool known for creating reverse shells or establishing command-and-control (C2) communications. The primary data sources leveraged for this rule include PowerShell command execution logs that capture the execution context and command-line parameters. By monitoring these logs, security teams can identify potential unauthorized use of PowerShell to establish connections with external or compromised systems, which could suggest malicious activity within the network.
+  ### Investigation Steps
+  - Examine the relevant PowerShell logs in the EDR for detailed execution context, including user accounts and timestamps associated with the detected commands.
+  - Correlate findings with network logs from the NGFW and NDR to identify any suspicious outbound connections that may align with the PowerShell executions.
+  - Utilize the AV software to scan systems where the PowerShell command was executed to check for known malicious indicators or behaviors.
+  - Review the proxy logs for any unusual HTTP/HTTPS requests that might indicate C2 communication patterns in conjunction with the PowerShell activity identified.

@@ -1,0 +1,37 @@
+title: Uninstall Sysinternals Sysmon
+id: 6a5f68d1-c4b5-46b9-94ee-5324892ea939
+status: test
+description: Detects the removal of Sysmon, which could be a potential attempt at
+  defense evasion
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1562.001/T1562.001.md#atomic-test-11---uninstall-sysmon
+author: frack113
+date: 2022-01-12
+modified: 2024-03-13
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_pe:
+  - Image|endswith:
+    - \Sysmon64.exe
+    - \Sysmon.exe
+  - Description: 'System activity monitor'
+  selection_cli:
+    CommandLine|contains|windash: '-u'
+  condition: all of selection_*
+falsepositives:
+- Legitimate administrators might use this command to remove Sysmon for debugging
+  purposes
+level: high
+notes: |
+  ### Technical Context
+  The rule detects attempts to uninstall Sysinternals Sysmon, a tool used for monitoring system activity, which could indicate an evasion tactic by malicious actors. The detection is achieved through monitoring process creation logs for instances where Sysmon is executed with the `-u` command line parameter, indicating the uninstallation action. It looks specifically for entries involving the executables `Sysmon.exe` or `Sysmon64.exe`, paired with their descriptions, which helps to establish context that the action is intended to disable monitoring capabilities. The data sources utilized include process creation logs from Windows systems, focusing on command-line parameters and process details to properly identify uninstall actions.
+  ### Investigation Steps
+  - Analyze process creation logs in the EDR to confirm the execution of Sysmon with the uninstall command (`-u`), noting the user account and timestamp.
+  - Check for any additional anomalous activity associated with the user account in the logs, which might indicate further indicators of compromise.
+  - Correlate findings with network traffic data from the NDR to identify unusual outbound connections that could signify further malicious intent following the Sysmon uninstallation.
+  - Investigate the AV logs to see if any alerts were triggered around the same timeframe, as these may provide insights into potential threats or related activities.

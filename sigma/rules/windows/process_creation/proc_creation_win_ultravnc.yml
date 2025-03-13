@@ -1,0 +1,33 @@
+title: Use of UltraVNC Remote Access Software
+id: 145322e4-0fd3-486b-81ca-9addc75736d8
+status: test
+description: An adversary may use legitimate desktop support and remote access software,to
+  establish an interactive command and control channel to target systems within networks
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/9e5b12c4912c07562aec7500447b11fa3e17e254/atomics/T1219/T1219.md
+author: frack113
+date: 2022-10-02
+tags:
+- attack.command-and-control
+- attack.t1219
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Description: VNCViewer
+  - Product: UltraVNC VNCViewer
+  - Company: UltraVNC
+  - OriginalFileName: VNCViewer.exe
+  condition: selection
+falsepositives:
+- Legitimate use
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on the use of UltraVNC, a remote access software often utilized for desktop support and remote connections by legitimate IT personnel. However, adversaries may also exploit this software to establish unauthorized command and control channels within a target network. The rule operates by analyzing process creation logs to identify specific attributes associated with the UltraVNC VNCViewer process, such as the product name, description, company, and original file name. When an instance of `VNCViewer.exe` is detected, it raises an alert for further investigation, as this can indicate potential misuse of this legitimate tool for malicious purposes.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to verify the presence of `VNCViewer.exe` and review its execution context.
+  - Check for any recent network connections initiated by the identified VNCViewer instance in the NDR logs to determine if there are any unauthorized or suspicious outbound connections.
+  - Analyze user activity and authentication logs associated with the session to confirm whether the usage of UltraVNC was legitimate or if it indicates unauthorized access.
+  - Correlate the findings with AV logs and Proxy logs to gather additional context on any associated indicators of compromise or unusual behavior related to the use of UltraVNC.

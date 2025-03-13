@@ -1,0 +1,66 @@
+title: VMToolsd Suspicious Child Process
+id: 5687f942-867b-4578-ade7-1e341c46e99a
+status: test
+description: Detects suspicious child process creations of VMware Tools process which
+  may indicate persistence setup
+references:
+- https://bohops.com/2021/10/08/analyzing-and-detecting-a-vmtools-persistence-technique/
+- https://user-images.githubusercontent.com/61026070/136518004-b68cce7d-f9b8-4e9a-9b7b-53b1568a9a94.png
+- https://github.com/vmware/open-vm-tools/blob/master/open-vm-tools/tools.conf
+author: bohops, Bhabesh Raj
+date: 2021-10-08
+modified: 2023-07-25
+tags:
+- attack.execution
+- attack.persistence
+- attack.t1059
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|endswith: '\vmtoolsd.exe'
+  selection_img:
+  - Image|endswith:
+    - '\cmd.exe'
+    - '\cscript.exe'
+    - '\mshta.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\regsvr32.exe'
+    - '\rundll32.exe'
+    - '\wscript.exe'
+  - OriginalFileName:
+    - 'Cmd.Exe'
+    - 'cscript.exe'
+    - 'MSHTA.EXE'
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+    - 'REGSVR32.EXE'
+    - 'RUNDLL32.EXE'
+    - 'wscript.exe'
+  filter_main_vmwaretools_script:
+    Image|endswith: '\cmd.exe'
+    CommandLine|contains:
+    - '\VMware\VMware Tools\poweron-vm-default.bat'
+    - '\VMware\VMware Tools\poweroff-vm-default.bat'
+    - '\VMware\VMware Tools\resume-vm-default.bat'
+    - '\VMware\VMware Tools\suspend-vm-default.bat'
+  filter_main_empty:
+    Image|endswith: '\cmd.exe'
+    CommandLine: ''
+  filter_main_null:
+    Image|endswith: '\cmd.exe'
+    CommandLine:
+  condition: all of selection* and not 1 of filter_main_*
+falsepositives:
+- Legitimate use by VM administrator
+level: high
+notes: |
+  ### Technical Context
+  The "VMToolsd Suspicious Child Process" rule is designed to identify potentially malicious child processes spawned from the VMware Tools daemon, `vmtoolsd.exe`. It specifically looks for instances where `vmtoolsd.exe` serves as the parent process for various commands and scripts associated with Windows' longstanding utilities like `cmd.exe`, `PowerShell`, `wscript.exe`, and others. Such patterns may suggest an attempt to establish persistence mechanisms, enabling an attacker to maintain control over a compromised virtual machine. The rule captures relevant data from process creation logs, observing both the parent-child relationship and suspicious command-line arguments being executed, particularly those that hint at automated actions concerning VM state changes.
+  ### Investigation Steps
+  - Review EDR logs to identify the execution timeline of `vmtoolsd.exe` and any associated child processes. Look for anomalies in the usual pattern of execution.
+  - Cross-reference command-line parameters from the suspicious child process against known VMware Tools scripts. This can help determine whether the execution was legitimate or indicative of malicious intent.
+  - Investigate any unusual or unexpected file activity in the directories of VMware Tools and the associated child processes. Utilize file integrity monitoring tools to assist in this review.
+  - Consult network proxy logs to determine if any outbound connections were initiated by the suspicious processes. This may provide further evidence of command and control or data exfiltration activities.

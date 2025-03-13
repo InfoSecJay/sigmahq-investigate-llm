@@ -1,0 +1,32 @@
+title: Devtoolslauncher.exe Executes Specified Binary
+id: cc268ac1-42d9-40fd-9ed3-8c4e1a5b87e6
+status: test
+description: The Devtoolslauncher.exe executes other binary
+references:
+- https://lolbas-project.github.io/lolbas/OtherMSBinaries/Devtoolslauncher/
+- https://twitter.com/_felamos/status/1179811992841797632
+author: Beyu Denis, oscd.community (rule), @_felamos (idea)
+date: 2019-10-12
+modified: 2021-11-27
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\devtoolslauncher.exe'
+    CommandLine|contains: 'LaunchForDeploy'
+  condition: selection
+falsepositives:
+- Legitimate use of devtoolslauncher.exe by legitimate user
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially malicious behavior involving the `devtoolslauncher.exe` process, which is commonly associated with development tools in environments like Google Chrome. The rule triggers an alert when `devtoolslauncher.exe` executes with the command line parameter `LaunchForDeploy`, indicating that it may be inappropriately executing other binaries, possibly as part of an evasion technique. This behavior often signifies an attempt to bypass security mechanisms, making it essential for security operations centers (SOCs) to monitor. The rule primarily utilizes process creation logs, focusing on the executable name and the associated command-line arguments to identify suspicious activity.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR solution to find instances of `devtoolslauncher.exe` running with the `LaunchForDeploy` command line. 
+  - Cross-reference the occurrence of the alert with user activity logs to determine if the execution pattern aligns with legitimate development operations or if it appears anomalous.
+  - Investigate network activity associated with the process through the NDR tool to identify any outbound connections or data exfiltration attempts that may indicate malicious intent.
+  - Check for any related events in the SIEM that correlate with this alert, including files created or modified around the same timestamp to gather context for potential compromise scenarios.

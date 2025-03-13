@@ -1,0 +1,39 @@
+title: Potential Privilege Escalation Attempt Via .Exe.Local Technique
+id: 07a99744-56ac-40d2-97b7-2095967b0e03
+status: test
+description: Detects potential privilege escalation attempt via the creation of the
+  "*.Exe.Local" folder inside the "System32" directory in order to sideload "comctl32.dll"
+references:
+- https://github.com/binderlabs/DirCreate2System
+- https://github.com/sailay1996/awesome_windows_logical_bugs/blob/60cbb23a801f4c3195deac1cc46df27c225c3d07/dir_create2system.txt
+author: Nasreddine Bencherchali (Nextron Systems), Subhash P (@pbssubhash)
+date: 2022-12-16
+modified: 2022-12-19
+tags:
+- attack.defense-evasion
+- attack.persistence
+- attack.privilege-escalation
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|startswith:
+    - 'C:\Windows\System32\logonUI.exe.local'
+    - 'C:\Windows\System32\werFault.exe.local'
+    - 'C:\Windows\System32\consent.exe.local'
+    - 'C:\Windows\System32\narrator.exe.local'
+    - 'C:\Windows\System32\wermgr.exe.local'
+    TargetFilename|endswith: '\comctl32.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential privilege escalation attempts through the creation of files in the "C:\Windows\System32" directory, specifically targeting the ".Exe.Local" naming convention. When an attacker creates folders with this naming pattern, they can sideload the legitimate `comctl32.dll` library, effectively executing malicious code with higher privileges than the attacker would normally have access to. The rule inspects file event logs to detect instances of specific executable files (like `logonUI.exe.local` and `werFault.exe.local`) being created in this sensitive directory. An alert will trigger whenever these file creations are detected along with attempts to load the `comctl32.dll` library, indicating a potential security threat.
+  ### Investigation Steps
+  - Monitor EDR logs for file creation events in the "C:\Windows\System32" directory, specifically looking for any newly created ".Exe.Local" files. 
+  - Cross-reference the timestamps of any detected alerts with user activity logs to determine if the behavior aligns with legitimate administrative tasks.
+  - Review Proxy logs for any unusual outbound connections following the file creation, as this may indicate attempts to exfiltrate data or communicate with a command-and-control server.
+  - Investigate any corresponding alerts or warnings from the AV solution that may indicate the presence of malware or suspicious behavior related to the identified file creations.

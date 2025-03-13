@@ -1,0 +1,43 @@
+title: Modify Group Policy Settings - ScriptBlockLogging
+id: b7216a7d-687e-4c8d-82b1-3080b2ad961f
+related:
+- id: ada4b0c4-758b-46ac-9033-9004613a150d
+  type: similar
+status: test
+description: Detect malicious GPO modifications can be used to implement many other
+  malicious behaviors.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/40b77d63808dd4f4eafb83949805636735a1fd15/atomics/T1484.001/T1484.001.md
+author: frack113
+date: 2022-08-19
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1484.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_path:
+    ScriptBlockText|contains: \SOFTWARE\Policies\Microsoft\Windows\System
+  selection_key:
+    ScriptBlockText|contains:
+    - GroupPolicyRefreshTimeDC
+    - GroupPolicyRefreshTimeOffsetDC
+    - GroupPolicyRefreshTime
+    - GroupPolicyRefreshTimeOffset
+    - EnableSmartScreen
+    - ShellSmartScreenLevel
+  condition: all of selection_*
+falsepositives:
+- Legitimate use
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule aims to identify potential unauthorized modifications to Group Policy settings on Windows systems, which could indicate malicious activity aimed at evading defenses or escalating privileges. It specifically looks for script block logs where specified paths and key names related to Group Policy management are present in the running scripts. The rule analyzes the `ScriptBlockText` data source, which is generated when PowerShell's script block logging is enabled. By monitoring changes related to Group Policy settings, such as `GroupPolicyRefreshTime` and related properties, the rule helps in detecting actions that may affect system behavior and overall security.
+  ### Investigation Steps
+  - Review the PowerShell script execution logs in the EDR to identify the context and origin of the script that triggered the alert. Determine if it was initiated by an authorized user or process.
+  - Check for any recent changes in Group Policy across the environment using the Group Policy Management Console or relevant logs to assess if the modifications are legitimate or part of a malicious activity.
+  - Analyze the associated system logs for unusual account activity or privilege escalation attempts around the time of the alert to identify potential unauthorized access.
+  - Utilize the SIEM to correlate this event with other indicators of compromise, such as unusual outbound connections or anomalous user behavior, to build a broader picture of the incident.

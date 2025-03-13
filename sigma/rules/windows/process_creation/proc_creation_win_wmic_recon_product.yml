@@ -1,0 +1,35 @@
+title: Potential Product Reconnaissance Via Wmic.EXE
+id: 15434e33-5027-4914-88d5-3d4145ec25a9
+status: test
+description: Detects the execution of WMIC in order to get a list of firewall and
+  antivirus products
+references:
+- https://thedfirreport.com/2023/03/06/2022-year-in-review/
+- https://www.yeahhub.com/list-installed-programs-version-path-windows/
+- https://learn.microsoft.com/en-us/answers/questions/253555/software-list-inventory-wmic-product
+author: Nasreddine Bencherchali
+date: 2023-02-14
+tags:
+- attack.execution
+- attack.t1047
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\wmic.exe'
+  - OriginalFileName: 'wmic.exe'
+  selection_cli:
+    CommandLine|contains: 'Product'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential product reconnaissance activities through the use of the Windows Management Instrumentation Command-Line (WMIC). Specifically, it monitors for the execution of `wmic.exe` with command-line parameters that indicate the querying of installed products, such as antivirus and firewall software. By focusing on the process creation logs and the command line used upon execution, the rule detects scenarios where an adversary may be attempting to gather information about the environment, particularly regarding security products. The data sources for this rule include process creation events and command-line arguments, which are logged by the operating system and can be monitored for suspicious activity.
+  ### Investigation Steps
+  - Review the process creation logs for instances of `wmic.exe` to identify the execution context, including user accounts and timestamps for the potentially malicious activity.
+  - Analyze command-line arguments associated with the `wmic.exe` execution to confirm if they include suspicious queries, particularly those related to installed security software.
+  - Correlate findings with EDR telemetry by examining additional activities from the same user session or endpoint to look for indicators of compromise or related malicious behavior.
+  - Check network logs for any unexpected outbound connections made shortly after the use of `wmic.exe`, which may indicate data exfiltration attempts or further reconnaissance activities.

@@ -1,0 +1,64 @@
+title: Obfuscated IP Download Activity
+id: cb5a2333-56cf-4562-8fcb-22ba1bca728d
+status: test
+description: Detects use of an encoded/obfuscated version of an IP address (hex, octal...)
+  in an URL combined with a download command
+references:
+- https://h.43z.one/ipconverter/
+- https://twitter.com/Yasser_Elsnbary/status/1553804135354564608
+- https://twitter.com/fr0s7_/status/1712780207105404948
+author: Florian Roth (Nextron Systems), X__Junior (Nextron Systems)
+date: 2022-08-03
+modified: 2023-11-06
+tags:
+- attack.discovery
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_command:
+    CommandLine|contains:
+    - 'Invoke-WebRequest'
+    - 'iwr '
+    - 'wget '
+    - 'curl '
+    - 'DownloadFile'
+    - 'DownloadString'
+  selection_ip_1:
+    CommandLine|contains:
+    - ' 0x'
+    - '//0x'
+    - '.0x'
+    - '.00x'
+  selection_ip_2:
+    CommandLine|contains|all:
+    - 'http://%'
+    - '%2e'
+  selection_ip_3:
+        # http://81.4.31754
+  - CommandLine|re: 'https?://[0-9]{1,3}\.[0-9]{1,3}\.0[0-9]{3,4}'
+        # http://81.293898
+  - CommandLine|re: 'https?://[0-9]{1,3}\.0[0-9]{3,7}'
+        # http://1359248394
+  - CommandLine|re: 'https?://0[0-9]{3,11}'
+        # http://0121.04.0174.012
+  - CommandLine|re: 'https?://(0[0-9]{1,11}\.){3}0[0-9]{1,11}'
+        # http://012101076012
+  - CommandLine|re: 'https?://0[0-9]{1,11}'
+        # For octal format
+  - CommandLine|re: ' [0-7]{7,13}'
+  filter_main_valid_ip:
+    CommandLine|re: 'https?://((25[0-5]|(2[0-4]|1\d|[1-9])?\d)(\.|\b)){4}'
+  condition: selection_command and 1 of selection_ip_* and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Obfuscated IP Download Activity" detection rule is designed to identify potentially malicious download commands that utilize encoded or obfuscated IP addresses in their URLs. It focuses on command-line parameters typical in network request utilities such as `Invoke-WebRequest`, `wget`, and `curl`. Specifically, the rule looks for IP obfuscation techniques, which include hexadecimal and octal representations of IP addresses, as well as common patterns associated with server requests that may indicate suspicious activity. The underlying data sources for this rule are primarily derived from Windows process creation logs, capturing details about command executions and their associated command-line arguments.
+  By analyzing the command line for specific keywords and patterns, the rule aims to detect unintended data transfer attempts to potentially malicious servers, providing early indicators of a compromised system or user account. Incident responders can use this rule to quickly ascertain whether a system may be involved in illicit download activities.
+  ### Investigation Steps
+  - Review the triggering process creation logs in your EDR tool to identify the executed commands related to the alert. Focus on examining the user and process context surrounding the command line.
+  - Analyze network traffic through the NGFW or NDR to see if there were connections to the flagged IP addresses or domains, and assess the nature of the data exchanged during these requests.
+  - Inspect any URLs involved in the download commands for further indicators of compromise, such as domain age or reputation, by utilizing external intelligence sources.
+  - Validate the owner of the executing user account to determine if any unauthorized actions were performed, and cross-reference with user activity logs from your SIEM.

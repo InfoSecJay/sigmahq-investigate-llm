@@ -1,0 +1,41 @@
+title: Using SettingSyncHost.exe as LOLBin
+id: b2ddd389-f676-4ac4-845a-e00781a48e5f
+status: test
+description: Detects using SettingSyncHost.exe to run hijacked binary
+references:
+- https://www.hexacorn.com/blog/2020/02/02/settingsynchost-exe-as-a-lolbin
+author: Anton Kutepov, oscd.community
+date: 2020-02-05
+modified: 2021-11-27
+tags:
+- attack.execution
+- attack.defense-evasion
+- attack.t1574.008
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  system_utility:
+    Image|startswith:
+    - 'C:\Windows\System32\'
+    - 'C:\Windows\SysWOW64\'
+  parent_is_settingsynchost:
+    ParentCommandLine|contains|all:
+    - 'cmd.exe /c'
+    - 'RoamDiag.cmd'
+    - '-outputpath'
+  condition: not system_utility and parent_is_settingsynchost
+fields:
+- TargetFilename
+- Image
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the potentially malicious use of the Windows system utility `SettingSyncHost.exe` as a "Living Off the Land Binary" (LOLBin). Specifically, it looks for instances where `SettingSyncHost.exe` is invoked as a parent process to execute suspicious command-line instructions, particularly when it is employed to run another binary that isn't typically associated with legitimate operations. The rule inspects process creation logs, focusing on the command lines of both the child and parent processes. If a binary running beneath `SettingSyncHost.exe` contains characteristics that deviate from expected behavior—such as an atypical target filename or executing commands typically associated with system administration—this triggers an alert.
+  ### Investigation Steps
+  - Review the EDR logs for the process creation events related to `SettingSyncHost.exe`. Confirm the command-line arguments used, especially looking for unusual executables being called.
+  - Utilize the AV solution to scan any binaries identified in conjunction with the suspicious `SettingSyncHost.exe` usage. Check for known malware signatures and analyze behavior patterns.
+  - Examine firewall logs and other network monitoring tools for any outgoing traffic associated with the identified suspicious binary. Look for connections to known malicious IP addresses or domain names.
+  - Check user activity logs in your cloud platforms (AWS, Azure, GCP) for any unusual administrative actions or other anomalies that correlate with the timing and behaviors of the detected alert.

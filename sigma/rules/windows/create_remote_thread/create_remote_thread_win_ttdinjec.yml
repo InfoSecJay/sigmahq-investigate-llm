@@ -1,0 +1,30 @@
+title: Remote Thread Creation Ttdinject.exe Proxy
+id: c15e99a3-c474-48ab-b9a7-84549a7a9d16
+status: test
+description: Detects a remote thread creation of Ttdinject.exe used as proxy
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Ttdinject/
+author: frack113
+date: 2022-05-16
+modified: 2022-06-02
+tags:
+- attack.defense-evasion
+- attack.t1127
+logsource:
+  product: windows
+  category: create_remote_thread
+detection:
+  selection:
+    SourceImage|endswith: '\ttdinject.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the malicious use of `Ttdinject.exe`, a tool often associated with remote thread injection techniques used to manipulate and control processes on compromised systems. The rule focuses on monitoring the `create_remote_thread` events within Windows environments to alert on instances where `Ttdinject.exe` is being used as a proxy. Attackers utilize such methods to evade detection and maintain persistence within a network by injecting code into the address space of other processes. The primary data sources involved include process creation logs that capture details about processes initiating remote threads, specifically targeting any activities that involve the execution of `Ttdinject.exe`.
+  ### Investigation Steps
+  - Review recent process creation logs in your EDR tool to identify when `Ttdinject.exe` was executed and any processes it attempted to interact with.
+  - Investigate command-line parameters used with `Ttdinject.exe` by checking the relevant logs for any suspicious or anomalous arguments that may indicate malicious intent.
+  - Monitor network traffic through the NGFW or Proxy logs for any unusual outbound connections that correlate with the timeline of the `Ttdinject.exe` execution.
+  - Examine user account activity in the Azure or AWS cloud platforms to see if any associated accounts exhibit unusual behaviors or access patterns during the time of the alert.

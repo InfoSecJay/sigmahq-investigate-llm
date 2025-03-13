@@ -1,0 +1,43 @@
+title: DLL Execution via Rasautou.exe
+id: cd3d1298-eb3b-476c-ac67-12847de55813
+status: test
+description: Detects using Rasautou.exe for loading arbitrary .DLL specified in -d
+  option and executes the export specified in -p.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Rasautou/
+- https://github.com/fireeye/DueDLLigence
+- https://www.fireeye.com/blog/threat-research/2019/10/staying-hidden-on-the-endpoint-evading-detection-with-shellcode.html
+author: Julia Fomina, oscd.community
+date: 2020-10-09
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  product: windows
+  category: process_creation
+  definition: Since options '-d' and '-p' were removed in Windows 10 this rule is
+    relevant only for Windows before 10. And as Windows 7 doesn't log command line
+    in 4688 by default, to detect this attack you need Sysmon 1 configured or KB3004375
+    installed for command-line auditing 
+    (https://support.microsoft.com/en-au/help/3004375/microsoft-security-advisory-update-to-improve-windows-command-line-aud)
+detection:
+  selection_img:
+  - Image|endswith: '\rasautou.exe'
+  - OriginalFileName: 'rasdlui.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - ' -d '
+    - ' -p '
+  condition: all of selection*
+falsepositives:
+- Unlikely
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying the use of `Rasautou.exe`, a legitimate Windows executable commonly associated with RAS (Remote Access Service) functions. Specifically, the rule flags instances where this executable is used to load arbitrary Dynamic Link Library (DLL) files through the command-line parameters, `-d` for the DLL path and `-p` for the specific export to execute. Given that the options `-d` and `-p` were removed in Windows 10, this detection strategy is primarily relevant for systems running pre-Windows 10 versions. To ensure visibility of command-line parameters, organizations must utilize Sysmon or install the Microsoft security update KB3004375, which enhances command-line auditing for Windows 7.
+  The detection relies on process creation logs from Windows, specifically those that log the process name as `rasautou.exe` and the original file name as `rasdlui.exe`. By monitoring these parameters, security teams can determine if abnormal or potentially malicious activities are occurring through this specific executable.
+  ### Investigation Steps
+  - Review recent process creation logs in your EDR tool to identify instances of `rasautou.exe` being executed, particularly focusing on the command-line arguments.
+  - Check for the presence of the specified DLL in the command-line parameters to assess whether it is known, trusted software or potentially malicious.
+  - Cross-reference logs from your NGFW or proxy to check for any unusual outbound connections correlated with the execution of `rasautou.exe`.
+  - Examine endpoint security notifications from AV solutions for any alerts triggered by the execution of `rasautou.exe` or the DLL being used.

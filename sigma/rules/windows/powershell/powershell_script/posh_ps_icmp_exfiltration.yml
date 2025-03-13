@@ -1,0 +1,36 @@
+title: PowerShell ICMP Exfiltration
+id: 4c4af3cd-2115-479c-8193-6b8bfce9001c
+status: test
+description: Detects Exfiltration Over Alternative Protocol - ICMP. Adversaries may
+  steal data by exfiltrating it over an un-encrypted network protocol other than that
+  of the existing command and control channel.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1048.003/T1048.003.md#atomic-test-2---exfiltration-over-alternative-protocol---icmp
+author: 'Bartlomiej Czyz @bczyz1, oscd.community'
+date: 2020-10-10
+modified: 2022-12-25
+tags:
+- attack.exfiltration
+- attack.t1048.003
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'New-Object'
+    - 'System.Net.NetworkInformation.Ping'
+    - '.Send('
+  condition: selection
+falsepositives:
+- Legitimate usage of System.Net.NetworkInformation.Ping class
+level: medium
+notes: |
+  ### Technical Context
+  The "PowerShell ICMP Exfiltration" rule is designed to detect potentially malicious activities where adversaries may use PowerShell to exfiltrate data over ICMP (Internet Control Message Protocol). The detection mechanism analyzes PowerShell script block logs for specific commands that create a new object of the `System.Net.NetworkInformation.Ping` class and send ICMP packets. Such network interactions, while legitimate in many contexts, can also signal attempts to covertly transmit data beyond established command and control channels. For this rule to function effectively, Script Block Logging must be enabled on Windows systems to capture and log the relevant PowerShell activities.
+  ### Investigation Steps
+  - Examine the relevant process creation logs from EDR to identify any unusual PowerShell activity correlated with the detected alert.
+  - Review network traffic logs via NDR or NGFW to find any ICMP communications that coincide with the time of the potential exfiltration attempt.
+  - Utilize DNS log data from the Proxy to identify any DNS queries made by the affected host during the event timeframe, which may indicate an attempt to resolve external addresses for exfiltration.
+  - Conduct a forensic analysis of the PowerShell script logs to assess the legitimacy of the commands executed in the context of the affected system's operational environment.

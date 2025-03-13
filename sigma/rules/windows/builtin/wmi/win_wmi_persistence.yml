@@ -1,0 +1,48 @@
+title: WMI Persistence
+id: 0b7889b4-5577-4521-a60a-3376ee7f9f7b
+status: test
+description: Detects suspicious WMI event filter and command line event consumer based
+  on WMI and Security Logs.
+references:
+- https://twitter.com/mattifestation/status/899646620148539397
+- https://www.eideon.com/2018-03-02-THL03-WMIBackdoors/
+author: Florian Roth (Nextron Systems), Gleb Sukhodolskiy, Timur Zinniatullin oscd.community
+date: 2017-08-22
+modified: 2022-02-10
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1546.003
+logsource:
+  product: windows
+  service: wmi
+  definition: 'WMI Namespaces Auditing and SACL should be configured, EventID 5861
+    and 5859 detection requires Windows 10, 2012 and higher'
+detection:
+  wmi_filter_to_consumer_binding:
+    EventID: 5861
+  consumer_keywords:
+  - 'ActiveScriptEventConsumer'
+  - 'CommandLineEventConsumer'
+  - 'CommandLineTemplate'
+        # - 'Binding EventFilter'  # too many false positive with HP Health Driver
+  wmi_filter_registration:
+    EventID: 5859
+  filter_scmevent:
+    Provider: 'SCM Event Provider'
+    Query: 'select * from MSFT_SCMEventLogEvent'
+    User: 'S-1-5-32-544'
+    PossibleCause: 'Permanent'
+  condition: ( (wmi_filter_to_consumer_binding and consumer_keywords) or (wmi_filter_registration)
+    ) and not filter_scmevent
+falsepositives:
+- Unknown (data set is too small; further testing needed)
+level: medium
+notes: |
+  ### Technical Context
+  The WMI Persistence detection rule is designed to identify potentially malicious persistence mechanisms leveraging the Windows Management Instrumentation (WMI) framework. This rule focuses on tracking suspicious activities related to WMI event filters and command line event consumers. Specifically, it examines EventID 5861, which indicates a binding between WMI filters and consumers — particularly those that could enable malicious scripts or commands to run persistently. It also observes EventID 5859, which marks the registration of WMI filters. The rule excludes legitimate filters created by the System Event Manager (SCM) for security event logging to minimize false positives. Key technical data sources for this rule include WMI logs and Windows security logs; thus, analysts should ensure WMI Namespaces Auditing and SACL are configured correctly in their environment.
+  ### Investigation Steps
+  - Use the EDR tool to track and analyze the activity of processes associated with the detected WMI events, checking for unexpected script or executable behavior.
+  - Review Windows Security logs to identify the specific user and time of the event creation and assess if the user account has legitimate permissions.
+  - Query WMI namespaces and the configuration of event consumers on affected machines to determine the legitimacy of the active consumers involved.
+  - Examine network logs and traffic using the NGFW and Proxy tools for any outbound connections initiated by the identified processes, looking for indicators of data exfiltration or command-and-control communication.

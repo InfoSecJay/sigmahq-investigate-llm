@@ -1,0 +1,42 @@
+title: Whoami.EXE Execution From Privileged Process
+id: 79ce34ca-af29-4d0e-b832-fc1b377020db
+related:
+- id: 80167ada-7a12-41ed-b8e9-aa47195c66a1
+  type: obsolete
+status: test
+description: Detects the execution of "whoami.exe" by privileged accounts that are
+  often abused by threat actors
+references:
+- https://speakerdeck.com/heirhabarov/hunting-for-privilege-escalation-in-windows-environment
+- https://web.archive.org/web/20221019044836/https://nsudo.m2team.org/en-us/
+author: Florian Roth (Nextron Systems), Teymur Kheirkhabarov
+date: 2022-01-28
+modified: 2023-12-04
+tags:
+- attack.privilege-escalation
+- attack.discovery
+- attack.t1033
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - OriginalFileName: 'whoami.exe'
+  - Image|endswith: '\whoami.exe'
+  selection_user:
+    User|contains:
+    - 'AUTHORI'
+    - 'AUTORI'
+    - 'TrustedInstaller'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where the command-line utility "whoami.exe" is executed by privileged accounts within a Windows environment. The tool "whoami.exe" is generally used to retrieve the current user's identity, but when leveraged by accounts with elevated privileges, it can indicate potential malicious intentions or privilege escalation attempts. The rule examines process creation logs to capture both the file name of the executed process and the associated user accounts, focusing particularly on users such as 'TrustedInstaller' and those with similar identifiers. By correlating this data, the rule helps analysts detect abnormal behaviors linked to privilege misuse and enumerate the risk of exploitation by threat actors.
+  ### Investigation Steps
+  - Utilize EDR tools to review the process creation logs and identify other processes executed by the same privileged account around the time "whoami.exe" was run.
+  - Cross-reference the execution timestamp with any user activity logs to assess whether the privileged actions were legitimate or anomalous.
+  - Check network logs and firewall rules for any outbound connections initiated by the user or process, which may signify data exfiltration or other malicious activities.
+  - Review system event logs for any changes made by the privileged account around the detection time that could relate to unauthorized configuration changes or privilege escalation attempts.

@@ -1,0 +1,38 @@
+title: UAC Bypass Via Wsreset
+id: 6ea3bf32-9680-422d-9f50-e90716b12a66
+status: test
+description: Unfixed method for UAC bypass from Windows 10. WSReset.exe file associated
+  with the Windows Store. It will run a binary file contained in a low-privilege registry.
+references:
+- https://www.bleepingcomputer.com/news/security/trickbot-uses-a-new-windows-10-uac-bypass-to-launch-quietly
+- https://lolbas-project.github.io/lolbas/Binaries/Wsreset
+author: oscd.community, Dmitry Uchakin
+date: 2020-10-07
+modified: 2021-11-27
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  category: registry_event
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: '\AppX82a6gwre4fdg3bt635tn5ctqjf8msdd2\Shell\open\command'
+  condition: selection
+fields:
+- ComputerName
+- Image
+- EventType
+- TargetObject
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying attempts to bypass User Account Control (UAC) in Windows 10 using the `WSReset.exe` application. This built-in tool is typically associated with the Windows Store and can be exploited to execute binaries from low-privilege registry entries, thereby allowing malicious actors to escalate privileges without triggering alerts. The rule specifically looks for registry events where the target object path ends with a specific command related to `WSReset.exe`. By monitoring these registry access attempts, the rule enables the detection of potential unauthorized activities or evasion tactics used by threat actors.
+  ### Investigation Steps
+  - Review EDR logs to track the execution of `WSReset.exe` and identify any unusual command-line parameters associated with its initiation.
+  - Analyze registry event logs for recent changes to the specified registry keys to understand if there have been any unauthorized modifications or additions.
+  - Investigate network traffic through the NGFW for any outbound connections that coincide with the execution of `WSReset.exe` to assess potential data exfiltration or other malicious activities.
+  - Check AV and threat intelligence sources for known indicators of compromise related to UAC bypass techniques to determine if the incident correlates with existing threats.

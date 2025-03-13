@@ -1,0 +1,35 @@
+title: Esentutl Volume Shadow Copy Service Keys
+id: 5aad0995-46ab-41bd-a9ff-724f41114971
+status: test
+description: Detects the volume shadow copy service initialization and processing
+  via esentutl. Registry keys such as HKLM\\System\\CurrentControlSet\\Services\\VSS\\Diag\\VolSnap\\Volume
+  are captured.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1003.002/T1003.002.md#atomic-test-3---esentutlexe-sam-copy
+author: Roberto Rodriguez (Cyb3rWard0g), OTR (Open Threat Research)
+date: 2020-10-20
+modified: 2022-12-25
+tags:
+- attack.credential-access
+- attack.t1003.002
+logsource:
+  category: registry_event
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: 'System\CurrentControlSet\Services\VSS'
+    Image|endswith: 'esentutl.exe'     # limit esentutl as in references, too many FP to filter
+  filter:
+    TargetObject|contains: 'System\CurrentControlSet\Services\VSS\Start'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Esentutl Volume Shadow Copy Service Keys" detection rule identifies potentially malicious activities involving the Volume Shadow Copy Service (VSS) on Windows systems. Specifically, it targets interactions with the esentutl.exe executable, which is associated with the VSS and can be misused for credential access by manipulating system-level shadow copies. The rule monitors registry events that indicate changes or processing within the VSS settings, focusing on registry keys such as `HKLM\System\CurrentControlSet\Services\VSS`. By scanning for specific patterns within the target object, the rule helps to flag suspicious operations involving this critical system service, thereby alerting SOC analysts to potential abuse of system functionalities.
+  ### Investigation Steps
+  - Review EDR logs for any recent executions of esentutl.exe along with the associated command-line parameters to determine the context of the execution.
+  - Analyze registry event logs around the same time for entries related to `HKLM\System\CurrentControlSet\Services\VSS` to identify any unauthorized modifications or access attempts.
+  - Check process creation logs in your SIEM for any unusual processes spawning from the esentutl.exe instance, which could indicate a larger compromise.
+  - Conduct a review of network traffic and proxy logs to assess any outbound connections made shortly after the execution, which could suggest data exfiltration or command-and-control activity.

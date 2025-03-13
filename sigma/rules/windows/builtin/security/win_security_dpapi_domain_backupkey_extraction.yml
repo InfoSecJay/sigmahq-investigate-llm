@@ -1,0 +1,34 @@
+title: DPAPI Domain Backup Key Extraction
+id: 4ac1f50b-3bd0-4968-902d-868b4647937e
+status: test
+description: Detects tools extracting LSA secret DPAPI domain backup key from Domain
+  Controllers
+references:
+- https://threathunterplaybook.com/hunts/windows/190620-DomainDPAPIBackupKeyExtraction/notebook.html
+author: Roberto Rodriguez @Cyb3rWard0g
+date: 2019-06-20
+modified: 2022-02-24
+tags:
+- attack.credential-access
+- attack.t1003.004
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4662
+    ObjectType: 'SecretObject'
+    AccessMask: '0x2'
+    ObjectName|contains: 'BCKUPKEY'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential unauthorized attempts to extract the Domain Backup Key from Active Directory Domain Controllers, specifically by monitoring access events related to secret objects. It focuses on Windows security log events, particularly Event ID 4662, which signifies actions taken on objects in Active Directory. The rule looks for access events with an ObjectType of "SecretObject" and an AccessMask indicating read access, specifically targeting object names that contain "BCKUPKEY". This monitoring is crucial as the Domain Backup Key is sensitive data that could allow attackers to compromise and decrypt credential information, making it a key target during credential access attacks.
+  ### Investigation Steps
+  - Review EDR logs for any suspicious process executions around the time of the alert to identify potential tools or scripts used to access the Domain Backup Key.
+  - Investigate where the alerting actions originated from by checking the source host details in security logs to determine if a legitimate user or system account was involved.
+  - Utilize Windows Event Forwarding to correlate access events (Event ID 4662) with other logs across Domain Controllers for a more comprehensive assessment of user activities.
+  - Analyze network traffic logs to check for unusual connections or behaviors, particularly from the identified host to other systems, which may indicate lateral movement or data exfiltration attempts.

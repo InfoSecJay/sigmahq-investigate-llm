@@ -1,0 +1,43 @@
+title: Sysmon Configuration Error
+id: 815cd91b-7dbc-4247-841a-d7dd1392b0a8
+status: test
+description: Detects when an adversary is trying to hide it's action from Sysmon logging
+  based on error messages
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1562.001/T1562.001.md
+- https://talesfrominfosec.blogspot.com/2017/12/killing-sysmon-silently.html
+author: frack113
+date: 2021-06-04
+modified: 2022-07-07
+tags:
+- attack.defense-evasion
+- attack.t1564
+logsource:
+  product: windows
+  category: sysmon_error
+detection:
+  selection_error:
+    Description|contains:
+    - 'Failed to open service configuration with error'
+    - 'Failed to connect to the driver to update configuration'
+  filter_generic_english:
+    Description|contains|all:
+    - 'Failed to open service configuration with error'
+    - 'Last error: The media is write protected.'
+  filter_by_errorcode:
+    Description|contains:
+    - 'Failed to open service configuration with error 19'
+    - 'Failed to open service configuration with error 93'
+  condition: selection_error and not 1 of filter*
+falsepositives:
+- Legitimate administrative action
+level: high
+notes: |
+  ### Technical Context
+  The "Sysmon Configuration Error" detection rule identifies potential malicious attempts by adversaries to hide their actions from Sysmon logging. By monitoring specific error messages that indicate failures in opening service configurations or connecting to the Sysmon driver, the rule aims to alert on unusual behaviors that could signify an attempt to evade detection. The rule specifically checks logs from the Sysmon service, which tracks process creations, network connections, and other key system activities in Windows environments. When an adversary encounters errors related to system configuration, it may indicate attempts to disable or tamper with logging, thereby reducing visibility to their activities.
+  The technical data sources involved in this detection include Sysmon error logs, specifically focusing on error descriptions that contain keyword phrases such as "Failed to open service configuration with error" and include certain error codes. These error messages are used as indicators of unusual behavior that could signal adversarial actions aimed at evading security monitoring.
+  ### Investigation Steps
+  - Review Sysmon error logs for occurrences of messages related to "Failed to open service configuration" and "Failed to connect to the driver," which can indicate tampering attempts.
+  - Analyze EDR telemetry to identify any recent changes to Sysmon configurations or related service manipulations that coincide with the error messages detected.
+  - Utilize security logs from the SIEM to correlate user activity and administrative actions taken around the timestamps of the detected errors, helping to discern between legitimate actions and potential threats.
+  - Examine network logs to check for any anomalies or suspicious outbound connections that may align with the detected logging errors, as these might indicate malicious intent or ongoing compromise.

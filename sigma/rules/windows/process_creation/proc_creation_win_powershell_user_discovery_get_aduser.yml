@@ -1,0 +1,51 @@
+title: User Discovery And Export Via Get-ADUser Cmdlet
+id: 1114e048-b69c-4f41-bc20-657245ae6e3f
+related:
+- id: c2993223-6da8-4b1a-88ee-668b8bf315e9
+  type: similar
+status: test
+description: Detects usage of the Get-ADUser cmdlet to collect user information and
+  output it to a file
+references:
+- http://blog.talosintelligence.com/2022/09/lazarus-three-rats.html
+- https://www.microsoft.com/en-us/security/blog/2022/10/18/defenders-beware-a-case-for-post-ransomware-investigations/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-09
+modified: 2022-11-17
+tags:
+- attack.discovery
+- attack.t1033
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+  - OriginalFileName:
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'Get-ADUser '
+    - ' -Filter \*'
+    CommandLine|contains:
+    - ' > '
+    - ' | Select '
+    - 'Out-File'
+    - 'Set-Content'
+    - 'Add-Content'
+  condition: all of selection_*
+falsepositives:
+- Legitimate admin scripts may use the same technique, it's better to exclude specific
+  computers or users who execute these commands or scripts often
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the use of the PowerShell cmdlet `Get-ADUser`, which is often exploited by attackers to extract user information from Active Directory and potentially exfiltrate it to a file. The rule looks for specific process creation events associated with PowerShell, specifically `powershell.exe` and `pwsh.exe`, along with certain command-line parameters that indicate potential malicious activity. The cmdlet's usage is flagged when it includes common piping and output redirection commands like `Out-File`, `Set-Content`, or `Add-Content`, which are typically used to write data to a file. By monitoring these behaviors, the rule helps to detect possible reconnaissance activities that may precede more severe security incidents.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify the instances of `powershell.exe` or `pwsh.exe` that triggered the alert. 
+  - Check the command-line parameters associated with the flagged processes to confirm if `Get-ADUser` was utilized in conjunction with file output redirection.
+  - Examine the user and system account context wherein the PowerShell command was executed to assess if the behavior aligns with legitimate administrative tasks.
+  - Search through the logs of Active Directory and any relevant logs from network security appliances for further context and potential lateral movement indicative of an ongoing attack.

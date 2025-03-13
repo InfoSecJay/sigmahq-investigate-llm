@@ -1,0 +1,34 @@
+title: Invoke-Obfuscation STDIN+ Launcher
+id: 6c96fc76-0eb1-11eb-adc1-0242ac120002
+status: test
+description: Detects Obfuscated use of stdin to execute PowerShell
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009      # (Task 25)
+author: Jonathan Cheong, oscd.community
+date: 2020-10-15
+modified: 2024-04-15
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+        # Example 1: c:\windows\sYstEm32\CmD.eXE /C"echO\Invoke-Expression (New-Object Net.WebClient).DownloadString | POwersHELl -NoEXiT -"
+        # Example 2: c:\WiNDOws\sysTEm32\cmd.EXe /C " ECHo Invoke-Expression (New-Object Net.WebClient).DownloadString | POwersHELl -nol ${EXEcUtIONCONTeXT}.INvOkEComMANd.InvOKEScRIPt( $InpUt )"
+    CommandLine|re: 'cmd.{0,5}(?:/c|/r).+powershell.+(?:\$\{?input\}?|noexit).+\"'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Invoke-Obfuscation STDIN+ Launcher" detection rule is designed to identify the obfuscated execution of PowerShell commands via command-line instructions that invoke `cmd.exe`. Specifically, it looks for patterns where `cmd.exe` is being used to execute PowerShell commands that manipulate input strings or commands from a potentially compromised source, such as a web client. The rule examines process creation logs to capture the command-line usage of `cmd.exe`, focusing on specific sequences indicating PowerShell invocation and the presence of parameters like `/c` or `/r`. By leveraging this information, the rule helps analysts detect potential threats attempting to evade detection through obfuscation techniques commonly used in malicious scripts and exploits.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR to find instances where `cmd.exe` was executed with parameters indicating PowerShell commands. Look for anomalies in the path and command structure.
+  - Analyze the command-line parameters captured, focusing on any usage of `Invoke-Expression` or web downloader functions. This can indicate a likely malicious intent behind the command execution.
+  - Check for associated network activity in Proxy or NDR logs to determine if there was any recent communication with known malicious IP addresses or domains linked to the execution of the PowerShell commands.
+  - Validate any triggers on endpoint antivirus or detection tools to see if they flagged any components of this command execution as suspicious or malicious activity.

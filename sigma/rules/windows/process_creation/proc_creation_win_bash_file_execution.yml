@@ -1,0 +1,53 @@
+title: Indirect Command Execution From Script File Via Bash.EXE
+id: 2d22a514-e024-4428-9dba-41505bd63a5b
+related:
+- id: 5edc2273-c26f-406c-83f3-f4d948e740dd
+  type: similar
+status: test
+description: |
+  Detects execution of Microsoft bash launcher without any flags to execute the content of a bash script directly.
+  This can be used to potentially bypass defenses and execute Linux or Windows-based binaries directly via bash.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Bash/
+- https://linux.die.net/man/1/bash
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-08-15
+tags:
+- attack.defense-evasion
+- attack.t1202
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith:
+    - ':\Windows\System32\bash.exe'
+    - ':\Windows\SysWOW64\bash.exe'
+  - OriginalFileName: 'Bash.exe'
+  filter_main_cli_flag:
+    CommandLine|contains:
+            # Note: we're not interested in flags being passed first
+    - 'bash.exe -'
+    - 'bash -'
+  filter_main_no_cli:
+    CommandLine:
+  filter_main_empty:
+    CommandLine: ''
+  filter_main_no_flag:
+    CommandLine:
+    - 'bash.exe'
+    - 'bash'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies unauthorized execution of scripts through the Microsoft Bash launcher (`bash.exe`) without any command-line flags. Typically, attackers exploit this method to run scripts or binaries while evading standard security measures. The rule analyzes process creation logs for instances where `bash.exe` is executed directly without appended parameters, indicating potential bypass of traditional security controls. 
+  Key technical data sources involved in this detection include process creation logs that capture detailed information such as the executed image, command line parameters, and original file names. By focusing on specific patterns associated with the execution of `bash.exe`, the rule aims to flag suspicious activities that might otherwise go unnoticed, providing valuable insights for further investigation.
+  ### Investigation Steps
+  - Review EDR alerts to identify the initiating process and any related script files that were executed via `bash.exe`. This includes checking the command line used during the execution for potential malicious indicators.
+  - Analyze process creation logs to verify the parent process that launched `bash.exe`, which may provide context on how the command was triggered and if it relates to any other activity that could indicate a security incident.
+  - Check for the presence of any unusual child processes spawned from `bash.exe`, as this could indicate subsequent malicious behavior or exploitation attempts.
+  - Utilize firewall and network logs to examine outbound connections from the system during the time of the detection. Look for any anomalies that may suggest data exfiltration or command and control (C2) communications.

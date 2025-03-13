@@ -1,0 +1,38 @@
+title: Prefetch File Deleted
+id: 0a1f9d29-6465-4776-b091-7f43b26e4c89
+status: test
+description: Detects the deletion of a prefetch file which may indicate an attempt
+  to destroy forensic evidence
+references:
+- Internal Research
+- https://www.group-ib.com/blog/hunting-for-ttps-with-prefetch-files/
+author: Cedric MAURUGEON
+date: 2021-09-29
+modified: 2024-01-25
+tags:
+- attack.defense-evasion
+- attack.t1070.004
+logsource:
+  product: windows
+  category: file_delete
+detection:
+  selection:
+    TargetFilename|contains: ':\Windows\Prefetch\'
+    TargetFilename|endswith: '.pf'
+  filter_main_svchost:
+    Image|endswith: ':\windows\system32\svchost.exe'
+    User|contains:     # covers many language settings
+    - 'AUTHORI'
+    - 'AUTORI'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Prefetch File Deleted" detection rule identifies the deletion of prefetch files, typically ending with a `.pf` extension and located in the `C:\Windows\Prefetch\` directory. Prefetch files are used by Windows to speed up the loading of applications, and their deletion can indicate an attempt to eliminate forensic artifacts that could be useful during a forensic investigation. The rule focuses on the action of file deletion logged by Windows, specifically looking for events that indicate these files are being removed by processes running from `svchost.exe`. This context highlights potential malicious activity consistent with the tactics used to obscure traces of executed applications.
+  ### Investigation Steps
+  - Review the file deletion event logs to confirm the deletion of any `.pf` files, noting the timestamp and user involved in the action.
+  - Utilize EDR tools to investigate the process activity around the time of deletion, specifically focusing on `svchost.exe` and any child processes it may have spawned.
+  - Cross-reference other logs, such as process creation and network activity, to identify any unusual behavior associated with the user or system executing the deletion.
+  - Conduct a review of antivirus and endpoint logs to ensure no concurrent detections indicate malware activity or other security events that might correlate with the file deletion.

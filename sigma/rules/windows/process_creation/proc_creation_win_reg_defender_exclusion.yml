@@ -1,0 +1,43 @@
+title: Suspicious Windows Defender Folder Exclusion Added Via Reg.EXE
+id: 48917adc-a28e-4f5d-b729-11e75da8941f
+status: test
+description: Detects the usage of "reg.exe" to add Defender folder exclusions. Qbot
+  has been seen using this technique to add exclusions for folders within AppData
+  and ProgramData.
+references:
+- https://thedfirreport.com/2022/02/07/qbot-likes-to-move-it-move-it/
+- https://redcanary.com/threat-detection-report/threats/qbot/
+author: frack113
+date: 2022-02-13
+modified: 2023-02-04
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\reg.exe'
+    CommandLine|contains:
+    - 'SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths'
+    - 'SOFTWARE\Microsoft\Microsoft Antimalware\Exclusions\Paths'
+    CommandLine|contains|all:
+    - 'ADD '
+    - '/t '
+    - 'REG_DWORD '
+    - '/v '
+    - '/d '
+    - '0'
+  condition: selection
+falsepositives:
+- Legitimate use
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies suspicious usage of the `reg.exe` utility in Windows, specifically targeting the creation of folder exclusions in Windows Defender. Attackers, like those utilizing the Qbot malware, often employ this method to prevent security software from scanning certain directories, allowing them to hide malicious files and activities. The rule looks for process creation logs where the command line of `reg.exe` includes patterns indicating it is being used to add exclusions to the Windows Defender settings. The relevant command line parameters include indications of adding a new exclusion (`ADD`), specifying the key type (`REG_DWORD`), and setting the exclusion's value to disable monitoring for those folders (`/d 0`).
+  ### Investigation Steps
+  - Review EDR logs to identify occurrences of the `reg.exe` process creation, particularly focusing on any related command-line arguments that suggest modifications to Windows Defender exclusions.
+  - Utilize the SIEM to search for the specific registry keys mentioned in the rule, tracking any unauthorized changes to `SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths` or similar keys.
+  - Examine Application and Security event logs to gather contextual information on the system activity around the time the `reg.exe` command was executed, highlighting any potentially malicious behavior.
+  - Check cloud logging for any remote command execution or suspicious account activity that could correlate with the creation of these exclusions, indicating a broader attack vector being exploited.

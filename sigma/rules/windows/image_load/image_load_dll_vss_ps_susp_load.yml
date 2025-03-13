@@ -1,0 +1,69 @@
+title: Suspicious Volume Shadow Copy VSS_PS.dll Load
+id: 333cdbe8-27bb-4246-bf82-b41a0dca4b70
+related:
+- id: 48bfd177-7cf2-412b-ad77-baf923489e82     # vsstrace.dll
+  type: similar
+- id: 37774c23-25a1-4adb-bb6d-8bb9fd59c0f8     # vssapi.dll
+  type: similar
+status: test
+description: Detects the image load of vss_ps.dll by uncommon executables
+references:
+- https://www.virustotal.com/gui/file/ba88ca45589fae0139a40ca27738a8fc2dfbe1be5a64a9558f4e0f52b35c5add
+- https://twitter.com/am0nsec/status/1412232114980982787
+author: Markus Neis, @markus_neis
+date: 2021-07-07
+modified: 2024-03-28
+tags:
+- attack.defense-evasion
+- attack.impact
+- attack.t1490
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\vss_ps.dll'
+  filter_legit:
+    Image|startswith: 'C:\Windows\'
+    Image|endswith:
+    - '\clussvc.exe'
+    - '\dismhost.exe'
+    - '\dllhost.exe'
+    - '\inetsrv\appcmd.exe'
+    - '\inetsrv\iissetup.exe'
+    - '\msiexec.exe'
+    - '\rundll32.exe'
+    - '\searchindexer.exe'
+    - '\srtasks.exe'
+    - '\svchost.exe'
+    - '\System32\SystemPropertiesAdvanced.exe'
+    - '\taskhostw.exe'
+    - '\thor.exe'
+    - '\thor64.exe'
+    - '\tiworker.exe'
+    - '\vssvc.exe'
+    - '\WmiPrvSE.exe'
+    - '\wsmprovhost.exe'
+  filter_programfiles:
+        # When using this rule in your environment replace the "Program Files" folder by the exact applications you know use this. Examples would be software such as backup solutions
+    Image|startswith:
+    - 'C:\Program Files\'
+    - 'C:\Program Files (x86)\'
+  filter_update:
+    CommandLine|startswith: 'C:\$WinREAgent\Scratch\'
+    CommandLine|contains: '\dismhost.exe {'
+  filter_image_null:
+    Image:
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  n
+  ### Technical Context
+  The Sigma rule titled "Suspicious Volume Shadow Copy VSS_PS.dll Load" is designed to detect the loading of the `vss_ps.dll` library by uncommon executables that do not typically interact with it. Volume Shadow Copy Service (VSS) is a feature in Windows that creates backup copies or snapshots of computer files or volumes, which can potentially be abused by attackers for malicious purposes, such as ransomware activity, to manipulate or delete backups. The rule examines image load events on Windows systems, specifically looking for instances where `vss_ps.dll` is loaded by processes that are not recognized as legitimate users of this library. By analyzing data sources like process creation logs and command line parameters, this detection rule enhances the security posture by identifying unusual behaviors that may signify a security incident.
+  ### Investigation Steps
+  - Investigate the process details using EDR tools to identify the context in which `vss_ps.dll` was loaded, including any unusual parent-child relationships.
+  - Check command-line arguments associated with the detected process to see if they indicate any suspicious activity, such as references to backup manipulation.
+  - Review threat intelligence sources and virus scanning platforms like VirusTotal for additional details on the executable that loaded `vss_ps.dll` to assess its reputation.
+  - Analyze relevant Windows Event Logs for any preceding events leading up to the loading of `vss_ps.dll`, focusing on file changes or modifications related to Volume Shadow Copy snapshots.

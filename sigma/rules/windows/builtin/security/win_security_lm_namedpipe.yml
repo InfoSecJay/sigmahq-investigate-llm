@@ -1,0 +1,57 @@
+title: First Time Seen Remote Named Pipe
+id: 52d8b0c6-53d6-439a-9e41-52ad442ad9ad
+status: test
+description: This detection excludes known namped pipes accessible remotely and notify
+  on newly observed ones, may help to detect lateral movement and remote exec using
+  named pipes
+references:
+- https://twitter.com/menasec1/status/1104489274387451904
+author: Samir Bousseaden
+date: 2019-04-03
+modified: 2023-03-14
+tags:
+- attack.lateral-movement
+- attack.t1021.002
+logsource:
+  product: windows
+  service: security
+  definition: 'The advanced audit policy setting "Object Access > Audit Detailed File
+    Share" must be configured for Success/Failure'
+detection:
+  selection1:
+    EventID: 5145
+    ShareName: '\\\\\*\\IPC$'     # looking for the string \\*\IPC$
+  false_positives:
+    RelativeTargetName:
+    - 'atsvc'
+    - 'samr'
+    - 'lsarpc'
+    - 'lsass'
+    - 'winreg'
+    - 'netlogon'
+    - 'srvsvc'
+    - 'protected_storage'
+    - 'wkssvc'
+    - 'browser'
+    - 'netdfs'
+    - 'svcctl'
+    - 'spoolss'
+    - 'ntsvcs'
+    - 'LSM_API_service'
+    - 'HydraLsPipe'
+    - 'TermSrv_API_service'
+    - 'MsFteWds'
+    - 'sql\query'
+    - 'eventlog'
+  condition: selection1 and not false_positives
+falsepositives:
+- Update the excluded named pipe to filter out any newly observed legit named pipe
+level: high
+notes: |
+  ### Technical Context
+  The "First Time Seen Remote Named Pipe" detection rule is designed to identify potentially malicious lateral movement or remote execution attempts within a Windows environment, specifically leveraging named pipes for communication. Named pipes are a method of inter-process communication that can be accessed remotely, making them a potential vector for attackers trying to exploit system vulnerabilities or gain unauthorized access. This rule monitors security event logs for Event ID 5145, which indicates the access of a file share, specifically targeting the IPC$ pipe. By focusing on newly observed instances of remote named pipe access while excluding known, legitimate named pipes, the rule aims to identify suspicious activity that warrants further investigation. Effective configuration of audit policies is critical, ensuring the "Object Access > Audit Detailed File Share" setting is enabled for success and failure audits.
+  ### Investigation Steps
+  - Review the EDR logs for the system where the alert was triggered to gather details about process activities, especially any unusual command lines or unexpected parent-child relationships.
+  - Query the security event logs for Event ID 5145 to identify the context of the access attempt, including the user account, source IP, and timestamp associated with the newly observed named pipe.
+  - Utilize network traffic analysis tools (NDR) to examine traffic patterns for the involved hosts, looking for connections that match lateral movement characteristics and check for any anomalous behavior.
+  - Check for historical data in the SIEM to identify any previous instances of access to the implicated named pipe and to understand if the activity is part of a wider pattern of behavior.

@@ -1,0 +1,37 @@
+title: Potential Ransomware Activity Using LegalNotice Message
+id: 8b9606c9-28be-4a38-b146-0e313cc232c1
+status: test
+description: Detect changes to the "LegalNoticeCaption" or "LegalNoticeText" registry
+  values where the message set contains keywords often used in ransomware ransom messages
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/5c1e6f1b4fafd01c8d1ece85f510160fc1275fbf/atomics/T1491.001/T1491.001.md
+author: frack113
+date: 2022-12-11
+modified: 2023-08-17
+tags:
+- attack.impact
+- attack.t1491.001
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject|contains:
+    - '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\LegalNoticeCaption'
+    - '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\LegalNoticeText'
+    Details|contains:
+    - 'encrypted'
+    - 'Unlock-Password'
+    - 'paying'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential ransomware activity by monitoring changes to specific registry values related to legal notices in Windows systems. The rule specifically looks for modifications to the "LegalNoticeCaption" and "LegalNoticeText" entries within the registry. When these values are changed and contain certain language commonly associated with ransomware demands—such as "encrypted," "Unlock-Password," or "paying"—the rule triggers an alert. Technical data sources involved in this detection include Windows registry change logs, which provide detailed insights into modifications to system configurations.
+  ### Investigation Steps
+  - Review the alert details in the SIEM to understand the context of the registry modifications and the specific keywords detected in the legal notice.
+  - Use EDR tools to correlate the timestamp of the registry change with other endpoint activities, such as process creation and network connections, to identify any suspicious behavior.
+  - Check proxy logs for outbound connections to known malicious domains or IP addresses immediately following the registry changes to assist in identifying potential command and control communication.
+  - If applicable, assess any cloud logs from GCP, AWS, or Azure for unusual activities or interactions that align with the identified ransomware behavior, focusing on user and resource changes.

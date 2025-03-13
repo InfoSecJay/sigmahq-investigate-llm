@@ -1,0 +1,40 @@
+title: Sysinternals PsSuspend Suspicious Execution
+id: 4beb6ae0-f85b-41e2-8f18-8668abc8af78
+related:
+- id: 48bbc537-b652-4b4e-bd1d-281172df448f     # Basic Execution
+  type: similar
+status: test
+description: Detects suspicious execution of Sysinternals PsSuspend, where the utility
+  is used to suspend critical processes such as AV or EDR to bypass defenses
+references:
+- https://learn.microsoft.com/en-us/sysinternals/downloads/pssuspend
+- https://twitter.com/0gtweet/status/1638069413717975046
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-03-23
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - OriginalFileName: 'pssuspend.exe'
+  - Image|endswith:
+    - '\pssuspend.exe'
+    - '\pssuspend64.exe'
+  selection_cli:
+        # Add more interesting/critical processes
+    CommandLine|contains: 'msmpeng.exe'
+  condition: all of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This rule is designed to detect potentially malicious activity involving the Sysinternals tool PsSuspend, which can be used to suspend critical system processes, such as antivirus (AV) and endpoint detection and response (EDR) services. Attackers may use PsSuspend to disable security measures, thereby allowing them to evade detection while executing further malicious actions. The rule focuses on process creation logs, specifically looking for instances where PsSuspend is executed either through its direct executable files (`pssuspend.exe` or `pssuspend64.exe`) or via command-line parameters that include the names of critical processes, such as `msmpeng.exe`, which is associated with Windows Defender. By utilizing a combination of these detection methods, the rule effectively identifies suspicious use of the PsSuspend utility.
+  ### Investigation Steps
+  - Examine the process creation logs in your EDR to identify instances of `pssuspend.exe` or `pssuspend64.exe` execution in proximity to the alerts.
+  - Review command-line arguments associated with the PsSuspend executions to verify if they match any critical processes, such as antivirus or security-related services.
+  - Check your SIEM for any previous alerts correlated with the timestamps of the PsSuspend executions to assess if there’s a broader pattern indicating potential malicious behavior.
+  - Utilize your AV and NDR tools to perform a scan on the affected endpoints and verify if any malicious activities were initiated following the suspension of critical processes.

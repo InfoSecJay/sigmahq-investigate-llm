@@ -1,0 +1,35 @@
+title: Bypass UAC Using DelegateExecute
+id: 46dd5308-4572-4d12-aa43-8938f0184d4f
+status: test
+description: Bypasses User Account Control using a fileless method
+references:
+- https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nn-shobjidl_core-iexecutecommand
+- https://devblogs.microsoft.com/oldnewthing/20100312-01/?p=14623
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1548.002/T1548.002.md#atomic-test-7---bypass-uac-using-sdclt-delegateexecute
+author: frack113
+date: 2022-01-05
+modified: 2023-08-17
+tags:
+- attack.privilege-escalation
+- attack.defense-evasion
+- attack.t1548.002
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: '\open\command\DelegateExecute'
+    Details: (Empty)
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Bypass UAC Using DelegateExecute" is designed to detect attempts to bypass Windows User Account Control (UAC) through a method that involves manipulating the registry to exploit the `DelegateExecute` functionality. This technique allows attackers to elevate privileges without triggering typical UAC prompts. The rule focuses on identifying entries in the Windows registry that end with `\open\command\DelegateExecute` and lack additional details, which may indicate a risky manipulation typically associated with fileless attacks. Key data sources include registry set logs that can provide insights into changes made to UAC settings or commands executed.
+  By monitoring these specific registry entries, this detection aims to highlight potential evasion tactics used by attackers to run malicious processes with elevated privileges, thereby circumventing security measures intended to protect system integrity.
+  ### Investigation Steps
+  - Review EDR logs to investigate the execution context of any processes associated with the detected registry changes, focusing on timestamps and user activity.
+  - Check for any recent changes in registry keys related to UAC, specifically those associated with `DelegateExecute`, to determine if they were made by authorized personnel or processes.
+  - Analyze command-line parameters of processes that accessed the registry key to identify any suspicious command executions or arguments that may indicate malicious intent.
+  - Consult firewall and proxy logs to trace any outbound communications from suspicious processes, which can help in understanding the broader context of the activity and potential data exfiltration efforts.

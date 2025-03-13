@@ -1,0 +1,37 @@
+title: WINEKEY Registry Modification
+id: b98968aa-dbc0-4a9c-ac35-108363cbf8d5
+status: test
+description: Detects potential malicious modification of run keys by winekey or team9
+  backdoor
+references:
+- https://www.fireeye.com/blog/threat-research/2020/10/kegtap-and-singlemalt-with-a-ransomware-chaser.html
+author: omkar72
+date: 2020-10-30
+modified: 2021-11-27
+tags:
+- attack.persistence
+- attack.t1547
+logsource:
+  category: registry_event
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: 'Software\Microsoft\Windows\CurrentVersion\Run\Backup Mgr'
+  condition: selection
+fields:
+- ComputerName
+- Image
+- EventType
+- TargetObject
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "WINEKEY Registry Modification" detection rule identifies potential unauthorized or malicious modifications to Windows Registry run keys, specifically targeting the "Backup Mgr" entry within the 'Software\Microsoft\Windows\CurrentVersion\Run' path. This rule looks for modifications performed by the "winekey" or "team9" backdoor, both of which are associated with persistence mechanisms that adversaries use to maintain access to compromised systems. The rule utilizes Windows Registry event logs as its primary data source, particularly monitoring for changes that reflect the addition, modification, or deletion of run keys that can ensure malicious programs execute on system startup.
+  Given that persistence techniques like registry modifications often indicate ongoing malicious activity, alerts triggered by this rule warrant thorough investigation. Understanding the context of such modifications is crucial to determine whether they represent a benign or malicious intent.
+  ### Investigation Steps
+  - Review the EDR logs to analyze the context in which the registry modification occurred, focusing on the associated process that made the change, including its parent process.
+  - Investigate command-line parameters of the identified process to discern if any unusual or suspicious behavior was exhibited that aligns with known backdoor activity.
+  - Cross-reference the timestamp of the registry modification with other logs (such as VPN, Proxy, and AV logs) to identify any anomalous user behavior or remote access correlated with the event.
+  - Assess the affected host for additional signs of compromise, including other registry modifications, unexpected processes, or indicators of lateral movement within the network.

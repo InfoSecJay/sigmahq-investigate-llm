@@ -1,0 +1,36 @@
+title: Invoke-Obfuscation CLIP+ Launcher - PowerShell Module
+id: a136cde0-61ad-4a61-9b82-8dc490e60dd2
+related:
+- id: 73e67340-0d25-11eb-adc1-0242ac120002
+  type: derived
+status: test
+description: Detects Obfuscated use of Clip.exe to execute PowerShell
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009      # (Task 26)
+author: Jonathan Cheong, oscd.community
+date: 2020-10-13
+modified: 2024-04-05
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_module
+  definition: 0ad03ef1-f21b-4a79-8ce8-e6900c54b65b
+detection:
+  selection_4103:
+    Payload|re: 'cmd.{0,5}(?:/c|/r).+clip(?:\.exe)?.{0,4}&&.+clipboard]::\(\s\\"\{\d\}.+-f.+"'
+  condition: selection_4103
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Invoke-Obfuscation CLIP+ Launcher" detection rule aims to identify obfuscated PowerShell commands that utilize `clip.exe` to execute malicious payloads. This technique is often leveraged by attackers to mask their true intentions, making it difficult for traditional security mechanisms to recognize harmful activity. The rule specifically looks for certain command structures within PowerShell logs, particularly those that involve the use of `clip.exe` along with obfuscated command-line parameters. The primary data source for this detection is Windows PowerShell module logs, where the execution of suspicious commands can be monitored in real-time. By focusing on the patterns associated with the use of `cmd.exe` and `clip.exe`, this rule assists incident responders in identifying potential exploitation attempts or malware execution.
+  ### Investigation Steps
+  - Review PowerShell execution logs in the EDR to identify the commands that initiated the use of `clip.exe`, paying particular attention to any obfuscated arguments.
+  - Check the event logs on the affected systems for any signs of lateral movement or additional suspicious command executions around the same time as the alert.
+  - Examine network traffic patterns using NDR tools to determine if there was any anomalous outbound traffic coinciding with the execution of the detected command.
+  - Analyze user activity and access logs in your identity management system to uncover any unusual logins or execution patterns that may correlate with the incident.

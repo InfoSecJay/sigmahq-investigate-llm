@@ -1,0 +1,37 @@
+title: Powershell Keylogging
+id: 34f90d3c-c297-49e9-b26d-911b05a4866c
+status: test
+description: Adversaries may log user keystrokes to intercept credentials as the user
+  types them.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1218/T1218.md
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1056.001/src/Get-Keystrokes.ps1
+author: frack113
+date: 2021-07-30
+modified: 2022-07-11
+tags:
+- attack.collection
+- attack.t1056.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_basic:
+    ScriptBlockText|contains: 'Get-Keystrokes'
+  selection_high:   # want to run in background and keyboard
+    ScriptBlockText|contains|all:
+    - 'Get-ProcAddress user32.dll GetAsyncKeyState'
+    - 'Get-ProcAddress user32.dll GetForegroundWindow'
+  condition: 1 of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential keylogging activities performed through PowerShell scripts. It specifically identifies the use of a function named `Get-Keystrokes`, which is often employed by adversaries to capture keystrokes from users and siphon off sensitive information such as credentials. The rule analyzes PowerShell script block logs, focusing on specific terms within the script commands that suggest the presence of keylogging activity. To function effectively, it requires that script block logging is enabled on the Windows machine, capturing detailed information about how PowerShell scripts are executed. By examining the presence of both the `Get-Keystrokes` function and calls to the `user32.dll` library (specifically `GetAsyncKeyState` and `GetForegroundWindow`), the rule strives to detect instances where scripts are likely operating in the background to monitor user input.
+  ### Investigation Steps
+  - Review PowerShell logs via EDR to identify any recent script block logs containing the `Get-Keystrokes` function or related commands. 
+  - Utilize the SIEM to correlate alerts from the time window identified with other user activities to determine if the system's normal behavior was disrupted.
+  - Check the process creation logs for unusual PowerShell process initiations, especially those that coincide with the suspected keylogging scripts.
+  - Analyze endpoint security alerts and AV logs to see if any known keylogging signatures have been triggered or if any suspicious behavior has been logged for the affected endpoints.

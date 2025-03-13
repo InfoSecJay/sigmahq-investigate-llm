@@ -1,0 +1,48 @@
+title: Potential Adplus.EXE Abuse
+id: 2f869d59-7f6a-4931-992c-cce556ff2d53
+status: test
+description: Detects execution of "AdPlus.exe", a binary that is part of the Windows
+  SDK that can be used as a LOLBIN in order to dump process memory and execute arbitrary
+  commands.
+references:
+- https://lolbas-project.github.io/lolbas/OtherMSBinaries/Adplus/
+- https://twitter.com/nas_bench/status/1534916659676422152
+- https://twitter.com/nas_bench/status/1534915321856917506
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-09
+modified: 2023-06-23
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1003.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\adplus.exe'
+  - OriginalFileName: 'Adplus.exe'
+  selection_cli:
+    CommandLine|contains:
+            # Dump process memory
+    - ' -hang '
+    - ' -pn '
+    - ' -pmn '
+    - ' -p '
+    - ' -po '
+            # Using a config file
+    - ' -c '
+            # Execute commands inline
+    - ' -sc '
+  condition: all of selection_*
+falsepositives:
+- Legitimate usage of Adplus for debugging purposes
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Potential Adplus.EXE Abuse" identifies instances where the Windows SDK binary `AdPlus.exe` is executed in a potentially malicious context. `AdPlus.exe` is commonly utilized for debugging purposes, as it can dump memory from running processes. However, it is also recognized as a living-off-the-land binary (LOLBIN) that adversaries may use to execute arbitrary commands and extract sensitive information from system memory. The rule focuses on two main indicators: the execution of the `AdPlus.exe` process itself, along with suspicious command-line parameters that might indicate misuse, such as options for hanging processes, defining process names, and executing commands directly. The main data sources involved in this detection are Windows process creation logs, which capture details such as the image name and command-line parameters.
+  ### Investigation Steps
+  - Use EDR tools to search for recent executions of `AdPlus.exe`, focusing on the timestamps and user accounts to determine if the execution is legitimate or potentially malicious.
+  - Review command-line arguments associated with the execution in process creation logs for suspicious flags that indicate misuse, such as `-sc` for executing commands inline.
+  - Correlate the use of `AdPlus.exe` with other security events and alerts captured by your SIEM to assess the overall context of the behavior and any related activity.
+  - Analyze any process memory dumps taken using `AdPlus.exe` for indications of sensitive data exfiltration or malicious payloads, coordinating with your incident response team for in-depth analysis as necessary.

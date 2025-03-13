@@ -1,0 +1,53 @@
+title: NetNTLM Downgrade Attack - Registry
+id: d67572a0-e2ec-45d6-b8db-c100d14b8ef2
+status: test
+description: Detects NetNTLM downgrade attack
+references:
+- https://web.archive.org/web/20171113231705/https://www.optiv.com/blog/post-exploitation-using-netntlm-downgrade-attacks
+- https://www.ultimatewindowssecurity.com/wiki/page.aspx?spid=NSrpcservers
+author: Florian Roth (Nextron Systems), wagga, Nasreddine Bencherchali (Splunk STRT)
+date: 2018-03-20
+modified: 2024-12-03
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+- attack.t1112
+logsource:
+  product: windows
+  category: registry_event
+detection:
+  selection_regkey:
+    TargetObject|contains|all:
+    - 'SYSTEM\'
+    - 'ControlSet'
+    - '\Control\Lsa'
+  selection_value_lmcompatibilitylevel:
+    TargetObject|endswith: '\lmcompatibilitylevel'
+    Details:
+    - 'DWORD (0x00000000)'
+    - 'DWORD (0x00000001)'
+    - 'DWORD (0x00000002)'
+  selection_value_ntlmminclientsec:
+    TargetObject|endswith: '\NtlmMinClientSec'
+    Details:
+    - 'DWORD (0x00000000)'         # No Security
+    - 'DWORD (0x00000010)'         # Only Integrity
+    - 'DWORD (0x00000020)'         # Only confidentiality
+    - 'DWORD (0x00000030)'         # Both Integrity and confidentiality
+  selection_value_restrictsendingntlmtraffic:
+        # Note: The obvious values with issues are 0x00000000 (allow all) and 0x00000001 (audit).
+        # 0x00000002 can be secure but only if "ClientAllowedNTLMServers" is properly configured
+        # Hence all values should be monitored and investigated
+    TargetObject|endswith: '\RestrictSendingNTLMTraffic'
+  condition: selection_regkey and 1 of selection_value_*
+falsepositives:
+- Services or tools that set the values to more restrictive values
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential NetNTLM downgrade attacks by monitoring specific Windows registry entries associated with security settings. The detection focuses on the `SYSTEM` registry hive, particularly on configurations within the `ControlSet\Control\Lsa` subtree. Specifically, the rule watches for suspicious values in the `lmcompatibilitylevel`, `NtlmMinClientSec`, and `RestrictSendingNTLMTraffic` keys. Finding low-security settings such as `DWORD (0x00000000)` or `DWORD (0x00000001)` in these registry values might indicate that a system is vulnerable to downgrade attacks, where attackers can exploit weaker authentication methods to gain unauthorized access. By utilizing registry event logs, this rule helps in identifying potential misconfigurations that could facilitate further attacks.
+  ### Investigation Steps
+  - Examine relevant registry event logs to confirm changes made to the `lmcompatibilitylevel`, `NtlmMinClientSec`, and `RestrictSendingNTLMTraffic` values. 
+  - Use EDR tools to conduct a thorough review of process and service activities around the time the registry changes were detected, seeking any unusual behavior or unauthorized access attempts.
+  - Cross-reference alerts with network traffic logs from the NGFW and NDR solutions to identify any anomalous authentication requests or patterns that might indicate exploitation attempts.
+  - Consider reviewing logs from AV or endpoint protection tools to uncover any related alerts or blocked activities that coincide with the registry alterations, which may provide additional context for the incident.

@@ -1,0 +1,48 @@
+title: Process Memory Dump via RdrLeakDiag.EXE
+id: edadb1e5-5919-4e4c-8462-a9e643b02c4b
+related:
+- id: 6355a919-2e97-4285-a673-74645566340d
+  type: obsolete
+status: test
+description: Detects the use of the Microsoft Windows Resource Leak Diagnostic tool
+  "rdrleakdiag.exe" to dump process memory
+references:
+- https://www.pureid.io/dumping-abusing-windows-credentials-part-1/
+- https://www.crowdstrike.com/blog/overwatch-exposes-aquatic-panda-in-possession-of-log-4-shell-exploit-tools/
+- https://lolbas-project.github.io/lolbas/Binaries/Rdrleakdiag/
+- https://twitter.com/0gtweet/status/1299071304805560321?s=21
+- https://news.sophos.com/en-us/2024/06/05/operation-crimson-palace-a-technical-deep-dive
+author: Cedric MAURUGEON, Florian Roth (Nextron Systems), Swachchhanda Shrawan Poudel,
+  Nasreddine Bencherchali (Nextron Systems)
+date: 2021-09-24
+modified: 2024-08-15
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\rdrleakdiag.exe'
+  - OriginalFileName: RdrLeakDiag.exe
+  selection_cli_dump:
+    CommandLine|contains|windash:
+    - '/memdmp'
+    - 'fullmemdmp'
+  selection_cli_output_process:
+    CommandLine|contains|windash:
+    - ' /o '         # Output
+    - ' /p '         # Process
+  condition: all of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of the Windows Resource Leak Diagnostic tool `rdrleakdiag.exe`, which can be used maliciously to dump process memory. The rule looks for specific indicators within process creation logs, particularly focusing on the image file name, original file name, and command-line parameters that indicate an attempt to create memory dumps. Key command-line arguments like `/memdmp` and `/o` are monitored to identify unapproved use of this tool, which can lead to the potential extraction of sensitive information such as credentials from a target process. By tracking these activities, security teams can intervene and conduct further investigations into possible instances of credential theft or other malicious actions.
+  ### Investigation Steps
+  Investigate the process creation logs for any instances of `rdrleakdiag.exe` to confirm unauthorized execution of the tool.
+  Check the command-line arguments associated with the process to identify any indications of memory dumping activities.
+  Retrieve relevant EDR alerts for potential related threats on the same endpoints, looking for any anomalies or signs of compromise.
+  Analyze network logs from proxies or firewalls for unusual outbound connections that may correlate with the timing of the memory dump tool's usage.

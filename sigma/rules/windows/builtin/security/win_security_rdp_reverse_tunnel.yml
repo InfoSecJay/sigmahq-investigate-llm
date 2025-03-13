@@ -1,0 +1,53 @@
+title: RDP over Reverse SSH Tunnel WFP
+id: 5bed80b6-b3e8-428e-a3ae-d3c757589e41
+status: test
+description: Detects svchost hosting RDP termsvcs communicating with the loopback
+  address
+references:
+- https://twitter.com/SBousseaden/status/1096148422984384514
+- https://github.com/sbousseaden/EVTX-ATTACK-SAMPLES/blob/44fbe85f72ee91582876b49678f9a26292a155fb/Command%20and%20Control/DE_RDP_Tunnel_5156.evtx
+author: Samir Bousseaden
+date: 2019-02-16
+modified: 2022-09-02
+tags:
+- attack.defense-evasion
+- attack.command-and-control
+- attack.lateral-movement
+- attack.t1090.001
+- attack.t1090.002
+- attack.t1021.001
+- car.2013-07-002
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 5156
+  sourceRDP:
+    SourcePort: 3389
+    DestAddress:
+    - '127.*'
+    - '::1'
+  destinationRDP:
+    DestPort: 3389
+    SourceAddress:
+    - '127.*'
+    - '::1'
+  filter_app_container:
+    FilterOrigin: 'AppContainer Loopback'
+  filter_thor:    # checking BlueKeep vulnerability
+    Application|endswith:
+    - '\thor.exe'
+    - '\thor64.exe'
+  condition: selection and ( sourceRDP or destinationRDP ) and not 1 of filter*
+falsepositives:
+- Programs that connect locally to the RDP port
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potential misuse of the Remote Desktop Protocol (RDP) over a reverse SSH tunnel by monitoring Windows Firewall events related to port 3389, commonly used for RDP connections. Specifically, it looks for event logs (Event ID 5156) indicating that `svchost` is connecting with the loopback address (127.0.0.1 or ::1) from or to RDP services. The presence of applications like `thor.exe` or `thor64.exe` is also checked to rule out false positives related to legitimate local RDP connections. By leveraging these logs, the rule aims to detect lateral movements or command and control activities that may indicate a compromised environment where RDP is being used inappropriately.
+  ### Investigation Steps
+  - Review EDR logs for any recent execution of `svchost.exe` and associated processes like `thor.exe` to ascertain the context of the alerts.
+  - Utilize Windows Firewall logs to investigate all recent connections on port 3389, specifically those coming from or going to the loopback address.
+  - Correlate findings with the SIEM for any concurrent alerts or anomalies related to user account activity that may indicate unauthorized access.
+  - Check AV and endpoint protection logs for any related detections or responses regarding suspicious activities associated with RDP or reverse SSH tunnels.

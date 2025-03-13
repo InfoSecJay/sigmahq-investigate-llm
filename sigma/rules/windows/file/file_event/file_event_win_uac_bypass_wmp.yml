@@ -1,0 +1,37 @@
+title: UAC Bypass Using Windows Media Player - File
+id: 68578b43-65df-4f81-9a9b-92f32711a951
+status: test
+description: Detects the pattern of UAC Bypass using Windows Media Player osksupport.dll
+  (UACMe 32)
+references:
+- https://github.com/hfiref0x/UACME
+author: Christian Burkard (Nextron Systems)
+date: 2021-08-23
+modified: 2022-10-09
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection1:
+    TargetFilename|startswith: 'C:\Users\'
+    TargetFilename|endswith: '\AppData\Local\Temp\OskSupport.dll'
+  selection2:
+    Image: 'C:\Windows\system32\DllHost.exe'
+    TargetFilename: 'C:\Program Files\Windows Media Player\osk.exe'
+  condition: 1 of selection*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule identifies attempts to bypass User Account Control (UAC) using a specific method involving Windows Media Player's `osk.exe` and a malicious `osksupport.dll`. UAC Bypass is a technique used by attackers to elevate their privileges without proper authentication. The rule specifically looks for file events related to the loading of `osksupport.dll` from the `Temp` directory of users, which is a common tactic used in this type of attack. It monitors for interactions between `DllHost.exe` and `osk.exe` within the Windows Media Player application, indicating a potential exploit of the media player to execute malicious code.
+  The data sources involved in this detection include file event logs, which track the creation and access of files on the system, particularly monitoring the paths and filenames associated with the malicious payload. By observing the targeted filenames and processes, security teams can detect unauthorized privilege escalation attempts in their environments.
+  ### Investigation Steps
+  - Utilize EDR tools to examine the execution history of `DllHost.exe` and `osk.exe` to determine the origin and execution context of these processes.
+  - Review the file event logs for access or creation events involving `osksupport.dll` in the `C:\Users\*\AppData\Local\Temp\` directory.
+  - Analyze proxy logs to identify any related external communication that may indicate Command and Control (C2) activity or remote exploitation efforts leading to this exploit.
+  - Check cloud logs for any user activity or access patterns that coincide with the detection time frame, particularly focusing on any unusual administrative actions or privilege escalations.

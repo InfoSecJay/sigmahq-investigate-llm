@@ -1,0 +1,40 @@
+title: Dllhost.EXE Execution Anomaly
+id: e7888eb1-13b0-4616-bd99-4bc0c2b054b9
+status: test
+description: Detects a "dllhost" process spawning with no commandline arguments which
+  is very rare to happen and could indicate process injection activity or malware
+  mimicking similar system processes.
+references:
+- https://redcanary.com/blog/child-processes/
+- https://nasbench.medium.com/what-is-the-dllhost-exe-process-actually-running-ef9fe4c19c08
+- https://www.ncsc.gov.uk/static-assets/documents/malware-analysis-reports/goofy-guineapig/NCSC-MAR-Goofy-Guineapig.pdf
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-27
+modified: 2023-05-15
+tags:
+- attack.defense-evasion
+- attack.t1055
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\dllhost.exe'
+    CommandLine:
+    - 'dllhost.exe'
+    - 'dllhost'
+  filter_main_null:
+    CommandLine:
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The "Dllhost.EXE Execution Anomaly" detection rule is designed to identify unusual executions of the `dllhost.exe` process on Windows systems. Typically, `dllhost.exe` (Dynamically Linked Library Host) is invoked with specific command-line arguments. However, this rule looks for instances of `dllhost.exe` being executed without any command-line parameters, a scenario that is highly unusual and raises a red flag for potential process injection or malware activity. The rule leverages process creation logs as its primary data source, analyzing the image name to detect unintended launches of the `dllhost.exe` process that lack standard command-line context.
+  The rule helps security teams to quickly identify and respond to potential threats, such as malware masquerading as legitimate processes or attempts to inject malicious code into running applications, thus forming an essential part of a proactive defense strategy.
+  ### Investigation Steps
+  - Utilize EDR tools to investigate the `dllhost.exe` process instances, examining the parent process for anomalies and identifying any associated user accounts.
+  - Review process creation logs for the time frame surrounding the alert to find any related process activity or additional executions of suspicious programs.
+  - Analyze command-line arguments and process trees leading to the `dllhost.exe` invocation to assess whether any illegitimate processes are involved.
+  - Check network logs, such as proxy or firewall entries, to determine if the suspicious process has made any unusual outbound connections or data transfers.

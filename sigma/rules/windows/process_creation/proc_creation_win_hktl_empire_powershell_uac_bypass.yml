@@ -1,0 +1,38 @@
+title: HackTool - Empire PowerShell UAC Bypass
+id: 3268b746-88d8-4cd3-bffc-30077d02c787
+status: stable
+description: Detects some Empire PowerShell UAC bypass methods
+references:
+- https://github.com/EmpireProject/Empire/blob/e37fb2eef8ff8f5a0a689f1589f424906fe13055/data/module_source/privesc/Invoke-EventVwrBypass.ps1#L64
+- https://github.com/EmpireProject/Empire/blob/e37fb2eef8ff8f5a0a689f1589f424906fe13055/data/module_source/privesc/Invoke-FodHelperBypass.ps1#L64
+author: Ecco
+date: 2019-08-30
+modified: 2023-02-21
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+- car.2019-04-001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains:
+    - ' -NoP -NonI -w Hidden -c $x=$((gp HKCU:Software\Microsoft\Windows Update).Update)'
+    - ' -NoP -NonI -c $x=$((gp HKCU:Software\Microsoft\Windows Update).Update);'
+  condition: selection
+fields:
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Unknown
+level: critical
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect specific attempts to bypass User Account Control (UAC) in Windows environments using PowerShell scripts associated with the Empire framework. The rule focuses on identifying malicious command-line executions that contain specific flags and patterns indicative of UAC bypass techniques like `-NoP`, `-NonI`, and hidden execution parameters. It leverages process creation logs, which capture details about the initiation of processes, including their command-line arguments and parent process context. By examining these logs specifically for the presence of distinct command-line sequences, the detection mechanism can alert on potential exploitation attempts aimed at elevating privileges without proper authorization.
+  ### Investigation Steps
+  - Utilize the EDR tool to search for the detected process, focusing on the associated command-line parameters and parent command-line context to understand the execution path and origin.
+  - Review any alerts or logs from the AV solution that correlate with the execution time of the detected command to identify if any known malicious signatures or behaviors were flagged.
+  - Analyze network traffic through the NDR solution to identify any outbound connections or suspicious activities related to the command execution, particularly focusing on connections to known malicious IP addresses.
+  - Examine relevant security logs from the Windows Event Viewer or SIEM for additional context surrounding the execution, such as user sessions or other processes that may indicate coordinated malicious activity.

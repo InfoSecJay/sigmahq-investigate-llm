@@ -1,0 +1,36 @@
+title: UAC Bypass With Fake DLL
+id: a5ea83a7-05a5-44c1-be2e-addccbbd8c03
+status: test
+description: Attempts to load dismcore.dll after dropping it
+references:
+- https://steemit.com/utopian-io/@ah101/uac-bypassing-utility
+author: oscd.community, Dmitry Uchakin
+date: 2020-10-06
+modified: 2022-12-25
+tags:
+- attack.persistence
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\dism.exe'
+    ImageLoaded|endswith: '\dismcore.dll'
+  filter:
+    ImageLoaded: 'C:\Windows\System32\Dism\dismcore.dll'
+  condition: selection and not filter
+falsepositives:
+- Actions of a legitimate telnet client
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential User Account Control (UAC) bypass attempts by monitoring for the loading of a suspicious DLL file named `dismcore.dll` in conjunction with the legitimate DISM executable (`dism.exe`). In particular, the rule activates when a process tries to load `dismcore.dll` from the Windows System32 directory, but the dism.exe executable does not originate from a trusted path. This behavior could indicate malicious activity to bypass UAC protections, particularly as attackers may use fake or modified DLLs to escalate privileges or evade detection. Data sources involved in this detection include image load events primarily from Windows operating systems, providing insights into process execution and DLL loading behavior.
+  ### Investigation Steps
+  - Review the EDR logs for the execution context of `dism.exe` to verify if the process was launched from an unexpected directory or by non-administrative users.
+  - Check the file path and hash of `dismcore.dll` against known safe lists to identify any anomalies or previously documented instances of this DLL being utilized in a malicious context.
+  - Analyze recent system changes or new software installations that could have introduced this suspicious DLL, particularly focusing on any tools or scripts that may have been executed around the same timeframe.
+  - Inspect network traffic logs via the Proxy or NDR to identify any external communications initiated by the suspicious process, which could indicate exfiltration attempts or connections to known malicious domains.

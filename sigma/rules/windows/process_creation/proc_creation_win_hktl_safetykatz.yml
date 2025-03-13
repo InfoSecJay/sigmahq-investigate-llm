@@ -1,0 +1,35 @@
+title: HackTool - SafetyKatz Execution
+id: b1876533-4ed5-4a83-90f3-b8645840a413
+status: test
+description: Detects the execution of the hacktool SafetyKatz via PE information and
+  default Image name
+references:
+- https://github.com/GhostPack/SafetyKatz
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-10-20
+modified: 2023-02-04
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\SafetyKatz.exe'
+  - OriginalFileName: 'SafetyKatz.exe'
+  - Description: 'SafetyKatz'
+  condition: selection
+falsepositives:
+- Unlikely
+level: critical
+notes: |
+  ### Technical Context
+  The Sigma rule titled "HackTool 
+  - SafetyKatz Execution" is designed to identify the execution of the SafetyKatz tool, which is associated with credential access attacks. This rule focuses on specific characteristics of the executable file, such as its name and metadata. It looks for process creation logs where the image name ends with "SafetyKatz.exe" and checks the executable's original file name and description to confirm its identity. By correlating these attributes, the rule aims to detect instances where this potentially malicious tool is executed on Windows systems, thus providing visibility into unauthorized credential harvesting attempts.
+  To implement this detection, process creation logs are leveraged as the primary data source. These logs capture events related to the launching of processes, including important information like the image name and file metadata. The analysis of this data helps incident responders identify and respond to potential threats involving SafetyKatz and similar hack tools.
+  ### Investigation Steps
+  - Utilize EDR tools to query for process creation events related to "SafetyKatz.exe" to confirm execution and gather context about the timestamps and parent processes.
+  - Examine command-line parameters and associated network connections through EDR and NDR to identify any anomalous activity related to the execution of SafetyKatz.
+  - Consult antivirus logs to check if SafetyKatz has been flagged as malicious and determine whether any remediation actions have been taken.
+  - Review audit logs and access controls in cloud environments (e.g., Azure or AWS) to assess if there were any unauthorized access attempts correlating with the execution of SafetyKatz.

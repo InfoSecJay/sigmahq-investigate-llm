@@ -1,0 +1,33 @@
+title: Sysmon Configuration Change
+id: 8ac03a65-6c84-4116-acad-dc1558ff7a77
+status: test
+description: Detects a Sysmon configuration change, which could be the result of a
+  legitimate reconfiguration or someone trying manipulate the configuration
+references:
+- https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+author: frack113
+date: 2022-01-12
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    EventID: 16
+    # To avoid FP just add
+    # filter:
+    #      ConfigurationFileHash: 'SHA256=The_Hash_Of_Your_Valid_Config_XML'
+    # condition: selection and not filter
+  condition: selection
+falsepositives:
+- Legitimate administrative action
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect changes to the Sysmon configuration, specifically through the monitoring of Sysmon Event ID 16. Changes in the Sysmon configuration can indicate either legitimate administrative actions or potential malicious intent to modify how Sysmon logs system activities. By analyzing the Sysmon logs generated on Windows devices, security teams can identify unauthorized alterations that may facilitate evasion of defenses or the concealment of malicious activities. Key data sources involved in this detection include Sysmon logs, which capture detailed system events and changes, enabling security teams to differentiate between normal configuration updates and potentially harmful modifications.
+  ### Investigation Steps
+  - Review Sysmon logs for Event ID 16 to identify the specific changes made to the configuration file and assess their legitimacy.
+  - Cross-reference the configuration changes with known and approved administrative actions to determine if they align with established policies.
+  - Use the EDR tool to analyze process creation associated with the configuration change for any suspicious activity or related behavior.
+  - Check antivirus and endpoint security logs for any alerts triggered around the time of the configuration modification to uncover any potential threats.

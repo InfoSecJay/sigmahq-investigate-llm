@@ -1,0 +1,41 @@
+title: Potential RDP Tunneling Via Plink
+id: f38ce0b9-5e97-4b47-a211-7dc8d8b871da
+related:
+- id: f7d7ebd5-a016-46e2-9c54-f9932f2d386d     # ssh.exe
+  type: similar
+status: test
+description: Execution of plink to perform data exfiltration and tunneling
+references:
+- https://www.microsoft.com/security/blog/2022/07/26/malicious-iis-extensions-quietly-open-persistent-backdoors-into-servers/
+author: Florian Roth (Nextron Systems)
+date: 2022-08-04
+modified: 2023-01-27
+tags:
+- attack.command-and-control
+- attack.t1572
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_a:
+    Image|endswith: '\plink.exe'
+    CommandLine|contains: ':127.0.0.1:3389'
+  selection_b1:
+    Image|endswith: '\plink.exe'
+    CommandLine|contains: ':3389'
+  selection_b2:
+    CommandLine|contains:
+    - ' -P 443'
+    - ' -P 22'
+  condition: selection_a or all of selection_b*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential malicious activity involving Plink, a command-line interface to PuTTY that can be used to create SSH tunnels. Specifically, it focuses on instances where Plink is executed with command-line parameters indicating connections to port 3389, commonly used for Remote Desktop Protocol (RDP), or where it is directed to tunnel connections through different ports such as 443 or 22. The rule primarily leverages process creation logs from Windows systems, analyzing both the image name of the executable (Plink) and the command-line parameters used during its execution. By flagging these patterns, the SOC can detect potential data exfiltration and unauthorized tunneling activity, which are critical indicators of compromise.
+  ### Investigation Steps
+  - Utilize EDR tools to investigate the endpoint's process tree for any instances of `plink.exe`. Check the parent process to determine how Plink was initiated and whether it is part of a legitimate workflow.
+  - Review network traffic logs from the NGFW or NDR solutions to identify any suspicious outbound connections made to port 3389 or other indicated ports. Look for patterns of unusual traffic that may correlate with the execution of Plink.
+  - Examine system event logs for any prior indications of unusual activity or access attempts that may be associated with the timeline of the detected Plink execution. This can help identify potential lateral movement or previous compromises.
+  - Check proxy and VPN logs for any connections that correspond to the execution of the detected tunneling activity. Assess if there are any transfers of sensitive data or anomalous access attempts related to the affected systems.

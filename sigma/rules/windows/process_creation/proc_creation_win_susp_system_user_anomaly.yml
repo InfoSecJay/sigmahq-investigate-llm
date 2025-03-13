@@ -1,0 +1,113 @@
+title: Suspicious SYSTEM User Process Creation
+id: 2617e7ed-adb7-40ba-b0f3-8f9945fe6c09
+status: test
+description: Detects a suspicious process creation as SYSTEM user (suspicious program
+  or command line parameter)
+references:
+- Internal Research
+- https://tools.thehacker.recipes/mimikatz/modules
+author: Florian Roth (Nextron Systems), David ANDRE (additional keywords)
+date: 2021-12-20
+modified: 2024-12-01
+tags:
+- attack.credential-access
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1134
+- attack.t1003
+- attack.t1027
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    IntegrityLevel:
+    - 'System'
+    - 'S-1-16-16384'
+    User|contains:     # covers many language settings
+    - 'AUTHORI'
+    - 'AUTORI'
+  selection_special:
+  - Image|endswith:
+    - '\calc.exe'
+    - '\cscript.exe'
+    - '\forfiles.exe'
+    - '\hh.exe'
+    - '\mshta.exe'
+    - '\ping.exe'
+    - '\wscript.exe'
+  - CommandLine|contains:
+              # - 'sc stop ' # stops a system service # causes FPs
+    - ' -NoP '            # Often used in malicious PowerShell commands
+    - ' -W Hidden '            # Often used in malicious PowerShell commands
+    - ' -decode '            # Used with certutil
+    - ' /decode '            # Used with certutil
+    - ' /urlcache '            # Used with certutil
+    - ' -urlcache '            # Used with certutil
+    - ' -e* JAB'            # PowerShell encoded commands
+    - ' -e* SUVYI'            # PowerShell encoded commands
+    - ' -e* SQBFAFgA'            # PowerShell encoded commands
+    - ' -e* aWV4I'            # PowerShell encoded commands
+    - ' -e* IAB'            # PowerShell encoded commands
+    - ' -e* PAA'            # PowerShell encoded commands
+    - ' -e* aQBlAHgA'            # PowerShell encoded commands
+    - 'vssadmin delete shadows'            # Ransomware
+    - 'reg SAVE HKLM'            # save registry SAM - syskey extraction
+    - ' -ma '            # ProcDump
+    - 'Microsoft\Windows\CurrentVersion\Run'            # Run key in command line - often in combination with REG ADD
+    - '.downloadstring('            # PowerShell download command
+    - '.downloadfile('            # PowerShell download command
+    - ' /ticket:'            # Rubeus
+    - 'dpapi::'               # Mimikatz
+    - 'event::clear'                  # Mimikatz
+    - 'event::drop'               # Mimikatz
+    - 'id::modify'                # Mimikatz
+    - 'kerberos::'                 # Mimikatz
+    - 'lsadump::'                # Mimikatz
+    - 'misc::'               # Mimikatz
+    - 'privilege::'                 # Mimikatz
+    - 'rpc::'                # Mimikatz
+    - 'sekurlsa::'                 # Mimikatz
+    - 'sid::'                  # Mimikatz
+    - 'token::'                # Mimikatz
+    - 'vault::cred'               # Mimikatz
+    - 'vault::list'               # Mimikatz
+    - ' p::d '            # Mimikatz
+    - ';iex('            # PowerShell IEX
+    - 'MiniDump'            # Process dumping method apart from procdump
+    - 'net user '
+  filter_main_ping:
+    CommandLine|contains|all:
+    - 'ping'
+    - '127.0.0.1'
+    - ' -n '
+  filter_vs:
+    Image|endswith: '\PING.EXE'
+    ParentCommandLine|contains: '\DismFoDInstall.cmd'
+  filter_config_mgr:
+    ParentImage|contains: ':\Packages\Plugins\Microsoft.GuestConfiguration.ConfigurationforWindows\'
+  filter_java:
+    ParentImage|contains:
+    - ':\Program Files (x86)\Java\'
+    - ':\Program Files\Java\'
+    ParentImage|endswith: '\bin\javaws.exe'
+    Image|contains:
+    - ':\Program Files (x86)\Java\'
+    - ':\Program Files\Java\'
+    Image|endswith: '\bin\jp2launcher.exe'
+    CommandLine|contains: ' -ma '
+  condition: all of selection* and not 1 of filter_*
+falsepositives:
+- Administrative activity
+- Scripts and administrative tools used in the monitored environment
+- Monitoring activity
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially suspicious process creations executed by the SYSTEM user, particularly those that may indicate credential access, privilege escalation, or defense evasion activities. The rule focuses on specific process images, such as `calc.exe`, `mshta.exe`, and various PowerShell-related commands, which commonly appear in malicious contexts. It leverages various attributes, including the integrity level of processes and command-line parameters, to discern legitimate actions from potential threats. Log sources primarily consist of process creation logs on Windows systems, where data such as user context, command lines, and image paths are monitored.
+  The conditions for triggering an alert include a process being executed by the SYSTEM user with specific characteristics or command line arguments that are typically linked to known attack methods or tools, such as Mimikatz or encoded PowerShell commands.
+  ### Investigation Steps
+  - Utilize EDR tools to review the process creation logs, filtering for entries that match the SYSTEM user and the suspicious process images identified in the rule.
+  - Investigate the command line parameters associated with the triggered alerts to determine if they contain any specific flags or patterns indicative of malicious behavior, such as encoded commands or suspicious service manipulation.
+  - Cross-reference user activity logs and network traffic data from NGFW and NDR tools to identify any unusual login attempts or lateral movement activity linked to the SYSTEM user during the same time frame.
+  - For cloud environments, review related logs in AWS, GCP, or Azure for any misconfigured or overly permissive settings that could allow the SYSTEM user to perform unauthorized actions or execute harmful processes.

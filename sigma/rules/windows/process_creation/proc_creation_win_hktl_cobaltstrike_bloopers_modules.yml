@@ -1,0 +1,45 @@
+title: Operator Bloopers Cobalt Strike Modules
+id: 4f154fb6-27d1-4813-a759-78b93e0b9c48
+related:
+- id: 647c7b9e-d784-4fda-b9a0-45c565a7b729
+  type: similar
+status: test
+description: Detects Cobalt Strike module/commands accidentally entered in CMD shell
+references:
+- https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/cobalt-4-5-user-guide.pdf
+- https://thedfirreport.com/2021/10/04/bazarloader-and-the-conti-leaks/
+- https://thedfirreport.com/2022/06/16/sans-ransomware-summit-2022-can-you-detect-this/
+author: _pete_0, TheDFIRReport
+date: 2022-05-06
+modified: 2023-01-30
+tags:
+- attack.execution
+- attack.t1059.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - OriginalFileName: 'Cmd.Exe'
+  - Image|endswith: '\cmd.exe'
+  selection_cli:
+    CommandLine|contains:
+    - 'Invoke-UserHunter'
+    - 'Invoke-ShareFinder'
+    - 'Invoke-Kerberoast'
+    - 'Invoke-SMBAutoBrute'
+    - 'Invoke-Nightmare'
+    - 'zerologon'
+    - 'av_query'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the accidental use of Cobalt Strike modules within a Windows command shell (CMD). Cobalt Strike is a legitimate tool often used for penetration testing, but its modules can also be exploited by adversaries in unauthorized actions. The rule targets command-line parameters that include specific Cobalt Strike commands, such as `Invoke-UserHunter` and `Invoke-Kerberoast`, and it checks for their execution through the `cmd.exe` process or its variations. By focusing on process creation logs, the rule captures these command line entries, allowing SOC analysts to detect potential attacks or misconfigurations involving this powerful tool.
+  ### Investigation Steps
+  - Review process creation logs in your EDR platform to identify instances of `cmd.exe` executing the specific Cobalt Strike commands listed in the rule.
+  - Analyze the command-line parameters associated with each detected process for irregular usage patterns or suspicious activity that could indicate malicious intent.
+  - Cross-reference detected events with firewall logs and proxy logs to determine if there was any external communication related to these command executions.
+  - Check user activity logs to understand the context of the command execution, identifying if it was performed by a legitimate user or an unauthorized entity.

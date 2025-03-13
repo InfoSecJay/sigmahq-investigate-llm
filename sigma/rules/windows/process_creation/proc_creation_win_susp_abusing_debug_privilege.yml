@@ -1,0 +1,59 @@
+title: Abused Debug Privilege by Arbitrary Parent Processes
+id: d522eca2-2973-4391-a3e0-ef0374321dae
+status: test
+description: Detection of unusual child processes by different system processes
+references:
+- https://image.slidesharecdn.com/kheirkhabarovoffzonefinal-181117201458/95/hunting-for-privilege-escalation-in-windows-environment-74-638.jpg
+author: 'Semanur Guneysu @semanurtg, oscd.community'
+date: 2020-10-28
+modified: 2022-11-11
+tags:
+- attack.privilege-escalation
+- attack.t1548
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_parent:
+    ParentImage|endswith:
+    - '\winlogon.exe'
+    - '\services.exe'
+    - '\lsass.exe'
+    - '\csrss.exe'
+    - '\smss.exe'
+    - '\wininit.exe'
+    - '\spoolsv.exe'
+    - '\searchindexer.exe'
+    User|contains:     # covers many language settings
+    - 'AUTHORI'
+    - 'AUTORI'
+  selection_img:
+  - Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\cmd.exe'
+  - OriginalFileName:
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+    - 'Cmd.Exe'
+  filter:
+    CommandLine|contains|all:
+    - ' route '
+    - ' ADD '
+  condition: all of selection_* and not filter
+fields:
+- ParentImage
+- Image
+- User
+- CommandLine
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially abusive privilege escalation attempts in Windows environments by observing unusual child processes spawned by specific parent processes. The rule focuses on instances where processes such as `winlogon.exe`, `services.exe`, and `lsass.exe`, which typically have elevated privileges, initiate child processes such as `powershell.exe`, `cmd.exe`, or their variants with specific command-line parameters. The command-line must contain the keywords "route" and "ADD," indicating potential network manipulation attempts indicative of privilege escalation or lateral movement. The rule leverages process creation logs as its primary data source, scanning for requirements that may signal malicious activity involving parental privilege abuse. 
+  ### Investigation Steps
+  - Use EDR tools to review the process creation logs, focusing on the parent-child relationships of the processes identified in the alert to determine if they adhere to normal operational behavior.
+  - Analyze the command-line parameters associated with the child processes to verify if they align with legitimate administrative tasks or if they raise suspicion due to malicious intent.
+  - Inspect user activity logs to establish the context of any user accounts involved, particularly looking for anomalies that could suggest credential compromise or misuse.
+  - Investigate network traffic logs in your NGFW or Proxy solutions to correlate any suspicious outbound connections initiated by the alerting processes, providing further insight into potential malicious activity.

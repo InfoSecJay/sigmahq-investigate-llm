@@ -1,0 +1,40 @@
+title: Sensitive File Access Via Volume Shadow Copy Backup
+id: f57f8d16-1f39-4dcb-a604-6c73d9b54b3d
+status: test
+description: |
+  Detects a command that accesses the VolumeShadowCopy in order to extract sensitive files such as the Security or SAM registry hives or the AD database (ntds.dit)
+references:
+- https://twitter.com/vxunderground/status/1423336151860002816?s=20
+- https://www.virustotal.com/gui/file/03e9b8c2e86d6db450e5eceec057d7e369ee2389b9daecaf06331a95410aa5f8/detection
+- https://pentestlab.blog/2018/07/04/dumping-domain-password-hashes/
+author: Max Altgelt (Nextron Systems), Tobias Michalski (Nextron Systems)
+date: 2021-08-09
+modified: 2024-01-18
+tags:
+- attack.impact
+- attack.t1490
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_1:
+        # copy \\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy1\Windows\NTDS\NTDS.dit C:\temp\ntds.dit 2>&1
+        # There is an additional "\" to escape the special "?"
+    CommandLine|contains: '\\\\\?\\GLOBALROOT\\Device\\HarddiskVolumeShadowCopy'
+  selection_2:
+    CommandLine|contains:
+    - '\\NTDS.dit'
+    - '\\SYSTEM'
+    - '\\SECURITY'
+  condition: all of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potential unauthorized access to sensitive files within Volume Shadow Copies on Windows systems. Specifically, it monitors command-line activities that access paths characteristic of Volume Shadow Copies, which are used to create backups of the file system at a certain point in time. The rule looks for command-line executions that reference common sensitive files such as the NTDS (Active Directory database), SYSTEM, and SECURITY hives, which can expose critical information about user accounts and authentication. The primary technical data sources utilized in this detection include process creation logs that capture command-line parameters, helping analysts identify potential malicious activity surrounding shadow copy access.
+  ### Investigation Steps
+  - Review the process creation logs to identify any instances of command-line activity that match the detection criteria, focusing on the execution paths for Volume Shadow Copies.
+  - Correlate alerts with EDR data to assess if there were any other anomalous behaviors or indicators of compromise associated with the process that triggered the alert.
+  - Check AV and endpoint protection logs for any related detections or quarantines that could indicate malicious intent during the same timeframe.
+  - Analyze proxy logs for any outbound connections made by the process in question, which may provide further context around data exfiltration or external communication.

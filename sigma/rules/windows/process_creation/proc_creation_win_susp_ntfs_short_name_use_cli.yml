@@ -1,0 +1,60 @@
+title: Use NTFS Short Name in Command Line
+id: dd6b39d9-d9be-4a3b-8fe0-fe3c6a5c1795
+related:
+- id: 3ef5605c-9eb9-47b0-9a71-b727e6aa5c3b
+  type: similar
+status: test
+description: Detect use of the Windows 8.3 short name. Which could be used as a method
+  to avoid command-line detection
+references:
+- https://www.acunetix.com/blog/articles/windows-short-8-3-filenames-web-security-problem/
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-2000-server/cc959352(v=technet.10)
+- https://twitter.com/jonasLyk/status/1555914501802921984
+author: frack113, Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-05
+modified: 2022-09-21
+tags:
+- attack.defense-evasion
+- attack.t1564.004
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains:
+    - '~1.exe'
+    - '~1.bat'
+    - '~1.msi'
+    - '~1.vbe'
+    - '~1.vbs'
+    - '~1.dll'
+    - '~1.ps1'
+    - '~1.js'
+    - '~1.hta'
+    - '~2.exe'
+    - '~2.bat'
+    - '~2.msi'
+    - '~2.vbe'
+    - '~2.vbs'
+    - '~2.dll'
+    - '~2.ps1'
+    - '~2.js'
+    - '~2.hta'
+  filter:
+  - ParentImage|endswith:
+    - '\WebEx\WebexHost.exe'
+    - '\thor\thor64.exe'
+  - CommandLine|contains: 'C:\xampp\vcredist\VCREDI~1.EXE'
+  condition: selection and not filter
+falsepositives:
+- Applications could use this notation occasionally which might generate some false
+  positives. In that case Investigate the parent and child process.
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to identify the usage of NTFS short file names, specifically Windows 8.3 short names, in command-line arguments. Short names are often employed by attackers as a method to obfuscate their activities and evade detection mechanisms. When an executable or script is executed using these short names (for example, `~1.exe`), it can be indicative of malicious intent if the traditional name is concealed from monitoring tools. The rule utilizes process creation logs sourced from Windows systems to detect this behavior by searching for command-line inputs containing specific short name patterns along with certain parent process names, which are typically associated with legitimate applications but may also serve as cover for malware.
+  ### Investigation Steps
+  - Use the EDR tool to analyze the alert and gather context regarding the associated process, including timestamps and user accounts involved. Check for any anomalous behavior linked to the detected short names.
+  - Review the command-line parameters of the detected processes for overall legitimacy and relevance. Focus on patterns that match the execution of known malicious scripts or software.
+  - Investigate the parent processes associated with the short-named executable by correlating event logs to determine if they originate from trusted applications, such as `WebexHost.exe` or `thor64.exe`.
+  - Consult network and proxy logs to check if the short-named executables attempted any outbound connections, which can indicate malicious activities or data exfiltration attempts.

@@ -1,0 +1,55 @@
+title: Suspicious Invoke-WebRequest Execution With DirectIP
+id: 1edff897-9146-48d2-9066-52e8d8f80a2f
+status: test
+description: Detects calls to PowerShell with Invoke-WebRequest cmdlet using direct
+  IP access
+references:
+- https://www.huntress.com/blog/critical-vulnerabilities-in-papercut-print-management-software
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-04-21
+tags:
+- attack.command-and-control
+- attack.t1105
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+  - OriginalFileName:
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+  selection_commands:
+    CommandLine|contains:
+            # These are all aliases of Invoke-WebRequest
+    - 'curl '
+    - 'Invoke-WebRequest'
+    - 'iwr '
+    - 'wget '
+  selection_ip:
+        # In case of FP with local IPs add additional filters
+    CommandLine|contains:
+    - '://1'
+    - '://2'
+    - '://3'
+    - '://4'
+    - '://5'
+    - '://6'
+    - '://7'
+    - '://8'
+    - '://9'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious usage of PowerShell's `Invoke-WebRequest` cmdlet or its aliases (e.g., `curl`, `wget`) when they are invoked with direct IP addresses. The rule focuses on process creation logs for PowerShell and its core executable files, looking for command line arguments that contain direct IP addressing patterns known to be associated with nefarious activities. By analyzing the command line and the context of the PowerShell execution, this rule aims to catch suspicious activities such as data exfiltration or command-and-control communications initiated directly over IP, bypassing domain resolution mechanisms. 
+  Data sources for this rule include process creation logs, which provide insights into how and when PowerShell commands were run, as well as specific command line parameters that hint at the nature of the operation being performed.
+  ### Investigation Steps
+  - Investigate the alerts by examining the process creation logs in your EDR tool to confirm the context of the PowerShell execution and the specific command line used.
+  - Retrieve network logs from the NDR or NGFW to identify any outbound connections made to the suspicious IP addresses mentioned in the alerts.
+  - Review endpoint behavior using your AV tools to check for any indicators of compromise or known malicious activity associated with the process in question.
+  - Correlate findings with proxy logs to see if there are any previous connections to the alerted IP addresses and assess their legitimacy based on user behavior.

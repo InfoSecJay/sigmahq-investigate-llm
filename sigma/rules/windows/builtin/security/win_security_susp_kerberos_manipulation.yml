@@ -1,0 +1,67 @@
+title: Kerberos Manipulation
+id: f7644214-0eb0-4ace-9455-331ec4c09253
+status: test
+description: Detects failed Kerberos TGT issue operation. This can be a sign of manipulations
+  of TGT messages by an attacker.
+references:
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4771
+author: Florian Roth (Nextron Systems)
+date: 2017-02-10
+modified: 2024-01-16
+tags:
+- attack.credential-access
+- attack.t1212
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID:
+    - 675
+    - 4768
+    - 4769
+    - 4771
+    Status:
+    - '0x9'
+    - '0xA'
+    - '0xB'
+    - '0xF'
+    - '0x10'
+    - '0x11'
+    - '0x13'
+    - '0x14'
+    - '0x1A'
+    - '0x1F'
+    - '0x21'
+    - '0x22'
+    - '0x23'
+    - '0x24'
+    - '0x26'
+    - '0x27'
+    - '0x28'
+    - '0x29'
+    - '0x2C'
+    - '0x2D'
+    - '0x2E'
+    - '0x2F'
+    - '0x31'
+    - '0x32'
+    - '0x3E'
+    - '0x3F'
+    - '0x40'
+    - '0x41'
+    - '0x43'
+    - '0x44'
+  condition: selection
+falsepositives:
+- Faulty legacy applications
+level: high
+notes: |
+  ### Technical Context
+  The "Kerberos Manipulation" detection rule identifies potentially malicious activity related to the Kerberos authentication protocol by monitoring specific event IDs from Windows security logs. This rule looks for failed Ticket Granting Ticket (TGT) operations, which may indicate an attacker's attempt to manipulate TGT messages for unauthorized access. It particularly seeks events with Event IDs 675, 4768, 4769, and 4771, alongside specific failure status codes that signify various types of authentication errors. Anomalies detected within these events can highlight attempts at credential misuse or other suspicious behaviors in the target environment.
+  Relevant technical data sources include Windows security event logs, which provide insights into authentication attempts and TGT operations. By analyzing the failures tied to Kerberos events, incident responders can discern potential threats related to credential abuse, thus facilitating timely investigations and responses to security incidents.
+  ### Investigation Steps
+  - Review the Windows security event logs for Event IDs 675, 4768, 4769, and 4771. Focus on correlating these events with the observed failure status codes to understand the context of the alerts.
+  - Utilize your Endpoint Detection and Response (EDR) tool to search for processes or user accounts that triggered these events, paying special attention to any unexpected or suspicious accounts involved.
+  - Inspect network logs through Firewall (NGFW) or Network Detection and Response (NDR) tools for unusual traffic patterns or connections originating from the impacted systems during the time frame of the alerts.
+  - Check remote access logs in your VPN and Proxy solutions for any authentication attempts that correspond with the timing of the detection, ensuring to note any unauthorized or unusual access.

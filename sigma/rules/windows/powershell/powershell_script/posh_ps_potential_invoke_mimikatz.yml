@@ -1,0 +1,39 @@
+title: Potential Invoke-Mimikatz PowerShell Script
+id: 189e3b02-82b2-4b90-9662-411eb64486d4
+status: test
+description: Detects Invoke-Mimikatz PowerShell script and alike. Mimikatz is a credential
+  dumper capable of obtaining plaintext Windows account logins and passwords.
+references:
+- https://www.elastic.co/guide/en/security/current/potential-invoke-mimikatz-powershell-script.html#potential-invoke-mimikatz-powershell-script
+author: Tim Rauch, Elastic (idea)
+date: 2022-09-28
+tags:
+- attack.credential-access
+- attack.t1003
+logsource:
+  category: ps_script
+  product: windows
+detection:
+  selection_1:
+    ScriptBlockText|contains|all:
+    - 'DumpCreds'
+    - 'DumpCerts'
+  selection_2:
+    ScriptBlockText|contains: 'sekurlsa::logonpasswords'
+  selection_3:
+    ScriptBlockText|contains|all:
+    - 'crypto::certificates'
+    - 'CERT_SYSTEM_STORE_LOCAL_MACHINE'
+  condition: 1 of selection*
+falsepositives:
+- Mimikatz can be useful for testing the security of networks
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the execution of PowerShell scripts that may use the Invoke-Mimikatz tool, a known credential dumper that can extract plaintext Windows account credentials, including usernames and passwords. The rule focuses on specific script block text patterns associated with Mimikatz, such as references to functionalities like `DumpCreds`, `DumpCerts`, and commands that interact with certificate stores (`crypto::certificates`, `CERT_SYSTEM_STORE_LOCAL_MACHINE`). By monitoring PowerShell script block logs, the rule helps security analysts detect potentially malicious actions before they lead to unauthorized access or data breaches.
+  The detection leverages Windows PowerShell log sources that capture the text of executed scripts, allowing for granular visibility into potentially harmful commands. When these specific patterns appear in the script block text, the rule triggers an alert, indicating that a potentially harmful PowerShell command has been executed. This proactive approach empowers incident responders to investigate quickly and mitigate risks.
+  ### Investigation Steps
+  - Analyze the triggering PowerShell script execution in the EDR platform to gather details such as the user account that executed the script and the context in which it was run.
+  - Verify if there are any related processes that exhibit anomalous behavior, such as running unusual commands or interacting with sensitive data repositories.
+  - Check Windows Event Logs for any additional indicators of credential access attempts correlated with the alert, focusing on events associated with user logons and script executions.
+  - Review network traffic logs via NDR tools to identify any suspicious outbound connections that may indicate data exfiltration following the execution of the detected script.

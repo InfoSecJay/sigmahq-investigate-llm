@@ -1,0 +1,37 @@
+title: Tap Driver Installation - Security
+id: 9c8afa4d-0022-48f0-9456-3712466f9701
+related:
+- id: 8e4cf0e5-aa5d-4dc3-beff-dc26917744a9
+  type: derived
+status: test
+description: |
+  Detects the installation of a well-known TAP driver service. This could be a sign of potential preparation for data exfiltration using tunnelling techniques.
+references:
+- https://community.openvpn.net/openvpn/wiki/ManagingWindowsTAPDrivers
+author: Daniil Yugoslavskiy, Ian Davis, oscd.community
+date: 2019-10-24
+modified: 2022-11-29
+tags:
+- attack.exfiltration
+- attack.t1048
+logsource:
+  product: windows
+  service: security
+  definition: 'Requirements: The System Security Extension audit subcategory need
+    to be enabled to log the EID 4697'
+detection:
+  selection:
+    EventID: 4697
+    ServiceFileName|contains: 'tap0901'
+  condition: selection
+falsepositives:
+- Legitimate OpenVPN TAP installation
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule detects the installation of a specific TAP driver service, identified by the presence of "tap0901" in system event logs. TAP drivers are commonly associated with virtual networking solutions, such as OpenVPN, and their unauthorized installation can indicate potential malicious intentions, such as preparing for data exfiltration through tunneling techniques. The rule specifically looks for EventID 4697 in the Windows Security log, which captures the creation of a new service. To effectively provide alerts on this activity, the System Security Extension audit subcategory must be enabled, allowing the detection of such installations. Responders should be aware that while this rule can highlight potentially suspicious behavior, legitimate installations for secure connections may also trigger alerts.
+  ### Investigation Steps
+  - Review the EDR logs to confirm the installation event and examine the corresponding process creation logs for any associated activities or anomalies.
+  - Analyze command-line parameters associated with the installation to determine if any unusual flags or options were used, which could indicate malicious intent.
+  - Query NAT and Proxy logs for outbound traffic patterns that coincide with the installation time, looking for unauthorized data transfers.
+  - Investigate cloud service logs in AWS, GCP, or Azure for any related configuration changes that may indicate attempts to establish tunneling or exfiltration paths post-installation.

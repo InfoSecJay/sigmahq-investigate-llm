@@ -1,0 +1,38 @@
+title: UAC Bypass WSReset
+id: 89a9a0e0-f61a-42e5-8957-b1479565a658
+status: test
+description: Detects the pattern of UAC Bypass via WSReset usable by default sysmon-config
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Wsreset/
+- https://github.com/hfiref0x/UACME
+- https://medium.com/falconforce/falconfriday-detecting-uac-bypasses-0xff16-86c2a9107abf
+author: Christian Burkard (Nextron Systems)
+date: 2021-08-23
+modified: 2024-12-01
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\wsreset.exe'
+    IntegrityLevel:
+    - 'High'
+    - 'System'
+    - 'S-1-16-16384'         # System
+    - 'S-1-16-12288'         # High
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The UAC Bypass WSReset detection rule identifies potential attempts to bypass User Account Control (UAC) using the `wsreset.exe` executable. UAC is an essential security feature in Windows, designed to prevent unauthorized changes to the operating system. Attackers may exploit `wsreset.exe`, a legitimate Windows tool used to reset the Microsoft Store cache, to escalate privileges by running it at high or system integrity levels. The rule monitors process creation logs, specifically looking for instances where `wsreset.exe` is executed with an integrity level of 'High', 'System', or specific security identifiers (SIDs) related to these levels. By assessing these parameters, analysts can identify possible malicious intent behind the execution of this application.
+  ### Investigation Steps
+  - Review process creation logs in your EDR solution to identify instances of `wsreset.exe` being executed with high integrity levels. Focus on any recent entries that deviate from normal usage patterns.
+  - Investigate the command-line parameters associated with detected instances of `wsreset.exe` to determine if any suspicious arguments were provided. This can provide context on whether the execution was legitimate or malicious.
+  - Check for any related network activity or command executions that could indicate lateral movement or additional privilege escalation attempts. Use your NDR tools to trace traffic that may correlate with the suspicious process creation.
+  - Analyze the historical usage of `wsreset.exe` within your environment through AV logs or audit logs to establish a baseline of normal behavior. This can help differentiate between benign and potentially harmful activities.

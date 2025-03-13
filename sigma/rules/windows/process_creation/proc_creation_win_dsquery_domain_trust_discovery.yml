@@ -1,0 +1,39 @@
+title: Domain Trust Discovery Via Dsquery
+id: 3bad990e-4848-4a78-9530-b427d854aac0
+related:
+- id: b23fcb74-b1cb-4ff7-a31d-bfe2a7ba453b
+  type: similar
+- id: 77815820-246c-47b8-9741-e0def3f57308
+  type: obsolete
+status: test
+description: Detects execution of "dsquery.exe" for domain trust discovery
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1482/T1482.md
+- https://posts.specterops.io/an-introduction-to-manual-active-directory-querying-with-dsquery-and-ldapsearch-84943c13d7eb?gi=41b97a644843
+author: E.M. Anhaus, Tony Lambert, oscd.community, omkar72
+date: 2019-10-24
+modified: 2023-02-02
+tags:
+- attack.discovery
+- attack.t1482
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\dsquery.exe'
+  - OriginalFileName: 'dsquery.exe'
+  selection_cli:
+    CommandLine|contains: 'trustedDomain'
+  condition: all of selection_*
+falsepositives:
+- Legitimate use of the utilities by legitimate user for legitimate reason
+level: medium
+notes: |
+  ### Technical Context
+  The "Domain Trust Discovery Via Dsquery" detection rule is designed to identify the execution of the `dsquery.exe` command-line utility in Windows, specifically for querying trusted domains within Active Directory environments. This rule captures instances where the command is executed with the argument ‘trustedDomain’, which indicates an attempt to enumerate trust relationships in the domain. The detection relies on process creation logs, monitoring specific attributes such as the image name being executed and the command-line parameters used. By focusing on `dsquery.exe`, this rule helps security teams uncover potential reconnaissance activities that may precede an attack, allowing for timely incident response.
+  ### Investigation Steps
+  - Review the alert context within the EDR tool to determine the user and system that initiated the `dsquery.exe` execution, noting any unusual behavior or anomalies associated with the user account.
+  - Examine process creation logs for any additional command-line arguments passed to `dsquery.exe`, as well as surrounding process activities that may indicate whether the command was part of legitimate administrative tasks or malicious intent.
+  - Check for related network traffic in the NDR logs, particularly looking for any outbound connections to domain controllers or other systems that may indicate further exploration of domain trusts.
+  - Verify if the event was part of legitimate administrative duties by consulting with the respective team or by checking the relevant change management or IT service management logs.

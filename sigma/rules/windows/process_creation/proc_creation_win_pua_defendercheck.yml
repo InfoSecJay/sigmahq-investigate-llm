@@ -1,0 +1,34 @@
+title: PUA - DefenderCheck Execution
+id: f0ca6c24-3225-47d5-b1f5-352bf07ecfa7
+status: test
+description: Detects the use of DefenderCheck, a tool to evaluate the signatures used
+  in Microsoft Defender. It can be used to figure out the strings / byte chains used
+  in Microsoft Defender to detect a tool and thus used for AV evasion.
+references:
+- https://github.com/matterpreter/DefenderCheck
+author: Florian Roth (Nextron Systems)
+date: 2022-08-30
+modified: 2023-02-04
+tags:
+- attack.defense-evasion
+- attack.t1027.005
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\DefenderCheck.exe'
+  - Description: 'DefenderCheck'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled **PUA 
+  - DefenderCheck Execution** is designed to detect instances of the DefenderCheck tool being executed on Windows systems. DefenderCheck is a utility that evaluates the signatures utilized by Microsoft Defender, providing insights into the strings and byte sequences that the antivirus uses to detect various tools. This functionality can be exploited by malicious actors to evade antivirus detection, making its execution a potential indicator of malicious behavior. This rule monitors for specific process creation events, particularly looking for processes ending with `DefenderCheck.exe` and a corresponding description containing 'DefenderCheck'. The primary data source for this detection is process creation logs, which provide details on command executions and related metadata on the system.
+  ### Investigation Steps
+  - Review process creation logs in the EDR tool to identify the execution context of `DefenderCheck.exe`, including user accounts and parent processes.
+  - Examine the command-line parameters associated with the DefenderCheck execution to assess any suspicious operations or potential misuse.
+  - Analyze associated network traffic in the NDR solution to determine if there were any outbound connections made by the `DefenderCheck.exe` process, potentially indicating further malicious activity.
+  - Inspect AV logs to check if any alerts or defenses were triggered in conjunction with the execution of DefenderCheck, which could provide insight into the threat level.

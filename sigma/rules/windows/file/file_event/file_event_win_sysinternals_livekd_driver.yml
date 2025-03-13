@@ -1,0 +1,33 @@
+title: LiveKD Driver Creation
+id: 16fe46bb-4f64-46aa-817d-ff7bec4a2352
+status: test
+description: Detects the creation of the LiveKD driver, which is used for live kernel
+  debugging
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-16
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename: 'C:\Windows\System32\drivers\LiveKdD.SYS'
+    Image|endswith:
+    - '\livekd.exe'
+    - '\livek64.exe'
+  condition: selection
+falsepositives:
+- Legitimate usage of LiveKD for debugging purposes will also trigger this
+level: medium
+notes: |
+  ### Technical Context
+  The "LiveKD Driver Creation" detection rule is designed to identify the creation of the LiveKD driver file, specifically `LiveKdD.SYS`, which is a tool often used for live kernel debugging in Windows operating systems. This rule monitors file events and looks for the creation of this driver file, which is associated with processes that end with `livekd.exe` or `livek64.exe`. Detection is based on evidence from file event logs that record operations involving the file system, specifically observing the TargetFilename for the LiveKD driver. By flagging this activity, the rule helps to identify potential misuse of this debugging tool, which can be leveraged for malicious purposes, such as evading detection or escalating privileges.
+  ### Investigation Steps
+  - Review **process creation logs** in your EDR tool to identify the processes (`livekd.exe` or `livek64.exe`) that triggered the alert, noting their parent processes and command-line parameters for context. 
+  - Examine the **file event logs** to confirm the creation of the `LiveKdD.SYS` driver file, paying attention to timestamps and whether this correlates with other suspicious activities in the environment.
+  - Investigate any associated **network traffic** using your NDR tool to determine if there were unusual outbound connections initiated around the time the alert was triggered, indicating potential exfiltration or remote command execution.
+  - Check **user activity logs** in your SIEM to correlate the actions of the user or process that executed the driver creation, identifying any unauthorized or anomalous administrative actions leading up to the alert.

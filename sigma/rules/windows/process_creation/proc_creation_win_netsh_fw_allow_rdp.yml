@@ -1,0 +1,44 @@
+title: RDP Connection Allowed Via Netsh.EXE
+id: 01aeb693-138d-49d2-9403-c4f52d7d3d62
+status: test
+description: Detects usage of the netsh command to open and allow connections to port
+  3389 (RDP). As seen used by Sarwent Malware
+references:
+- https://labs.sentinelone.com/sarwent-malware-updates-command-detonation/
+author: Sander Wiebing
+date: 2020-05-23
+modified: 2023-12-11
+tags:
+- attack.defense-evasion
+- attack.t1562.004
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\netsh.exe'
+  - OriginalFileName: 'netsh.exe'
+  selection_cli:
+        # Example:
+        #   Old: netsh firewall add portopening TCP 3389 "Open Port 3389"
+        #   New: netsh advfirewall firewall add rule name= "Open Port 3389" dir=in action=allow protocol=TCP localport=3389
+    CommandLine|contains|all:
+    - 'firewall '
+    - 'add '
+    - 'tcp '
+    - '3389'
+    CommandLine|contains:
+    - 'portopening'
+    - 'allow'
+  condition: all of selection_*
+falsepositives:
+- Legitimate administration activity
+level: high
+notes: |
+  ### Technical Context
+  The detection rule identifies potentially malicious usage of the `netsh.exe` command-line utility in Windows, which is known for configuring network settings, including the management of the Windows Firewall. Specifically, the rule focuses on instances where `netsh` is used to open the Remote Desktop Protocol (RDP) port 3389, a behavior associated with the Sarwent malware family. By monitoring process creation logs, it captures command-line parameters which reflect commands that pattern-match specific keywords such as "firewall," "add," and "tcp" alongside the port number "3389." The presence of such command execution can indicate an attempt to permit unauthorized access to the system, thus warranting further investigation.
+  ### Investigation Steps
+  - Review process creation logs to identify instances of `netsh.exe` running with command-line arguments that include "firewall," "add," "tcp," and "3389" to confirm suspicious activity.
+  - Check EDR logs for additional context, including user activity and other processes that may have occurred around the time of the detected `netsh` command to ascertain the legitimacy of the action.
+  - Investigate network logs to identify any incoming connection attempts to port 3389 following the execution of the detected command, which may indicate attempted exploitation.
+  - Assess the system's firewall configuration and any related alerts that could clarify whether this action was a legitimate administration modification or a malicious intrusion attempt.

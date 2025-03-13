@@ -1,0 +1,42 @@
+title: Explorer Process Tree Break
+id: 949f1ffb-6e85-4f00-ae1e-c3c5b190d605
+status: test
+description: |
+  Detects a command line process that uses explorer.exe to launch arbitrary commands or binaries,
+  which is similar to cmd.exe /c, only it breaks the process tree and makes its parent a new instance of explorer spawning from "svchost"
+references:
+- https://twitter.com/CyberRaiju/status/1273597319322058752
+- https://twitter.com/bohops/status/1276357235954909188?s=12
+- https://twitter.com/nas_bench/status/1535322450858233858
+- https://securityboulevard.com/2019/09/deobfuscating-ostap-trickbots-34000-line-javascript-downloader/
+author: Florian Roth (Nextron Systems), Nasreddine Bencherchali (Nextron Systems),
+  @gott_cyber
+date: 2019-06-29
+modified: 2024-06-04
+tags:
+- attack.defense-evasion
+- attack.t1036
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+        # See CLSID_SeparateMultipleProcessExplorerHost in the registry for reference
+  - CommandLine|contains: '/factory,{75dff2b7-6936-4c06-a8bb-676a7b00b24b}'       # This will catch, the new explorer spawning which indicates a process/tree break. But you won't be able to catch the executing process. For that you need historical data
+        # There exists almost infinite possibilities to spawn from explorer. The "/root" flag is just an example
+        # It's better to have the ability to look at the process tree and look for explorer processes with "weird" flags to be able to catch this technique.
+  - CommandLine|contains|all|windash:
+    - 'explorer.exe'
+    - ' /root,'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Explorer Process Tree Break" Sigma rule is designed to detect potentially malicious behavior where the `explorer.exe` process is utilized to launch arbitrary commands or binaries, effectively splitting the process tree. This behavior can indicate that an attacker is attempting to obscure their activities by launching processes from `explorer.exe`, rather than from traditional command-line interfaces like `cmd.exe`. The rule particularly looks for command-line parameters containing specific flags such as `/factory` or `/root`. To effectively trigger this alert, the detection mechanism analyzes data from process creation logs in Windows systems, focusing on the command-line arguments used during the process initiation. When an instance of `explorer.exe` is observed using these flags, it can signify a possible evasion technique employed by threat actors.
+  ### Investigation Steps
+  - Utilize EDR tools to review the processes spawned by `explorer.exe` and examine any instances that include unusual command-line arguments, particularly those with `/factory` or `/root`.
+  - Check process creation logs for historical data on the parent processes of detected `explorer.exe` instances to understand the process tree and identify any suspicious parent-child relationships.
+  - Cross-reference alerts with antivirus logs to determine if any of the executing binaries have been flagged as malicious or suspicious by AV solutions.
+  - Analyze network logs from the NDR to identify any outbound connections initiated by processes launched from `explorer.exe`, as this may indicate data exfiltration or communication with known malicious entities.

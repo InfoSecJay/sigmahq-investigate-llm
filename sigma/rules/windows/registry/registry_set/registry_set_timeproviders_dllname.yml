@@ -1,0 +1,41 @@
+title: New TimeProviders Registered With Uncommon DLL Name
+id: e88a6ddc-74f7-463b-9b26-f69fc0d2ce85
+status: test
+description: |
+  Detects processes setting a new DLL in DllName in under HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\W32Time\TimeProvider.
+  Adversaries may abuse time providers to execute DLLs when the system boots.
+  The Windows Time service (W32Time) enables time synchronization across and within domains.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1547.003/T1547.003.md
+author: frack113
+date: 2022-06-19
+modified: 2024-03-26
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1547.003
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\Services\W32Time\TimeProviders'
+    TargetObject|endswith: '\DllName'
+  filter_main_w32time:
+    Details:
+    - '%SystemRoot%\System32\vmictimeprovider.dll'
+    - '%systemroot%\system32\w32time.dll'
+    - 'C:\Windows\SYSTEM32\w32time.DLL'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the registration of new Dynamic Link Libraries (DLLs) within the Windows Time service (W32Time) configuration located in the registry path HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\W32Time\TimeProvider. Specifically, it looks for the creation of a DLL name (DllName) that deviates from known benign DLLs associated with the W32Time service, such as `vmictimeprovider.dll` and `w32time.dll`. The rule leverages registry set logs, monitoring any modifications that may indicate potential abuse by adversaries to execute malicious DLLs at system boot, thereby facilitating persistence and privilege escalation.
+  Adversarial tactics may involve modifying these registry settings to load unauthorized DLLs, which can lead to various types of attacks. By alerting on these unusual entries, security operations centers can identify potential intrusions and quickly respond to mitigate risks associated with unauthorized DLL manipulation.
+  ### Investigation Steps
+  - Review recent registry changes related to the W32Time service by querying the Windows Registry with your EDR tool to pinpoint when the suspicious DLL was added.
+  - Check process creation logs to identify any processes that may have executed the encountered DLL, noting their command-line arguments and execution context.
+  - Gather network traffic logs from the NDR to examine any unusual outbound connections that may have originated following the creation of the anomalous DLL.
+  - Utilize threat intelligence feeds and AV logs to evaluate any flagged behaviors or known malicious indicators associated with the detected DLL and related processes.

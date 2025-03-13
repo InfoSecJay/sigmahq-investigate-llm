@@ -1,0 +1,42 @@
+title: New DNS ServerLevelPluginDll Installed Via Dnscmd.EXE
+id: f63b56ee-3f79-4b8a-97fb-5c48007e8573
+related:
+- id: e61e8a88-59a9-451c-874e-70fcc9740d67
+  type: derived
+- id: cbe51394-cd93-4473-b555-edf0144952d9
+  type: derived
+status: test
+description: Detects the installation of a DNS plugin DLL via ServerLevelPluginDll
+  parameter in registry, which can be used to execute code in context of the DNS server
+  (restart required)
+references:
+- https://medium.com/@esnesenon/feature-not-bug-dnsadmin-to-dc-compromise-in-one-line-a0f779b8dc83
+- https://blog.3or.de/hunting-dns-server-level-plugin-dll-injection.html
+author: Florian Roth (Nextron Systems)
+date: 2017-05-08
+modified: 2023-02-05
+tags:
+- attack.defense-evasion
+- attack.t1574.002
+- attack.t1112
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\dnscmd.exe'
+    CommandLine|contains|all:
+    - '/config'
+    - '/serverlevelplugindll'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule targets the installation of a DNS plugin DLL using the `dnscmd.exe` utility, which is a component of Windows DNS Server management. The rule specifically looks for the presence of the `/config` and `/serverlevelplugindll` command-line parameters in the execution of `dnscmd.exe`. By monitoring process creation logs, particularly command line arguments, the rule identifies potentially malicious behavior, as the installation of a server-level plugin DLL typically requires a restart and can execute arbitrary code within the context of the DNS server. This activity is associated with techniques used to evade detection and facilitate lateral movement within a network, making it crucial for SOC analysts to investigate any alerts triggered by this rule.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR platform to locate instances of `dnscmd.exe` with the specified command-line parameters. Check the timestamps to correlate with any suspicious activity.
+  - Inspect the corresponding registry changes made in relation to the DNS server configuration, particularly looking for entries under `ServerLevelPluginDll`. This may reveal newly installed DLLs that warrant further scrutiny.
+  - Conduct a network traffic analysis using your NDR solution to determine if any unusual communication patterns are associated with the DNS server following the installation of the plugin. Look for outbound connections that are not typical for your environment.
+  - Utilize your SIEM to correlate alerts from multiple sources, such as proxy logs and AV detections, to gather additional context about the event. Determine if there are any other indicators of compromise linked to the DNS server's activity.

@@ -1,0 +1,49 @@
+title: Change PowerShell Policies to an Insecure Level - PowerShell
+id: 61d0475c-173f-4844-86f7-f3eebae1c66b
+related:
+- id: cf2e938e-9a3e-4fe8-a347-411642b28a9f     # ProcCreation Registry
+  type: similar
+- id: 87e3c4e8-a6a8-4ad9-bb4f-46e7ff99a180     # ProcCreation Cmdlet
+  type: similar
+- id: fad91067-08c5-4d1a-8d8c-d96a21b37814     # Registry
+  type: similar
+status: test
+description: Detects changing the PowerShell script execution policy to a potentially
+  insecure level using the "Set-ExecutionPolicy" cmdlet.
+references:
+- https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-executionpolicy?view=powershell-7.4
+- https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies?view=powershell-7.4
+- https://adsecurity.org/?p=2604
+author: frack113
+date: 2021-10-20
+modified: 2023-12-14
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_cmdlet:
+    ScriptBlockText|contains: 'Set-ExecutionPolicy'
+  selection_option:
+    ScriptBlockText|contains:
+    - 'Unrestricted'
+    - 'bypass'
+  filter_optional_chocolatey:
+    ScriptBlockText|contains:
+    - "(New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1')"
+    - "(New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1')"
+  condition: all of selection_* and not 1 of filter_optional_*
+falsepositives:
+- Administrator script
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect alterations to PowerShell's script execution policies, which can pose significant security risks if set to insecure levels. Specifically, it identifies the use of the `Set-ExecutionPolicy` cmdlet to change the policy to either "Unrestricted" or "Bypass." This action is often leveraged by attackers to execute malicious scripts without restriction. The detection leverages script block logging to monitor PowerShell command execution, focusing on any invocation of `Set-ExecutionPolicy`, and uses conditions to filter out legitimate administrative actions, such as those involving Chocolatey package installations. Ensuring visibility into policy changes helps maintain control over execution environments and can trigger further investigations into potential unauthorized behavior.
+  ### Investigation Steps
+  - Review the PowerShell logs in your EDR solution to identify the exact command that triggered the alert, focusing on the timestamp and user context.
+  - Use the SIEM to correlate the PowerShell execution events with other activities on the system, such as logins or any other administrative actions occurring around the same time.
+  - Check for any Windows Event logs indicating other commands executed following the policy change, as this may reveal an escalation of privileges or evidence of malicious activity.
+  - Investigate network traffic through your NGFW or Proxy to identify any outbound connections made by PowerShell scripts, especially those that may indicate data exfiltration or command-and-control communications.

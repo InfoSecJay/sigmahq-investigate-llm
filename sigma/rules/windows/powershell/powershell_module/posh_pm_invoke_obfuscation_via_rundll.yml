@@ -1,0 +1,41 @@
+title: Invoke-Obfuscation RUNDLL LAUNCHER - PowerShell Module
+id: a23791fe-8846-485a-b16b-ca691e1b03d4
+related:
+- id: e6cb92b4-b470-4eb8-8a9d-d63e8583aae0
+  type: derived
+status: test
+description: Detects Obfuscated Powershell via RUNDLL LAUNCHER
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009     # (Task 23)
+author: Timur Zinniatullin, oscd.community
+date: 2020-10-18
+modified: 2022-11-29
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_module
+  definition: 0ad03ef1-f21b-4a79-8ce8-e6900c54b65b
+detection:
+  selection_4103:
+    Payload|contains|all:
+    - 'rundll32.exe'
+    - 'shell32.dll'
+    - 'shellexec_rundll'
+    - 'powershell'
+  condition: selection_4103
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule aims to identify potentially malicious usage of PowerShell via the RUNDLL32 launcher, a technique often employed by attackers to obfuscate their activities and evade detection. The rule specifically looks for PowerShell being invoked in combination with RUNDLL32 and the Shell32 DLL, which can indicate attempts to execute obfuscated scripts that might be used for defense evasion or execution of unauthorized commands. The technical data sources involved in this rule include process creation logs that capture the execution of PowerShell and RUNDLL32 commands, along with their command-line parameters, which provide context on how these binaries are being utilized.
+  By detecting such patterns, the rule serves as an important alert mechanism, allowing IT security teams to investigate unusual or suspicious command executions that could signify a breach or malicious activity within the enterprise environment.
+  ### Investigation Steps
+  - **Review the corresponding EDR logs** to identify the context of the RUNDLL32 and PowerShell invocation, focusing on the associated process tree and any parent processes that initiated the call.
+  - **Analyze command-line parameters** related to the identified PowerShell executions to determine if any suspicious or obfuscated payloads are being executed.
+  - **Check for any recent changes or unusual activities** in the environment, such as new scheduled tasks, applications, or misconfigurations in security settings that may have facilitated this activity.
+  - **Correlate findings with threat intelligence** to assess if the detected behavior matches known attack patterns or threat actor techniques associated with defense evasion and execution methods.

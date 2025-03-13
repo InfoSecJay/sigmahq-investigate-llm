@@ -1,0 +1,50 @@
+title: Potential Dosfuscation Activity
+id: a77c1610-fc73-4019-8e29-0f51efc04a51
+status: test
+description: Detects possible payload obfuscation via the commandline
+references:
+- https://www.fireeye.com/content/dam/fireeye-www/blog/pdfs/dosfuscation-report.pdf
+- https://github.com/danielbohannon/Invoke-DOSfuscation
+author: frack113, Nasreddine Bencherchali (Nextron Systems)
+date: 2022-02-15
+modified: 2023-03-06
+tags:
+- attack.execution
+- attack.t1059
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains:
+    - '^^'
+    - '^|^'
+    - ',;,'
+    - ';;;;'
+    - ';; ;;'
+    - '(,(,'
+    - '%COMSPEC:~'
+    - ' c^m^d'
+    - '^c^m^d'
+    - ' c^md'
+    - ' cm^d'
+    - '^cm^d'
+    - ' s^et '
+    - ' s^e^t '
+    - ' se^t '
+            # - '%%'
+            # - '&&'
+            # - '""'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential obfuscation techniques in command-line inputs, commonly used by adversaries to disguise malicious behavior or payloads in Windows environments. The rule inspects process creation logs for specific strings and patterns that are known indicators of obfuscation, such as variations of command characters (^, commas, and semicolons) and unconventional uses of environment variables. By focusing on these command-line patterns, the rule aims to highlight suspicious activities that could indicate an attempt to execute obfuscated payloads.
+  The primary data source for this rule is Windows process creation logs, which capture detailed information about executed processes, including the command-line arguments used. Analyzing these logs allows SOC analysts to detect deviations from normal execution patterns and quickly respond to potential threats.
+  ### Investigation Steps
+  - Examine the EDR logs for the identified process to check the full command line and its parent processes for further context, particularly looking at the user account associated with the execution.
+  - Utilize the SIEM to correlate this alert with other security events occurring at the same time for any related indicators of compromise (IoCs) or lateral movement attempts.
+  - Investigate any associated network activity using NDR logs to identify any unusual outbound connections or communications that may correlate with the detected obfuscation.
+  - Review firewall logs for any outbound traffic that originated from the same host, paying close attention to connections to unknown or suspicious IP addresses.

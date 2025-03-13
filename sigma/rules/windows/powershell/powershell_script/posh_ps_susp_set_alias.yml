@@ -1,0 +1,39 @@
+title: Potential PowerShell Obfuscation Using Alias Cmdlets
+id: 96cd126d-f970-49c4-848a-da3a09f55c55
+related:
+- id: e8314f79-564d-4f79-bc13-fbc0bf2660d8
+  type: derived
+status: test
+description: Detects Set-Alias or New-Alias cmdlet usage. Which can be use as a mean
+  to obfuscate PowerShell scripts
+references:
+- https://github.com/1337Rin/Swag-PSO
+author: frack113
+date: 2023-01-08
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1027
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains:
+    - 'Set-Alias '
+    - 'New-Alias '
+  condition: selection
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies the use of PowerShell cmdlets `Set-Alias` and `New-Alias`, which can be employed by attackers to obfuscate malicious scripts. By allowing users to create shortcuts to cmdlets, these aliasing commands can complicate the analysis of malicious PowerShell activity and hide potentially harmful operations. The rule relies on the capture of Windows PowerShell Script Block Logs, specifically monitoring the text content of the script blocks executed on the system to look for these commands. This type of logging must be enabled to ensure that relevant data is available for detection.
+  Given that `Set-Alias` and `New-Alias` can be utilized in various attack scenarios, particularly in defense evasion as per MITRE ATT&CK techniques (T1027 and T1059.001), it's crucial for analysts to remain vigilant. Identifications of these commands warrant further investigation to determine if they are part of legitimate administrative tasks or something more malicious.
+  ### Investigation Steps
+  - Check the process creation logs via your EDR solution to identify any suspicious instances of PowerShell being run around the same time as the detected alias commands. This can provide context on what actions were being executed.
+  - Examine the PowerShell command history on the affected system to uncover any preceding commands that may indicate the intention behind using aliases.
+  - Review firewall and proxy logs for any outbound connections that occurred from the PowerShell processes invoking the alias cmdlets, as this could signal data exfiltration attempts.
+  - Investigate related user behavior and access logs in AWS, GCP, or Azure to identify any recent changes or unusual activities associated with the accounts tied to the PowerShell activity detected.

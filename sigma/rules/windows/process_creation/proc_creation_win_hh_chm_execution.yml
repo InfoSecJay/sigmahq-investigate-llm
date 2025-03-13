@@ -1,0 +1,35 @@
+title: HH.EXE Execution
+id: 68c8acb4-1b60-4890-8e82-3ddf7a6dba84
+status: test
+description: Detects the execution of "hh.exe" to open ".chm" files.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1218.001/T1218.001.md
+- https://eqllib.readthedocs.io/en/latest/analytics/b25aa548-7937-11e9-8f5c-d46d6d62a49e.html
+- https://www.zscaler.com/blogs/security-research/unintentional-leak-glimpse-attack-vectors-apt37
+author: E.M. Anhaus (originally from Atomic Blue Detections, Dan Beavin), oscd.community
+date: 2019-10-24
+modified: 2023-12-11
+tags:
+- attack.defense-evasion
+- attack.t1218.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - OriginalFileName: 'HH.exe'
+  - Image|endswith: '\hh.exe'
+  selection_cli:
+    CommandLine|contains: '.chm'
+  condition: all of selection_*
+falsepositives:
+- False positives are expected with legitimate ".CHM"
+level: low
+notes: |
+  ### Technical Context
+  The "HH.EXE Execution" Sigma rule is designed to detect the execution of the `hh.exe` application, which is typically used to view compiled HTML help files (with a `.chm` extension). This rule monitors process creation logs, specifically targeting instances where `hh.exe` is executed with a command-line argument containing the string `.chm`. By analyzing the `OriginalFileName` and the command line parameters of processes, incident responders can identify potentially malicious usage of `hh.exe`, as attackers may use this application to deliver content related to their exploits. It's important to note that there can be legitimate uses of `hh.exe`, which may result in false positives, particularly in environments that utilize valid `.chm` files.
+  ### Investigation Steps
+  - Investigate recent process creation logs within your EDR tool to identify instances where `hh.exe` was executed, focusing on the command-line parameters used.
+  - Examine the context of the executed `.chm` files, including their source and whether they were accessed from reputable and expected locations.
+  - Review network logs from your NGFW or Proxy to see if any unusual or unauthorized external connections were made around the same time `hh.exe` was executed.
+  - Analyze any associated file downloads or modifications in your cloud logs (if applicable) to determine if the `.chm` files were downloaded or spread through unexpected means.

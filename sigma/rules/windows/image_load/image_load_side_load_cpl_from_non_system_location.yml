@@ -1,0 +1,38 @@
+title: System Control Panel Item Loaded From Uncommon Location
+id: 2b140a5c-dc02-4bb8-b6b1-8bdb45714cde
+status: test
+description: Detects image load events of system control panel items (.cpl) from uncommon
+  or non-system locations which might be the result of sideloading.
+references:
+- https://www.hexacorn.com/blog/2024/01/06/1-little-known-secret-of-fondue-exe/
+- https://www.hexacorn.com/blog/2024/01/01/1-little-known-secret-of-hdwwiz-exe/
+author: Anish Bogati
+date: 2024-01-09
+tags:
+- attack.defense-evasion
+- attack.t1036
+logsource:
+  product: windows
+  category: image_load
+detection:
+  selection:
+    ImageLoaded|endswith:
+    - '\hdwwiz.cpl'         # Usually loaded by hdwwiz.exe
+    - '\appwiz.cpl'         # Usually loaded by fondue.exe
+  filter_main_legit_location:
+    ImageLoaded|contains:
+    - ':\Windows\System32\'
+    - ':\Windows\SysWOW64\'
+    - ':\Windows\WinSxS\'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially suspicious activity involving the loading of Windows Control Panel items (specifically `.cpl` files) from uncommon or non-standard file locations. Typically, legitimate `.cpl` files are found in system directories such as `C:\Windows\System32\`, `C:\Windows\SysWOW64\`, or `C:\Windows\WinSxS\`. However, if these files are loaded from other directories, it may indicate an attempt to sideload a malicious control panel item, potentially facilitating evasion of security mechanisms. The rule focuses on monitoring Windows event logs, specifically image load events, that capture this activity by analyzing the `ImageLoaded` property for specific `.cpl` files being accessed.
+  ### Investigation Steps
+  - Check EDR logs for processes associated with the loaded `.cpl` files, specifically looking for `hdwwiz.exe` and `fondue.exe` to see if additional anomalies exist.
+  - Cross-reference user activity with application logs to identify any unusual behavior, such as unexpected command-line parameters or execution times.
+  - Utilize AV tools to run a comprehensive scan on the system in question, focusing on the directories from which these `.cpl` files were loaded.
+  - Review network logs from the proxy or NGFW to check for any outbound connections made by the processes involved, especially those directed towards malicious or suspicious IPs.

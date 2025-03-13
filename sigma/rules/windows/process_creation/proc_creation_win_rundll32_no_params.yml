@@ -1,0 +1,40 @@
+title: Rundll32 Execution Without CommandLine Parameters
+id: 1775e15e-b61b-4d14-a1a3-80981298085a
+status: test
+description: Detects suspicious start of rundll32.exe without any parameters as found
+  in CobaltStrike beacon activity
+references:
+- https://www.cobaltstrike.com/help-opsec
+- https://twitter.com/ber_m1ng/status/1397948048135778309
+author: Florian Roth (Nextron Systems)
+date: 2021-05-27
+modified: 2023-08-31
+tags:
+- attack.defense-evasion
+- attack.t1202
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|endswith:
+    - '\rundll32.exe'
+    - '\rundll32.exe"'
+    - '\rundll32'
+  filter:
+    ParentImage|contains:
+    - '\AppData\Local\'
+    - '\Microsoft\Edge\'
+  condition: selection and not filter
+falsepositives:
+- Possible but rare
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule targets the execution of `rundll32.exe`, a legitimate Windows utility that can be abused by attackers to load and execute code from dynamic link libraries (DLLs). The rule specifically looks for instances where `rundll32.exe` is invoked without any command-line parameters, which is a behavior frequently associated with Cobalt Strike beacons. In such cases, the absence of parameters suggests that the execution may not be part of typical system operations, indicating potential malicious activity. The primary data source for this detection is the process creation logs from Windows, which capture various attributes including the command line invoked and the parent process of the execution.
+  The rule further refines detections by filtering out runs initiated from common legitimate parent processes located in user-specific directories, such as `AppData` or those associated with Microsoft Edge. By focusing on these criteria, security teams can identify potentially harmful executions while minimizing false positives that might arise from typical system use.
+  ### Investigation Steps
+  - Examine the process creation logs in your EDR to identify all instances of `rundll32.exe` being executed without command-line parameters to confirm the alert.
+  - Investigate the parent process of the detected `rundll32.exe` executions to determine if they originate from suspicious sources or uncommon paths, which could indicate malicious behavior.
+  - Utilize the SIEM to correlate the timestamp of the alert with other network anomalies or user activities to assess the overall context of the incident.
+  - Review associated EDR and AV logs for any other security alerts or indications of compromise related to the same user or machine to understand the scope of potential intrusion.

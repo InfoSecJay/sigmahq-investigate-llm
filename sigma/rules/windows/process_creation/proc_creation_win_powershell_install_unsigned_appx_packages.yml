@@ -1,0 +1,45 @@
+title: Unsigned AppX Installation Attempt Using Add-AppxPackage
+id: 37651c2a-42cd-4a69-ae0d-22a4349aa04a
+related:
+- id: 975b2262-9a49-439d-92a6-0709cccdf0b2
+  type: similar
+status: test
+description: Detects usage of the "Add-AppxPackage" or it's alias "Add-AppPackage"
+  to install unsigned AppX packages
+references:
+- https://learn.microsoft.com/en-us/windows/msix/package/unsigned-package
+- https://twitter.com/WindowsDocs/status/1620078135080325122
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-31
+tags:
+- attack.persistence
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+  - OriginalFileName:
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+  selection_cmdlet:
+    CommandLine|contains:
+    - 'Add-AppPackage '
+    - 'Add-AppxPackage '
+  selection_flag:
+    CommandLine|contains: ' -AllowUnsigned'
+  condition: all of selection_*
+falsepositives:
+- Installation of unsigned packages for testing purposes
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies unauthorized installation attempts of unsigned AppX packages on Windows systems using PowerShell commands. Specifically, it monitors for the execution of the `Add-AppxPackage` or its alias, `Add-AppPackage`, accompanied by the `-AllowUnsigned` flag, which permits the installation of unverified packages. The primary technical data sources utilized by this rule include process creation logs that capture details such as the command line used during execution and the specific image that initiated the command, revealing potential security risks associated with unsigned package installations. Responders should recognize that while legitimate development or testing scenarios might utilize these commands, their presence in atypical environments could indicate possible exploitation attempts driven by attackers aiming for persistence or evasion.
+  ### Investigation Steps
+  - Review recent process creation logs from the EDR to identify instances of `powershell.exe` or `pwsh.exe` starting with the `Add-AppxPackage` command, including any usage of the `-AllowUnsigned` flag.
+  - Use endpoint detection and response tools to verify the legitimacy of the unsigned packages being installed and assess whether they are associated with known software or internal testing.
+  - Check firewall and proxy logs for any related network activity to determine if the unsigned packages are being downloaded from suspicious or unauthorized sources.
+  - Analyze user and system event logs in conjunction with the cloud platform logs to trace back the origin of the command and identify any potential malicious intent behind the installation.

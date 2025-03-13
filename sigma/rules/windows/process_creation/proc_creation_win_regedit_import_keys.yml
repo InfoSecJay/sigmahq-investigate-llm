@@ -1,0 +1,51 @@
+title: Imports Registry Key From a File
+id: 73bba97f-a82d-42ce-b315-9182e76c57b1
+related:
+- id: 0b80ade5-6997-4b1d-99a1-71701778ea61
+  type: similar
+status: test
+description: Detects the import of the specified file to the registry with regedit.exe.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Regedit/
+- https://gist.github.com/api0cradle/cdd2d0d0ec9abb686f0e89306e277b8f
+author: Oddvar Moe, Sander Wiebing, oscd.community
+date: 2020-10-07
+modified: 2024-03-13
+tags:
+- attack.t1112
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\regedit.exe'
+  - OriginalFileName: 'REGEDIT.EXE'
+  selection_cli:
+    CommandLine|contains:
+    - ' /i '
+    - ' /s '
+    - '.reg'
+  filter_1:
+    CommandLine|contains|windash:
+    - ' -e '
+    - ' -a '
+    - ' -c '
+  filter_2:
+    CommandLine|re: ':[^ \\]'         # to avoid intersection with ADS rule
+  condition: all of selection_* and not all of filter_*
+fields:
+- ParentImage
+- CommandLine
+falsepositives:
+- Legitimate import of keys
+- Evernote
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious activity involving the importation of registry keys from a file using the `regedit.exe` utility on Windows systems. Specifically, the rule identifies when `regedit.exe` is executed with command-line parameters indicating the import of `.reg` files, which may be associated with malware or unauthorized modifications to the registry. The rule monitors for the execution of `regedit.exe` and checks for both the process creation logs and specified command-line arguments, such as `/i` for import and the presence of `.reg` file extensions. By filtering for legitimate use cases through various command-line options, it reduces false positive triggers while maintaining the essence of identifying potential evasion techniques often utilized by threat actors.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR to confirm the invocation of `regedit.exe` and examine the command-line arguments used during the execution.
+  - Check the parent process associated with `regedit.exe` to identify if it was spawned from a legitimate application or a potentially malicious process.
+  - Assess any `.reg` files involved in the import process for their origin and content, looking for unusual or unauthorized changes to the registry.
+  - Correlate alerts with other logs, such as AV or NDR, to determine whether any additional indicators of compromise were triggered during the same timeframe.

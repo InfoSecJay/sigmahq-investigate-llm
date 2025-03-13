@@ -1,0 +1,47 @@
+title: Potential Suspicious Registry File Imported Via Reg.EXE
+id: 62e0298b-e994-4189-bc87-bc699aa62d97
+related:
+- id: 73bba97f-a82d-42ce-b315-9182e76c57b1
+  type: derived
+status: test
+description: Detects the import of '.reg' files from suspicious paths using the 'reg.exe'
+  utility
+references:
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/reg-import
+author: frack113, Nasreddine Bencherchali
+date: 2022-08-01
+modified: 2023-02-05
+tags:
+- attack.t1112
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\reg.exe'
+  - OriginalFileName: 'reg.exe'
+  selection_cli:
+    CommandLine|contains: ' import '
+  selection_paths:
+    CommandLine|contains:
+    - 'C:\Users\'
+    - '%temp%'
+    - '%tmp%'
+    - '%appdata%'
+    - '\AppData\Local\Temp\'
+    - 'C:\Windows\Temp\'
+    - 'C:\ProgramData\'
+  condition: all of selection_*
+falsepositives:
+- Legitimate import of keys
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule monitors the execution of the `reg.exe` utility, particularly focusing on the importation of `.reg` files from directories that are often associated with malicious activities. The rule targets suspicious command-line activities that involve the `import` parameter of `reg.exe`, especially when invoked from paths such as user directories or temporary folders. By correlating process creation logs with command-line parameters, this rule can identify potential threats where attackers may attempt to manipulate the Windows registry for persistence or other nefarious purposes.
+  The primary data sources utilized by this rule include process creation logs that capture details of executed commands, such as the executable name (`reg.exe`) and its corresponding command-line arguments. The specified paths for possible imports further refine the search, ensuring that clear indicators of suspicious activity are detected.
+  ### Investigation Steps
+  - Analyze the triggered alert in the SIEM to identify the specific user account and device associated with the suspicious `reg.exe` execution.
+  - Use EDR tools to investigate the process tree and look for any parent processes that may have executed `reg.exe`, which could provide context on how the command was initiated.
+  - Review network logs, particularly from the firewall or proxy, to identify any outbound traffic that correlates with the alert time, which could indicate data exfiltration attempts.
+  - Check the Windows event logs for any changes or anomalies in the registry that may have been made around the same time as the detection to understand the impact of the import action.

@@ -1,0 +1,36 @@
+title: Hypervisor Enforced Code Integrity Disabled
+id: 8b7273a4-ba5d-4d8a-b04f-11f2900d043a
+status: experimental
+description: |
+  Detects changes to the HypervisorEnforcedCodeIntegrity registry key and the "Enabled" value being set to 0 in order to disable the Hypervisor Enforced Code Integrity feature. This allows an attacker to load unsigned and untrusted code to be run in the kernel
+references:
+- https://www.welivesecurity.com/2023/03/01/blacklotus-uefi-bootkit-myth-confirmed/
+- https://github.com/redcanaryco/atomic-red-team/blob/04e487c1828d76df3e834621f4f893ea756d5232/atomics/T1562.001/T1562.001.md#atomic-test-43---disable-hypervisor-enforced-code-integrity-hvci
+author: Nasreddine Bencherchali (Nextron Systems), Anish Bogati
+date: 2023-03-14
+modified: 2024-07-05
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith:
+    - '\Microsoft\Windows\DeviceGuard\HypervisorEnforcedCodeIntegrity'
+    - '\Control\DeviceGuard\HypervisorEnforcedCodeIntegrity'
+    - '\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity\Enabled'
+    Details: 'DWORD (0x00000000)'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The detection rule targets changes to the Windows registry related to the Hypervisor Enforced Code Integrity (HVCI) feature. Specifically, it monitors modifications to the registry key `HypervisorEnforcedCodeIntegrity` and checks if the "Enabled" value is set to 0. Disabling HVCI can allow attackers to execute unsigned or untrusted code in the kernel, which poses a significant security risk, especially concerning rootkits and advanced persistent threats (APTs). The rule utilizes Windows registry event logs as its primary data source, focusing on registry set operations that could indicate an attempt to undermine system integrity.
+  ### Investigation Steps
+  - Review EDR logs to identify any processes that have interacted with the registry paths related to HypervisorEnforcedCodeIntegrity just before the alert to determine which application or user initiated the change.
+  - Check for other security alerts within the SIEM that coincide with the timestamp of the registry modification, as this may provide context on potential malicious activity.
+  - Analyze any network activity reported by NDR or proxy logs during the period to confirm that no unusual outbound connections were made by the device following the registry change.
+  - Consult cloud environment logs (if applicable) for any related administrative actions or changes that might indicate unauthorized access to the system or attempts to disable security features.

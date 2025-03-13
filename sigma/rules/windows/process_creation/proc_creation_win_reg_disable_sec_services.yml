@@ -1,0 +1,54 @@
+title: Security Service Disabled Via Reg.EXE
+id: 5e95028c-5229-4214-afae-d653d573d0ec
+status: test
+description: Detects execution of "reg.exe" to disable security services such as Windows
+  Defender.
+references:
+- https://twitter.com/JohnLaTwC/status/1415295021041979392
+- https://github.com/gordonbay/Windows-On-Reins/blob/e587ac7a0407847865926d575e3c46f68cf7c68d/wor.ps1
+- https://vms.drweb.fr/virus/?i=24144899
+- https://bidouillesecurity.com/disable-windows-defender-in-powershell/
+author: Florian Roth (Nextron Systems), John Lambert (idea), elhoim
+date: 2021-07-14
+modified: 2023-06-05
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_reg_add:
+    CommandLine|contains|all:
+    - 'reg'
+    - 'add'
+  selection_cli_reg_start:
+    CommandLine|contains|all:
+    - 'd 4'
+    - 'v Start'
+    CommandLine|contains:
+    - '\AppIDSvc'
+    - '\MsMpSvc'
+    - '\NisSrv'
+    - '\SecurityHealthService'
+    - '\Sense'
+    - '\UsoSvc'
+    - '\WdBoot'
+    - '\WdFilter'
+    - '\WdNisDrv'
+    - '\WdNisSvc'
+    - '\WinDefend'
+    - '\wscsvc'
+    - '\wuauserv'
+  condition: all of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Security Service Disabled Via Reg.EXE" is designed to detect the execution of the Windows Registry Editor (`reg.exe`) with specific commands that disable critical security services like Windows Defender. This method is commonly employed by threat actors to circumvent security measures by modifying the startup configuration of these services. The rule checks for processes that invoke `reg.exe` with the command line arguments indicating the addition of a registry entry that alters the state of security services, specifically targeting services that are integral to maintaining system integrity and protection. The primary data sources involved in this detection process include process creation logs that capture the command-line parameters utilized by executed processes.
+  ### Investigation Steps
+  - Utilize the EDR solution to identify the process creation events corresponding to `reg.exe` execution and examine the associated command-line parameters for suspicious modifications.
+  - Review logs in the SIEM to correlate any detected activity with alerts related to security service alterations, particularly focusing on timestamps and affected services.
+  - Inspect the execution history of the processes involved via the EDR or cloud audit logs to determine if there were any unauthorized or anomalous actions preceding or following the command execution.
+  - Leverage threat intelligence feeds to check for known malware signatures or behaviors associated with the identified command-line patterns to assess the likelihood of a compromise.

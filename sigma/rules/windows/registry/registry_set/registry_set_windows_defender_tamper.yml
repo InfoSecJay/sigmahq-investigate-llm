@@ -1,0 +1,76 @@
+title: Disable Windows Defender Functionalities Via Registry Keys
+id: 0eb46774-f1ab-4a74-8238-1155855f2263
+related:
+- id: a64e4198-c1c8-46a5-bc9c-324c86455fd4
+  type: obsolete
+- id: fd115e64-97c7-491f-951c-fc8da7e042fa
+  type: obsolete
+status: test
+description: Detects when attackers or tools disable Windows Defender functionalities
+  via the Windows registry
+references:
+- https://thedfirreport.com/2021/10/18/icedid-to-xinglocker-ransomware-in-24-hours/
+- https://gist.github.com/anadr/7465a9fde63d41341136949f14c21105
+- https://admx.help/?Category=Windows_7_2008R2&Policy=Microsoft.Policies.WindowsDefender::SpyNetReporting
+- https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/ransomware-hive-conti-avoslocker
+- https://www.tenforums.com/tutorials/32236-enable-disable-microsoft-defender-pua-protection-windows-10-a.html
+- https://www.tenforums.com/tutorials/105533-enable-disable-windows-defender-exploit-protection-settings.html
+- https://www.tenforums.com/tutorials/123792-turn-off-tamper-protection-microsoft-defender-antivirus.html
+- https://securelist.com/key-group-ransomware-samples-and-telegram-schemes/114025/
+author: AlertIQ, Ján Trenčanský, frack113, Nasreddine Bencherchali, Swachchhanda Shrawan
+  Poudel
+date: 2022-08-01
+modified: 2024-10-07
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection_main:
+    TargetObject|contains:
+    - '\SOFTWARE\Microsoft\Windows Defender\'
+    - '\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\'
+    - '\SOFTWARE\Policies\Microsoft\Windows Defender\'
+  selection_dword_1:
+    TargetObject|endswith:
+    - '\DisableAntiSpyware'
+    - '\DisableAntiVirus'
+    - '\DisableBehaviorMonitoring'
+    - '\DisableBlockAtFirstSeen'
+    - '\DisableEnhancedNotifications'
+    - '\DisableIntrusionPreventionSystem'
+    - '\DisableIOAVProtection'
+    - '\DisableOnAccessProtection'
+    - '\DisableRealtimeMonitoring'
+    - '\DisableScanOnRealtimeEnable'
+    - '\DisableScriptScanning'
+    Details: 'DWORD (0x00000001)'
+  selection_dword_0:
+    TargetObject|endswith:
+    - '\DisallowExploitProtectionOverride'
+    - '\Features\TamperProtection'
+    - '\MpEngine\MpEnablePus'
+    - '\PUAProtection'
+    - '\Signature Update\ForceUpdateFromMU'
+    - '\SpyNet\SpynetReporting'
+    - '\SpyNet\SubmitSamplesConsent'
+    - '\Windows Defender Exploit Guard\Controlled Folder Access\EnableControlledFolderAccess'
+    Details: 'DWORD (0x00000000)'
+  filter_optional_symantec:
+    Image|startswith: 'C:\Program Files\Symantec\Symantec Endpoint Protection\'
+    Image|endswith: '\sepWscSvc64.exe'
+  condition: selection_main and 1 of selection_dword_* and not 1 of filter_optional_*
+falsepositives:
+- Administrator actions via the Windows Defender interface
+- Third party Antivirus
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential attempts to disable critical functionalities of Windows Defender through modifications in the Windows registry. Threat actors or malicious tools may alter specific registry keys associated with Windows Defender to evade detection or disable protective measures, thus making the system more vulnerable to attacks. The rule specifically monitors registry set operations, particularly those targeting the Windows Defender registry paths, looking for indications such as the disabling of real-time monitoring, antivirus, and various other protective features by examining DWORD values. By leveraging data sources such as registry change logs, this rule helps security teams detect unauthorized alterations that could signify malicious activity.
+  ### Investigation Steps
+  - Use the EDR tool to review the recent process activity and identify any unauthorized changes made to Windows Defender settings, focusing on the timestamps that match the alert.
+  - Query the registry logs to trace back the specific changes to the registry keys listed in the alert, and identify the user or process responsible for making those changes.
+  - Check for any associated alerts from the SIEM to correlate this activity with other suspicious behaviors, such as unusual network communications or unauthorized access attempts.
+  - Review Antivirus and Endpoint Protection logs to determine if any safeguards were bypassed or if there were indications of a third-party tool attempting to interfere with system protections.

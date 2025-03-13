@@ -1,0 +1,38 @@
+title: UAC Bypass Using Consent and Comctl32 - Process
+id: 1ca6bd18-0ba0-44ca-851c-92ed89a61085
+status: test
+description: Detects the pattern of UAC Bypass using consent.exe and comctl32.dll
+  (UACMe 22)
+references:
+- https://github.com/hfiref0x/UACME
+author: Christian Burkard (Nextron Systems)
+date: 2021-08-23
+modified: 2024-12-01
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\consent.exe'
+    Image|endswith: '\werfault.exe'
+    IntegrityLevel:
+    - 'High'
+    - 'System'
+    - 'S-1-16-16384'         # System
+    - 'S-1-16-12288'         # High
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential User Account Control (UAC) bypass attempts on Windows systems through the manipulation of the consent.exe and comctl32.dll components. It specifically looks for instances where the parent process is consent.exe, which is responsible for showing UAC prompts, while the child process should be werfault.exe, typically used for error reporting in Windows. The rule focuses on processes launched with high integrity levels, indicating elevated permissions or system-level access. By monitoring the relationships between these processes, the rule helps uncover suspicious behavior commonly associated with privilege escalation techniques that adversaries may employ to circumvent security measures. The data sources involved primarily include process creation logs which provide information on the execution context of applications.
+  ### Investigation Steps
+  - Utilize your EDR solution to filter and review process creation events that match the characteristics defined in the rule, focusing on the identified parent and child processes.
+  - Check the integrity levels of the processes involved to confirm if they are set to 'High' or 'System', as this indicates elevated permissions that could suggest malicious intent.
+  - Review the associated command-line arguments for the processes detected to identify unusual patterns that may indicate exploitation techniques.
+  - Cross-reference logs with AV and NGFW solutions to detect any related malware signatures or anomalous outbound connections that may corroborate the alert findings.

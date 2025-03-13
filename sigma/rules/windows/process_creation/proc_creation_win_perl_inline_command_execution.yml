@@ -1,0 +1,34 @@
+title: Perl Inline Command Execution
+id: f426547a-e0f7-441a-b63e-854ac5bdf54d
+status: test
+description: Detects execution of perl using the "-e"/"-E" flags. This is could be
+  used as a way to launch a reverse shell or execute live perl code.
+references:
+- https://pentestmonkey.net/cheat-sheet/shells/reverse-shell-cheat-sheet
+- https://www.revshells.com/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-02
+tags:
+- attack.execution
+- attack.t1059
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\perl.exe'
+  - OriginalFileName: 'perl.exe'       # Also covers perlX.XX.exe
+  selection_cli:
+    CommandLine|contains: ' -e'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Perl Inline Command Execution" is designed to detect instances of Perl being executed with the `-e` or `-E` flags, which allow users to execute Perl code directly from the command line. These flags can be misused by attackers to launch reverse shells or execute arbitrary code, often serving as a method for exploitation during an attack. The rule focuses specifically on process creation logs from Windows systems, particularly monitoring the `perl.exe` executable and analyzing command-line arguments for the presence of the specified flags. Employing a combination of checks on the executable's image and original file name, this detection aims to identify suspicious inline command executions that may indicate malicious activity.
+  ### Investigation Steps
+  - Review process creation logs in the EDR for recent executions of `perl.exe`, paying close attention to the command-line arguments that include the `-e` or `-E` flags.
+  - Utilize the SIEM to correlate any relevant alerts related to this detection with historical activity that may indicate prior compromises or patterns of abuse.
+  - Check the network traffic logs (NDR or Proxy) for suspicious outbound connections that might align with reverse shell behavior initiated using Perl.
+  - Examine user account activity in cloud logs to identify any unauthorized access or activity concurrent with the execution of `perl.exe`, ensuring to assess whether the account has been compromised.

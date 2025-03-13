@@ -1,0 +1,37 @@
+title: MSExchange Transport Agent Installation
+id: 83809e84-4475-4b69-bc3e-4aad8568612f
+related:
+- id: 83809e84-4475-4b69-bc3e-4aad8568612f
+  type: similar
+status: test
+description: Detects the Installation of a Exchange Transport Agent
+references:
+- https://speakerdeck.com/heirhabarov/hunting-for-persistence-via-microsoft-exchange-server-or-outlook?slide=7
+author: Tobias Michalski (Nextron Systems)
+date: 2021-06-08
+modified: 2022-10-09
+tags:
+- attack.persistence
+- attack.t1505.002
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    CommandLine|contains: 'Install-TransportAgent'
+  condition: selection
+fields:
+- AssemblyPath
+falsepositives:
+- Legitimate installations of exchange TransportAgents. AssemblyPath is a good indicator
+  for this.
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule aims to detect the installation of Microsoft Exchange Transport Agents by monitoring specific command-line activities in Windows environments. The rule looks for the presence of the command 'Install-TransportAgent' in the process creation logs, which may indicate an attempt to establish persistence through the deployment of these agents. Transport Agents are components that process email messages and can be exploited by malicious actors for unauthorized actions. The primary data source used for this detection rule is process creation logs, which record details about processes initiated on Windows systems, including command-line parameters, assembly paths, and the user context in which they were run. 
+  When alerted, responders should consider the context of the detected command to determine if the action was legitimate, as there are valid use cases for installing Transport Agents in operational environments.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR solution to confirm the presence of the 'Install-TransportAgent' command and identify the user account that initiated the process.
+  - Investigate the AssemblyPath associated with the alert to confirm whether the installation is from a legitimate source or if it shows signs of manipulation.
+  - Check firewall and proxy logs for any unusual outgoing or incoming network traffic that may have occurred around the time of the installation alert, indicating suspicious activity.
+  - Analyze any related logs from the Exchange server to corroborate the installation event and assess if this aligns with other documented administrative actions.

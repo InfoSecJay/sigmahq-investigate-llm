@@ -1,0 +1,33 @@
+title: Windows Binary Executed From WSL
+id: ed825c86-c009-4014-b413-b76003e33d35
+status: test
+description: |
+  Detects the execution of Windows binaries from within a WSL instance.
+  This could be used to masquerade parent-child relationships
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-02-14
+tags:
+- attack.execution
+- attack.defense-evasion
+- attack.t1202
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|re: '[a-zA-Z]:\\'
+    CurrentDirectory|contains: '\\\\wsl.localhost'     # Note: programs not supporting UNC paths (example: cmd.exe). Will default to another location
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies attempts to execute Windows binaries from within the Windows Subsystem for Linux (WSL). It specifically looks for process creation events where the executed binary is located in a typical Windows file system path (indicated by the presence of "C:\" or similar) while the current working directory is set to a WSL environment (denoted by "\\wsl.localhost"). This behavior may indicate malicious activities, such as an attacker trying to leverage WSL for executing Windows binaries to obfuscate parent-child process relationships. Monitoring this activity is crucial for understanding potentially evasive tactics employed by threat actors who exploit the interoperable capabilities of WSL.
+  ### Investigation Steps
+  - Utilize EDR (Endpoint Detection and Response) tools to examine process creation logs for any instances where Windows binaries are executed from a WSL instance.
+  - Investigate the command-line parameters associated with the executed binaries to determine the nature of the execution and whether any suspicious patterns are present.
+  - Search network logs for any unusual outbound connections initiated shortly after the suspicious process execution, as this may indicate exfiltration attempts or command-and-control communications.
+  - Review user activity logs via cloud platforms (if applicable) to correlate user behavior with the observed malicious executions, helping to identify potential insider threats or compromised accounts.

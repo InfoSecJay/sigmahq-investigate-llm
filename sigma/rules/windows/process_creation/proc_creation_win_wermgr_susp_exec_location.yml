@@ -1,0 +1,45 @@
+title: Suspicious Execution Location Of Wermgr.EXE
+id: 5394fcc7-aeb2-43b5-9a09-cac9fc5edcd5
+related:
+- id: 396f6630-f3ac-44e3-bfc8-1b161bc00c4e
+  type: similar
+status: test
+description: Detects suspicious Windows Error Reporting manager (wermgr.exe) execution
+  location.
+references:
+- https://www.trendmicro.com/en_us/research/22/j/black-basta-infiltrates-networks-via-qakbot-brute-ratel-and-coba.html
+- https://www.echotrail.io/insights/search/wermgr.exe
+- https://github.com/binderlabs/DirCreate2System
+author: Florian Roth (Nextron Systems)
+date: 2022-10-14
+modified: 2023-08-23
+tags:
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\wermgr.exe'
+  filter_main_legit_location:
+    Image|startswith:
+    - 'C:\Windows\System32\'
+    - 'C:\Windows\SysWOW64\'
+    - 'C:\Windows\WinSxS\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies suspicious executions of the Windows Error Reporting Manager (wermgr.exe) from locations that deviate from its usual directory paths. Legitimate instances of wermgr.exe typically reside in system directories such as `C:\Windows\System32\`, `C:\Windows\SysWOW64\`, or `C:\Windows\WinSxS\`. When this executable is observed running from atypical paths, it may indicate a potential compromise, as adversaries often employ common system binaries for malicious purposes. The rule leverages process creation logs and specifically examines the image path of executions to determine their legitimacy.
+  By monitoring the execution of wermgr.exe, the organization can identify potential misuse, such as the execution of malware that mimics legitimate system processes. This proactive approach allows security teams to quickly address potential threats before they can escalate.
+  ### Investigation Steps
+  - **Review Process Creation Logs**  
+  Examine the process creation logs in the EDR solution for any instances of wermgr.exe that are not from the legitimate system directories. This will help in identifying the execution context and any associated parent processes.
+  - **Analyze Command-Line Parameters**  
+  Check the command-line arguments passed to the wermgr.exe process to determine if they reveal any suspicious activity or patterns indicative of exploitation.
+  - **Check for Persistence Mechanisms**  
+  Investigate any related scheduled tasks or startup entries that may indicate persistence mechanisms linked to the suspicious execution of wermgr.exe.
+  - **Correlate with Threat Intelligence**  
+  Utilize threat intelligence platforms to assess any known malware or attack patterns associated with the usage of wermgr.exe, especially if it has been executed from an uncommon path.

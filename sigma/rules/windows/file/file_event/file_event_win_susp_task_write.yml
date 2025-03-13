@@ -1,0 +1,36 @@
+title: Suspicious Scheduled Task Write to System32 Tasks
+id: 80e1f67a-4596-4351-98f5-a9c3efabac95
+status: test
+description: Detects the creation of tasks from processes executed from suspicious
+  locations
+references:
+- Internal Research
+author: Florian Roth (Nextron Systems)
+date: 2021-11-16
+modified: 2022-01-12
+tags:
+- attack.persistence
+- attack.execution
+- attack.t1053
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|contains: '\Windows\System32\Tasks'
+    Image|contains:
+    - '\AppData\'
+    - 'C:\PerfLogs'
+    - '\Windows\System32\config\systemprofile'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potentially malicious activities that involve the creation of scheduled tasks in Windows, specifically when these tasks originate from suspicious file paths. The rule examines file event logs to determine if any executable processes are attempting to write tasks directly into the `C:\Windows\System32\Tasks` directory, which is a critical location for scheduled tasks in Windows. It uses indicators of compromise (IOCs) such as the source paths like `\AppData\`, `C:\PerfLogs`, and specific system profile directories, which are commonly associated with irregular and non-standard behavior. By monitoring these patterns, security analysts can detect possible persistence mechanisms employed by threat actors.
+  ### Investigation Steps
+  - Start by reviewing the EDR logs to identify the specific processes that attempted to create tasks in the `C:\Windows\System32\Tasks` directory, taking note of the timestamp and user associated with the action.
+  - Analyze the command-line parameters of the processes involved, focusing on those that originated from suspicious paths like `\AppData\`, to identify any anomalous or malicious intent behind the task creation.
+  - Check AV and threat intelligence for any known signatures or behaviors associated with these file paths to determine if the process may be linked to previously identified threats.
+  - Validate whether the scheduled tasks created correspond to legitimate administrative functions or if they reveal potential signs of lateral movement or persistence tactics within the environment.

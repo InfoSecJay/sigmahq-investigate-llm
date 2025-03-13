@@ -1,0 +1,41 @@
+title: Potential DLL Injection Via AccCheckConsole
+id: 0f6da907-5854-4be6-859a-e9958747b0aa
+status: test
+description: |
+  Detects the execution "AccCheckConsole" a command-line tool for verifying the accessibility implementation of an application's UI.
+  One of the tests that this checker can run are called "verification routine", which tests for things like Consistency, Navigation, etc.
+  The tool allows a user to provide a DLL that can contain a custom "verification routine". An attacker can build such DLLs and pass it via the CLI, which would then be loaded in the context of the "AccCheckConsole" utility.
+references:
+- https://gist.github.com/bohops/2444129419c8acf837aedda5f0e7f340
+- https://twitter.com/bohops/status/1477717351017680899?s=12
+- https://lolbas-project.github.io/lolbas/OtherMSBinaries/AccCheckConsole/
+author: Florian Roth (Nextron Systems)
+date: 2022-01-06
+modified: 2024-08-29
+tags:
+- attack.execution
+- detection.threat-hunting
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\AccCheckConsole.exe'
+  - OriginalFileName: 'AccCheckConsole.exe'
+  selection_cli:
+    CommandLine|contains:
+    - ' -hwnd'
+    - ' -process '
+    - ' -window '
+  condition: all of selection_*
+falsepositives:
+- Legitimate use of the UI Accessibility Checker
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is focused on identifying suspicious usages of the "AccCheckConsole" tool, which is a legitimate command-line utility designed for verifying the accessibility features of applications. Attackers can exploit this tool by utilizing its capability to load custom Dynamic Link Libraries (DLLs) via command-line arguments. This feature allows malicious users to inject their own verification routines into the process. The rule specifically looks for process creation logs involving "AccCheckConsole.exe" and analyzes associated command-line parameters to detect possible unauthorized DLL injections. By monitoring for specified command-line flags indicative of DLL usage, the rule helps incident responders pinpoint potentially harmful activities within their Windows environment.
+  ### Investigation Steps
+  - Review process creation logs in the EDR for instances of "AccCheckConsole.exe" to identify the source of the execution and any related processes that were spawned. 
+  - Analyze the command-line parameters associated with "AccCheckConsole" to check for suspicious usage patterns, specifically the inclusion of flags like `-hwnd`, `-process`, or `-window`.
+  - Investigate the file attributes of any DLLs referenced in the command line to determine if they are known malicious or unauthorized. Utilize threat intelligence databases where necessary.
+  - Conduct a thorough review of surrounding network traffic in the NDR, particularly any communication with external IP addresses that may correlate with the time of execution to identify potential command and control communications.

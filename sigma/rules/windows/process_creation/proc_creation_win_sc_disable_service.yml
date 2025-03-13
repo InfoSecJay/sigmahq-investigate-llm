@@ -1,0 +1,40 @@
+title: Service StartupType Change Via Sc.EXE
+id: 85c312b7-f44d-4a51-a024-d671c40b49fc
+status: test
+description: Detect the use of "sc.exe" to change the startup type of a service to
+  "disabled" or "demand"
+references:
+- https://www.virustotal.com/gui/file/38283b775552da8981452941ea74191aa0d203edd3f61fb2dee7b0aea3514955
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-01
+modified: 2023-03-04
+tags:
+- attack.execution
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\sc.exe'
+  - OriginalFileName: 'sc.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - ' config '
+    - 'start'
+    CommandLine|contains:
+    - 'disabled'
+    - 'demand'
+  condition: all of selection_*
+falsepositives:
+- False positives may occur with troubleshooting scripts
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule "Service StartupType Change Via Sc.EXE" identifies the use of the `sc.exe` command-line tool to alter the startup type of Windows services. Specifically, it looks for commands that modify the configuration to either "disabled" or "demand," potentially signaling evasive or malicious behavior by an attacker trying to hinder service operation. The detection leverages process creation logs as a primary data source, monitoring for instances where `sc.exe` is executed with specific command-line arguments that indicate a configuration change. If executed under suspicious circumstances, such changes may indicate an attempt to disrupt security controls or legitimate business operations.
+  ### Investigation Steps
+  - Check EDR logs for any instances of `sc.exe` being executed, focusing on related process creation entries that include the command-line arguments "config" and "start."
+  - Review the timeline of other events around the same time to identify patterns or additional commands executed by the same user or process, which may indicate a larger attack.
+  - Correlate findings with AV and NDR alerts to examine if any endpoint security products flagged related behaviors leading up to the service change.
+  - Inspect cloud logs (if applicable) from AWS, GCP, or Azure to determine if any service changes were also made through the cloud infrastructure that might align with the actions detected on the local environment.

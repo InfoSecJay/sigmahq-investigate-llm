@@ -1,0 +1,54 @@
+title: Wab/Wabmig Unusual Parent Or Child Processes
+id: 63d1ccc0-2a43-4f4b-9289-361b308991ff
+status: test
+description: Detects unusual parent or children of the wab.exe (Windows Contacts)
+  and Wabmig.exe (Microsoft Address Book Import Tool) processes as seen being used
+  with bumblebee activity
+references:
+- https://thedfirreport.com/2022/08/08/bumblebee-roasts-its-way-to-domain-admin/
+- https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/bumblebee-loader-cybercrime
+- https://thedfirreport.com/2022/09/26/bumblebee-round-two/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-12
+modified: 2022-09-27
+tags:
+- attack.defense-evasion
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|endswith:
+            # Add more if known
+    - \WmiPrvSE.exe
+    - \svchost.exe
+    - \dllhost.exe
+    Image|endswith:
+    - '\wab.exe'
+    - '\wabmig.exe'         # (Microsoft Address Book Import Tool)
+  selection_child:
+        # You can add specific suspicious child processes (such as cmd, powershell...) to increase the accuracy
+    ParentImage|endswith:
+    - '\wab.exe'
+    - '\wabmig.exe'         # (Microsoft Address Book Import Tool)
+  condition: 1 of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Wab/Wabmig Unusual Parent Or Child Processes" is designed to detect anomalous activity surrounding the `wab.exe` (Windows Contacts) and `wabmig.exe` (Microsoft Address Book Import Tool) processes, particularly when these processes are initiated or connected to unusual parent processes. This behavior is commonly associated with malicious tactics, such as those employed by the Bumblebee loader, which often uses legitimate tools to evade detection and perform operations that could lead to further compromise of the system. The rule monitors process creation events and is primarily based on Windows process creation logs. It looks for parent processes like `WmiPrvSE.exe`, `svchost.exe`, and `dllhost.exe` that are indicative of potential exploitation, as well as any suspicious child processes launched by `wab.exe` or `wabmig.exe`.
+  ### Investigation Steps
+  - **Check Process Creation Logs:**
+    
+    Review the process creation logs in your EDR solution to identify instances of `wab.exe` and `wabmig.exe`, paying special attention to their parent processes.
+  - **Analyze Parent Process Behavior:**
+    
+    Investigate the identified parent processes (e.g., `WmiPrvSE.exe`, `svchost.exe`) for any unusual command-line parameters or execution trends that could indicate malicious intent.
+  - **Examine Child Processes:**
+    
+    Analyze any child processes created by `wab.exe` or `wabmig.exe` to identify potentially malicious activities. Look for command-line executions or script invocations that deviate from normal operations.
+  - **Utilize Network and AV Logs:**
+    
+    Cross-reference findings with network activity and antivirus logs to detect any communication with known malicious IPs or unusual file activities associated with the alert.

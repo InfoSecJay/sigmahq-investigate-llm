@@ -1,0 +1,39 @@
+title: HackTool - Hydra Password Bruteforce Execution
+id: aaafa146-074c-11eb-adc1-0242ac120002
+status: test
+description: Detects command line parameters used by Hydra password guessing hack
+  tool
+references:
+- https://github.com/vanhauser-thc/thc-hydra
+author: Vasiliy Burov
+date: 2020-10-05
+modified: 2023-02-04
+tags:
+- attack.credential-access
+- attack.t1110
+- attack.t1110.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - '-u '
+    - '-p '
+    CommandLine|contains:
+    - '^USER^'
+    - '^PASS^'
+  condition: selection
+falsepositives:
+- Software that uses the caret encased keywords PASS and USER in its command line
+level: high
+notes: |
+  ### Technical Context  
+  The Sigma rule titled "HackTool 
+  - Hydra Password Bruteforce Execution" is designed to detect the execution of the Hydra password brute-forcing tool on Windows systems. This rule focuses on specific command-line parameters indicative of brute-force attacks, particularly looking for the presence of `-u` (username) and `-p` (password) options. Additionally, it checks for command lines that include the placeholders `^USER^` and `^PASS^`, which often indicate automated scripts used for password guessing. By monitoring process creation logs for these patterns, the rule captures potential unauthorized access attempts that could compromise user accounts or systems within the enterprise environment.
+  The primary data source for this detection is the Windows process creation logs, specifically the command line arguments associated with each process. By mining this data, the rule enables the detection of activities that fit the profile of hacking tools, allowing SOC analysts to quickly identify and respond to potential credentials-related attacks.
+  ### Investigation Steps  
+  - Use EDR tools to identify all process creation events around the time of the alert, focusing on the command-line arguments to confirm the execution of the Hydra tool.
+  - Query AV logs to check for any detections or incidents related to known malicious hashes or behaviors associated with Hydra or similar brute-force tools.
+  - Review Proxy logs for unusual outbound connections or access patterns that coincide with the timing of the detected Hydra execution, particularly those targeting authentication services.
+  - Assess user account activity in Identity and Access Management (IAM) logs on cloud platforms like AWS or Azure for suspicious login attempts, especially those corresponding to the usernames targeted by Hydra.

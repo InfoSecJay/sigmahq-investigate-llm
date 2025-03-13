@@ -1,0 +1,32 @@
+title: DNS HybridConnectionManager Service Bus
+id: 7bd3902d-8b8b-4dd4-838a-c6862d40150d
+status: test
+description: Detects Azure Hybrid Connection Manager services querying the Azure service
+  bus service
+references:
+- https://twitter.com/Cyb3rWard0g/status/1381642789369286662
+author: Roberto Rodriguez (Cyb3rWard0g), OTR (Open Threat Research)
+date: 2021-04-12
+modified: 2023-01-16
+tags:
+- attack.persistence
+- attack.t1554
+logsource:
+  product: windows
+  category: dns_query
+detection:
+  selection:
+    QueryName|contains: 'servicebus.windows.net'
+    Image|contains: 'HybridConnectionManager'
+  condition: selection
+falsepositives:
+- Legitimate use of Azure Hybrid Connection Manager and the Azure Service Bus service
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially suspicious activity initiated by the Azure Hybrid Connection Manager on Windows systems. Specifically, it looks for DNS queries containing the domain `servicebus.windows.net`, which is associated with Azure Service Bus services. The rule also checks if the process making these DNS queries is named `HybridConnectionManager`, indicating the possible presence of a legitimate Azure Hybrid Connection Manager instance. By monitoring DNS queries and the associated processes, the rule aims to highlight instances where the Hybrid Connection Manager is engaged with Azure's messaging services, which can be used maliciously to establish connections for data exfiltration or unauthorized access.
+  ### Investigation Steps
+  - Review EDR logs to identify any instances of the `HybridConnectionManager` process and analyze the timing and context of its execution.
+  - Examine any recent DNS queries logged in the environment for `servicebus.windows.net` to determine if there are multiple or unusual requests linked to the alert.
+  - Investigate network traffic through the NGFW to assess any outgoing connections to Azure Service Bus and initial anomalies in communication patterns.
+  - Cross-reference user account activity and privileges in cloud logs (e.g., Azure Activity Log) to validate if legitimate authorization was in place for accessing the Azure Service Bus.

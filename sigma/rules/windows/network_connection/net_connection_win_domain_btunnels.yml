@@ -1,0 +1,32 @@
+title: Network Connection Initiated To BTunnels Domains
+id: 9e02c8ec-02b9-43e8-81eb-34a475ba7965
+status: experimental
+description: |
+  Detects network connections to BTunnels domains initiated by a process on the system.
+  Attackers can abuse that feature to establish a reverse shell or persistence on a machine.
+references:
+- https://defr0ggy.github.io/research/Utilizing-BTunnel-For-Data-Exfiltration/
+author: Kamran Saifullah
+date: 2024-09-13
+tags:
+- attack.exfiltration
+- attack.t1567.001
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Initiated: 'true'
+    DestinationHostname|endswith: '.btunnel.co.in'
+  condition: selection
+falsepositives:
+- Legitimate use of BTunnels will also trigger this.
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect network connections initiated by processes on Windows systems to domains associated with BTunnels, specifically those ending in `.btunnel.co.in`. BTunnels is a known tool that can be exploited by attackers to establish reverse shells and maintain persistence on compromised systems. When a process initiates a connection to these domains, it is likely indicative of malicious activity, as this behavior is not common for legitimate applications. The rule leverages network connection logs to identify when a connection meets the specified criteria, providing analysts with a flag for potential data exfiltration attempts or unauthorized remote access actions.
+  ### Investigation Steps
+  - Review EDR logs for the process initiating the network connection to verify whether it is a known application or a suspicious executable. 
+  - Analyze process creation logs related to the identified process, including command-line parameters, to determine what actions were taken prior to the connection.
+  - Inspect firewall logs for any other unusual outbound connections made by the same source process, which may indicate broader malicious behavior.
+  - Search for proxy logs to uncover any previous interactions with BTunnels domains or other related suspicious domains accessed from the network.

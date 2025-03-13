@@ -1,0 +1,45 @@
+title: Potential Mpclient.DLL Sideloading
+id: 418dc89a-9808-4b87-b1d7-e5ae0cb6effc
+related:
+- id: 7002aa10-b8d4-47ae-b5ba-51ab07e228b9
+  type: similar
+status: test
+description: Detects potential sideloading of "mpclient.dll" by Windows Defender processes
+  ("MpCmdRun" and "NisSrv") from their non-default directory.
+references:
+- https://www.sentinelone.com/blog/living-off-windows-defender-lockbit-ransomware-sideloads-cobalt-strike-through-microsoft-security-tool
+author: Bhabesh Raj
+date: 2022-08-02
+modified: 2023-08-04
+tags:
+- attack.defense-evasion
+- attack.t1574.002
+logsource:
+  product: windows
+  category: image_load
+detection:
+  selection:
+    ImageLoaded|endswith: '\mpclient.dll'
+    Image|endswith:
+    - '\MpCmdRun.exe'
+    - '\NisSrv.exe'
+  filter_main_known_locations:
+    Image|startswith:
+    - 'C:\Program Files (x86)\Windows Defender\'
+    - 'C:\Program Files\Microsoft Security Client\'
+    - 'C:\Program Files\Windows Defender\'
+    - 'C:\ProgramData\Microsoft\Windows Defender\Platform\'
+    - 'C:\Windows\WinSxS\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential sideloading of the `mpclient.dll` library by legitimate Windows Defender processes, specifically `MpCmdRun.exe` and `NisSrv.exe`, when they operate from non-default directory locations. Sideloading is a technique used by attackers to execute malicious code by leveraging trusted processes in order to evade detection. The rule focuses on monitoring image load events (when a process loads a DLL) and looks for specific indicators in process creation logs, especially examining the loaded libraries to see if they include `mpclient.dll`. It checks if the loading happens outside the designated directories typically associated with Windows Defender, indicating a possible malicious activity that could lead to defense evasion.
+  ### Investigation Steps
+  - Utilize the EDR tool to investigate the execution paths of `MpCmdRun.exe` and `NisSrv.exe` to identify any anomalies or deviations from their expected locations.
+    
+  - Query process creation logs for associated command-line parameters of the detected processes to determine if any suspicious arguments were used during execution.
+  - Review Windows Defender logs for any alerts or anomalous behavior that may correlate with the timing and source of the sideloading event.
+  - Conduct searches in AV and cloud logs to identify any further instances of `mpclient.dll` being loaded by other processes or any associated IP addresses that may have been contacted during the event.

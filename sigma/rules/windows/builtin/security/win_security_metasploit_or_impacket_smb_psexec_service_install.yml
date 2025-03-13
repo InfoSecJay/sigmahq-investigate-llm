@@ -1,0 +1,52 @@
+title: Metasploit Or Impacket Service Installation Via SMB PsExec
+id: 6fb63b40-e02a-403e-9ffd-3bcc1d749442
+related:
+- id: 1a17ce75-ff0d-4f02-9709-2b7bb5618cf0
+  type: derived
+status: test
+description: Detects usage of Metasploit SMB PsExec (exploit/windows/smb/psexec) and
+  Impacket psexec.py by triggering on specific service installation
+references:
+- https://bczyz1.github.io/2021/01/30/psexec.html
+author: Bartlomiej Czyz, Relativity
+date: 2021-01-21
+modified: 2022-10-05
+tags:
+- attack.lateral-movement
+- attack.t1021.002
+- attack.t1570
+- attack.execution
+- attack.t1569.002
+logsource:
+  product: windows
+  service: security
+  definition: The 'System Security Extension' audit subcategory need to be enabled
+    to log the EID 4697
+detection:
+  selection:
+    EventID: 4697
+    ServiceFileName|re: '^%systemroot%\\[a-zA-Z]{8}\.exe$'
+    ServiceName|re: '(^[a-zA-Z]{4}$)|(^[a-zA-Z]{8}$)|(^[a-zA-Z]{16}$)'
+    ServiceStartType: 3      # on-demand start, see https://www.ultimatewindowssecurity.com/securitylog/encyclopedia/event.aspx?eventID=4697
+    ServiceType: '0x10'
+  filter:
+    ServiceName: 'PSEXESVC'
+  condition: selection and not filter
+fields:
+- ComputerName
+- SubjectDomainName
+- SubjectUserName
+- ServiceName
+- ServiceFileName
+falsepositives:
+- Possible, different agents with a 8 character binary and a 4, 8 or 16 character
+  service name
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential malicious activities involving Metasploit's `PsExec` and Impacket's `psexec.py` by monitoring specific Windows event logs. It focuses on Event ID 4697, which logs the creation of a new service on a Windows system. The rule is crafted to detect when executables match certain naming patterns and service types indicative of unauthorized remote service installations, specifically those that start on demand (ServiceStartType 3). By filtering for services named `PSEXESVC`, it helps in detecting lateral movement attempts where adversaries may use PsExec for deploying malware or executing commands on remote machines. The relevant data sources include Windows Security logs that must be appropriately configured to capture these events.
+  ### Investigation Steps
+  - Review the Windows Security logs for Event ID 4697 to identify the service installations that triggered this detection.
+  - Utilize EDR tools to trace the execution history of the detected services, focusing on the `ServiceFileName` and the executing user account.
+  - Check for any corresponding alerts in AV systems that may indicate known malicious activity associated with `PsExec` or related service names.
+  - Inspect network activity through NDR solutions to identify any unusual SMB traffic patterns that might corroborate the service installation and indicate lateral movement within the network.

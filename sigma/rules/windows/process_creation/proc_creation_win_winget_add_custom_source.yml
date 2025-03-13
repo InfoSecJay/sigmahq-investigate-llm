@@ -1,0 +1,41 @@
+title: Add New Download Source To Winget
+id: 05ebafc8-7aa2-4bcd-a269-2aec93f9e842
+related:
+- id: 81a0ecb5-0a41-4ba1-b2ba-c944eb92bfa2
+  type: similar
+- id: c15a46a0-07d4-4c87-b4b6-89207835a83b
+  type: similar
+status: test
+description: Detects usage of winget to add new additional download sources
+references:
+- https://learn.microsoft.com/en-us/windows/package-manager/winget/source
+- https://github.com/nasbench/Misc-Research/tree/b9596e8109dcdb16ec353f316678927e507a5b8d/LOLBINs/Winget
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-04-17
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1059
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\winget.exe'
+  - OriginalFileName: 'winget.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'source '
+    - 'add '
+  condition: all of selection_*
+falsepositives:
+- False positive are expected with legitimate sources
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect unauthorized or suspicious use of the Windows Package Manager (winget) to add new download sources. The rule operates by monitoring process creation events specifically for `winget.exe` and checking the command line parameters used during its execution. It focuses on identifying commands that include both the "source" and "add" terms, which would indicate an attempt to modify the list of package sources used by the winget tool. This can be significant as attackers may leverage this functionality to add malicious repositories in order to deploy payloads or software without the user's consent. Data is sourced from Windows process creation logs, which provide insights into the executed commands and the context under which they were run.
+  ### Investigation Steps
+  - Review process creation logs from your EDR solution to identify instances of `winget.exe` being executed with command-line parameters that include `source` and `add`.
+  - Cross-reference with your organization's policy and legitimate use cases for winget to differentiate between normal user activity and potential misuse.
+  - Utilize logs from the firewall and proxy to investigate any subsequent connections or downloads from the newly added sources, which may indicate malicious behavior.
+  - Conduct a search for alerts regarding additional package installations post the addition of the download source to ascertain if any unauthorized software has been deployed.

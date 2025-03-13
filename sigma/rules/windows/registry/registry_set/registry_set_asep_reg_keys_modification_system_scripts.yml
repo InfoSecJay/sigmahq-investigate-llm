@@ -1,0 +1,51 @@
+title: System Scripts Autorun Keys Modification
+id: e7a2fd40-3ae1-4a85-bf80-15cf624fb1b1
+related:
+- id: 17f878b8-9968-4578-b814-c4217fc5768c
+  type: obsolete
+status: test
+description: Detects modification of autostart extensibility point (ASEP) in registry.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1547.001/T1547.001.md
+- https://learn.microsoft.com/en-us/sysinternals/downloads/autoruns
+- https://gist.github.com/GlebSukhodolskiy/0fc5fa5f482903064b448890db1eaf9d     # a list with registry keys
+author: Victor Sergeev, Daniil Yugoslavskiy, Gleb Sukhodolskiy, Timur Zinniatullin,
+  oscd.community, Tim Shelton, frack113 (split)
+date: 2019-10-25
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.t1547.001
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  scripts_base:
+    TargetObject|contains: '\Software\Policies\Microsoft\Windows\System\Scripts'
+  scripts:
+    TargetObject|contains:
+    - '\Startup'
+    - '\Shutdown'
+    - '\Logon'
+    - '\Logoff'
+  filter:
+    Details: '(Empty)'
+  condition: scripts_base and scripts and not filter
+fields:
+- SecurityID
+- ObjectName
+- OldValueType
+- NewValueType
+falsepositives:
+- Legitimate software automatically (mostly, during installation) sets up autorun
+  keys for legitimate reason
+- Legitimate administrator sets up autorun keys for legitimate reason
+level: medium
+notes: |
+  ### Technical Context
+  The "System Scripts Autorun Keys Modification" detection rule focuses on identifying suspicious changes to the autostart extensibility points (ASEP) within the Windows Registry. Specifically, it looks for modifications in registry keys associated with system scripts, such as those at the paths `\Startup`, `\Shutdown`, `\Logon`, and `\Logoff`. The rule triggers when it detects that any of these keys are altered and does not include any details indicating legitimate use cases, which helps in filtering out benign changes often made by authorized software or administrators. By monitoring these registry changes, the rule aims to identify potential persistence mechanisms employed by malicious actors attempting to maintain control over compromised systems.
+  ### Investigation Steps
+  - Review the EDR logs for any related process execution around the time of the registry modification to identify potentially suspicious activity.
+  - Use the AV tools to scan the authorship of any newly introduced binaries that may have been executed as a result of the changes, looking for indications of malicious software.
+  - Check Proxy logs and network traffic to see if any unusual outbound connections were made after the autorun keys were changed, which may suggest command and control (C2) activity.
+  - Analyze cloud platform logs (AWS, GCP, or Azure) for any access patterns or changes that correlate with the timeline of the registry modifications to assess the broader impact.

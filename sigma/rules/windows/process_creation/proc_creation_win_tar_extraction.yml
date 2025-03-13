@@ -1,0 +1,38 @@
+title: Compressed File Extraction Via Tar.EXE
+id: bf361876-6620-407a-812f-bfe11e51e924
+status: test
+description: |
+  Detects execution of "tar.exe" in order to extract compressed file.
+  Adversaries may abuse various utilities in order to decompress data to avoid detection.
+references:
+- https://unit42.paloaltonetworks.com/chromeloader-malware/
+- https://lolbas-project.github.io/lolbas/Binaries/Tar/
+- https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/cicada-apt10-japan-espionage
+author: AdmU3
+date: 2023-12-19
+tags:
+- attack.collection
+- attack.exfiltration
+- attack.t1560
+- attack.t1560.001
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith: '\tar.exe'
+  - OriginalFileName: 'bsdtar'
+  selection_extract:
+    CommandLine|contains: '-x'
+  condition: all of selection_*
+falsepositives:
+- Likely
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of `tar.exe`, a utility commonly used to extract compressed files. Adversaries exploit such tools to decompress files while attempting to bypass traditional security measures. The rule specifically monitors for instances where `tar.exe` is run with command line parameters that include `-x`, which is a standard option denoting extraction. The data sources utilized for this rule primarily include Windows process creation logs, which track the execution of processes along with their respective command-line parameters, image names, and original file names. By focusing on these criteria, the rule helps in recognizing potentially malicious behavior that may seek to extract data without detection.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR to identify instances of `tar.exe` execution, paying attention to the command-line parameters that signify extraction.
+  - Examine the parent process associated with `tar.exe` to understand the context of its execution, looking for any suspicious or anomalous activity prior to its launch.
+  - Utilize network traffic analysis from the NDR to determine if any data exfiltration attempts were initiated following the execution of the `tar.exe` process.
+  - Check system logs for any unusual file modifications or access patterns that coincide with the execution timeline of `tar.exe`.

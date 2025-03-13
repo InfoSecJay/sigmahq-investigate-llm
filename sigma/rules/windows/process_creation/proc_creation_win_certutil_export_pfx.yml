@@ -1,0 +1,36 @@
+title: Certificate Exported Via Certutil.EXE
+id: 3ffd6f51-e6c1-47b7-94b4-c1e61d4117c5
+status: test
+description: Detects the execution of the certutil with the "exportPFX" flag which
+  allows the utility to export certificates.
+references:
+- https://www.splunk.com/en_us/blog/security/a-golden-saml-journey-solarwinds-continued.html
+author: Florian Roth (Nextron Systems), Jonhnathan Ribeiro, oscd.community, Nasreddine
+  Bencherchali (Nextron Systems)
+date: 2023-02-15
+modified: 2024-03-05
+tags:
+- attack.defense-evasion
+- attack.t1027
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\certutil.exe'
+  - OriginalFileName: 'CertUtil.exe'
+  selection_cli:
+    CommandLine|contains|windash: '-exportPFX '
+  condition: all of selection_*
+falsepositives:
+- There legitimate reasons to export certificates. Investigate the activity to determine
+  if it's benign
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule targets potentially malicious activity by monitoring the execution of CertUtil.exe, a native Windows utility often used for managing certificates. Specifically, the rule looks for instances where CertUtil.exe is invoked with the "-exportPFX" command-line argument, which enables the export of certificates in a Personal Information Exchange (PFX) format. The significance of this detection lies in the fact that adversaries may misuse this utility to extract sensitive certificates for unauthorized purposes, including impersonating legitimate services or exfiltrating confidential information. The primary data sources involved in this rule are process creation logs that provide insights into command-line parameters and the invocation of the CertUtil.exe binary.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify any instances of CertUtil.exe executed with the "-exportPFX" flag, along with related processes.
+  - Correlate the execution timestamps with user activities logged in the SIEM to ascertain whether the actions align with legitimate business operations or are anomalous.
+  - Check network traffic logs via your NDR or NGFW for any data exfiltration attempts that may coincide with the execution of the questionable CertUtil command.
+  - Investigate the certificates involved in the export operation by reviewing any associated logs in your AV or proxy solutions to determine if they were linked to suspicious or external entities.

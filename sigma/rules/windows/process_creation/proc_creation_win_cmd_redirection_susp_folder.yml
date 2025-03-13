@@ -1,0 +1,61 @@
+title: Potentially Suspicious CMD Shell Output Redirect
+id: 8e0bb260-d4b2-4fff-bb8d-3f82118e6892
+related:
+- id: aa2efee7-34dd-446e-8a37-40790a66efd7
+  type: derived
+- id: 4f4eaa9f-5ad4-410c-a4be-bc6132b0175a
+  type: similar
+status: test
+description: |
+  Detects inline Windows shell commands redirecting output via the ">" symbol to a suspicious location.
+  This technique is sometimes used by malicious actors in order to redirect the output of reconnaissance commands such as "hostname" and "dir" to files for future exfiltration.
+references:
+- https://thedfirreport.com/2022/07/11/select-xmrig-from-sqlserver/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-12
+modified: 2024-03-19
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\cmd.exe'
+  - OriginalFileName: 'Cmd.Exe'
+  selection_cli_1:
+    CommandLine|contains:
+            # Note: Add more suspicious locations as you find them
+            # Note: The space from the start is missing to cover append operations ">>"
+            # Note: We use the "?" to account for both a single and a double quote
+            # Note: If you want to account for more spaces which is still a valid bypass option. Use a regex with "\s"
+    - '>?%APPDATA%\'
+    - '>?%TEMP%\'
+    - '>?%TMP%\'
+    - '>?%USERPROFILE%\'
+    - '>?C:\ProgramData\'
+    - '>?C:\Temp\'
+    - '>?C:\Users\Public\'
+    - '>?C:\Windows\Temp\'
+  selection_cli_2:
+    CommandLine|contains:
+    - ' >'
+    - '">'
+    - "'>"
+    CommandLine|contains|all:
+    - 'C:\Users\'
+    - '\AppData\Local\'
+  condition: selection_img and 1 of selection_cli_*
+falsepositives:
+- Legitimate admin or third party scripts used for diagnostic collection might generate
+  some false positives
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activity by monitoring Windows command shell (cmd.exe) processes that redirect output to suspicious directories using the ">" symbol. Malicious actors often employ this technique to capture the output of reconnaissance commands—such as "hostname" and "dir"—redirecting the results to files within folder locations that could facilitate future exfiltration of sensitive data. By analyzing command-line parameters, the rule looks for various environment variables and common paths that are typically targeted for unauthorized data capture. Key data sources involved include process creation logs and command-line arguments from EDR systems, which record the execution details of processes and the operations they are performing.
+  ### Investigation Steps
+  - Confirm the presence of suspicious command-line activity by examining the relevant EDR logs associated with the detected cmd.exe process. Look for commands that match the specified patterns in the alert.
+  - Utilize the SIEM to correlate any unusual alert signatures with other security events or logs, such as failed login attempts or anomalous user behavior, to gauge the potential impact.
+  - Review logs from other security solutions, including AV and NGFW, to identify any attempts to access or exfiltrate data from the suspicious directories mentioned in the command output.
+  - Investigate user accounts that executed these commands, assessing their role and whether their actions align with authorized usage, especially if they involve diagnostic collections that could lead to false positives.

@@ -1,0 +1,31 @@
+title: Pandemic Registry Key
+id: 47e0852a-cf81-4494-a8e6-31864f8c86ed
+status: test
+description: Detects Pandemic Windows Implant
+references:
+- https://wikileaks.org/vault7/#Pandemic
+- https://twitter.com/MalwareJake/status/870349480356454401
+author: Florian Roth (Nextron Systems)
+date: 2017-06-01
+modified: 2022-10-09
+tags:
+- attack.command-and-control
+- attack.t1105
+logsource:
+  category: registry_event
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\SYSTEM\CurrentControlSet\services\null\Instance'
+  condition: selection
+falsepositives:
+- Unknown
+level: critical
+notes: |
+  ### Technical Context
+  The "Pandemic Registry Key" detection rule aims to identify potential threats associated with the Pandemic Windows Implant, a type of malware that uses the Windows Registry to persist and establish control over affected systems. This rule specifically looks for a unique registry path (`\SYSTEM\CurrentControlSet\services\null\Instance`) commonly leveraged by this implant for command-and-control activities. When triggered, this rule implies that a system may have been compromised, warranting further investigation. The primary data source utilized in this rule is Windows registry event logs, which track changes and access patterns to the Windows Registry, an essential repository for system configuration and application settings.
+  ### Investigation Steps
+  - Investigate the relevant Windows registry event logs to confirm access to the specified registry path and identify the user or process responsible for the changes.
+  - Utilize EDR tools to analyze the processes that interacted with the Windows Registry around the time of the alert, focusing on unusual process creation events or command-line arguments.
+  - Check for any associated network traffic using NDR tools, specifically looking for outbound connections to known malicious IP addresses or domains related to command-and-control operations.
+  - Review logs from the AV system to determine if any signatures or heuristics have flagged the activity as malicious, and assess any quarantined files that may relate to the alert.

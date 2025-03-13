@@ -1,0 +1,41 @@
+title: Suspicious PowerShell Download - Powershell Script
+id: 403c2cc0-7f6b-4925-9423-bfa573bed7eb
+related:
+- id: 65531a81-a694-4e31-ae04-f8ba5bc33759
+  type: derived
+status: test
+description: Detects suspicious PowerShell download command
+references:
+- https://learn.microsoft.com/en-us/dotnet/api/system.net.webclient.downloadstring?view=net-8.0
+- https://learn.microsoft.com/en-us/dotnet/api/system.net.webclient.downloadfile?view=net-8.0
+author: Florian Roth (Nextron Systems)
+date: 2017-03-05
+modified: 2022-12-02
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  webclient:
+    ScriptBlockText|contains: 'System.Net.WebClient'
+  download:
+    ScriptBlockText|contains:
+    - '.DownloadFile('
+    - '.DownloadFileAsync('
+    - '.DownloadString('
+    - '.DownloadStringAsync('
+  condition: webclient and download
+falsepositives:
+- PowerShell scripts that download content from the Internet
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious PowerShell scripts that use the `System.Net.WebClient` class to download content from the internet. When the script executes, it may use methods such as `DownloadFile`, `DownloadString`, or their asynchronous counterparts, which can be indicative of an attacker attempting to retrieve files or scripts for further malicious activities. The rule relies on the inspection of PowerShell script block logging, which must be enabled for effective monitoring. By analyzing command-line parameters and the content of script blocks, the rule detects suspicious patterns that deviate from typical use cases in enterprise environments.
+  ### Investigation Steps
+  - **Review PowerShell Script Block Logs:** Use the EDR tool to examine the specific PowerShell script block logs for any recent executions that include `System.Net.WebClient` and its download methods.
+  - **Inspect Network Traffic:** Check network logs and utilize the NDR to look for outbound connections or anomalies in DNS queries associated with the IP addresses or domains used in the PowerShell script.
+  - **Analyze Process Creation Events:** Utilize Windows process creation logs to trace back any parent processes that invoked the suspicious PowerShell commands to determine the context of the execution.
+  - **Correlate with Threat Intelligence:** Cross-reference any observed domains or IP addresses with threat intelligence feeds to ascertain if they have been flagged for distributing known malicious content.

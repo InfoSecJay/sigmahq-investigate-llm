@@ -1,0 +1,45 @@
+title: Windows Defender Exclusions Added - PowerShell
+id: c1344fa2-323b-4d2e-9176-84b4d4821c88
+related:
+- id: 17769c90-230e-488b-a463-e05c08e9d48f
+  type: similar
+status: test
+description: Detects modifications to the Windows Defender configuration settings
+  using PowerShell to add exclusions
+references:
+- https://www.elastic.co/guide/en/security/current/windows-defender-exclusions-added-via-powershell.html
+author: Tim Rauch, Elastic (idea)
+date: 2022-09-16
+modified: 2022-11-26
+tags:
+- attack.defense-evasion
+- attack.t1562
+- attack.execution
+- attack.t1059
+logsource:
+  category: ps_script
+  product: windows
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_args_exc:
+    ScriptBlockText|contains:
+    - ' -ExclusionPath '
+    - ' -ExclusionExtension '
+    - ' -ExclusionProcess '
+    - ' -ExclusionIpAddress '
+  selection_args_pref:
+    ScriptBlockText|contains:
+    - 'Add-MpPreference '
+    - 'Set-MpPreference '
+  condition: all of selection*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious modifications made to the Windows Defender configuration through PowerShell, specifically when exclusions are added. The rule leverages Script Block Logging to capture and analyze PowerShell script execution logs for key commands related to Windows Defender preferences, such as `Add-MpPreference` and `Set-MpPreference`. By monitoring for the presence of exclusion paths, extensions, processes, and IP addresses in the command arguments, the rule aims to detect instances where adversaries could be attempting to evade security measures by excluding certain files or processes from being scanned by Windows Defender. This provides defenders with critical visibility to investigate and respond to potential security breaches.
+  ### Investigation Steps
+  - Review recent PowerShell logs in the EDR for the specific script blocks that contain the `Add-MpPreference` or `Set-MpPreference` commands, focusing on the associated arguments indicating exclusions.
+  - Verify the legitimacy of the exclusions by cross-referencing the added paths, extensions, or processes against known baselines and organizational policies to ascertain if they are approved.
+  - Utilize the SIEM to search for any related events that occurred shortly before or after the modification to Windows Defender settings, including user logins or other administrative actions.
+  - Check for any subsequent alerting or logs from other security tools, such as AV or NDR, that may indicate the behavior of excluded files or processes to determine if they have been involved in suspicious activity.

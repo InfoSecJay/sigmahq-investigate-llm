@@ -1,0 +1,35 @@
+title: Password Protected ZIP File Opened (Email Attachment)
+id: 571498c8-908e-40b4-910b-d2369159a3da
+status: test
+description: Detects the extraction of password protected ZIP archives. See the filename
+  variable for more details on which file has been opened.
+references:
+- https://twitter.com/sbousseaden/status/1523383197513379841
+author: Florian Roth (Nextron Systems)
+date: 2022-05-09
+tags:
+- attack.defense-evasion
+- attack.initial-access
+- attack.t1027
+- attack.t1566.001
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 5379
+    TargetName|contains|all:
+    - 'Microsoft_Windows_Shell_ZipFolder:filename'
+    - '\Temporary Internet Files\Content.Outlook'
+  condition: selection
+falsepositives:
+- Legitimate used of encrypted ZIP files
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where a password-protected ZIP file has been opened, specifically in the context of an email attachment. It does this by monitoring Windows security logs for Event ID 5379, which indicates that a file extraction has occurred. The rule focuses on filenames associated with Microsoft Windows Shell's ZIP functionality, particularly those located within the Temporary Internet Files directory, often utilized by Outlook for email attachments. By tracking this specific event, the rule aims to surface potential malicious activity, such as the extraction of a ZIP file containing malware or sensitive information.
+  ### Investigation Steps
+  - Query your EDR solution for any related processes that executed after the detection occurred to establish a timeline of any suspicious activity post-extraction.
+  - Examine the contents of the extracted ZIP file using file integrity monitoring or by leveraging sandboxing tools to analyze the contained files for malware signatures. 
+  - Check the user's email logs in your proxy or email security platform to correlate the opening of the ZIP file with any known phishing attempts or malicious email campaigns.
+  - Review any recent logs in Windows Security and Application logs to identify any other associated abnormal behaviors, such as unusual account activity or privilege escalations.

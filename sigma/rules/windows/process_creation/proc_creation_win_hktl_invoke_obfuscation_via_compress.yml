@@ -1,0 +1,38 @@
+title: Invoke-Obfuscation COMPRESS OBFUSCATION
+id: 7eedcc9d-9fdb-4d94-9c54-474e8affc0c7
+status: test
+description: Detects Obfuscated Powershell via COMPRESS OBFUSCATION
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009     # (Task 19)
+author: Timur Zinniatullin, oscd.community
+date: 2020-10-18
+modified: 2022-12-29
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - 'new-object'
+    - 'text.encoding]::ascii'
+    CommandLine|contains:
+    - 'system.io.compression.deflatestream'
+    - 'system.io.streamreader'
+    - 'readtoend('
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies obfuscated PowerShell scripts that utilize the `COMPRESS OBFUSCATION` method to conceal malicious activity. It searches for specific PowerShell command-line arguments that indicate the use of the `new-object` command to create instances of various .NET framework classes, specifically those related to compression and text encoding. The presence of commands that incorporate `system.io.compression.deflatestream`, `system.io.streamreader`, and `readtoend(` highlights attempts to manipulate and extract data in an obfuscated manner. This rule targets process creation logs, making it effective for detecting potential defensive evasion tactics employed by attackers using obfuscation techniques to disguise their scripts.
+  ### Investigation Steps
+  - Review process creation logs in your EDR solution to identify instances of PowerShell executing with the captured command-line parameters related to compression and encoding.
+  - Analyze any associated command and control communications using NDR tools to determine if the obfuscated PowerShell originated from or communicates with known malicious IP addresses or domains.
+  - Utilize your AV solution to scan the endpoint for any other related malicious artifacts that may have been created as part of the PowerShell execution process.
+  - Check cloud logs in platforms like Azure or AWS for any unauthorized changes or executions that correlate with the timings of the detected obfuscated PowerShell activity.

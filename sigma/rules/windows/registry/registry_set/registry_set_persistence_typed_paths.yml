@@ -1,0 +1,36 @@
+title: Potential Persistence Via TypedPaths
+id: 086ae989-9ca6-4fe7-895a-759c5544f247
+status: test
+description: Detects modification addition to the 'TypedPaths' key in the user or
+  admin registry from a non standard application. Which might indicate persistence
+  attempt
+references:
+- https://twitter.com/dez_/status/1560101453150257154
+- https://forensafe.com/blogs/typedpaths.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-22
+modified: 2023-08-17
+tags:
+- attack.persistence
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\Software\Microsoft\Windows\CurrentVersion\Explorer\TypedPaths\'
+  filter:
+    Image:
+    - 'C:\Windows\explorer.exe'
+    - 'C:\Windows\SysWOW64\explorer.exe'
+  condition: selection and not filter
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma detection rule targets modifications made to the 'TypedPaths' registry key located in the Windows Registry, specifically under the path `\Software\Microsoft\Windows\CurrentVersion\Explorer\TypedPaths\`. The rule identifies instances where applications other than the standard Windows Explorer (typically located at `C:\Windows\explorer.exe` or `C:\Windows\SysWOW64\explorer.exe`) are making changes to this key. Unauthorized modifications to 'TypedPaths' can indicate an attempt at establishing persistence by malicious actors, as this key controls a list of user-specified paths in Windows Explorer. By monitoring registry changes, this rule helps to identify potential threats early in their lifecycle, allowing for proactive response measures.
+  ### Investigation Steps
+  - Use your EDR solution to review the process creation logs around the time the registry modification occurred, focusing on any non-standard applications that were active.
+  - Correlate the detected modification with user activity logs to establish whether the user was engaged or if it was a potentially unauthorized access pattern.
+  - Check the command-line parameters of the processes that modified the 'TypedPaths' key for any suspicious arguments that could indicate malicious behavior.
+  - Review proxy logs and network traffic for any outbound connections initiated by the processes involved to determine if there is any unusual or unauthorized communication.

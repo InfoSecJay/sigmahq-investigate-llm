@@ -1,0 +1,38 @@
+title: Trust Access Disable For VBApplications
+id: 1a5c46e9-f32f-42f7-b2bc-6e9084db7fbf
+related:
+- id: a166f74e-bf44-409d-b9ba-ea4b2dd8b3cd
+  type: obsolete
+status: test
+description: Detects registry changes to Microsoft Office "AccessVBOM" to a value
+  of "1" which disables trust access for VBA on the victim machine and lets attackers
+  execute malicious macros without any Microsoft Office warnings.
+references:
+- https://twitter.com/inversecos/status/1494174785621819397
+- https://www.mcafee.com/blogs/other-blogs/mcafee-labs/zloader-with-a-new-infection-technique/
+- https://securelist.com/scarcruft-surveilling-north-korean-defectors-and-human-rights-activists/105074/
+author: Trent Liffick (@tliffick), Nasreddine Bencherchali (Nextron Systems)
+date: 2020-05-22
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: '\Security\AccessVBOM'
+    Details: 'DWORD (0x00000001)'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The "Trust Access Disable For VBApplications" Sigma rule is designed to detect changes to the Windows registry, specifically targeting the setting that controls trust access for Visual Basic for Applications (VBA). When the registry key `AccessVBOM` is modified to a value of `1`, it disables essential security warnings when executing macros in Microsoft Office applications. This alteration can allow attackers to run malicious macros without alerts, increasing the risk of infection or compromise. The rule primarily analyzes Windows registry set logs, which provide insights into changes made by applications or users on the system. By flagging this specific registry change, SOC teams can identify potential malicious activity associated with Office automation exploits.
+  ### Investigation Steps
+  - Review EDR logs for any recent changes to the registry key `HKEY_CURRENT_USER\Software\Microsoft\Office\<OfficeVersion>\AccessVBOM` around the time of the alert to determine who or what initiated the change.
+  - Check if any macro-enabled Office documents were recently opened or executed on the affected system, which could indicate a user interaction with potentially malicious content.
+  - Utilize AV logs to scan the affected machine for known malware associated with macro exploitation or related threats, considering the change to the trust access setting.
+  - Investigate network traffic via Proxy or NDR tools for any outbound connections that may indicate command and control (C2) activity or data exfiltration attempts originating from the compromised system.

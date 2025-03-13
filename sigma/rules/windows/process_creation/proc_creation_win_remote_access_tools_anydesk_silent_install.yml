@@ -1,0 +1,40 @@
+title: Remote Access Tool - AnyDesk Silent Installation
+id: 114e7f1c-f137-48c8-8f54-3088c24ce4b9
+status: test
+description: Detects AnyDesk Remote Desktop silent installation. Which can be used
+  by attackers to gain remote access.
+references:
+- https://twitter.com/TheDFIRReport/status/1423361119926816776?s=20
+- https://support.anydesk.com/Automatic_Deployment
+author: Ján Trenčanský
+date: 2021-08-06
+modified: 2023-03-05
+tags:
+- attack.command-and-control
+- attack.t1219
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - '--install'
+    - '--start-with-win'
+    - '--silent'
+  condition: selection
+fields:
+- CommandLine
+- ParentCommandLine
+- CurrentDirectory
+falsepositives:
+- Legitimate deployment of AnyDesk
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the silent installation of AnyDesk, a remote access tool that can be leveraged by attackers for unauthorized remote control of systems. Specifically, it looks for process creation events within Windows environments that include specific command-line parameters indicative of a silent installation. The command-line parameters of interest are `--install`, `--start-with-win`, and `--silent`. By monitoring these process creation logs, incident responders can effectively flag instances where AnyDesk is potentially being deployed surreptitiously, thereby ensuring prompt investigation into possible malicious activity.
+  The rule utilizes data sources like process creation logs, which provide critical information about newly initiated processes, including their command-line arguments and the context of their execution. It is essential for responders to understand that while legitimate deployments of AnyDesk exist, the specified command-line options are often misused by threat actors to avoid detection during installation.
+  ### Investigation Steps
+  - Review the process creation events within the EDR system to identify the specific instances of AnyDesk installation, focusing on the captured command-line parameters.
+  - Check the ParentCommandLine field to determine the origin of the installation command, assessing whether it stems from a trusted application or suspicious source.
+  - Investigate the CurrentDirectory associated with the AnyDesk process to see if it aligns with known legitimate directories or appears anomalous, which could indicate malicious intent.
+  - Monitor network connections via your NGFW and Proxy logs to identify any outbound connections made by the newly installed AnyDesk instance, as this could reveal potential unauthorized remote access attempts.

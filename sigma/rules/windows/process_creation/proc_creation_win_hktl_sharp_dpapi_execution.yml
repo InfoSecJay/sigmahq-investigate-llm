@@ -1,0 +1,58 @@
+title: HackTool - SharpDPAPI Execution
+id: c7d33b50-f690-4b51-8cfb-0fb912a31e57
+status: experimental
+description: |
+  Detects the execution of the SharpDPAPI tool based on CommandLine flags and PE metadata.
+  SharpDPAPI is a C# port of some DPAPI functionality from the Mimikatz project.
+references:
+- https://github.com/GhostPack/SharpDPAPI
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2024-06-26
+tags:
+- attack.privilege-escalation
+- attack.defense-evasion
+- attack.t1134.001
+- attack.t1134.003
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith: '\SharpDPAPI.exe'
+  - OriginalFileName: 'SharpDPAPI.exe'
+  selection_other_cli:
+    CommandLine|contains:
+    - ' backupkey '
+    - ' blob '
+    - ' certificates '
+    - ' credentials '
+    - ' keepass '
+    - ' masterkeys '
+    - ' rdg '
+    - ' vaults '
+  selection_other_options_guid:
+    CommandLine|contains|all:
+    - ' {'
+    - '}:'
+  selection_other_options_flags:
+    CommandLine|contains:
+    - ' /file:'
+    - ' /machine'
+    - ' /mkfile:'
+    - ' /password:'
+    - ' /pvk:'
+    - ' /server:'
+    - ' /target:'
+    - ' /unprotect'
+  condition: selection_img or (selection_other_cli and 1 of selection_other_options_*)
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The detection rule for SharpDPAPI focuses on identifying potentially malicious executions of the SharpDPAPI tool, a C# implementation designed to manipulate DPAPI secrets, which can be leveraged for privilege escalation and evading security controls. This rule specifically looks for the execution of the `SharpDPAPI.exe` file by examining both the image name and the command-line parameters used during its execution. Indicators of interest include specific command-line flags that are commonly associated with sensitive operations, such as retrieving credentials or manipulating secure blobs. Data sources involved in this detection include Windows process creation logs, which capture the execution details needed to analyze potentially unauthorized or suspicious activities related to this tool.
+  ### Investigation Steps
+  - Review the process creation logs within the EDR system to confirm the execution of `SharpDPAPI.exe` and assess the command-line arguments used during its invocation.
+  - Utilize endpoint detection tools to analyze the behavior of the process and check for any signs of lateral movement or abnormal access patterns following its execution.
+  - Cross-reference logged network connections in your NDR to identify if the tool communicated with any external or anomalous endpoints that could indicate data exfiltration.
+  - Investigate any associated user accounts in the identity management system to determine if the process was executed by a legitimate user or if credentials were compromised, leading to unauthorized execution.

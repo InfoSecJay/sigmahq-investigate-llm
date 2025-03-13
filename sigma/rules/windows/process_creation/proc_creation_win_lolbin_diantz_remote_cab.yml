@@ -1,0 +1,35 @@
+title: Suspicious Diantz Download and Compress Into a CAB File
+id: 185d7418-f250-42d0-b72e-0c8b70661e93
+status: test
+description: Download and compress a remote file and store it in a cab file on local
+  machine.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Diantz/
+author: frack113
+date: 2021-11-26
+modified: 2022-08-13
+tags:
+- attack.command-and-control
+- attack.t1105
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - diantz.exe
+    - ' \\\\'
+    - '.cab'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potentially suspicious activity involving the use of the `diantz.exe` utility on Windows systems. The `diantz.exe` command is known for downloading files from remote locations and compressing them into a CAB file, which can be a method for exfiltrating or obfuscating malicious content. The rule checks for command-line parameters that include the execution of `diantz.exe`, paths that indicate remote file sources (noted by the presence of double backslashes), and the `.cab` file extension. These indicators are crucial in tracking unauthorized downloads or data manipulation that may be indicative of malicious command-and-control activity.
+  The primary data sources utilized for this detection rule include process creation logs, which record details about running processes and their command-line arguments. By monitoring these logs, the security operations team can detect the execution of `diantz.exe` with configurations that may signal a threat, allowing for rapid incident response.
+  ### Investigation Steps
+  - Review the EDR logs for alerts associated with the execution of `diantz.exe` and analyze the command-line parameters used. This can reveal the source of the download and the intended destination of the CAB file.
+  - Examine network traffic logs to identify any unusual outbound connections or data transfers correlated with the usage of `diantz.exe`. This can help determine if there was communication with a suspicious external server.
+  - Check the local file system for any newly created or modified CAB files, particularly in unusual directories. This can provide insights into the potential exfiltrated data or files of interest.
+  - Investigate user activity logs in conjunction with the detection to ascertain whether the behavior was expected for the user and if there are any other associated incidents or anomalies.

@@ -1,0 +1,37 @@
+title: C# IL Code Compilation Via Ilasm.EXE
+id: 850d55f9-6eeb-4492-ad69-a72338f65ba4
+status: test
+description: Detects the use of "Ilasm.EXE" in order to compile C# intermediate (IL)
+  code to EXE or DLL.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Ilasm/
+- https://www.echotrail.io/insights/search/ilasm.exe
+author: frack113, Nasreddine Bencherchali (Nextron Systems)
+date: 2022-05-07
+modified: 2022-05-16
+tags:
+- attack.defense-evasion
+- attack.t1127
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith: '\ilasm.exe'
+  - OriginalFileName: 'ilasm.exe'
+  selection_cli:
+    CommandLine|contains:
+    - ' /dll'
+    - ' /exe'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of `Ilasm.EXE`, a legitimate .NET tool used for compiling intermediate language (IL) code into executable (EXE) files or dynamic link libraries (DLLs). By monitoring process creation logs, the rule captures instances where `Ilasm.EXE` is invoked either directly or via relevant command-line parameters like `/dll` or `/exe`. The presence of this process, particularly when used outside of expected development environments, can signify potential misuse or malicious intent, such as code obfuscation or creation of payloads for further exploitation. Responders should assess the context of the command execution to determine if it aligns with legitimate development activity or suggests a security incident.
+  ### Investigation Steps
+  - Review process creation logs on affected systems to identify recent instances of `Ilasm.EXE` execution, focusing on the associated command-line arguments used.
+  - Utilize EDR tools to investigate the behavior of the process, analyzing whether it spawned any unusual child processes or interacted with sensitive files.
+  - Check network logs from the NGFW and Proxies for any outbound communications from the host where `Ilasm.EXE` was executed, as this may reveal attempts to exfiltrate compiled binaries.
+  - Cross-reference findings with user activity logs and endpoint security alerts to establish whether the execution of `Ilasm.EXE` correlates with known users or scheduled tasks, helping to rule out benign use cases.

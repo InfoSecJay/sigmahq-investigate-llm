@@ -1,0 +1,38 @@
+title: Microsoft IIS Connection Strings Decryption
+id: 97dbf6e2-e436-44d8-abee-4261b24d3e41
+status: test
+description: Detects use of aspnet_regiis to decrypt Microsoft IIS connection strings.
+  An attacker with Microsoft IIS web server access via a webshell or alike can decrypt
+  and dump any hardcoded connection strings, such as the MSSQL service account password
+  using aspnet_regiis command.
+references:
+- https://www.elastic.co/guide/en/security/current/microsoft-iis-connection-strings-decryption.html
+author: Tim Rauch, Elastic (idea)
+date: 2022-09-28
+modified: 2022-12-30
+tags:
+- attack.credential-access
+- attack.t1003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_name:
+  - Image|endswith: '\aspnet_regiis.exe'
+  - OriginalFileName: 'aspnet_regiis.exe'
+  selection_args:
+    CommandLine|contains|all:
+    - 'connectionStrings'
+    - ' -pdf'
+  condition: all of selection*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potentially malicious activity involving the Microsoft IIS (Internet Information Services) web server. Specifically, it detects the execution of the `aspnet_regiis.exe` command-line utility with parameters indicative of an attempt to decrypt connection strings. Attackers with access to an IIS server can exploit web shells or similar methods to execute this command. By leveraging the `-pdf` option along with the presence of ‘connectionStrings’ in the command line, the rule identifies attempts to extract sensitive information, such as database service account passwords, that may be embedded in configuration files. The primary data source for this detection is process creation logs, which capture information about processes being executed, along with their command-line parameters and the originating executable.
+  ### Investigation Steps
+  - Review process creation logs in the EDR to identify instances of `aspnet_regiis.exe` being executed, particularly focusing on the command-line parameters used during execution.
+  - Analyze network traffic using the NDR to detect any anomalies or suspicious connections made by the IIS server during the timeframe of the alert.
+  - Check IIS logs and application logs to correlate any unusual access patterns or web shell activity that could indicate an intruder's activity leading up to the command execution.
+  - Investigate cloud platform logs (e.g., Azure or AWS) for any unauthorized access or changes to the web server configuration, especially around the time of the detected activity.

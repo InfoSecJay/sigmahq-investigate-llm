@@ -1,0 +1,49 @@
+title: Suspicious Binary In User Directory Spawned From Office Application
+id: aa3a6f94-890e-4e22-b634-ffdfd54792cc
+status: test
+description: Detects an executable in the users directory started from one of the
+  Microsoft Office suite applications (Word, Excel, PowerPoint, Publisher, Visio)
+references:
+- https://blog.morphisec.com/fin7-not-finished-morphisec-spots-new-campaign
+- https://www.virustotal.com/gui/file/23160972c6ae07f740800fa28e421a81d7c0ca5d5cab95bc082b4a986fbac57
+author: Jason Lynch
+date: 2019-04-02
+modified: 2023-02-04
+tags:
+- attack.execution
+- attack.t1204.002
+- attack.g0046
+- car.2013-05-002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith:
+    - '\WINWORD.EXE'
+    - '\EXCEL.EXE'
+    - '\POWERPNT.exe'
+    - '\MSPUB.exe'
+    - '\VISIO.exe'
+    - '\MSACCESS.exe'
+    - '\EQNEDT32.exe'
+            # - '\OUTLOOK.EXE' too many FPs
+    Image|startswith: 'C:\users\'
+    Image|endswith: '.exe'
+  filter:
+    Image|endswith: '\Teams.exe'
+  condition: selection and not filter
+fields:
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potentially malicious executable files that are spawned from Microsoft Office suite applications, such as Word or Excel, when these executables reside in a user's directory. This can indicate unusual behavior, as legitimate Office applications typically do not execute binaries from the user's directory, particularly executable files that might be hidden or misleadingly named to resemble trusted software. The rule leverages process creation logs from Windows, focusing on the "ParentImage" to identify if a suspicious executable was launched by any designated Office application. The analysis looks for the presence of an executable file that starts with "C:\users\" and ends with ".exe", while filtering out known benign binaries, such as "Teams.exe", to minimize false positives.
+  ### Investigation Steps
+  - Review the alert in the SIEM to verify the process creation events associated with the detected executable, focusing on the `CommandLine` and `ParentCommandLine` fields to gather context on how the binary was initiated.
+  - Use EDR tools to drill down into the endpoint activity, checking for any previous instances of similar alerts or anomalous behavior linked to the user's profile where the executable was spawned.
+  - Examine logs from antivirus solutions to see if the detected executable has been flagged or analyzed previously, which may indicate its reputation or potential threats.
+  - Check proxy logs for any unauthorized or unexpected network connections initiated by the detected executable, which can help determine if it is trying to communicate with malicious domains or engage in exfiltration.

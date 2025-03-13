@@ -1,0 +1,35 @@
+title: Wmiexec Default Output File
+id: 8d5aca11-22b3-4f22-b7ba-90e60533e1fb
+status: test
+description: Detects the creation of the default output filename used by the wmiexec
+  tool
+references:
+- https://www.crowdstrike.com/blog/how-to-detect-and-prevent-impackets-wmiexec/
+- https://github.com/fortra/impacket/blob/f4b848fa27654ca95bc0f4c73dbba8b9c2c9f30a/examples/wmiexec.py
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-02
+modified: 2023-03-08
+tags:
+- attack.lateral-movement
+- attack.t1047
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+  - TargetFilename|re: '\\Windows\\__1\d{9}\.\d{1,7}$'       # Admin$
+  - TargetFilename|re: 'C:\\__1\d{9}\.\d{1,7}$'       # C$
+  - TargetFilename|re: 'D:\\__1\d{9}\.\d{1,7}$'       # D$
+  condition: selection
+falsepositives:
+- Unlikely
+level: critical
+notes: |
+  ### Technical Context
+  The Sigma rule "Wmiexec Default Output File" is designed to detect the creation of specific output files associated with the wmiexec tool, commonly used for remote command execution in Windows environments. The rule looks for files created in the default naming convention employed by wmiexec, primarily those starting with `__1`, followed by a timestamp in a specific format. This detection operates by analyzing file creation events within Windows systems, utilizing logs that capture file interactions, specifically the `TargetFilename` metadata.
+  The rule focuses on three main directories: `C:\`, `D:\`, and the `Admin$` share, matching file names pattern through regular expressions. When a file is created that fits these criteria, an alert is triggered, signaling potential lateral movement activities which may be indicative of unauthorized or malicious behavior.
+  ### Investigation Steps
+  Review recent file creation logs to identify any occurrences of files matching the patterns defined in the rule, specifically within the target directories mentioned.
+  Use your EDR solution to analyze the process tree and determine if wmiexec or any related processes were executed on the endpoint around the time of the file creation.
+  Check logs from your NGFW and proxy to identify any related outbound traffic that may correspond with unusual use of the wmiexec tool, including any requests to external IPs.
+  Correlate findings with user activity logs in your SIEM to understand if the file creation aligns with legitimate administrative tasks or potentially malicious behavior.

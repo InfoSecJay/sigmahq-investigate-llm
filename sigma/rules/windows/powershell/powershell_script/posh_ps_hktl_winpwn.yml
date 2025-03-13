@@ -1,0 +1,54 @@
+title: HackTool - WinPwn Execution - ScriptBlock
+id: 851fd622-b675-4d26-b803-14bc7baa517a
+related:
+- id: d557dc06-62e8-4468-a8e8-7984124908ce
+  type: similar
+status: test
+description: |
+  Detects scriptblock text keywords indicative of potential usge of the tool WinPwn. A tool for Windows and Active Directory reconnaissance and exploitation.
+author: Swachchhanda Shrawan Poudel
+date: 2023-12-04
+references:
+- https://github.com/S3cur3Th1sSh1t/WinPwn
+- https://www.publicnow.com/view/EB87DB49C654D9B63995FAD4C9DE3D3CC4F6C3ED?1671634841
+- https://reconshell.com/winpwn-tool-for-internal-windows-pentesting-and-ad-security/
+- https://github.com/redcanaryco/atomic-red-team/blob/4d6c4e8e23d465af7a2388620cfe3f8c76e16cf0/atomics/T1082/T1082.md
+- https://grep.app/search?q=winpwn&filter[repo][0]=redcanaryco/atomic-red-team
+tags:
+- attack.credential-access
+- attack.defense-evasion
+- attack.discovery
+- attack.execution
+- attack.privilege-escalation
+- attack.t1046
+- attack.t1082
+- attack.t1106
+- attack.t1518
+- attack.t1548.002
+- attack.t1552.001
+- attack.t1555
+- attack.t1555.003
+logsource:
+  category: ps_script
+  product: windows
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains:
+    - 'Offline_Winpwn'
+    - 'WinPwn '
+    - 'WinPwn.exe'
+    - 'WinPwn.ps1'
+  condition: selection
+falsepositives:
+- As the script block is a blob of text. False positive may occur with scripts that
+  contain the keyword as a reference or simply use it for detection.
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of potentially malicious PowerShell script blocks that reference the tool "WinPwn," which is used for reconnaissance and exploitation within Windows and Active Directory environments. The rule evaluates script block text for specific keywords indicative of WinPwn activity, including direct commands or file names associated with the tool. It relies on PowerShell script block logging, which captures detailed logs of script execution in a Windows environment. By monitoring script block text, the rule can identify when attackers may be leveraging WinPwn to execute harmful activities, such as credential access or privilege escalation.
+  ### Investigation Steps
+  - Review the relevant PowerShell script block logs in your EDR to identify additional execution context, such as the user account that initiated the command and the time it was executed.
+  - Cross-reference the originating IP address from network logs to identify if the execution correlates with known malicious or anomalous activity.
+  - Analyze command-line parameters and surrounding processes to determine if the execution of WinPwn relates to a legitimate administrative task or if it was executed as part of an unauthorized activity.
+  - Check endpoint and server logs for any other indicators of compromise or instances of credential theft that may coincide with the detected WinPwn script block activity.

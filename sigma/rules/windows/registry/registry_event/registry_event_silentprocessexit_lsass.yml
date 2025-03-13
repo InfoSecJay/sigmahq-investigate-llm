@@ -1,0 +1,35 @@
+title: Potential Credential Dumping Via LSASS SilentProcessExit Technique
+id: 55e29995-75e7-451a-bef0-6225e2f13597
+related:
+- id: 36803969-5421-41ec-b92f-8500f79c23b0
+  type: similar
+status: test
+description: Detects changes to the Registry in which a monitor program gets registered
+  to dump the memory of the lsass.exe process
+references:
+- https://www.deepinstinct.com/2021/02/16/lsass-memory-dumps-are-stealthier-than-ever-before-part-2/
+- https://oddvar.moe/2018/04/10/persistence-using-globalflags-in-image-file-execution-options-hidden-from-autoruns-exe/
+author: Florian Roth (Nextron Systems)
+date: 2021-02-26
+modified: 2022-12-19
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  category: registry_event
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: 'Microsoft\Windows NT\CurrentVersion\SilentProcessExit\lsass.exe'
+  condition: selection
+falsepositives:
+- Unlikely
+level: critical
+notes: |
+  ### Technical Context
+  This detection rule identifies potential credential dumping activities that leverage the "SilentProcessExit" technique associated with the `lsass.exe` process in Windows environments. Specifically, it monitors for changes in the Windows Registry that indicate a process has been configured to silently exit while creating memory dumps of `lsass.exe`, a common target due to its storage of sensitive credentials. By analyzing Registry events, the rule searches for specific key modifications that are characteristic of malware or unauthorized activity aimed at credential theft. The primary data source involved in this detection is the Registry event logs from Windows systems.
+  ### Investigation Steps
+  - Review the Registry event logs for any modifications to the `Microsoft\Windows NT\CurrentVersion\SilentProcessExit\lsass.exe` key to confirm if an unauthorized change has occurred.
+  - Utilize EDR tools to investigate running processes on affected systems, checking for any suspicious or anomalous behavior related to `lsass.exe`.
+  - Cross-reference the alert with network logs to determine if there has been any unusual outbound traffic that could indicate data exfiltration following the credential dumping attempt.
+  - Assess user activity logs to identify any unauthorized access attempts or suspicious logins that may correlate with the timing of the Registry changes.

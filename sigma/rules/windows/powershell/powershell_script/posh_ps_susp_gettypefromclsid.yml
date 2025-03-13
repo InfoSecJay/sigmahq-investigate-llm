@@ -1,0 +1,33 @@
+title: Suspicious GetTypeFromCLSID ShellExecute
+id: 8bc063d5-3a3a-4f01-a140-bc15e55e8437
+status: test
+description: Detects suspicious Powershell code that execute COM Objects
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1546.015/T1546.015.md#atomic-test-2---powershell-execute-com-object
+author: frack113
+date: 2022-04-02
+tags:
+- attack.privilege-escalation
+- attack.persistence
+- attack.t1546.015
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - '::GetTypeFromCLSID('
+    - '.ShellExecute('
+  condition: selection
+falsepositives:
+- Legitimate PowerShell scripts
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially malicious activity within PowerShell scripts that utilize the `GetTypeFromCLSID` method in conjunction with the `ShellExecute` function. These functions can be exploited by attackers to execute Component Object Model (COM) objects, allowing for the execution of arbitrary code remotely or locally on the compromised system. The primary data source for this detection is PowerShell script block logging, which must be enabled on the Windows environment. When executed, the rule looks for specific strings within script block text that indicate the use of these functions, signaling a possible privilege escalation or persistence tactic used by adversaries.
+  ### Investigation Steps
+  - Review PowerShell script block logs in your EDR platform to identify the exact script and execution context where `GetTypeFromCLSID` and `.ShellExecute` were invoked.
+  - Examine the command-line parameters of any suspicious PowerShell processes to determine if they are associated with known malicious behavior or uncommon arguments.
+  - Correlate detected scripts with user activity logs in the SIEM to ascertain whether the execution context aligns with typical user behavior or if it indicates anomalous actions.
+  - Check the firewall and proxy logs for any outgoing connections that may coincide with the execution of the detected PowerShell commands, as these may reveal attempts to communicate with external malicious servers.

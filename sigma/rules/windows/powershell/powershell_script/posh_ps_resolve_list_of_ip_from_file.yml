@@ -1,0 +1,37 @@
+title: PowerShell Script With File Hostname Resolving Capabilities
+id: fbc5e92f-3044-4e73-a5c6-1c4359b539de
+status: test
+description: Detects PowerShell scripts that have capabilities to read files, loop
+  through them and resolve DNS host entries.
+references:
+- https://www.fortypoundhead.com/showcontent.asp?artid=24022
+- https://labs.withsecure.com/publications/fin7-target-veeam-servers
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-05
+tags:
+- attack.exfiltration
+- attack.t1020
+logsource:
+  product: windows
+  category: ps_script
+  definition: bade5735-5ab0-4aa7-a642-a11be0e40872
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'Get-content '
+    - 'foreach'
+    - '[System.Net.Dns]::GetHostEntry'
+    - 'Out-File'
+  condition: selection
+falsepositives:
+- The same functionality can be implemented by admin scripts, correlate with name
+  and creator
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies PowerShell scripts that exhibit behaviors associated with file reading and DNS hostname resolution. The rule specifically looks for the inclusion of certain keywords within script blocks, such as 'Get-Content', 'foreach', '[System.Net.Dns]::GetHostEntry', and 'Out-File'. When these terms are present in a PowerShell script, it indicates that the script is likely designed to loop through files and resolve hostnames, potentially indicating unauthorized data exfiltration or malicious activity. The relevant technical data sources for this rule include PowerShell script execution logs, where `ScriptBlockText` captures the content of executed scripts on Windows systems.
+  ### Investigation Steps
+  - Review recent PowerShell execution logs in the EDR to identify the scripts that triggered this rule and analyze the context in which they were executed. 
+  - Assess any associated process creation logs for unusual parent/child process relationships that may suggest malicious activity stemming from the PowerShell execution.
+  - Check DNS logs for any unusual queries or patterns that correspond with the timestamps of the detected PowerShell execution, focusing on external communications.
+  - Correlate the identified PowerShell script with known whitelisted scripts to determine if it was part of an authorized administrative task or indicative of potential misuse.

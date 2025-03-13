@@ -1,0 +1,36 @@
+title: Potential UAC Bypass Via Sdclt.EXE
+id: 40f9af16-589d-4984-b78d-8c2aec023197
+status: test
+description: A General detection for sdclt being spawned as an elevated process. This
+  could be an indicator of sdclt being used for bypass UAC techniques.
+references:
+- https://github.com/OTRF/detection-hackathon-apt29/issues/6
+- https://github.com/OTRF/ThreatHunter-Playbook/blob/2d4257f630f4c9770f78d0c1df059f891ffc3fec/docs/evals/apt29/detections/3.B.2_C36B49B5-DF58-4A34-9FE9-56189B9DEFEA.md
+author: Roberto Rodriguez (Cyb3rWard0g), OTR (Open Threat Research)
+date: 2020-05-02
+modified: 2024-12-01
+tags:
+- attack.privilege-escalation
+- attack.defense-evasion
+- attack.t1548.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: 'sdclt.exe'
+    IntegrityLevel:
+    - 'High'
+    - 'S-1-16-12288'         # High
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The rule "Potential UAC Bypass Via Sdclt.EXE" is designed to detect instances where the `sdclt.exe` process is initiated with high integrity levels, which may indicate attempts to bypass User Account Control (UAC) mechanisms. UAC is a crucial security feature in Windows that helps prevent unauthorized changes to the operating system, and `sdclt.exe` is a system process associated with Windows' System Data Collection Tool. The detection leverages process creation logs to monitor the launching of `sdclt.exe` with elevated privileges (i.e., integrity levels marked as 'High'). If this executable is observed running in such a context, it could signal potential privilege escalation or evasion tactics being employed by a malicious actor.
+  ### Investigation Steps
+  - **Examine Process Creation Logs:** Utilize the EDR tool to retrieve detailed logs of process creations involving `sdclt.exe`, focusing on the user context and the integrity levels associated with its execution.
+  - **Analyze Command-Line Parameters:** Review any command-line arguments that were passed to `sdclt.exe` to identify suspicious or atypical usage patterns that could indicate malicious intent.
+  - **Check for Recent User Activity:** Investigate the user account associated with the alert in your User Activity logs to assess any anomalous behaviors or unauthorized actions leading to the execution of this process.
+  - **Correlate with Threat Intelligence:** cross-reference alerts indicating the use of `sdclt.exe` with known threat indicators from external intelligence sources to evaluate if the detected behavior aligns with known UAC bypass tactics.

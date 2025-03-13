@@ -1,0 +1,48 @@
+title: Detect Virtualbox Driver Installation OR Starting Of VMs
+id: bab049ca-7471-4828-9024-38279a4c04da
+status: test
+description: Adversaries can carry out malicious operations using a virtual instance
+  to avoid detection. This rule is built to detect the registration of the Virtualbox
+  driver or start of a Virtualbox VM.
+references:
+- https://news.sophos.com/en-us/2020/05/21/ragnar-locker-ransomware-deploys-virtual-machine-to-dodge-security/
+- https://threatpost.com/maze-ransomware-ragnar-locker-virtual-machine/159350/
+author: Janantha Marasinghe
+date: 2020-09-26
+modified: 2022-07-14
+tags:
+- attack.defense-evasion
+- attack.t1564.006
+- attack.t1564
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_1:
+    CommandLine|contains:
+    - 'VBoxRT.dll,RTR3Init'
+    - 'VBoxC.dll'
+    - 'VBoxDrv.sys'
+  selection_2:
+    CommandLine|contains:
+    - 'startvm'
+    - 'controlvm'
+  condition: 1 of selection_*
+fields:
+- ComputerName
+- User
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- This may have false positives on hosts where Virtualbox is legitimately being used
+  for operations
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the installation or execution of VirtualBox drivers and virtual machines, which can be indicative of an adversary attempting to evade security mechanisms. It inspects process creation logs in Windows environments for specific command-line parameters that are characteristic of VirtualBox operations. This includes references to VirtualBox driver files like `VBoxRT.dll`, `VBoxC.dll`, and `VBoxDrv.sys`, as well as commands such as `startvm` and `controlvm`. The detection is built around the premise that attackers may utilize virtual environments for malicious activities while attempting to remain undetected by traditional security solutions.
+  By monitoring for these indicators through process creation events, security teams can proactively identify potential abuse of VirtualBox, aiding in timely investigations and incident response actions.
+  ### Investigation Steps
+  - Review the EDR logs to identify any process creation events related to VirtualBox, filtering specifically for command lines containing 'VBoxRT.dll', 'VBoxC.dll', or 'VBoxDrv.sys'.
+  - Analyze the context surrounding the detected events, including the ComputerName and User fields, to ascertain if the identified VirtualBox usage is legitimate or suspicious.
+  - Check the ParentCommandLine associated with the detected VirtualBox commands to determine if they were initiated from a known or trusted application, which could indicate normal usage.
+  - Investigate additional logs from the NGFW or Proxy to look for any unexpected external communications from the host where VirtualBox was initiated, which might suggest malicious intent.

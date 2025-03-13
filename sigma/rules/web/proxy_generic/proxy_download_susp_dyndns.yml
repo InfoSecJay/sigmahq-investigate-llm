@@ -1,0 +1,124 @@
+title: Download from Suspicious Dyndns Hosts
+id: 195c1119-ef07-4909-bb12-e66f5e07bf3c
+status: test
+description: Detects download of certain file types from hosts with dynamic DNS names
+  (selected list)
+references:
+- https://www.alienvault.com/blogs/security-essentials/dynamic-dns-security-and-potential-threats
+author: Florian Roth (Nextron Systems)
+date: 2017-11-08
+modified: 2023-05-18
+tags:
+- attack.defense-evasion
+- attack.command-and-control
+- attack.t1105
+- attack.t1568
+logsource:
+  category: proxy
+detection:
+  selection:
+    c-uri-extension:
+    - 'exe'
+    - 'vbs'
+    - 'bat'
+    - 'rar'
+    - 'ps1'
+    - 'doc'
+    - 'docm'
+    - 'xls'
+    - 'xlsm'
+    - 'pptm'
+    - 'rtf'
+    - 'hta'
+    - 'dll'
+    - 'ws'
+    - 'wsf'
+    - 'sct'
+    - 'zip'
+            # If you want to add more extensions - see https://docs.google.com/spreadsheets/d/1TWS238xacAto-fLKh1n5uTsdijWdCEsGIM0Y0Hvmc5g/
+    cs-host|endswith:
+    - '.hopto.org'
+    - '.no-ip.org'
+    - '.no-ip.info'
+    - '.no-ip.biz'
+    - '.no-ip.com'
+    - '.noip.com'
+    - '.ddns.name'
+    - '.myftp.org'
+    - '.myftp.biz'
+    - '.serveblog.net'
+    - '.servebeer.com'
+    - '.servemp3.com'
+    - '.serveftp.com'
+    - '.servequake.com'
+    - '.servehalflife.com'
+    - '.servehttp.com'
+    - '.servegame.com'
+    - '.servepics.com'
+    - '.myvnc.com'
+    - '.ignorelist.com'
+    - '.jkub.com'
+    - '.dlinkddns.com'
+    - '.jumpingcrab.com'
+    - '.ddns.info'
+    - '.mooo.com'
+    - '.dns-dns.com'
+    - '.strangled.net'
+    - '.adultdns.net'
+    - '.craftx.biz'
+    - '.ddns01.com'
+    - '.dns53.biz'
+    - '.dnsapi.info'
+    - '.dnsd.info'
+    - '.dnsdynamic.com'
+    - '.dnsdynamic.net'
+    - '.dnsget.org'
+    - '.fe100.net'
+    - '.flashserv.net'
+    - '.ftp21.net'
+    - '.http01.com'
+    - '.http80.info'
+    - '.https443.com'
+    - '.imap01.com'
+    - '.kadm5.com'
+    - '.mysq1.net'
+    - '.ns360.info'
+    - '.ntdll.net'
+    - '.ole32.com'
+    - '.proxy8080.com'
+    - '.sql01.com'
+    - '.ssh01.com'
+    - '.ssh22.net'
+    - '.tempors.com'
+    - '.tftpd.net'
+    - '.ttl60.com'
+    - '.ttl60.org'
+    - '.user32.com'
+    - '.voip01.com'
+    - '.wow64.net'
+    - '.x64.me'
+    - '.xns01.com'
+    - '.dyndns.org'
+    - '.dyndns.info'
+    - '.dyndns.tv'
+    - '.dyndns-at-home.com'
+    - '.dnsomatic.com'
+    - '.zapto.org'
+    - '.webhop.net'
+    - '.25u.com'
+    - '.slyip.net'
+  condition: selection
+fields:
+- cs-ip
+- c-uri
+falsepositives:
+- Software downloads
+level: medium
+notes: |
+  ### Technical Context
+  The "Download from Suspicious Dyndns Hosts" Sigma rule is designed to detect potentially malicious download activities from hosts associated with dynamic DNS (DDNS) services. This rule analyzes proxy logs to identify attempts to download specific file extensions commonly associated with malicious payloads, such as executables and scripts (e.g., .exe, .vbs, .bat), as well as documents (e.g., .doc, .xls). The detection logic checks the URL and file extension against a predefined list of known dynamic DNS hostnames, which are often used by attackers to facilitate command-and-control communications or distribute malware. By leveraging proxy logs, the rule effectively identifies and flags potentially harmful traffic, allowing SOC analysts to initiate further investigations.
+  ### Investigation Steps
+  - Review the proxy logs in the SIEM for any alerts triggered by this detection rule to understand the context of the suspicious download activity.
+  - Investigate the endpoint's EDR logs to identify any related process creation events, ensuring to look for the execution of any files corresponding to the detected download.
+  - Check the cloud environment (if applicable) for any associated activity or alerts related to the same user or host to establish a broader context of the incident.
+  - Examine the firewall logs to identify any outbound connections to the suspicious dynamic DNS hosts during the timestamps of the detected activity, providing insights into potential data exfiltration or further command-and-control attempts.

@@ -1,0 +1,36 @@
+title: Potential Execution of Sysinternals Tools
+id: 7cccd811-7ae9-4ebe-9afd-cb5c406b824b
+related:
+- id: 25ffa65d-76d8-4da5-a832-3f2b0136e133
+  type: derived
+status: test
+description: Detects command lines that contain the 'accepteula' flag which could
+  be a sign of execution of one of the Sysinternals tools
+references:
+- https://twitter.com/Moti_B/status/1008587936735035392
+author: Markus Neis
+date: 2017-08-28
+modified: 2024-03-13
+tags:
+- attack.resource-development
+- attack.t1588.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|windash: ' -accepteula'
+  condition: selection
+falsepositives:
+- Legitimate use of SysInternals tools
+- Programs that use the same command line flag
+level: low
+notes: |
+  ### Technical Context
+  The detection rule titled "Potential Execution of Sysinternals Tools" is designed to identify instances where command lines include the '-accepteula' flag, which is commonly associated with the execution of Sysinternals tools on Windows systems. The rule monitors process creation logs, specifically scrutinizing the command line parameters supplied to new processes. An abundance of legitimate software may also use this flag, thus this detection is rated as low risk; however, it can still indicate potential misuse or malicious execution of Sysinternals utilities that an attacker may exploit for reconnaissance or post-exploitation actions.
+  In implementing this detection, analysts should focus on logs from processes initiated with suspicious command-line arguments that suggest potential unauthorized use of powerful administrative tools. Investigating these can unveil unauthorized activities or confirm legitimate use cases, assisting SOC analysts in discerning between normal and abnormal behavior within the enterprise environment.
+  ### Investigation Steps
+  - Review process creation events in the EDR to identify processes that were executed with the '-accepteula' flag, focusing on the parent process to gauge context.
+  - Query AV logs for any detections related to the Sysinternals tools to assess if any flagged tools were actively downloaded or executed.
+  - Analyze proxy logs for external communications that might indicate the downloading of Sysinternals utilities or their related resources from untrusted domains.
+  - Check cloud platform activity logs in AWS, GCP, or Azure for evidence of unusual administrative access attempts that correlate with the execution of Sysinternals tools on VM instances.

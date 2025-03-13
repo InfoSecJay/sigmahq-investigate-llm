@@ -1,0 +1,62 @@
+title: Potential Persistence Via Microsoft Office Startup Folder
+id: 0e20c89d-2264-44ae-8238-aeeaba609ece
+status: test
+description: Detects creation of Microsoft Office files inside of one of the default
+  startup folders in order to achieve persistence.
+references:
+- https://insight-jp.nttsecurity.com/post/102hojk/operation-restylink-apt-campaign-targeting-japanese-companies
+- https://learn.microsoft.com/en-us/office/troubleshoot/excel/use-startup-folders
+author: Max Altgelt (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-02
+modified: 2023-06-22
+tags:
+- attack.persistence
+- attack.t1137
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection_word_paths:
+  - TargetFilename|contains: '\Microsoft\Word\STARTUP'
+  - TargetFilename|contains|all:
+    - '\Office'
+    - '\Program Files'
+    - '\STARTUP'
+  selection_word_extension:
+    TargetFilename|endswith:
+    - '.doc'
+    - '.docm'
+    - '.docx'
+    - '.dot'
+    - '.dotm'
+    - '.rtf'
+  selection_excel_paths:
+  - TargetFilename|contains: '\Microsoft\Excel\XLSTART'
+  - TargetFilename|contains|all:
+    - '\Office'
+    - '\Program Files'
+    - '\XLSTART'
+  selection_excel_extension:
+    TargetFilename|endswith:
+    - '.xls'
+    - '.xlsm'
+    - '.xlsx'
+    - '.xlt'
+    - '.xltm'
+  filter_main_office:
+    Image|endswith:
+    - '\WINWORD.exe'
+    - '\EXCEL.exe'
+  condition: (all of selection_word_* or all of selection_excel_*) and not filter_main_office
+falsepositives:
+- Loading a user environment from a backup or a domain controller
+- Synchronization of templates
+level: high
+notes: |
+  ### Technical Context
+  This detection rule aims to identify potential persistence mechanisms used by threat actors through Microsoft Office applications. Specifically, it tracks the creation of Office files (e.g., Word or Excel documents) within the default startup folders, such as `STARTUP` for Word and `XLSTART` for Excel. These folders are designed to automatically load certain files when the applications are launched. The rule analyzes log data focusing on the file events and checks for file paths and extensions indicative of Office documents. By filtering out legitimate Office process executions, it helps ensure that only potentially malicious file creations are flagged—those that could indicate an attempt to maintain persistence on the system.
+  ### Investigation Steps
+  - Review recent file event logs in the EDR to identify any newly created Office files in the specified startup directories. Look for unauthorized files or unexpected extensions linked to user activity.
+  - Utilize logs from the SIEM to correlate user activities around the time the suspicious files were created, examining any unusual login patterns or access points.
+  - Analyze the properties of the identified files, including their creation timestamps and associated user accounts, to determine if they align with legitimate usage or indicate potential malicious intent.
+  - Cross-reference the detected binaries against known malicious signatures using AV or threat intelligence platforms to confirm whether the files bear resemblance to recognized malware traits.

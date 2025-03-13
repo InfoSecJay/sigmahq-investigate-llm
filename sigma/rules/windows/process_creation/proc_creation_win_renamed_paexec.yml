@@ -1,0 +1,49 @@
+title: Renamed PAExec Execution
+id: c4e49831-1496-40cf-8ce1-b53f942b02f9
+related:
+- id: 7b0666ad-3e38-4e3d-9bab-78b06de85f7b
+  type: obsolete
+status: test
+description: Detects execution of renamed version of PAExec. Often used by attackers
+references:
+- https://www.poweradmin.com/paexec/
+- https://summit.fireeye.com/content/dam/fireeye-www/summit/cds-2018/presentations/cds18-technical-s05-att&cking-fin7.pdf
+author: Florian Roth (Nextron Systems), Jason Lynch
+date: 2021-05-22
+modified: 2024-11-23
+tags:
+- attack.defense-evasion
+- attack.t1202
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Description: 'PAExec Application'
+  - OriginalFileName: 'PAExec.exe'
+  - Product|contains: 'PAExec'
+  - Hashes|contains:
+    - IMPHASH=11D40A7B7876288F919AB819CC2D9802
+    - IMPHASH=6444f8a34e99b8f7d9647de66aabe516
+    - IMPHASH=dfd6aa3f7b2b1035b76b718f1ddc689f
+    - IMPHASH=1a6cca4d5460b1710a12dea39e4a592c
+  filter_main_known_location:
+  - Image|endswith: '\paexec.exe'
+  - Image|startswith: 'C:\Windows\PAExec-'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Weird admins that rename their tools
+- Software companies that bundle PAExec with their software and rename it, so that
+  it is less embarrassing
+- When executed with the "-s" flag. PAExec will copy itself to the "C:\Windows\" directory
+  with a different name. Usually like this "PAExec-[XXXXX]-[ComputerName]"
+level: high
+notes: |
+  ### Technical Context
+  The "Renamed PAExec Execution" detection rule identifies potentially malicious uses of PAExec, a legitimate administrative tool, which may be abused by attackers to execute commands on remote systems in a stealthy manner. The rule specifically targets the execution of renamed versions of PAExec by analyzing process creation logs to look for specific characteristics associated with its execution. Key indicators include the original file name containing "PAExec.exe," specific product strings, and known hash values of common PAExec binaries. The rule also includes filters to ensure the executable is not located in typical directories where legitimate versions might reside, thus helping to minimize false positives.
+  In enterprise environments, detecting variations of administrative tools like PAExec is crucial for identifying unauthorized remote command execution, a tactic commonly employed in lateral movement during attacks. The logs analyzed in this rule primarily come from Windows process creation events, which provide insights into the command-line execution and the context surrounding the invoked processes.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify the instances of PAExec execution, focusing on any renamed executable files for unusual command-line parameters.
+  - Check the source of the PAExec execution by examining logs from your NGFW or Proxy to see if any anomalous external connections were made at the same time as the detection.
+  - Correlate the alerts with user account activity and login events using your SIEM to determine if there were any unauthorized access attempts prior to the execution of the renamed PAExec.
+  - Investigate any relevant cloud logs, particularly those from AWS, GCP, or Azure, to identify if there were any external management or access attempts that coincide with the suspicious activity.

@@ -1,0 +1,76 @@
+title: AADInternals PowerShell Cmdlets Execution - ProccessCreation
+id: c86500e9-a645-4680-98d7-f882c70c1ea3
+related:
+- id: 91e69562-2426-42ce-a647-711b8152ced6
+  type: similar
+status: test
+description: Detects ADDInternals Cmdlet execution. A tool for administering Azure
+  AD and Office 365. Which can be abused by threat actors to attack Azure AD or Office
+  365.
+references:
+- https://o365blog.com/aadinternals/
+- https://github.com/Gerenios/AADInternals
+author: Austin Songer (@austinsonger), Nasreddine Bencherchali (Nextron Systems),
+  Swachchhanda Shrawan Poudel (Nextron Systems)
+date: 2022-12-23
+modified: 2025-02-06
+tags:
+- attack.execution
+- attack.reconnaissance
+- attack.discovery
+- attack.credential-access
+- attack.impact
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\powershell.exe'
+    - '\powershell_ise.exe'
+    - '\pwsh.exe'
+  - OriginalFileName:
+    - 'PowerShell.Exe'
+    - 'pwsh.dll'
+  selection_cli:
+    CommandLine|contains:
+            # Since most of the cmdlets use a unique enough string which is "-AADInt" we only used that portion. For a complete list please check the references linked above
+    - 'Add-AADInt'
+    - 'ConvertTo-AADInt'
+    - 'Disable-AADInt'
+    - 'Enable-AADInt'
+    - 'Export-AADInt'
+    - 'Find-AADInt'
+    - 'Get-AADInt'
+    - 'Grant-AADInt'
+    - 'Initialize-AADInt'
+    - 'Install-AADInt'
+    - 'Invoke-AADInt'
+    - 'Join-AADInt'
+    - 'New-AADInt'
+    - 'Open-AADInt'
+    - 'Read-AADInt'
+    - 'Register-AADInt'
+    - 'Remove-AADInt'
+    - 'Reset-AADInt'
+    - 'Resolve-AADInt'
+    - 'Restore-AADInt'
+    - 'Save-AADInt'
+    - 'Search-AADInt'
+    - 'Send-AADInt'
+    - 'Set-AADInt'
+    - 'Start-AADInt'
+    - 'Unprotect-AADInt'
+    - 'Update-AADInt'
+  condition: all of selection_*
+falsepositives:
+- Legitimate use of the library for administrative activity
+level: high
+notes: |
+  ### Technical Context
+  The AADInternals PowerShell Cmdlets Execution detection rule identifies the execution of specific PowerShell commands associated with the AADInternals tool, which is used for managing Azure Active Directory (Azure AD) and Office 365 environments. This tool can be exploited by threat actors to conduct reconnaissance, credential access, or other malicious activities within an organization's cloud environment. The rule correlates logs from process creation events specifically looking for instances where PowerShell or its variants (like `PowerShell_ise.exe` and `pwsh.exe`) are initiated with command-line arguments that include certain AADInternals cmdlets, such as `Add-AADInt`, `Get-AADInt`, or `Invoke-AADInt`. Data from Windows process creation logs and command-line parameters are pivotal in triggering this alert, helping security teams detect potential misuse of administrative tools.
+  ### Investigation Steps
+  - Review the specific process creation logs in the EDR for any instances of PowerShell executions that coincide with the specified AADInternals cmdlets.
+  - Examine the command-line parameters associated with the detected processes to identify any unusual or unauthorized usage patterns that could indicate malicious intent.
+  - Cross-reference the user accounts that executed the detected commands against known administrative roles and access levels within your Azure AD environment.
+  - Investigate network traffic logs via the proxy or NDR to determine if any suspicious communication attempts were made with Azure AD or Office 365 services surrounding the timeframe of the detected activity.

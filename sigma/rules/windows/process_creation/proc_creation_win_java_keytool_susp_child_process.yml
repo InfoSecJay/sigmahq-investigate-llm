@@ -1,0 +1,58 @@
+title: Suspicious Shells Spawn by Java Utility Keytool
+id: 90fb5e62-ca1f-4e22-b42e-cc521874c938
+status: test
+description: Detects suspicious shell spawn from Java utility keytool process (e.g.
+  adselfservice plus exploitation)
+references:
+- https://redcanary.com/blog/intelligence-insights-december-2021
+- https://www.synacktiv.com/en/publications/how-to-exploit-cve-2021-40539-on-manageengine-adselfservice-plus.html
+author: Andreas Hunkeler (@Karneades)
+date: 2021-12-22
+modified: 2023-01-21
+tags:
+- attack.initial-access
+- attack.persistence
+- attack.privilege-escalation
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\keytool.exe'
+    Image|endswith:
+    - '\cmd.exe'
+    - '\sh.exe'
+    - '\bash.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\schtasks.exe'
+    - '\certutil.exe'
+    - '\whoami.exe'
+    - '\bitsadmin.exe'
+    - '\wscript.exe'
+    - '\cscript.exe'
+    - '\scrcons.exe'
+    - '\regsvr32.exe'
+    - '\hh.exe'
+    - '\wmic.exe'
+    - '\mshta.exe'
+    - '\rundll32.exe'
+    - '\forfiles.exe'
+    - '\scriptrunner.exe'
+    - '\mftrace.exe'
+    - '\AppVLP.exe'
+    - '\systeminfo.exe'
+    - '\reg.exe'
+    - '\query.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activity stemming from the Java utility `keytool.exe`. The rule is specifically designed to detect instances where `keytool.exe` spawns suspicious shell processes, such as command shells or script engines that may indicate exploitation attempts utilizing vulnerabilities in associated applications. The rule leverages process creation logs as its primary data source, monitoring for specific parent-child process relationships. When `keytool.exe` is the parent process, any attempts to launch shell processes (like `cmd.exe`, `powershell.exe`, and others) are flagged for further investigation, as this behavior can be indicative of initial access, persistence, or privilege escalation tactics employed by threat actors.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify the instances of `keytool.exe` spawning one of the specified shell processes, focusing on the timestamps and user context.
+  - Correlate findings with network traffic logs from the NDR to identify any outbound connections from the suspect processes that may indicate data exfiltration or command-and-control communication.
+  - Examine any relevant logs from the SIEM for alerts or anomalies related to the account associated with the suspicious process execution, looking for unusual behavior or access patterns.
+  - Utilize endpoint security tools to scan the impacted systems for additional indicators of compromise, such as persistence mechanisms or unauthorized software installations.

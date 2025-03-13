@@ -1,0 +1,34 @@
+title: Renamed NetSupport RAT Execution
+id: 0afbd410-de03-4078-8491-f132303cb67d
+status: test
+description: Detects the execution of a renamed "client32.exe" (NetSupport RAT) via
+  Imphash, Product and OriginalFileName strings
+references:
+- https://redcanary.com/blog/misbehaving-rats/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-19
+modified: 2024-11-23
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Product|contains: 'NetSupport Remote Control'
+  - OriginalFileName|contains: 'client32.exe'
+  - Hashes|contains: IMPHASH=A9D50692E95B79723F3E76FCF70D023E
+  filter:
+    Image|endswith: '\client32.exe'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify instances of the execution of the NetSupport Remote Access Trojan (RAT), specifically when the executable has been renamed from its original filename "client32.exe". The rule utilizes process creation logs to look for specific characteristics associated with the NetSupport RAT. It checks the `Product` string for the presence of "NetSupport Remote Control" and verifies the `OriginalFileName` for "client32.exe". Additionally, it employs the Imphash technique to match a specific hash (IMPHASH=A9D50692E95B79723F3E76FCF70D023E) associated with this malware. The detection is triggered when these criteria are met, and the execution is not associated with the unrenamed executable based on the controlled filter.
+  ### Investigation Steps
+  - Review process creation logs in the EDR to identify instances where the hash matches the Imphash specified in the rule.
+  - Investigate any associated network activity through the NDR to determine if unusual outbound connections were initiated by the detected process.
+  - Cross-reference logs from the NGFW to trace any blocked or suspicious network traffic that could indicate command and control communications from the infected host.
+  - Analyze endpoint event logs as well as AV activity for similar detections or related anomalies to gather context about the environment post-execution.

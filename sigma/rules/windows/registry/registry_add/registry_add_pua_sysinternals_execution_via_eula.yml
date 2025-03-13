@@ -1,0 +1,33 @@
+title: PUA - Sysinternal Tool Execution - Registry
+id: 25ffa65d-76d8-4da5-a832-3f2b0136e133
+status: test
+description: Detects the execution of a Sysinternals Tool via the creation of the
+  "accepteula" registry key
+references:
+- https://twitter.com/Moti_B/status/1008587936735035392
+author: Markus Neis
+date: 2017-08-28
+modified: 2023-02-07
+tags:
+- attack.resource-development
+- attack.t1588.002
+logsource:
+  product: windows
+  category: registry_add
+detection:
+  selection:
+    EventType: CreateKey
+    TargetObject|endswith: '\EulaAccepted'
+  condition: selection
+falsepositives:
+- Legitimate use of SysInternals tools
+- Programs that use the same Registry Key
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of Sysinternals tools based on changes made to the Windows Registry. Specifically, it monitors for the creation of the "accepteula" registry key, which is typically set when a user accepts the End User License Agreement (EULA) upon executing these tools. The rule focuses on capturing events classified as "CreateKey" under the registry add category, helping to identify potential unauthorized use of powerful administrative utilities. The primary data sources involved in triggering this detection include Windows registry logs that record changes in registry keys, alongside possible associated process execution logs that can provide context around the usage of these tools.
+  ### Investigation Steps
+  - Review the corresponding EDR logs to identify the process associated with the creation of the "accepteula" key and examine its command-line parameters for abnormal usage patterns.
+  - Check the timestamp of the registry change against user activity logs in your SIEM to determine if the Sysinternals tool was executed during a legitimate user session.
+  - Utilize the AV logs to ensure that the identified executable does not match known malware signatures, confirming that it is a valid Sysinternals application.
+  - Query any proxy or network logs to see if there was anomalous network activity associated with the system at the time of the registry change, indicating possible malicious use of the tool.

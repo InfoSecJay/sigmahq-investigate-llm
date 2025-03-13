@@ -1,0 +1,39 @@
+title: Invoke-Obfuscation Via Use MSHTA - PowerShell
+id: e55a5195-4724-480e-a77e-3ebe64bd3759
+status: test
+description: Detects Obfuscated Powershell via use MSHTA in Scripts
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009     # (Task31)
+author: Nikita Nazarov, oscd.community
+date: 2020-10-08
+modified: 2022-11-29
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_4104:
+    ScriptBlockText|contains|all:
+    - 'set'
+    - '&&'
+    - 'mshta'
+    - 'vbscript:createobject'
+    - '.run'
+    - '(window.close)'
+  condition: selection_4104
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies patterns indicative of obfuscated PowerShell scripts utilizing the Microsoft HTML Application Host (MSHTA). The rule specifically looks for the presence of certain keywords within PowerShell script blocks, such as "set", "&&", "mshta", "vbscript:createobject", ".run", and "(window.close)". These terms often indicate that an attacker is attempting to execute malicious commands in a clandestine manner, typically to evade detection. The data source leveraged for this rule is Windows PowerShell script block logging, which must be enabled for efficient monitoring. By capturing and analyzing these script block invocations, security teams can detect potential defense evasion tactics employed by attackers.
+  ### Investigation Steps
+  - Review PowerShell script block logs for instances where the keywords from the detection rule were identified. Focus specifically on timestamps and user accounts associated with these script executions.
+  - Utilize EDR tools to analyze the process tree related to the PowerShell invocation. Investigate parent and child processes to identify any suspicious activity or unauthorized access attempts.
+  - Check for any related outbound connections in the Proxy or Network Traffic logs that may have occurred around the same time as the PowerShell execution. This can help determine if data exfiltration or other malicious activity is occurring.
+  - Cross-reference user behavior and access logs from your SIEM to assess whether the executing user has a legitimate reason for running the detected PowerShell scripts. Look for any anomalies or deviations from typical user behavior.

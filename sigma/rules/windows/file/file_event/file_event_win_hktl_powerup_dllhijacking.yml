@@ -1,0 +1,38 @@
+title: HackTool - Powerup Write Hijack DLL
+id: 602a1f13-c640-4d73-b053-be9a2fa58b96
+status: test
+description: |
+  Powerup tool's Write Hijack DLL exploits DLL hijacking for privilege escalation.
+  In it's default mode, it builds a self deleting .bat file which executes malicious command.
+  The detection rule relies on creation of the malicious bat file (debug.bat by default).
+references:
+- https://powersploit.readthedocs.io/en/latest/Privesc/Write-HijackDll/
+author: Subhash Popuri (@pbssubhash)
+date: 2021-08-21
+modified: 2024-06-27
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.defense-evasion
+- attack.t1574.001
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    TargetFilename|endswith: '.bat'
+  condition: selection
+falsepositives:
+- Any powershell script that creates bat files     # highly unlikely (untested)
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule identifies the use of the Powerup tool's Write Hijack DLL, which exploits DLL hijacking for privilege escalation by creating a malicious batch file (commonly named `debug.bat`). This rule focuses on events where PowerShell (either `powershell.exe` or `pwsh.exe`) is used to create a batch file, which is a common technique employed by attackers to execute arbitrary commands with elevated privileges. The detection mechanism relies on analyzing file event logs on Windows systems, specifically targeting instances where the command-line execution of PowerShell results in the creation of batch files, indicating potential malicious behavior as part of persistent tactics used in attacks.
+  ### Investigation Steps
+  - Utilize the EDR tool to review recent PowerShell execution logs, filtering for instances where `powershell.exe` or `pwsh.exe` created files with a `.bat` extension.
+  - Investigate the command-line parameters used during PowerShell execution to identify any potentially malicious commands that were executed alongside creating the batch file.
+  - Check the file creation timestamps of `debug.bat` against known windows event logs to correlate with user activity and alert for any unusual access or execution patterns.
+  - Cross-reference alerts with proxy logs to identify any external communications initiated by the batch file, which could indicate further malicious activity or command and control efforts.

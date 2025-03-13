@@ -1,0 +1,50 @@
+title: Suspicious PowerShell Invocations - Generic
+id: ed965133-513f-41d9-a441-e38076a0798f
+related:
+- id: 3d304fda-78aa-43ed-975c-d740798a49c1
+  type: derived
+- id: bbb80e91-5746-4fbe-8898-122e2cafdbf4
+  type: similar
+status: test
+description: Detects suspicious PowerShell invocation command parameters
+references:
+- Internal Research
+author: Florian Roth (Nextron Systems)
+date: 2017-03-12
+modified: 2023-01-03
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_encoded:
+    ScriptBlockText|contains:
+    - ' -enc '
+    - ' -EncodedCommand '
+    - ' -ec '
+  selection_hidden:
+    ScriptBlockText|contains:
+    - ' -w hidden '
+    - ' -window hidden '
+    - ' -windowstyle hidden '
+    - ' -w 1 '
+  selection_noninteractive:
+    ScriptBlockText|contains:
+    - ' -noni '
+    - ' -noninteractive '
+  condition: all of selection*
+falsepositives:
+- Very special / sneaky PowerShell scripts
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Suspicious PowerShell Invocations 
+  - Generic" is designed to identify potentially harmful usage of PowerShell through specific command line parameters that may indicate malicious intent. The rule focuses on detecting the presence of certain arguments commonly associated with obfuscated or stealthy PowerShell commands, such as encoded commands (`-enc`, `-EncodedCommand`), hidden window settings (`-w hidden`, `-window hidden`), and non-interactive executions (`-noni`, `-noninteractive`). To trigger this rule, script block logging must be enabled on Windows systems, as it captures the command parameters used in PowerShell executions. By analyzing logs related to PowerShell script execution, security teams can pinpoint unusual activity that may signify an ongoing attack or exploitation attempt.
+  ### Investigation Steps
+  - Review the PowerShell script block logs in your EDR tool to locate occurrences of command executions that include the identified suspicious parameters.
+  - Check for any related events in the SIEM that correlates with the time of the identified PowerShell invocation, such as unauthorized access attempts or abnormal user behavior.
+  - Utilize the AV and NGFW logs to investigate any alerts triggered by this PowerShell activity, indicating whether there was any malware associated with the command execution.
+  - Examine user activity logs in the cloud platforms (e.g., AWS, Azure) to identify if any resources were provisioned or manipulated around the same time as the suspicious PowerShell execution.

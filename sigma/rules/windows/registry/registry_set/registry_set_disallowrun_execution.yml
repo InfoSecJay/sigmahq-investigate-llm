@@ -1,0 +1,32 @@
+title: Add DisallowRun Execution to Registry
+id: 275641a5-a492-45e2-a817-7c81e9d9d3e9
+status: test
+description: Detect set DisallowRun to 1 to prevent user running specific computer
+  program
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/40b77d63808dd4f4eafb83949805636735a1fd15/atomics/T1112/T1112.md
+author: frack113
+date: 2022-08-19
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: 'Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\DisallowRun'
+    Details: 'DWORD (0x00000001)'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify changes made to the Windows Registry that set the "DisallowRun" policy to prevent users from executing specific applications. The rule focuses on the Registry key located at `Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\DisallowRun`, specifically looking for the DWORD value to be set to `1`. This type of modification is indicative of attempts to enforce application control and could be used either for legitimate administrative purposes or as a method for evading detection by attackers trying to prevent execution of certain security tools. The relevant data sources for this rule include Windows Registry activity logs that track changes to system configurations.
+  ### Investigation Steps
+  - Analyze the endpoint's registry logs using the EDR tool to verify if the DisallowRun policy was altered recently and to identify the user account that made the change.
+  - Review event logs for any recent process creation events related to the applications that are restricted by the DisallowRun setting for potential unauthorized access attempts.
+  - Check the SIEM for any alerts or correlation rules triggered by this registry change to understand if there are associated suspicious events.
+  - Gather context from recent user activity through Proxy logs to determine if there were any attempts to download or execute applications that may have been blocked by this policy modification.

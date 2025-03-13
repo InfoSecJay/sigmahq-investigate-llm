@@ -1,0 +1,36 @@
+title: Suspicious Base64 Encoded User-Agent
+id: d443095b-a221-4957-a2c4-cd1756c9b747
+related:
+- id: 894a8613-cf12-48b3-8e57-9085f54aa0c3
+  type: derived
+status: test
+description: Detects suspicious encoded User-Agent strings, as seen used by some malware.
+references:
+- https://deviceatlas.com/blog/list-of-user-agent-strings#desktop
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-04
+tags:
+- attack.command-and-control
+- attack.t1071.001
+logsource:
+  category: proxy
+detection:
+  selection:
+    c-useragent|startswith:
+    - 'Q2hyb21l'         # Chrome Encoded with offset to not include padding
+    - 'QXBwbGVXZWJLaX'         # AppleWebKit Encoded with offset to not include padding
+    - 'RGFsdmlr'         # Dalvik Encoded with offset to not include padding
+    - 'TW96aWxsY'          # Mozilla Encoded with offset to not include padding (as used by YamaBot)
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Suspicious Base64 Encoded User-Agent" detection rule is designed to identify potentially malicious web traffic that utilizes Base64 encoded User-Agent strings. These encoded strings are often employed by malware to obfuscate their identity, disguising their communications and evading detection. Commonly recognized encoded User-Agent prefixes include those that correspond to popular web browsers and frameworks, such as Chrome, AppleWebKit, and Mozilla. This rule specifically examines proxy logs for User-Agent fields that start with known encoded values, indicating an attempt to mask web traffic, which can be indicative of command-and-control communications or other illicit activities.
+  The primary data source for this detection is the proxy logs, specifically focusing on the 'C-UserAgent' field. When this rule identifies matches for any of the specified Base64 encoded User-Agent prefixes, it flags the traffic for further investigation to assess whether it represents legitimate user activity or a potential security threat.
+  ### Investigation Steps
+  - Query the proxy logs for instances where the User-Agent matches the encoded strings identified in the rule to gather context on the suspected traffic. Review the timestamps and corresponding IP addresses to determine if this traffic is anomalous.
+  - Utilize EDR solutions to examine endpoints that generated the flagged User-Agent strings, focusing on process creation logs and any associated command-line parameters for suspicious activity.
+  - Check for any alerts or known malware indicators related to the flagged traffic within your AV and NDR solutions, as additional context may indicate a broader compromise.
+  - Analyze user behavior logs and correlate activity around the time of the flagged User-Agent strings to identify any abnormal patterns that could suggest a compromise or the presence of malicious software.

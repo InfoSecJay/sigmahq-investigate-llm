@@ -1,0 +1,34 @@
+title: Invoke-Obfuscation VAR+ Launcher - PowerShell
+id: 0adfbc14-0ed1-11eb-adc1-0242ac120002
+status: test
+description: Detects Obfuscated use of Environment Variables to execute PowerShell
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009      # (Task 24)
+author: Jonathan Cheong, oscd.community
+date: 2020-10-15
+modified: 2024-04-05
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_4104:
+    ScriptBlockText|re: 'cmd.{0,5}(?:/c|/r)(?:\s|)"set\s[a-zA-Z]{3,6}.*(?:\{\d\}){1,}\\"\s+?-f(?:.*\)){1,}.*"'
+  condition: selection_4104
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the obfuscated use of environment variables in PowerShell scripts, particularly when invoking the `cmd` command. The rule utilizes Script Block Logging to catch specific patterns in the script execution, where `cmd` is called with environment variable manipulations that may indicate malicious intent. The regular expression used in the detection searches for variations of command-line arguments tied to environment variable access, often employed by attackers to bypass security mechanisms. This approach plays a significant role in techniques associated with evading detection and executing malicious code on compromised systems.
+  To effectively utilize this rule, it is essential that Script Block Logging is enabled in your Windows environment. The rule targets Windows PowerShell logs, specifically focusing on the ScriptBlockText field to analyze the text of executed PowerShell commands for hints of obfuscated execution tactics.
+  ### Investigation Steps
+  - Query the EDR for recent PowerShell execution events and filter for instances where Script Block Logging is enabled, focusing on suspicious command patterns identified in this rule.
+  - Review related process creation logs to track the parent process of the detected PowerShell command, as this can provide context on how the script was invoked.
+  - Examine network traffic logs (NDR) for any unusual outbound connections initiated by the PowerShell process, which may indicate data exfiltration or additional malicious activities.
+  - Analyze any related logs from your AV solution to check for known malicious indicators associated with the PowerShell command and cross-reference them with threat intelligence sources.

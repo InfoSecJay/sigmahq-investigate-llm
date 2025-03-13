@@ -1,0 +1,35 @@
+title: DNS Exfiltration and Tunneling Tools Execution
+id: 98a96a5a-64a0-4c42-92c5-489da3866cb0
+status: test
+description: Well-known DNS Exfiltration tools execution
+references:
+- https://github.com/iagox86/dnscat2
+- https://github.com/yarrick/iodine
+author: Daniil Yugoslavskiy, oscd.community
+date: 2019-10-24
+modified: 2021-11-27
+tags:
+- attack.exfiltration
+- attack.t1048.001
+- attack.command-and-control
+- attack.t1071.004
+- attack.t1132.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\iodine.exe'
+  - Image|contains: '\dnscat2'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the execution of well-known DNS exfiltration and tunneling tools, specifically `iodine.exe` and `dnscat2`. These applications are often leveraged by malicious actors to encode data within DNS requests to circumvent traditional security measures, allowing for covert data exfiltration or command-and-control communications. The rule analyzes process creation logs on Windows systems to flag any instances where processes associated with these tools are initiated, focusing on specific naming conventions and file paths. By monitoring these executions, security teams can identify potentially malicious activities aimed at bypassing security protocols through DNS-based methods.
+  ### Investigation Steps
+  - Examine the process creation logs in the EDR system to gather details on the execution time, user account, and associated command-line parameters of `iodine.exe` or `dnscat2`.
+  - Cross-reference the system and network logs to identify any unusual DNS query patterns or high volumes of DNS traffic that correspond with the time frame of the flagged executions.
+  - Utilize the SIEM to investigate user activity and access patterns before and after the execution of the identified tools, looking for signs of unauthorized data access or transfer.
+  - Review any endpoint protection logs for alerts or blocks related to the execution of these tools, which may indicate prior detection attempts and potential real-time responses.

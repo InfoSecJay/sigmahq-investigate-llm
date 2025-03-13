@@ -1,0 +1,39 @@
+title: Windows Defender Exclusion List Modified
+id: 46a68649-f218-4f86-aea1-16a759d81820
+related:
+- id: e9c8808f-4cfb-4ba9-97d4-e5f3beaa244d
+  type: derived
+- id: a33f8808-2812-4373-ae95-8cfb82134978
+  type: derived
+status: test
+description: |
+  Detects modifications to the Windows Defender exclusion registry key. This could indicate a potentially suspicious or even malicious activity by an attacker trying to add a new exclusion in order to bypass security.
+references:
+- https://www.bleepingcomputer.com/news/security/gootkit-malware-bypasses-windows-defender-by-setting-path-exclusions/
+author: '@BarryShooshooga'
+date: 2019-10-26
+modified: 2023-11-11
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  product: windows
+  service: security
+  definition: 'Requirements: Audit Policy : Security Settings/Local Policies/Audit
+    Policy, Registry System Access Control (SACL): Auditing/User'
+detection:
+  selection:
+    EventID: 4657     # A registry value was modified.
+    ObjectName|contains: '\Microsoft\Windows Defender\Exclusions\'
+  condition: selection
+falsepositives:
+- Intended exclusions by administrators
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to identify unauthorized modifications to the Windows Defender exclusion list within the Windows registry, specifically targeting Event ID 4657. Such modifications can indicate that an attacker is attempting to create a new path exclusion in Windows Defender, potentially allowing malicious files or processes to run undetected. The core technical data source for this detection comes from security event logs focusing on registry changes, particularly the specific registry path: `\Microsoft\Windows Defender\Exclusions\`. Thus, monitoring alterations at this registry location can help in identifying suspicious activities aimed at bypassing security measures.
+  ### Investigation Steps
+  - Review the Windows Security event logs for Event ID 4657 to identify the exact changes made to the Defender exclusion list, including timestamps and user accounts involved.
+  - Utilize EDR tools to investigate associated process activity around the time of the registry modification, looking for unusual or unauthorized processes running that could relate to the exclusion.
+  - Check for indicators of compromise (IoCs) linked to the modified exclusions by cross-referencing the paths with threat intelligence feeds or existing malware behavior patterns.
+  - Query the organization's change management logs to determine if the exclusion was part of an approved action by an administrator, helping to differentiate between legitimate and potentially malicious changes.

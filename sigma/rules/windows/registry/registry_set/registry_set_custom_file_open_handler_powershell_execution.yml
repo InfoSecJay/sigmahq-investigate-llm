@@ -1,0 +1,34 @@
+title: Custom File Open Handler Executes PowerShell
+id: 7530b96f-ad8e-431d-a04d-ac85cc461fdc
+status: test
+description: Detects the abuse of custom file open handler, executing powershell
+references:
+- https://news.sophos.com/en-us/2022/02/01/solarmarker-campaign-used-novel-registry-changes-to-establish-persistence/?cmp=30728
+author: CD_R0M_
+date: 2022-06-11
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1202
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: 'shell\open\command\'
+    Details|contains|all:
+    - 'powershell'
+    - '-command'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The detection rule "Custom File Open Handler Executes PowerShell" is designed to identify potentially malicious behavior associated with the misuse of custom file handlers in the Windows registry. Specifically, it looks for changes in the registry under the `shell\open\command\` key, which specifies how files of certain types should be opened. This rule flags instances where the command executed includes PowerShell, particularly with the `-command` parameter, indicating an intention to run scripts or commands directly from the registry. The key data sources for this detection include Windows registry logs that capture changes to file handling commands.
+  By monitoring for these specific registry alterations, the rule aims to uncover tactics employed by threat actors to establish persistence within a system, leveraging Windows mechanisms that are typically trusted. The technique aligns with known attack patterns—specifically the SolarMarker campaign—which exploited similar registry modifications to execute malicious PowerShell commands upon file open actions.
+  ### Investigation Steps
+  - Review Windows registry logs for changes made to the `shell\open\command\` key to identify the specific file types targeted and the associated PowerShell commands executed.
+  - Utilize an EDR tool to trace the execution chain of processes initiated by the registry changes, paying close attention to any anomalies in the behavior of the PowerShell process.
+  - Analyze network traffic logs from the NDR to determine if any malicious outbound connections were initiated by the executed PowerShell commands, which may indicate further compromise.
+  - Check for other indicators of compromise (IOCs) across AV and proxy logs to see if any related files or domains have flagged suspicious activity in correlation with the detected registry changes.

@@ -1,0 +1,47 @@
+title: Outbound Network Connection Initiated By Microsoft Dialer
+id: 37e4024a-6c80-4d8f-b95d-2e7e94f3a8d1
+status: test
+description: |
+  Detects outbound network connection initiated by Microsoft Dialer.
+  The Microsoft Dialer, also known as Phone Dialer, is a built-in utility application included in various versions of the Microsoft Windows operating system. Its primary function is to provide users with a graphical interface for managing phone calls via a modem or a phone line connected to the computer.
+  This is an outdated process in the current conext of it's usage and is a common target for info stealers for process injection, and is used to make C2 connections, common example is "Rhadamanthys"
+references:
+- https://tria.ge/240301-rk34sagf5x/behavioral2
+- https://app.any.run/tasks/6720b85b-9c53-4a12-b1dc-73052a78477d
+- https://research.checkpoint.com/2023/rhadamanthys-v0-5-0-a-deep-dive-into-the-stealers-components/
+- https://strontic.github.io/xcyclopedia/library/dialer.exe-0B69655F912619756C704A0BF716B61F.html
+author: CertainlyP
+date: 2024-04-26
+tags:
+- attack.execution
+- attack.t1071.001
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Image|endswith: ':\Windows\System32\dialer.exe'
+    Initiated: 'true'
+  filter_main_local_ranges:
+    DestinationIp|cidr:
+    - '127.0.0.0/8'
+    - '10.0.0.0/8'
+    - '172.16.0.0/12'
+    - '192.168.0.0/16'
+    - '169.254.0.0/16'
+    - '::1/128'          # IPv6 loopback
+    - 'fe80::/10'          # IPv6 link-local addresses
+    - 'fc00::/7'          # IPv6 private addresses
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- In Modern Windows systems, unable to see legitimate usage of this process, However,
+  if an organization has legitimate purpose for this there can be false positives.
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies outbound network connections initiated by the Microsoft Dialer (dialer.exe), an outdated Windows utility primarily associated with managing phone calls. The rule specifically looks for instances where `dialer.exe` attempts to establish a connection to external IP addresses, filtering out common local and internal ranges to minimize false positives. Since the Microsoft Dialer is rarely used in modern environments, outbound connections from this process could signify potential malicious activity, such as command-and-control (C2) communication utilized by information stealers like Rhadamanthys. The detection relies on network connection logs, specifically monitoring the process image and its status as an initiator of network traffic.
+  ### Investigation Steps
+  - **Review Network Connection Logs**: Analyze recent network connection logs for any instances of `dialer.exe` attempting to connect to external IP addresses, focusing particularly on connections that are not internal or local.
+  - **Correlate with EDR Alerts**: Use EDR tools to gather more context on the `dialer.exe` process, checking for any other suspicious behaviors or related processes that may indicate malicious activity.
+  - **Examine Command-Line Parameters**: Investigate the command-line parameters used by `dialer.exe` to understand how it was launched and if any unusual options were employed that could suggest exploitation.
+  - **Check for Malware Presence**: Run a scan with your AV tools on the affected endpoints to determine if there are known malware signatures associated with Rhadamanthys or similar variants impacting `dialer.exe`.

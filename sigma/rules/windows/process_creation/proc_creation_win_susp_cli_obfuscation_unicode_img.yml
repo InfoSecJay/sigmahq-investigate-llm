@@ -1,0 +1,70 @@
+title: Potential CommandLine Obfuscation Using Unicode Characters From Suspicious
+  Image
+id: 584bca0f-3608-4402-80fd-4075ff6072e3
+related:
+- id: e0552b19-5a83-4222-b141-b36184bb8d79
+  type: similar
+- id: ad691d92-15f2-4181-9aa4-723c74f9ddc3     # RTLO
+  type: similar
+- id: 2c0d2d7b-30d6-4d14-9751-7b9113042ab9
+  type: obsolete
+status: test
+description: |
+  Detects potential commandline obfuscation using unicode characters.
+  Adversaries may attempt to make an executable or file difficult to discover or analyze by encrypting, encoding, or otherwise obfuscating its contents on the system or in transit.
+references:
+- https://www.wietzebeukema.nl/blog/windows-command-line-obfuscation
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1027/T1027.md#atomic-test-6---dlp-evasion-via-sensitive-data-in-vba-macro-over-http
+author: frack113, Florian Roth (Nextron Systems), Josh Nickels
+date: 2024-09-02
+modified: 2024-09-05
+tags:
+- attack.defense-evasion
+- attack.t1027
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+    Image|endswith:
+    - '\cmd.exe'
+    - '\cscript.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\wscript.exe'
+    OriginalFileName:
+    - 'Cmd.EXE'
+    - 'cscript.exe'
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+    - 'wscript.exe'
+  selection_special_chars:
+    CommandLine|contains:
+            # spacing modifier letters that get auto-replaced
+    - 'ˣ'         # 0x02E3
+    - '˪'         # 0x02EA
+    - 'ˢ'         # 0x02E2
+            # Forward slash alternatives
+    - '∕'         # 0x22FF
+    - '⁄'         # 0x206F
+            # Hyphen alternatives
+    - '―'         # 0x2015
+    - '—'         # 0x2014
+            # Whitespace that don't work as path separator
+    - ' '         # 0x00A0
+            # Other
+    - '¯'
+    - '®'
+    - '¶'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies suspicious command lines that employ Unicode characters to obfuscate actions executed via common Windows scripting and command-line tools such as `cmd.exe`, `powershell.exe`, and `cscript.exe`. Adversaries often use these techniques to complicate detection by transforming straightforward commands into difficult-to-analyze strings, bypassing standard protections. The rule looks specifically for the presence of Unicode characters known to function as spacing modifiers, alternative slashes, and other common obfuscation techniques in the command-line arguments associated with the execution of these processes. Key data sources leveraged by this rule include process creation logs and command-line parameters, enabling the identification of potential security incidents stemming from obfuscation attempts.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR to identify instances of `cmd.exe`, `powershell.exe`, or other flagged executables associated with the alert.
+  - Analyze the command-line arguments for suspicious Unicode characters that may indicate obfuscation or attempts to conceal intent, paying attention to the specific characters listed in the detection rule.
+  - Correlate the findings with historical data in the SIEM to identify any previous similar behaviors or patterns for the detected processes.
+  - Utilize endpoint protection tools to perform a thorough scan of the affected system, looking for any additional malicious artifacts or indicators of compromise associated with the alerted activity.

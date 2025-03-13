@@ -1,0 +1,41 @@
+title: Browser Started with Remote Debugging
+id: b3d34dc5-2efd-4ae3-845f-8ec14921f449
+related:
+- id: 3e8207c5-fcd2-4ea6-9418-15d45b4890e4
+  type: derived
+status: test
+description: Detects browsers starting with the remote debugging flags. Which is a
+  technique often used to perform browser injection attacks
+references:
+- https://yoroi.company/wp-content/uploads/2022/05/EternityGroup_report_compressed.pdf
+- https://www.mdsec.co.uk/2022/10/analysing-lastpass-part-1/
+- https://github.com/defaultnamehere/cookie_crimes/
+- https://github.com/wunderwuzzi23/firefox-cookiemonster
+author: pH-T (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-27
+modified: 2022-12-23
+tags:
+- attack.credential-access
+- attack.t1185
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_chromium_based:
+        # Covers: --remote-debugging-address, --remote-debugging-port, --remote-debugging-socket-name, --remote-debugging-pipe....etc
+    CommandLine|contains: ' --remote-debugging-'
+  selection_firefox:
+    Image|endswith: '\firefox.exe'
+    CommandLine|contains: ' -start-debugger-server'
+  condition: 1 of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Browser Started with Remote Debugging" detection rule is designed to identify when web browsers, specifically Chromium-based browsers and Firefox, are launched with remote debugging flags. These flags enable external tools to connect to and control the browser remotely, a technique often leveraged in browser injection attacks to manipulate user sessions or steal credentials. The rule analyzes process creation logs from Windows, focusing on command-line parameters associated with launching browsers. Specifically, it looks for command-line entries containing terms like `--remote-debugging-` for Chromium-based browsers and `-start-debugger-server` for Firefox. By monitoring these flags, the detection rule helps identify potentially malicious activities that could compromise the security of the enterprise environment.
+  ### Investigation Steps
+  - Review process creation logs in the EDR tool to confirm the process details, including the command-line arguments used when the browser was launched. Look for any unusual or unauthorized usage of remote debugging flags.
+  - Cross-reference user account activity in the SIEM with the timestamps of the detected process to determine if the browser launch aligns with known user behavior or if it indicates a potential compromise.
+  - Analyze network connections using NDR tools to check for any outgoing connections that correspond to the remote debugging session, which may indicate exfiltration attempts or communication with malicious actors.
+  - Examine proxy logs for any sign of unusual web activity or data requests initiated by the browser that could underscore the impact of the suspected malicious behavior.

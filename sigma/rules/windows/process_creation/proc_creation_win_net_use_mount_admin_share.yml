@@ -1,0 +1,43 @@
+title: Windows Admin Share Mount Via Net.EXE
+id: 3abd6094-7027-475f-9630-8ab9be7b9725
+related:
+- id: f117933c-980c-4f78-b384-e3d838111165
+  type: similar
+status: test
+description: Detects when an admin share is mounted using net.exe
+references:
+- https://drive.google.com/file/d/1lKya3_mLnR3UQuCoiYruO3qgu052_iS_/view
+author: oscd.community, Teymur Kheirkhabarov @HeirhabarovT, Zach Stanford @svch0st,
+  wagga
+date: 2020-10-05
+modified: 2023-02-21
+tags:
+- attack.lateral-movement
+- attack.t1021.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\net.exe'
+    - '\net1.exe'
+  - OriginalFileName:
+    - 'net.exe'
+    - 'net1.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - ' use '
+    - ' \\\\*\\*$'
+  condition: all of selection_*
+falsepositives:
+- Administrators
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule aims to identify instances of administrative shares being mounted using the `net.exe` command-line utility on Windows systems. Administrative shares, such as C$, are commonly used for lateral movement during cyber attacks. The rule analyzes process creation logs for any activity involving `net.exe` or `net1.exe`, particularly focusing on command-line parameters that indicate a share is being accessed. The specific conditions it looks for include command-line arguments that include "use" followed by a UNC path (e.g., `\\servername\share$`). By correlating process creation events with these command-line patterns, the rule helps to flag potentially suspicious activities that may indicate unauthorized access or lateral movement threats in an enterprise environment.
+  ### Investigation Steps
+  - Review EDR logs for the process creation events related to `net.exe` or `net1.exe` to identify the source user and machine involved in the action.
+  - Check the command-line parameters used during the `net.exe` execution to confirm the target share and assess if it matches typical administrative activities.
+  - Analyze user permissions and account activity through the Active Directory logs to determine whether the initiating user has legitimate access rights to the mounted share.
+  - If deemed suspicious, look into firewall logs and network traffic logs (NDR) to see if there are additional connections or communication patterns that may correlate with recognized attack behaviors.

@@ -1,0 +1,37 @@
+title: Lsass Full Dump Request Via DumpType Registry Settings
+id: 33efc23c-6ea2-4503-8cfe-bdf82ce8f719
+status: test
+description: Detects the setting of the "DumpType" registry value to "2" which stands
+  for a "Full Dump". Technique such as LSASS Shtinkering requires this value to be
+  "2" in order to dump LSASS.
+references:
+- https://github.com/deepinstinct/Lsass-Shtinkering
+- https://learn.microsoft.com/en-us/windows/win32/wer/collecting-user-mode-dumps
+- https://media.defcon.org/DEF%20CON%2030/DEF%20CON%2030%20presentations/Asaf%20Gilboa%20-%20LSASS%20Shtinkering%20Abusing%20Windows%20Error%20Reporting%20to%20Dump%20LSASS.pdf
+author: '@pbssubhash'
+date: 2022-12-08
+modified: 2023-08-17
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains:
+    - '\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\DumpType'
+    - '\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\lsass.exe\DumpType'
+    Details: 'DWORD (0x00000002)'     # Full Dump
+  condition: selection
+falsepositives:
+- Legitimate application that needs to do a full dump of their process
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule focuses on detecting changes to specific Windows Registry settings that can indicate malicious activity targeting the Local Security Authority Subsystem Service (LSASS). The rule specifically looks for the "DumpType" registry value being set to "2," which signifies a "Full Dump" of LSASS. Attackers may exploit this capability using techniques like LSASS Shtinkering, which is a method to extract sensitive credentials from LSASS by manipulating memory dump settings. The primary technical data sources involved include Windows Registry logs, which provide insights into any modifications made to the specified registry keys that could signify potentially malicious intent.
+  ### Investigation Steps
+  - Collect relevant EDR alerts to confirm if any processes modified the specified registry values for LSASS, particularly checking for suspicious executables.
+  - Review the command-line parameters of any processes that executed shortly after the registry change, or check for known malicious patterns indicating credential dumping attempts.
+  - Search for associated network activity in the NDR and proxy logs that may indicate unusual outbound connections correlating with the timing of the registry modification.
+  - Examine Windows event logs, focusing on security events that may indicate additional suspicious activity, such as failed login attempts or unauthorized access to sensitive resources.

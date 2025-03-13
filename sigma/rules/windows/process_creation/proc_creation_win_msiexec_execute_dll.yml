@@ -1,0 +1,49 @@
+title: Suspicious Msiexec Execute Arbitrary DLL
+id: 6f4191bb-912b-48a8-9ce7-682769541e6d
+status: test
+description: |
+  Adversaries may abuse msiexec.exe to proxy execution of malicious payloads.
+  Msiexec.exe is the command-line utility for the Windows Installer and is thus commonly associated with executing installation packages (.msi)
+references:
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/msiexec
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1218.007/T1218.007.md
+- https://twitter.com/_st0pp3r_/status/1583914515996897281
+author: frack113
+date: 2022-01-16
+modified: 2024-03-13
+tags:
+- attack.defense-evasion
+- attack.t1218.007
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\msiexec.exe'
+    CommandLine|contains|windash: ' -y'
+  filter_apple:
+    CommandLine|contains:
+    - '\MsiExec.exe" /Y "C:\Program Files\Bonjour\mdnsNSP.dll'
+    - '\MsiExec.exe" /Y "C:\Program Files (x86)\Bonjour\mdnsNSP.dll'
+    - '\MsiExec.exe" /Y "C:\Program Files (x86)\Apple Software Update\ScriptingObjectModel.dll'
+    - '\MsiExec.exe" /Y "C:\Program Files (x86)\Apple Software Update\SoftwareUpdateAdmin.dll'
+    - '\MsiExec.exe" /Y "C:\Windows\CCM\'
+    - '\MsiExec.exe" /Y C:\Windows\CCM\'         # also need non-quoted execution
+    - '\MsiExec.exe" -Y "C:\Program Files\Bonjour\mdnsNSP.dll'
+    - '\MsiExec.exe" -Y "C:\Program Files (x86)\Bonjour\mdnsNSP.dll'
+    - '\MsiExec.exe" -Y "C:\Program Files (x86)\Apple Software Update\ScriptingObjectModel.dll'
+    - '\MsiExec.exe" -Y "C:\Program Files (x86)\Apple Software Update\SoftwareUpdateAdmin.dll'
+    - '\MsiExec.exe" -Y "C:\Windows\CCM\'
+    - '\MsiExec.exe" -Y C:\Windows\CCM\'         # also need non-quoted execution
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Legitimate script
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule targets potentially malicious usage of `msiexec.exe`, a legitimate Windows command-line utility for managing installation packages. Adversaries might misuse `msiexec.exe` to execute DLL files silently, which could lead to unauthorized payload deployment. The rule looks for process creation events where the image path ends with `\msiexec.exe` and checks if the command line contains the `-y` flag, which can bypass prompts and execute given commands automatically. It specifically filters out common benign DLL execution patterns associated with legitimate applications, such as those from Apple or Bonjour, allowing the detection of suspicious behavior while reducing false positives.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR solution to identify instances of `msiexec.exe` being executed along with the command-line parameters to understand the context of the execution.
+  - Cross-reference the command-line strings against the list of known benign DLLs and excluded paths to validate whether they belong to trusted applications or if they warrant further investigation.
+  - Analyze network traffic logs via NDR to determine if there were any outgoing connections made during the execution of the suspicious `msiexec.exe`, which may indicate communication with a command and control (C2) server.
+  - Check for alerts or logs in the AV or IPS systems that may have triggered during the execution window, providing additional context on whether malicious activity was detected related to this event.

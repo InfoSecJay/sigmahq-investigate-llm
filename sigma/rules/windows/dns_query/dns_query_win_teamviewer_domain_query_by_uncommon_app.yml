@@ -1,0 +1,40 @@
+title: TeamViewer Domain Query By Non-TeamViewer Application
+id: 778ba9a8-45e4-4b80-8e3e-34a419f0b85e
+status: test
+description: Detects DNS queries to a TeamViewer domain only resolved by a TeamViewer
+  client by an image that isn't named TeamViewer (sometimes used by threat actors
+  for obfuscation)
+references:
+- https://www.teamviewer.com/en-us/
+author: Florian Roth (Nextron Systems)
+date: 2022-01-30
+modified: 2023-09-18
+tags:
+- attack.command-and-control
+- attack.t1219
+logsource:
+  product: windows
+  category: dns_query
+detection:
+  selection:
+    QueryName:
+    - 'taf.teamviewer.com'
+    - 'udp.ping.teamviewer.com'
+  filter_main_teamviewer:
+        # Note: To avoid evasion based on similar names. Best add full install location of TeamViewer
+    Image|contains: 'TeamViewer'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown binary names of TeamViewer
+- Depending on the environment the rule might require some initial tuning before usage
+  to avoid FP with third party applications
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activity by monitoring DNS queries on Windows systems for specific TeamViewer domains, notably `taf.teamviewer.com` and `udp.ping.teamviewer.com`. The rule looks for DNS queries made by processes that do not match the expected TeamViewer application naming conventions, as threat actors may exploit TeamViewer for remote access while obfuscating their legitimate identity by running the application under a non-Standard executable name. By analyzing the process generating the DNS request against known TeamViewer executables, the rule helps to highlight suspicious behavior indicative of command-and-control (C2) activity.
+  The technical data sources involved in this rule include DNS query logs from Windows systems. These logs reveal the lookup requests made by applications running on the system, which is vital for determining whether an unusual process is attempting to connect to TeamViewer’s infrastructure.
+  ### Investigation Steps
+  - Check the EDR logs to identify the process generating DNS queries to the specified TeamViewer domains and examine the path and image name for any anomalous binaries.
+  - Review the network traffic within the relevant timeframe using your NDR solution to correlate with the DNS queries and identify any potential connections made to the TeamViewer servers.
+  - Investigate proxy logs to determine if any HTTP/S traffic was initiated by the suspicious process to the TeamViewer domains and what HTTP methods were employed.
+  - Monitor system logs for any unusual behaviors around the time of the DNS queries, such as unexpected software installations or changes in system configurations.

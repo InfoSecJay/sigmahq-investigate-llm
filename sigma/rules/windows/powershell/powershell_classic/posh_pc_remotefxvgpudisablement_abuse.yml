@@ -1,0 +1,42 @@
+title: Potential RemoteFXvGPUDisablement.EXE Abuse
+id: f65e22f9-819e-4f96-9c7b-498364ae7a25
+related:
+- id: a6fc3c46-23b8-4996-9ea2-573f4c4d88c5     # ProcCreation
+  type: similar
+- id: 38a7625e-b2cb-485d-b83d-aff137d859f4     # PS Module
+  type: similar
+- id: cacef8fc-9d3d-41f7-956d-455c6e881bc5     # PS ScriptBlock
+  type: similar
+status: test
+description: Detects PowerShell module creation where the module Contents are set
+  to "function Get-VMRemoteFXPhysicalVideoAdapter". This could be a sign of potential
+  abuse of  the "RemoteFXvGPUDisablement.exe" binary which is known to be vulnerable
+  to module load-order hijacking.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1218/T1218.md
+- https://github.com/redcanaryco/AtomicTestHarnesses/blob/7e1e4da116801e3d6fcc6bedb207064577e40572/TestHarnesses/T1218_SignedBinaryProxyExecution/InvokeRemoteFXvGPUDisablementCommand.ps1
+author: frack113, Nasreddine Bencherchali (Nextron Systems)
+date: 2021-07-13
+modified: 2023-05-09
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  product: windows
+  service: powershell-classic
+  definition: fields have to be extract from event
+detection:
+  selection:
+    Data|contains: 'ModuleContents=function Get-VMRemoteFXPhysicalVideoAdapter {'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation of a PowerShell module that contains a specific function signature, namely "Get-VMRemoteFXPhysicalVideoAdapter". This activity may indicate potential misuse of the "RemoteFXvGPUDisablement.exe" executable, which has known vulnerabilities related to module load-order hijacking. By monitoring logs for PowerShell operations, particularly those related to module creation and manipulation, the rule captures events where the module contents fit the specified criteria. Technical data sources involved include PowerShell command logs, which contain details about executed PowerShell statements and their parameters.
+  ### Investigation Steps
+  - Review the recent PowerShell logs in your EDR to confirm the module creation event and analyze the context in which it occurred.
+  - Investigate the process tree surrounding the execution of RemoteFXvGPUDisablement.exe to determine if any suspicious parent processes are involved.
+  - Check for any unusual network activity through the NDR or proxy logs that may relate to the time the module was created, indicating possible remote exploitation.
+  - Search through your SIEM for any indications of unauthorized access to systems where this module was created, correlating alerts with user activity and authentication logs.

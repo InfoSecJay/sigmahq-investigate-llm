@@ -1,0 +1,38 @@
+title: CLR DLL Loaded Via Office Applications
+id: d13c43f0-f66b-4279-8b2c-5912077c1780
+status: test
+description: Detects CLR DLL being loaded by an Office Product
+references:
+- https://medium.com/threatpunter/detecting-adversary-tradecraft-with-image-load-event-logging-and-eql-8de93338c16
+author: Antonlovesdnb
+date: 2020-02-19
+modified: 2023-03-29
+tags:
+- attack.execution
+- attack.t1204.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\excel.exe'
+    - '\mspub.exe'
+    - '\outlook.exe'
+    - '\onenote.exe'
+    - '\onenoteim.exe'         # Just in case
+    - '\powerpnt.exe'
+    - '\winword.exe'
+    ImageLoaded|contains: '\clr.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where a Common Language Runtime (CLR) DLL is loaded by Microsoft Office applications, such as Excel, Word, and PowerPoint. The rule leverages image load event logs to track whether specific Office executables are invoking a CLR DLL, which is uncommon behavior and often an indicator of malicious activity. By monitoring for these image loading events, the rule enables analysts to detect potential misuse of Office applications in the context of executing arbitrary code, which could signify a pivot to a more complex attack. The primary technical data sources involved in this detection are the event logs related to image loading activities on Windows systems.
+  ### Investigation Steps
+  - Examine the image load event logs from the EDR solution to identify the specific user and system context in which the CLR DLL was loaded by the Office application.
+  - Utilize the SIEM to correlate the timing of the event with any other unusual activity, such as failed login attempts, suspicious network traffic, or other anomalies that might indicate a broader attack.
+  - Review the command-line parameters and any associated processes that were active at the time of the CLR DLL loading using the EDR to determine if there are additional indicators of compromise.
+  - Check for any known malicious signatures or behaviors associated with the loaded CLR DLL using the AV or threat intelligence platforms to assess the risk and potential impact.

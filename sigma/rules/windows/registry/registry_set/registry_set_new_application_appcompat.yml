@@ -1,0 +1,35 @@
+title: New Application in AppCompat
+id: 60936b49-fca0-4f32-993d-7415edcf9a5d
+status: test
+description: A General detection for a new application in AppCompat. This indicates
+  an application executing for the first time on an endpoint.
+references:
+- https://github.com/OTRF/detection-hackathon-apt29/issues/1
+- https://github.com/OTRF/ThreatHunter-Playbook/blob/2d4257f630f4c9770f78d0c1df059f891ffc3fec/docs/evals/apt29/detections/1.A.1_DFD6A782-9BDB-4550-AB6B-525E825B095E.md
+author: Roberto Rodriguez (Cyb3rWard0g), OTR (Open Threat Research)
+date: 2020-05-02
+modified: 2023-08-17
+tags:
+- attack.execution
+- attack.t1204.002
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject|contains: '\AppCompatFlags\Compatibility Assistant\Store\'
+  condition: selection
+falsepositives:
+- This rule is to explore new applications on an endpoint. False positives depends
+  on the organization.
+- Newly setup system.
+- Legitimate installation of new application.
+level: informational
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect when a new application is executed for the first time on a Windows endpoint by monitoring registry writes related to the AppCompat flags. Specifically, it looks for entries in the registry path `\AppCompatFlags\Compatibility Assistant\Store\`, which indicates the presence of a newly invoked application. When a user runs a program that the OS has not previously seen, the system logs this event. By analyzing registry activity, security teams can identify potential risks associated with unforeseen applications that may represent unauthorized software or malware, allowing for proactive incident response.
+  ### Investigation Steps
+  - Review process creation logs in your EDR tool to identify any associated events and details of the newly executed application.
+  - Check the command line parameters of the suspicious application to gather context on what actions it is attempting to perform.
+  - Correlate the timestamp of this detection with other relevant logs from SIEM to determine if any unusual network traffic was observed post-execution.
+  - Query cloud logs from GCP, AWS, or Azure for any associated user activities or deployments that may coincide with the timing of the new application execution.

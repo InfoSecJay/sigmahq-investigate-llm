@@ -1,0 +1,35 @@
+title: Files Added To An Archive Using Rar.EXE
+id: 6f3e2987-db24-4c78-a860-b4f4095a7095
+status: test
+description: Detects usage of "rar" to add files to an archive for potential compression.
+  An adversary may compress data (e.g. sensitive documents) that is collected prior
+  to exfiltration in order to make it portable and minimize the amount of data sent
+  over the network.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1560.001/T1560.001.md
+- https://eqllib.readthedocs.io/en/latest/analytics/1ec33c93-3d0b-4a28-8014-dbdaae5c60ae.html
+author: Timur Zinniatullin, E.M. Anhaus, oscd.community
+date: 2019-10-21
+modified: 2023-02-05
+tags:
+- attack.collection
+- attack.t1560.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\rar.exe'
+    CommandLine|contains: ' a '
+  condition: selection
+falsepositives:
+- Highly likely if rar is a default archiver in the monitored environment.
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the use of "rar.exe" to add files to an archive, a common tactic used by adversaries during data exfiltration efforts. The rule specifically targets process creation events where the command-line parameters contain the string " a ", indicating that files are being added to an archive, potentially containing sensitive data. This activity is captured through Windows process creation logs, providing insight into any potentially malicious operations that may be occurring within the environment. By monitoring for this behavior, it can help identify instances where an adversary may be preparing data for exfiltration by compressing it into an archive, a technique that minimizes data size and facilitates stealthy data transfer.
+  ### Investigation Steps
+  - Review recent process creation logs in your EDR for instances of `rar.exe` being executed. Look specifically at the command-line parameters to determine if files are being added. 
+  - Cross-reference file names and paths involved in the archive operation with sensitive data policies to identify any potential compromise of confidential information.
+  - Check network traffic logs for outbound connections following the archive creation, as these may indicate attempts to exfiltrate the newly created compressed files.
+  - Consult AV logs and proxy logs to assess if any alerts were generated during or following the processes involving `rar.exe`, which could provide additional context on the legitimacy of the activity.

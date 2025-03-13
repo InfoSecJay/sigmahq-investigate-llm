@@ -1,0 +1,61 @@
+title: Regsvr32 DLL Execution With Suspicious File Extension
+id: 089fc3d2-71e8-4763-a8a5-c97fbb0a403e
+related:
+- id: 8e2b24c9-4add-46a0-b4bb-0057b4e6187d
+  type: obsolete
+status: test
+description: Detects the execution of REGSVR32.exe with DLL files masquerading as
+  other files
+references:
+- https://thedfirreport.com/2021/11/29/continuing-the-bazar-ransomware-story/
+- https://blog.talosintelligence.com/2021/10/threat-hunting-in-large-datasets-by.html
+- https://guides.lib.umich.edu/c.php?g=282942&p=1885348
+author: Florian Roth (Nextron Systems), frack113
+date: 2021-11-29
+modified: 2023-05-24
+tags:
+- attack.defense-evasion
+- attack.t1218.010
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\regsvr32.exe'
+  - OriginalFileName: 'REGSVR32.EXE'
+  selection_cli:
+    CommandLine|endswith:
+            # Add more image extensions
+            # https://twitter.com/Max_Mal_/status/1542461200797163522/photo/3
+    - '.bin'
+    - '.bmp'
+    - '.cr2'
+    - '.dat'
+    - '.eps'
+    - '.gif'
+    - '.ico'
+    - '.jpeg'
+    - '.jpg'
+    - '.nef'
+    - '.orf'
+    - '.png'
+    - '.raw'
+    - '.sr2'
+    - '.temp'
+    - '.tif'
+    - '.tiff'
+    - '.tmp'
+    - '.rtf'
+    - '.txt'
+  condition: all of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The detection rule titled "Regsvr32 DLL Execution With Suspicious File Extension" focuses on identifying potentially malicious activity involving the Windows command-line utility `REGSVR32.EXE`. This utility is commonly used to register and unregister DLLs (Dynamic Link Libraries) on Windows systems. However, attackers may exploit this tool to execute malicious DLLs disguised with misleading file extensions, making it crucial to monitor it closely. The rule specifically looks for instances where `REGSVR32.EXE` is invoked with command-line parameters that end in non-standard file extensions typically associated with benign files (e.g., `.txt`, `.jpg`, etc.). Relevant data sources for this detection include process creation logs, which record command execution details and the respective parameters used, alongside information like the original file name to ensure the legitimate use of the tool.
+  ### Investigation Steps
+  - Check the process creation logs in the EDR system for instances of `REGSVR32.EXE`, particularly focusing on the command-line arguments that contain suspicious file extensions.
+  - Review the network traffic logs from the NDR to identify any outbound connections initiated from the host running `REGSVR32.EXE` around the time of the alert.
+  - Examine any associated AV logs for detections related to the suspicious files being executed, as they may reveal additional context on the nature of the files.
+  - Cross-reference user activity from Proxy logs to identify any unusual downloads or execution of scripts that could have led to the registration of potentially malicious DLLs.

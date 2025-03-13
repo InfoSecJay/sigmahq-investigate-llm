@@ -1,0 +1,29 @@
+title: Process Launched Without Image Name
+id: f208d6d8-d83a-4c2c-960d-877c37da84e5
+status: experimental
+description: Detect the use of processes with no name (".exe"), which can be used
+  to evade Image-based detections.
+references:
+- https://www.huntress.com/blog/fake-browser-updates-lead-to-boinc-volunteer-computing-software
+author: Matt Anderson (Huntress)
+date: 2024-07-23
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\.exe'
+  condition: selection
+falsepositives:
+- Rare legitimate software.
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule identifies processes that are launched without a specified image name, specifically focusing on executables ending with the ".exe" extension. Such processes can be indicative of evasion techniques used by malware to bypass image-based detection mechanisms. By analyzing process creation logs from Windows systems, the rule can detect when a process is initiated without a clear associated filename, signaling a possible attempt to evade security measures. This type of detection is crucial for maintaining vigilance against sophisticated threats that utilize stealth tactics to operate undetected within an environment.
+  ### Investigation Steps
+  - Review process creation logs in the EDR to identify the specific instance where the unnamed process was initiated. Look for correlations with known malicious behavior or user activity patterns.
+  - Check for any related network activity using the NDR or firewall logs to ascertain if the unnamed process is communicating with external IP addresses or domains, which could indicate a potential compromise.
+  - Investigate system modifications by querying the AV solution for any flagged activities or files associated with the involved process to determine if any known threats were detected or quarantined.
+  - Search the SIEM for any alerts from other security tools that occurred around the same time as the event, which could provide context or additional indicators of the activity's legitimacy or malicious intent.

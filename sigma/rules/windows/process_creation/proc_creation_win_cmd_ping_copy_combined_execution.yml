@@ -1,0 +1,41 @@
+title: Potentially Suspicious Ping/Copy Command Combination
+id: ded2b07a-d12f-4284-9b76-653e37b6c8b0
+status: test
+description: |
+  Detects uncommon and potentially suspicious one-liner command containing both "ping" and "copy" at the same time, which is usually used by malware.
+references:
+- Internal Research
+author: X__Junior (Nextron Systems)
+date: 2023-07-18
+modified: 2024-03-06
+tags:
+- attack.defense-evasion
+- attack.t1070.004
+logsource:
+  category: process_creation
+  product: windows
+detection:
+    # Note: In the case of sysmon and similar logging utilities, see this discussion https://github.com/SigmaHQ/sigma/discussions/4277
+  selection_cmd:
+  - Image|endswith: '\cmd.exe'
+  - OriginalFileName: 'Cmd.Exe'
+  selection_action:
+    CommandLine|contains|all:
+    - 'ping'         # Covers "ping" and "ping.exe"
+    - 'copy '
+  selection_cli_1:
+    CommandLine|contains|windash: ' -n '     # Count
+  selection_cli_2:
+    CommandLine|contains|windash: ' -y '
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially suspicious command-line executions where a single one-liner command includes both 'ping' and 'copy'. Such combinations are atypical and may indicate malicious behavior, as they can be leveraged by certain malware to exfiltrate data or perform reconnaissance. The rule monitors process creation logs specifically for command-line instances originating from `cmd.exe`. It focuses on commands that contain 'ping'—typically used for network diagnostics—and 'copy', which may be used for duplicating files. The rule further narrows its detection to commands that utilize specific parameters (like `-n` and `-y`) within the `ping` command, thereby filtering out benign use cases.
+  ### Investigation Steps
+  - Review recent **process creation logs** in the EDR for instances of `cmd.exe` that executed commands containing both 'ping' and 'copy'.
+  - Analyze the **command-line parameters** to determine if they align with typical administrative tasks or indicate potential malicious intent.
+  - Check for any **corresponding network activity** in NDR and firewall logs during the time of the command execution to understand the context and potential data exfiltration attempts.
+  - Query **file access logs** from AV or endpoint solutions to identify any files that were interacted with around the time of the suspicious command execution.

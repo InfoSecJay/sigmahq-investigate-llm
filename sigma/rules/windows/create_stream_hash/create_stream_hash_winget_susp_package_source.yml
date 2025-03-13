@@ -1,0 +1,43 @@
+title: Potential Suspicious Winget Package Installation
+id: a3f5c081-e75b-43a0-9f5b-51f26fe5dba2
+status: test
+description: Detects potential suspicious winget package installation from a suspicious
+  source.
+references:
+- https://github.com/nasbench/Misc-Research/tree/b9596e8109dcdb16ec353f316678927e507a5b8d/LOLBINs/Winget
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-04-18
+tags:
+- attack.defense-evasion
+- attack.persistence
+logsource:
+  product: windows
+  category: create_stream_hash
+detection:
+  selection:
+    Contents|startswith: '[ZoneTransfer]  ZoneId=3'
+    Contents|contains:
+            # Note: Add any untrusted sources that are custom to your env
+    - '://1'
+    - '://2'
+    - '://3'
+    - '://4'
+    - '://5'
+    - '://6'
+    - '://7'
+    - '://8'
+    - '://9'
+    TargetFilename|endswith: ':Zone.Identifier'
+    TargetFilename|contains: '\AppData\Local\Temp\WinGet\'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious installations of packages using the Windows Package Manager, Winget, from potentially untrusted sources. It specifically looks for files produced by Zone Identifier, which indicates that the file originated from the internet and may pose a security risk. The rule monitors for newly created files that have specific indicators of compromise, such as contents starting with `[ZoneTransfer] ZoneId=3`, and located in the temporary directory for Winget installations. Detection relies on analyzing `create_stream_hash` logs from Windows, which capture the creation of files and their associated metadata, helping to identify potentially unwanted or malicious activity.
+  ### Investigation Steps
+  - Use EDR tools to query the process creation logs related to `winget` executions and identify any processes that were spawned from suspicious directories.
+  - Review the contents of the detected Zone Identifier files to obtain information on the originating URLs and verify their trustworthiness against known malicious sites.
+  - Examine events in the firewall logs to identify any outbound connections to the suspected external sources from which packages were downloaded.
+  - Check the application and system event logs for additional context about the suspicious package installation, including timestamps and associated user accounts.

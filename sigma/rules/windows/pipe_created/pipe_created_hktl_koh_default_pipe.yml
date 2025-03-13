@@ -1,0 +1,40 @@
+title: HackTool - Koh Default Named Pipe
+id: 0adc67e0-a68f-4ffd-9c43-28905aad5d6a
+status: test
+description: Detects creation of default named pipes used by the Koh tool
+references:
+- https://github.com/GhostPack/Koh/blob/0283d9f3f91cf74732ad377821986cfcb088e20a/Clients/BOF/KohClient.c#L12
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-08
+modified: 2023-08-07
+tags:
+- attack.privilege-escalation
+- attack.credential-access
+- attack.t1528
+- attack.t1134.001
+logsource:
+  product: windows
+  category: pipe_created
+  definition: 'Note that you have to configure logging for Named Pipe Events in Sysmon
+    config (Event ID 17 and Event ID 18). The basic configuration is in popular sysmon
+    configuration (https://github.com/SwiftOnSecurity/sysmon-config), but it is worth
+    verifying. You can also use other repo, e.g. https://github.com/Neo23x0/sysmon-config,
+    https://github.com/olafhartong/sysmon-modular. How to test detection? You can
+    check powershell script from this site https://svch0st.medium.com/guide-to-named-pipes-and-hunting-for-cobalt-strike-pipes-dc46b2c5f575'
+detection:
+  selection:
+    PipeName|contains:
+    - '\imposecost'
+    - '\imposingcost'
+  condition: selection
+falsepositives:
+- Unlikely
+level: critical
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the creation of default named pipes associated with the Koh tool, a legitimate but potentially malicious tool that may be used for privilege escalation and credential access. The rule specifically looks for named pipes with the identifiers `\imposecost` and `\imposingcost`, which are indicative of operations performed by the Koh tool. Named pipes are a method of inter-process communication in Windows, and their creation can sometimes signal malicious activity if used incorrectly or by unauthorized applications. The technical data source for this detection is derived from Sysmon logs where named pipe events have been configured (Event ID 17 and Event ID 18). Implementing Sysmon correctly is essential for this detection to function, as it captures detailed information about pipe creation events.
+  ### Investigation Steps
+  - Examine Sysmon logs for Event IDs 17 and 18 to identify instances where named pipes with the specified identifiers were created. Cross-reference these findings with legitimate application logs to validate their context.
+  - Utilize EDR tools to analyze the processes tied to the detected named pipe events. Look for any suspicious parent processes or unusual command-line parameters indicating malicious behavior.
+  - Check network traffic logs and proxy logs for any connections initiated by the service or application using the named pipes. This can help establish if data is being exfiltrated or if there are other malicious activities occurring.
+  - Review user account activities associated with the relevant processes. Investigate if there are any unauthorized attempts to access sensitive resources or services within the network.

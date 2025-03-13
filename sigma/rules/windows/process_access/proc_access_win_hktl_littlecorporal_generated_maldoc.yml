@@ -1,0 +1,35 @@
+title: HackTool - LittleCorporal Generated Maldoc Injection
+id: 7bdde3bf-2a42-4c39-aa31-a92b3e17afac
+status: test
+description: Detects the process injection of a LittleCorporal generated Maldoc.
+references:
+- https://github.com/connormcgarr/LittleCorporal
+author: Christian Burkard (Nextron Systems)
+date: 2021-08-09
+modified: 2023-11-28
+tags:
+- attack.execution
+- attack.t1204.002
+- attack.t1055.003
+logsource:
+  category: process_access
+  product: windows
+detection:
+  selection:
+    SourceImage|endswith: '\winword.exe'
+    CallTrace|contains|all:
+    - ':\Windows\Microsoft.NET\Framework64\v2.'
+    - 'UNKNOWN'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential instances of process injection associated with the "LittleCorporal" tool, which is known for generating malicious documents (maldocs) that exploit Microsoft Word. The rule specifically monitors the behavior of the Word application (`winword.exe`) for signs of process injection, particularly focusing on call traces that indicate interaction with .NET Framework resources, such as `:\Windows\Microsoft.NET\Framework64\v2.`, alongside unusual or "UNKNOWN" behavior. By analyzing process access logs, this rule helps uncover attempts to inject or manipulate processes, which is often indicative of sophisticated malware tactics aimed at executing unauthorized code within trusted applications.
+  The data sources involved in this detection include Windows process access logs that record details about applications accessing other processes or system resources. Incident responders can use this information to investigate suspicious activity linked to document files or word processing behavior, revealing potential compromise or exploitation attempts.
+  ### Investigation Steps
+  - Utilize EDR tools to retrieve and analyze process execution logs associated with `winword.exe` to identify any anomalous behavior or unexpected process creations.
+  - Check call trace logs for instances containing both `.NET` framework references and 'UNKNOWN' indicators to pinpoint potential injection attempts related to malicious activities.
+  - Cross-reference the timestamps of the detected alerts with user activity logs to establish whether there were any suspicious document interactions or downloads around the same time.
+  - Analyze network traffic through your NDR solution for any unusual outbound connections that may correlate with the detected process injection, particularly focusing on connections initiated by `winword.exe`.

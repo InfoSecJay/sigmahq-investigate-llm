@@ -1,0 +1,33 @@
+title: Suspicious SysAidServer Child
+id: 60bfeac3-0d35-4302-8efb-1dd16f715bc6
+status: test
+description: Detects suspicious child processes of SysAidServer (as seen in MERCURY
+  threat actor intrusions)
+references:
+- https://www.microsoft.com/security/blog/2022/08/25/mercury-leveraging-log4j-2-vulnerabilities-in-unpatched-systems-to-target-israeli-organizations/
+author: Florian Roth (Nextron Systems)
+date: 2022-08-26
+tags:
+- attack.lateral-movement
+- attack.t1210
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith:
+    - '\java.exe'
+    - '\javaw.exe'
+    ParentCommandLine|contains: 'SysAidServer'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The detection rule "Suspicious SysAidServer Child" aims to identify potential malicious activity related to the SysAidServer process, specifically when it spawns child processes in a Windows environment. The rule focuses on detecting instances where the parent process is either `java.exe` or `javaw.exe`, and the parent command line includes the phrase 'SysAidServer'. These criteria are significant as they align with documented tactics employed by the MERCURY threat actor group, which is known for exploiting vulnerabilities and targeting specific organizations. The technical data sources leveraged by this rule include process creation logs that provide insight into the relationships between parent and child processes, allowing analysts to identify abnormal process behavior.
+  ### Investigation Steps
+  - Utilize EDR tools to investigate the detected parent process `SysAidServer` and its child processes for any anomalous behavior or indicators of compromise.
+  - Examine the command-line arguments of the `java.exe` or `javaw.exe` processes in the process creation logs to determine if any suspicious parameters were used that could indicate malicious intent.
+  - Query network traffic logs to identify any outbound connections initiated by `SysAidServer`, which may help reveal attempts to exfiltrate data or communicate with command-and-control servers.
+  - Review AV logs and alerts related to `SysAidServer` for any detections or documented incidents that could provide further context about the potential threat.

@@ -1,0 +1,66 @@
+title: LSASS Access From Non System Account
+id: 962fe167-e48d-4fd6-9974-11e5b9a5d6d1
+status: test
+description: Detects potential mimikatz-like tools accessing LSASS from non system
+  account
+references:
+- https://threathunterplaybook.com/hunts/windows/170105-LSASSMemoryReadAccess/notebook.html
+author: Roberto Rodriguez @Cyb3rWard0g
+date: 2019-06-20
+modified: 2023-12-11
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID:
+    - 4663
+    - 4656
+    AccessMask:
+    - '0x100000'
+    - '0x1010'            # car.2019-04-004
+    - '0x1400'
+    - '0x1410'            # car.2019-04-004
+    - '0x1418'            # car.2019-04-004
+    - '0x1438'            # car.2019-04-004
+    - '0x143a'            # car.2019-04-004
+    - '0x1f0fff'
+    - '0x1f1fff'
+    - '0x1f2fff'
+    - '0x1f3fff'
+    - '0x40'
+    - '143a'            # car.2019-04-004
+    - '1f0fff'
+    - '1f1fff'
+    - '1f2fff'
+    - '1f3fff'
+            # - '0x1000'  # minimum access requirements to query basic info from service
+    ObjectType: 'Process'
+    ObjectName|endswith: '\lsass.exe'
+  filter_main_service_account:
+    SubjectUserName|endswith: '$'
+  filter_main_generic:
+    ProcessName|contains:
+            # Legitimate AV and EDR solutions
+    - ':\Program Files\'
+    - ':\Program Files (x86)\'
+  filter_main_wmiprvse:
+    ProcessName: 'C:\Windows\System32\wbem\WmiPrvSE.exe'
+    AccessMask: '0x1410'
+  filter_optional_steam:
+    ProcessName|contains: '\SteamLibrary\steamapps\'
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies suspicious access attempts to the Local Security Authority Subsystem Service (LSASS) process by non-system accounts, which could indicate the use of credential harvesting tools such as Mimikatz. Specifically, it monitors Windows Security logs for Event IDs 4663 and 4656, which record attempts to access sensitive objects. The rule checks for specific access masks that correspond to the ability to read protected memory. This behavior is particularly concerning when initiated by user accounts that do not have the proper privileges, as legitimate Windows services typically access LSASS under system accounts. Recognizable attributes include the target object being LSASS and the access type requested.
+  ### Investigation Steps
+  - Utilize EDR tools to gather detailed logs of the user activity corresponding to the alert, focusing on the process creation events leading up to the LSASS access attempt.
+  - Investigate the account used to trigger the alert to determine if it is a legitimate user or a potentially compromised account; check for unusual login times and locations.
+  - Review any security alerts or events recorded around the same timeframe in the SIEM, particularly those related to unauthorized access or privilege escalations. 
+  - Check firewall and proxy logs for any outbound connections initiated by the suspicious process, which could indicate data exfiltration efforts or command-and-control communication.

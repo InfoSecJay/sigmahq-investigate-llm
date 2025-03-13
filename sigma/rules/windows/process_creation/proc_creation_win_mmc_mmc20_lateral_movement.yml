@@ -1,0 +1,35 @@
+title: MMC20 Lateral Movement
+id: f1f3bf22-deb2-418d-8cce-e1a45e46a5bd
+status: test
+description: Detects MMC20.Application Lateral Movement; specifically looks for the
+  spawning of the parent MMC.exe with a command line of "-Embedding" as a child of
+  svchost.exe
+references:
+- https://enigma0x3.net/2017/01/05/lateral-movement-using-the-mmc20-application-com-object/
+- https://drive.google.com/file/d/1lKya3_mLnR3UQuCoiYruO3qgu052_iS_/view?usp=sharing
+author: '@2xxeformyshirt (Security Risk Advisors) - rule; Teymur Kheirkhabarov (idea)'
+date: 2020-03-04
+modified: 2021-11-27
+tags:
+- attack.execution
+- attack.t1021.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\svchost.exe'
+    Image|endswith: '\mmc.exe'
+    CommandLine|contains: '-Embedding'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "MMC20 Lateral Movement" is designed to detect potentially malicious lateral movement within a Windows environment using the Microsoft Management Console (MMC). Specifically, it monitors for the process `mmc.exe`, which is a legitimate application, being launched with the command line parameter `-Embedding` as a child process of `svchost.exe`. This behavior can indicate unauthorized use of the MMC to interact with other systems in the network, which is a common technique employed by attackers to move laterally across a network. The technical data sources involved in this detection are primarily process creation logs that capture both the parent and child process relationships, as well as their associated command-line parameters.
+  ### Investigation Steps
+  - Check the endpoint using EDR tools to analyze the process tree around the detected instance of `mmc.exe` to identify any other suspicious or unauthorized processes that may have been running concurrently.
+  - Review command-line arguments used in the execution of `mmc.exe` and validate whether the `-Embedding` parameter aligns with legitimate administrative use cases within your organization.
+  - Query SIEM platforms for historical activity involving `mmc.exe` and `svchost.exe` to identify any similar behaviors that may indicate a pattern of lateral movement.
+  - Examine network logs and proxy data to determine if there were any unusual outbound connections initiated by devices engaging in the detected behavior, which might suggest communication with unauthorized hosts.

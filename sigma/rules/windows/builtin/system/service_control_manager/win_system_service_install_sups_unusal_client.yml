@@ -1,0 +1,36 @@
+title: Service Installed By Unusual Client - System
+id: 71c276aa-49cd-43d2-b920-2dcd3e6962d5
+related:
+- id: c4e92a97-a9ff-4392-9d2d-7a4c642768ca
+  type: similar
+status: test
+description: Detects a service installed by a client which has PID 0 or whose parent
+  has PID 0
+references:
+- https://www.elastic.co/guide/en/security/current/windows-service-installed-via-an-unusual-client.html
+author: Tim Rauch (Nextron Systems), Elastic (idea)
+date: 2022-09-15
+modified: 2023-01-04
+tags:
+- attack.privilege-escalation
+- attack.t1543
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7045
+    ProcessId: 0
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the installation of a Windows service by a client process with Process ID (PID) 0 or by a process whose parent has PID 0. In Windows, a parent process with PID 0 is typically associated with system-level operations, which can indicate potentially malicious activity, such as privilege escalation or unauthorized service modifications. The rule leverages logs from the Windows Service Control Manager (SCM), specifically monitoring for Event ID 7045, which captures service installation events. By focusing on unusual client processes, this rule aids in identifying potentially abnormal behavior that requires further investigation.
+  ### Investigation Steps
+  - Utilize EDR tools to investigate the specific service installed by PID 0, checking for its name, attributes, and associated file path to determine its legitimacy.
+  - Review recent logs from the Windows Event Viewer to identify any prior suspicious activities by the services or processes linked to the installation event.
+  - Examine network connections associated with the service using NDR tools to detect any unusual communications that may suggest malicious behavior or data exfiltration.
+  - Query cloud platform logs (if applicable) to trace any relevant API calls or changes to service configurations that align with the suspicious activity identified in the Windows logs.

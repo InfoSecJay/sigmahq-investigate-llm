@@ -1,0 +1,54 @@
+title: Session Manager Autorun Keys Modification
+id: 046218bd-e0d8-4113-a3c3-895a12b2b298
+related:
+- id: 17f878b8-9968-4578-b814-c4217fc5768c
+  type: obsolete
+status: test
+description: Detects modification of autostart extensibility point (ASEP) in registry.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1547.001/T1547.001.md
+- https://learn.microsoft.com/en-us/sysinternals/downloads/autoruns
+- https://gist.github.com/GlebSukhodolskiy/0fc5fa5f482903064b448890db1eaf9d     # a list with registry keys
+author: Victor Sergeev, Daniil Yugoslavskiy, Gleb Sukhodolskiy, Timur Zinniatullin,
+  oscd.community, Tim Shelton, frack113 (split)
+date: 2019-10-25
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.t1547.001
+- attack.t1546.009
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  session_manager_base:
+    TargetObject|contains: '\System\CurrentControlSet\Control\Session Manager'
+  session_manager:
+    TargetObject|contains:
+    - '\SetupExecute'
+    - '\S0InitialCommand'
+    - '\KnownDlls'
+    - '\Execute'
+    - '\BootExecute'
+    - '\AppCertDlls'
+  filter:
+    Details: '(Empty)'
+  condition: session_manager_base and session_manager and not filter
+fields:
+- SecurityID
+- ObjectName
+- OldValueType
+- NewValueType
+falsepositives:
+- Legitimate software automatically (mostly, during installation) sets up autorun
+  keys for legitimate reason
+- Legitimate administrator sets up autorun keys for legitimate reason
+level: medium
+notes: |
+  ### Technical Context
+  The "Session Manager Autorun Keys Modification" Sigma rule detects unauthorized modifications to specific registry keys that control autorun settings in Windows operating systems. These keys, found under `\System\CurrentControlSet\Control\Session Manager`, are critical for managing system startup behaviors and autostart applications. By monitoring changes to these keys, the rule helps identify potential persistence mechanisms employed by malicious actors to ensure their malware or unauthorized applications execute during system startup. The underlying detection mechanism analyzes registry set logs, particularly focusing on the presence of specific key values such as `SetupExecute`, `BootExecute`, and `AppCertDlls`, while filtering out legitimate modifications that are typically initiated by software installations or administrative tasks.
+  ### Investigation Steps
+  - Review relevant **EDR logs** to identify the process that modified the registry keys, checking for unusual or unauthorized applications involved in the change.
+  - Cross-reference the **SecurityID** from the detection with user account activity logs to determine if any unauthorized accounts were used for registry modifications.
+  - Investigate **Process Creation** events around the time of the registry change to discern if any anomalous processes or execution paths were initiated.
+  - Examine **Windows Event Logs** for related events that could indicate other suspicious activities tied to the same timeframe or user, leading to a broader assessment of potential compromises.

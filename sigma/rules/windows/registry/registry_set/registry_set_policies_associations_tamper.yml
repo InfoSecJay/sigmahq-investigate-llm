@@ -1,0 +1,47 @@
+title: Potential Attachment Manager Settings Associations Tamper
+id: a9b6c011-ab69-4ddb-bc0a-c4f21c80ec47
+status: test
+description: Detects tampering with attachment manager settings policies associations
+  to lower the default file type risks (See reference for more information)
+references:
+- https://support.microsoft.com/en-us/topic/information-about-the-attachment-manager-in-microsoft-windows-c48a4dcd-8de5-2af5-ee9b-cd795ae42738
+- https://www.virustotal.com/gui/file/2bcd5702a7565952c44075ac6fb946c7780526640d1264f692c7664c02c68465
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-01
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection_main:
+    TargetObject|contains: '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Associations\'
+  selection_value_default_file_type_rsik:
+    TargetObject|endswith: '\DefaultFileTypeRisk'
+    Details: 'DWORD (0x00006152)'
+  selection_value_low_risk_filetypes:
+    TargetObject|endswith: '\LowRiskFileTypes'
+    Details|contains:     # Add more as you see fit
+    - '.zip;'
+    - '.rar;'
+    - '.exe;'
+    - '.bat;'
+    - '.com;'
+    - '.cmd;'
+    - '.reg;'
+    - '.msi;'
+    - '.htm;'
+    - '.html;'
+  condition: selection_main and 1 of selection_value_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule focuses on detecting unauthorized modifications to the Windows Attachment Manager settings, specifically tailored to manage file attachment types that pose a security risk. The rule inspects the Windows Registry for changes made to keys related to policy associations that define default risk levels for various file types. By looking for specific modifications under the `\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Associations\` path, it identifies attempts to either lower the default file type risk (notably with changes to `DefaultFileTypeRisk`) or add low-risk file types (such as executables and script files) that could increase the attack surface. The primary log source is registry set logs, which capture changes in the system's configuration regarding file type handling.
+  ### Investigation Steps
+  - Check EDR logs for devices that made recent changes to the Windows Registry, focusing on the keys specified in the rule to identify the source of the modification.
+  - Verify the context of the changes by reviewing user activity logs in the SIEM, including logins and processes executed around the time of the Registry modification.
+  - Investigate antivirus logs for any alerts related to the file types listed as low-risk to assess if any malicious activity correlates with the detected tampering.
+  - Utilize cloud logs (if applicable) to see if similar patterns of changes have been attempted on other endpoints or virtual machines within the enterprise environment.

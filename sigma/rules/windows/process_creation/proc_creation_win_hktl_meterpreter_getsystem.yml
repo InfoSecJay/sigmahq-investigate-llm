@@ -1,0 +1,58 @@
+title: Potential Meterpreter/CobaltStrike Activity
+id: 15619216-e993-4721-b590-4c520615a67d
+status: test
+description: Detects the use of getsystem Meterpreter/Cobalt Strike command by detecting
+  a specific service starting
+references:
+- https://speakerdeck.com/heirhabarov/hunting-for-privilege-escalation-in-windows-environment
+- https://blog.cobaltstrike.com/2014/04/02/what-happens-when-i-type-getsystem/
+author: Teymur Kheirkhabarov, Ecco, Florian Roth
+date: 2019-10-26
+modified: 2023-02-05
+tags:
+- attack.privilege-escalation
+- attack.t1134.001
+- attack.t1134.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+    ParentImage|endswith: '\services.exe'
+  selection_technique_1:
+        # Examples:
+        #   Meterpreter  getsystem technique 1: cmd.exe /c echo 559891bb017 > \\.\pipe\5e120a
+        #   CobaltStrike getsystem technique 1b (expanded env var): %COMSPEC% /c echo 559891bb017 > \\.\pipe\5e120a
+        #   CobaltStrike getsystem technique 1: %COMSPEC% /c echo 559891bb017 > \\.\pipe\5e120a
+    CommandLine|contains|all:
+    - '/c'
+    - 'echo'
+    - '\pipe\'
+    CommandLine|contains:
+    - 'cmd'
+    - '%COMSPEC%'
+  selection_technique_2:
+        # meterpreter getsystem technique 2: rundll32.exe C:\Users\test\AppData\Local\Temp\tmexsn.dll,a /p:tmexsn
+    CommandLine|contains|all:
+    - 'rundll32'
+    - '.dll,a'
+    - '/p:'
+  filter_defender:
+    CommandLine|contains: 'MpCmdRun'
+  condition: selection_img and 1 of selection_technique_* and not 1 of filter_*
+fields:
+- ComputerName
+- User
+- CommandLine
+falsepositives:
+- Commandlines containing components like cmd accidentally
+- Jobs and services started with cmd
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential Meterpreter or Cobalt Strike activity on Windows systems by monitoring for specific command-line patterns related to privilege escalation attempts. The rule looks for processes initiated by the Windows services manager (`services.exe`) that contain distinctive command-line parameters typically associated with the execution of malicious payloads. In particular, the rule focuses on commands that utilize `cmd.exe` or `rundll32.exe` to escalate privileges through techniques such as writing to named pipes or executing DLLs from temporary locations. By analyzing process creation logs, it effectively captures indicators of compromise associated with sophisticated threat actors leveraging these tools.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR to identify any instances of `services.exe` launching commands matching the detection criteria of the rule.
+  - Analyze the specific command lines associated with the flagged processes to confirm whether they show signs of Meterpreter or Cobalt Strike activity, particularly looking for elements such as `\pipe\` or references to `rundll32`.
+  - Check the user and computer context of the detected activity to ascertain if the command was executed within an expected environment or if it appears anomalous.
+  - Cross-reference logs with your AV and NGFW tools to identify any additional related alerts or network connections that may indicate further malicious behavior or persistence mechanisms.

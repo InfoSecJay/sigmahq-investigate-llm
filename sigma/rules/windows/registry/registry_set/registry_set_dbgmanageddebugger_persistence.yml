@@ -1,0 +1,37 @@
+title: Potential Registry Persistence Attempt Via DbgManagedDebugger
+id: 9827ae57-3802-418f-994b-d5ecf5cd974b
+status: test
+description: Detects the addition of the "Debugger" value to the "DbgManagedDebugger"
+  key in order to achieve persistence. Which will get invoked when an application
+  crashes
+references:
+- https://www.hexacorn.com/blog/2013/09/19/beyond-good-ol-run-key-part-4/
+- https://github.com/last-byte/PersistenceSniper
+author: frack113
+date: 2022-08-07
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.t1574
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: '\Microsoft\.NETFramework\DbgManagedDebugger'
+  filter:
+    Details: '"C:\Windows\system32\vsjitdebugger.exe" PID %d APPDOM %d EXTEXT "%s"
+      EVTHDL %d'
+  condition: selection and not filter
+falsepositives:
+- Legitimate use of the key to setup a debugger. Which is often the case on developers
+  machines
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies attempts to create persistence mechanisms via the Windows Registry by monitoring for changes to the "DbgManagedDebugger" key. Specifically, it looks for the addition of the "Debugger" value within the associated Registry path, which primarily occurs when processes are configured to utilize the Microsoft Visual Studio Just-In-Time (JIT) Debugger (`vsjitdebugger.exe`). This behavior can indicate a potential malicious intent since it ensures that any application crashes will trigger the debugger, potentially allowing an attacker to manipulate or analyze the application in a controlled manner. The rule leverages data from registry set logs, focusing particularly on modifications to the relevant key within the Windows operating system environment.
+  ### Investigation Steps
+  - Confirm the context of the Registry change by reviewing the associated process creation logs from EDR to determine if a legitimate application was involved.
+  - Utilize the AV logs to check for any known malicious signatures or behaviors linked to the modified applications or the `vsjitdebugger.exe` executable.
+  - Investigate the use of the Debugger by examining execution history in the logs to identify if it correlates with unexpected application crashes or serves atypical processes.
+  - Cross-reference with Proxy logs to analyze any network communications initiated by relevant applications post-modification, which could provide insights into potential malicious activity.

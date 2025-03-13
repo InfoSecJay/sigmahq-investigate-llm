@@ -1,0 +1,40 @@
+title: PowerShell SAM Copy
+id: 1af57a4b-460a-4738-9034-db68b880c665
+status: test
+description: Detects suspicious PowerShell scripts accessing SAM hives
+references:
+- https://twitter.com/splinter_code/status/1420546784250769408
+author: Florian Roth (Nextron Systems)
+date: 2021-07-29
+modified: 2023-01-06
+tags:
+- attack.credential-access
+- attack.t1003.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_1:
+    CommandLine|contains|all:
+    - '\HarddiskVolumeShadowCopy'
+    - 'System32\config\sam'
+  selection_2:
+    CommandLine|contains:
+    - 'Copy-Item'
+    - 'cp $_.'
+    - 'cpi $_.'
+    - 'copy $_.'
+    - '.File]::Copy('
+  condition: all of selection*
+falsepositives:
+- Some rare backup scenarios
+- PowerShell scripts fixing HiveNightmare / SeriousSAM ACLs
+level: high
+notes: |
+  ### Technical Context
+  The "PowerShell SAM Copy" detection rule identifies suspicious activity related to the Windows Security Account Manager (SAM) hives, which contain sensitive user credentials. This rule looks for PowerShell command line executions attempting to access the SAM hive with specific indicators, such as paths related to volume shadow copies and the use of commands typically associated with copying files. The key data sources for this detection include process creation logs, which record command line inputs, along with signs of the use of PowerShell scripts, specifically looking for commands like 'Copy-Item' and variations thereof. Given that accessing SAM hives could indicate malicious intent to extract credential information, this rule is designed to alert security analysts in real-time to potential credential theft attempts.
+  ### Investigation Steps
+  - Utilize EDR to review the process creation logs for the identified PowerShell commands that triggered the alert, confirming the user context and origins of the execution.
+  - Examine any related network traffic logs in the NDR to determine if there were any external communications made by the host following the detected command execution.
+  - Review historical logs from the AV and Proxy systems to check for any prior detections related to the host, which may indicate previous malicious behavior.
+  - Check cloud logs on platforms like AWS, GCP, or Azure for any unusual access patterns or permissions changes that might coincide with the alert timeline, particularly focusing on user identity and access management.

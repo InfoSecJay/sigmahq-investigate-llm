@@ -1,0 +1,38 @@
+title: PowerShell Scripts Installed as Services - Security
+id: 2a926e6a-4b81-4011-8a96-e36cc8c04302
+related:
+- id: a2e5019d-a658-4c6a-92bf-7197b54e2cae
+  type: derived
+status: test
+description: Detects powershell script installed as a Service
+references:
+- https://speakerdeck.com/heirhabarov/hunting-for-powershell-abuse
+author: oscd.community, Natalia Shornikova
+date: 2020-10-06
+modified: 2022-11-29
+tags:
+- attack.execution
+- attack.t1569.002
+logsource:
+  product: windows
+  service: security
+  definition: The 'System Security Extension' audit subcategory need to be enabled
+    to log the EID 4697
+detection:
+  selection:
+    EventID: 4697
+    ServiceFileName|contains:
+    - 'powershell'
+    - 'pwsh'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the installation of PowerShell scripts as services in a Windows environment. Specifically, it looks for Event ID 4697, which indicates the creation of a new service. The rule filters for services where the service file name contains terms associated with PowerShell, such as "powershell" or "pwsh." The invocation of PowerShell in this context may suggest an attempt to leverage PowerShell for malicious activities, as attackers often abuse legitimate administrative tools to execute scripts stealthily. To successfully detect these events, the "System Security Extension" audit subcategory must be enabled to ensure relevant logging is taking place.
+  ### Investigation Steps
+  - Review the EDR logs for any corresponding Event ID 4697 to identify newly created services that utilize PowerShell scripts.
+  - Conduct a search for the service names linked to the detected PowerShell installations across the enterprise's configuration management database (CMDB) to verify their legitimacy.
+  - Analyze command-line arguments and execution contexts in the EDR for any unusual parameters or indications of malicious behavior associated with the identified services.
+  - Check NGFW and Proxy logs for outbound connections initiated by these services, which may provide further insights into potentially unauthorized data exfiltration or command-and-control activities.

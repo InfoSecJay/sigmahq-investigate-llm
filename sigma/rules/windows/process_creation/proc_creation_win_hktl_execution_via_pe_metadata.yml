@@ -1,0 +1,33 @@
+title: Hacktool Execution - PE Metadata
+id: 37c1333a-a0db-48be-b64b-7393b2386e3b
+status: test
+description: Detects the execution of different Windows based hacktools via PE metadata
+  (company, product, etc.) even if the files have been renamed
+references:
+- https://github.com/cube0x0
+- https://www.virustotal.com/gui/search/metadata%253ACube0x0/files
+author: Florian Roth (Nextron Systems)
+date: 2022-04-27
+modified: 2024-01-15
+tags:
+- attack.credential-access
+- attack.t1588.002
+- attack.t1003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Company: 'Cube0x0'     # Detects the use of tools created by a well-known hacktool producer named "Cube0x0", which includes his handle in all binaries as company information in the PE headers (SharpPrintNightmare, KrbRelay, SharpMapExec, etc.)
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of Windows-based hacktools by analyzing the Portable Executable (PE) metadata associated with process creation events. Specifically, it looks for executables from the known producer "Cube0x0," which is often associated with various hacking tools, irrespective of any renaming that may have occurred. The detection method utilizes process creation logs, which include details such as the company name in the PE headers. By focusing on this metadata, the rule provides insights into potentially malicious activity linked to tools designed for credential access and other cyber exploitation techniques as outlined in the ATT&CK framework.
+  ### Investigation Steps
+  - Utilize the EDR tool to search for recent process creation events that reference executables with the company name "Cube0x0."
+  - Review command-line parameters in conjunction with the detected processes for any unusual behaviors or indicators that warrant further investigation.
+  - Correlate findings with threat intelligence feeds or VirusTotal to confirm the legitimacy of the detected tools and gather additional context.
+  - Check network activity logs from the NDR or Proxy solutions for any connections made by the identified processes, as this could provide insights into their usage and potential data exfiltration efforts.

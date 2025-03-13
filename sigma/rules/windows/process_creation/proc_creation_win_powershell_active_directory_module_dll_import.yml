@@ -1,0 +1,49 @@
+title: Potential Active Directory Enumeration Using AD Module - ProcCreation
+id: 70bc5215-526f-4477-963c-a47a5c9ebd12
+related:
+- id: 9e620995-f2d8-4630-8430-4afd89f77604
+  type: similar
+- id: 74176142-4684-4d8a-8b0a-713257e7df8e
+  type: similar
+status: test
+description: Detects usage of the "Import-Module" cmdlet to load the "Microsoft.ActiveDirectory.Management.dl"
+  DLL. Which is often used by attackers to perform AD enumeration.
+references:
+- https://github.com/samratashok/ADModule
+- https://twitter.com/cyb3rops/status/1617108657166061568?s=20
+- https://www.ired.team/offensive-security-experiments/active-directory-kerberos-abuse/active-directory-enumeration-with-ad-module-without-rsat-or-admin-privileges
+author: frack113
+date: 2023-01-22
+tags:
+- attack.reconnaissance
+- attack.discovery
+- attack.impact
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+  - OriginalFileName:
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+  selection_cmdlet:
+    CommandLine|contains:
+    - 'Import-Module '
+    - 'ipmo '
+  selection_dll:
+    CommandLine|contains: 'Microsoft.ActiveDirectory.Management.dll'
+  condition: all of selection_*
+falsepositives:
+- Legitimate use of the library for administrative activity
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects potential Active Directory (AD) enumeration through the PowerShell environment by identifying the use of the `Import-Module` cmdlet. Specifically, it looks for the loading of the `Microsoft.ActiveDirectory.Management.dll` module, which attackers often leverage to extract information about Active Directory users, groups, and other objects. The detection is centered on process creation logs from Windows, where the rule checks for executions of `powershell.exe` or `pwsh.exe` along with command-line arguments that indicate the usage of AD-related PowerShell cmdlets. Importantly, legitimate administrative activity might use the same commands; therefore, additional context during investigation is crucial.
+  ### Investigation Steps
+  - Review process creation logs in your EDR to identify instances of `powershell.exe` or `pwsh.exe` with the corresponding command line that includes `Import-Module` and `Microsoft.ActiveDirectory.Management.dll`.
+  - Investigate user accounts associated with the commands to determine if the actions align with known administrative tasks or if they belong to accounts that typically don't perform such operations.
+  - Check the event logs for unusual patterns or sequences of commands that indicate a broader enumeration effort, such as multiple queries against AD objects.
+  - If the activity appears suspicious, correlate with network logs to check for unauthorized access attempts or lateral movement behaviors originating from the source host.

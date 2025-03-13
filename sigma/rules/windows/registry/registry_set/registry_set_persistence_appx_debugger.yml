@@ -1,0 +1,35 @@
+title: Potential Persistence Using DebugPath
+id: df4dc653-1029-47ba-8231-3c44238cc0ae
+status: test
+description: Detects potential persistence using Appx DebugPath
+references:
+- https://oddvar.moe/2018/09/06/persistence-using-universal-windows-platform-apps-appx/
+- https://github.com/rootm0s/WinPwnage
+author: frack113
+date: 2022-07-27
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.t1546.015
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection_debug:
+    TargetObject|contains: 'Classes\ActivatableClasses\Package\Microsoft.'
+    TargetObject|endswith: '\DebugPath'
+  selection_default:
+    TargetObject|contains: '\Software\Microsoft\Windows\CurrentVersion\PackagedAppXDebug\Microsoft.'
+    TargetObject|endswith: '\(Default)'
+  condition: 1 of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma detection rule identifies potential persistence mechanisms that utilize the Appx DebugPath registry key in Windows environments. It specifically looks for modifications in the Windows Registry that might indicate an attempt to establish unauthorized persistence through Universal Windows Platform (UWP) applications. The targeted registry paths include entries associated with activatable classes related to Microsoft products and the DebugPath subkey, which is often leveraged by attackers to manipulate UWP applications and maintain access even after reboots. By monitoring registry changes involving these specific paths, the rule flags possible malicious activity that requires further investigation.
+  ### Investigation Steps
+  - Review recent changes to the registry using your EDR solution, focusing on the paths identified by the rule. Pay special attention to entries under `Classes\ActivatableClasses\Package\Microsoft.` and `Software\Microsoft\Windows\CurrentVersion\PackagedAppXDebug\Microsoft.`.
+  - Correlate the registry changes with process creation logs to identify any unusual processes that were launched at the same time as the registry modifications. Check for any suspicious command-line parameters.
+  - Validate the integrity of the UWP applications involved by checking their signatures and checking for any known vulnerabilities within the applications referenced in the altered registry keys.
+  - Utilize your SIEM to analyze user behavior around the time of the registry change. Investigate any anomalous account activity that could indicate an insider threat or compromised credentials.

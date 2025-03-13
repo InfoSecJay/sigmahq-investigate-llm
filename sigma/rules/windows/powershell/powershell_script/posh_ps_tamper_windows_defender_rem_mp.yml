@@ -1,0 +1,41 @@
+title: Tamper Windows Defender Remove-MpPreference - ScriptBlockLogging
+id: ae2bdd58-0681-48ac-be7f-58ab4e593458
+related:
+- id: 07e3cb2c-0608-410d-be4b-1511cb1a0448
+  type: similar
+status: test
+description: Detects attempts to remove Windows Defender configuration using the 'MpPreference'
+  cmdlet
+references:
+- https://techcommunity.microsoft.com/t5/core-infrastructure-and-security/windows-10-controlled-folder-access-event-search/ba-p/2326088
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-05
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_remove:
+    ScriptBlockText|contains: 'Remove-MpPreference'
+  selection_tamper:
+    ScriptBlockText|contains:
+    - '-ControlledFolderAccessProtectedFolders '
+    - '-AttackSurfaceReductionRules_Ids '
+    - '-AttackSurfaceReductionRules_Actions '
+    - '-CheckForSignaturesBeforeRunningScan '
+  condition: all of selection_*
+falsepositives:
+- Legitimate PowerShell scripts
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies attempts to modify or disable Windows Defender configurations via the PowerShell cmdlet `Remove-MpPreference`. Specifically, the rule looks for script block logging entries that include this cmdlet in conjunction with parameters designed to alter critical security settings, such as Controlled Folder Access and Attack Surface Reduction (ASR) rules. When a script containing these modifications is executed, it could indicate an adversary attempting to evade detection and maintain persistence by compromising the built-in security mechanisms of the Windows operating system.
+  To effectively invoke this detection, it's necessary to ensure that Script Block Logging is enabled on the endpoints being monitored. The data source for this rule primarily consists of PowerShell execution logs, which track the behavior of scripts and command executions on Windows systems. By monitoring these logs, security teams can uncover malicious activities aimed at undermining the defenses provided by Windows Defender.
+  ### Investigation Steps
+  - Review the PowerShell execution logs in your EDR solution to identify the execution context of the detected script, including the user account and associated processes.
+  - Check for any incident correlation by examining the timeline of events that led to the execution of `Remove-MpPreference`, including any previous or subsequent unusual system activity.
+  - Use the AV logs to determine if any recent detections or alerts related to tampering with Windows Defender have been recorded, which may indicate broader malicious activity.
+  - Analyze relevant network traffic through your NGFW or NDR to identify any outbound communications or connections that may correlate with the tampering attempt, especially if sensitive data could be at risk.

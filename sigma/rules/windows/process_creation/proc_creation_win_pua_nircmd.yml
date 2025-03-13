@@ -1,0 +1,53 @@
+title: PUA - NirCmd Execution
+id: 4e2ed651-1906-4a59-a78a-18220fca1b22
+status: test
+description: Detects the use of NirCmd tool for command execution, which could be
+  the result of legitimate administrative activity
+references:
+- https://www.nirsoft.net/utils/nircmd.html
+- https://www.winhelponline.com/blog/run-program-as-system-localsystem-account-windows/
+- https://www.nirsoft.net/utils/nircmd2.html#using
+author: Florian Roth (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2022-01-24
+modified: 2023-02-13
+tags:
+- attack.execution
+- attack.t1569.002
+- attack.s0029
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_org:
+  - Image|endswith: '\NirCmd.exe'
+  - OriginalFileName: 'NirCmd.exe'
+  selection_cmd:
+    CommandLine|contains:
+    - ' execmd '
+    - '.exe script '
+    - '.exe shexec '
+    - ' runinteractive '
+  combo_exec:
+    CommandLine|contains:
+    - ' exec '
+    - ' exec2 '
+  combo_exec_params:
+    CommandLine|contains:
+    - ' show '
+    - ' hide '
+  condition: 1 of selection_* or all of combo_*
+fields:
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Legitimate use by administrators
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potential instances of the NirCmd utility being executed on Windows systems. NirCmd is a command-line tool that allows users to perform various administrative tasks without displaying a user interface. The rule looks for specific indicators in process creation logs, such as whether the process is named "NirCmd.exe" and contains particular command-line parameters typically used in legitimate administrative tasks, such as `execmd`, `runinteractive`, and other execution commands. By capturing these indicators, the rule aims to flag the use of NirCmd, which could indicate either authorized administrative actions or potentially malicious activity hidden behind legitimate-sounding commands.
+  The detection leverages fields from the process creation log, specifically monitoring the executable name and command-line parameters passed at runtime. Given that the use of NirCmd can be both benign and malicious, the rule is calibrated to raise alerts when specific patterns are matched, thereby facilitating further investigation by SOC analysts and incident responders.
+  ### Investigation Steps
+  - Examine process creation logs to verify any instances of "NirCmd.exe" execution alongside its command-line parameters. Cross-reference parent process information to assess whether the invocation seems legitimate.
+  - Utilize endpoint detection and response (EDR) tools to analyze the behavior of the system during NirCmd execution, checking for any unusual interactions or unexpected changes to system settings.
+  - Investigate any associated network traffic that may have occurred simultaneously with the NirCmd execution using network detection and response (NDR) tools to determine if external communications were made that could indicate malicious intent.
+  - Review user activity logs to establish whether the command was initiated by an authorized administrator or if it appears in an unusual context that warrants deeper investigation.

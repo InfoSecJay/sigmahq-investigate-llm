@@ -1,0 +1,32 @@
+title: Microsoft VBA For Outlook Addin Loaded Via Outlook
+id: 9a0b8719-cd3c-4f0a-90de-765a4cb3f5ed
+status: test
+description: Detects outlvba (Microsoft VBA for Outlook Addin) DLL being loaded by
+  the outlook process
+references:
+- https://speakerdeck.com/heirhabarov/hunting-for-persistence-via-microsoft-exchange-server-or-outlook?slide=58
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-02-08
+modified: 2024-03-12
+tags:
+- attack.execution
+- attack.t1204.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\outlook.exe'
+    ImageLoaded|endswith: '\outlvba.dll'
+  condition: selection
+falsepositives:
+- Legitimate macro usage. Add the appropriate filter according to your environment
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potentially malicious activity associated with Microsoft Outlook by monitoring for the loading of the `outlvba.dll` file (the Microsoft VBA for Outlook Add-in) by the Outlook process (`outlook.exe`). The rule detects instances where the legitimate Outlook process interacts with the `outlvba.dll`, an indication that malicious or unauthorized macros may be executed. This behavior can be exploited by attackers to achieve persistence on a target system and execute harmful scripts without user consent. The primary technical data sources utilized for this detection include image loading events captured in Windows process monitoring logs, which allow for the examination of the processes and their respective libraries being loaded into memory.
+  ### Investigation Steps
+  - Investigate the process tree for `outlook.exe` within the EDR to identify any unusual parent-child relationships or other concurrent processes that may indicate malicious activity. 
+  - Review command-line arguments for `outlook.exe` to detect any flags or parameters that are not typical for normal operations that might indicate exploitation attempts.
+  - Analyze recent activity in the proxy logs for unusual connections or data exfiltration associated with the time the alert was generated, providing insight into the network activity from the Outlook application.
+  - Check for any recent changes in Microsoft Office settings or Trust Center configurations in enterprise environments that might permit unauthorized macro execution or script loading.

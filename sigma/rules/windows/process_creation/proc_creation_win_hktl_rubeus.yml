@@ -1,0 +1,58 @@
+title: HackTool - Rubeus Execution
+id: 7ec2c172-dceb-4c10-92c9-87c1881b7e18
+related:
+- id: 7ec2c172-dceb-4c10-92c9-87c1881b7e18
+  type: similar
+status: stable
+description: Detects the execution of the hacktool Rubeus via PE information of command
+  line parameters
+references:
+- https://blog.harmj0y.net/redteaming/from-kekeo-to-rubeus
+- https://m0chan.github.io/2019/07/31/How-To-Attack-Kerberos-101.html
+- https://github.com/GhostPack/Rubeus
+author: Florian Roth (Nextron Systems)
+date: 2018-12-19
+modified: 2023-04-20
+tags:
+- attack.credential-access
+- attack.t1003
+- attack.t1558.003
+- attack.lateral-movement
+- attack.t1550.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\Rubeus.exe'
+  - OriginalFileName: 'Rubeus.exe'
+  - Description: 'Rubeus'
+  - CommandLine|contains:
+    - 'asreproast '
+    - 'dump /service:krbtgt '
+    - 'dump /luid:0x'
+    - 'kerberoast '
+    - 'createnetonly /program:'
+    - 'ptt /ticket:'
+    - '/impersonateuser:'
+    - 'renew /ticket:'
+    - 'asktgt /user:'
+    - 'harvest /interval:'
+    - 's4u /user:'
+    - 's4u /ticket:'
+    - 'hash /password:'
+    - 'golden /aes256:'
+    - 'silver /user:'
+  condition: selection
+falsepositives:
+- Unlikely
+level: critical
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to identify the execution of the hack tool Rubeus, which is frequently leveraged for various Kerberos attacks, including credential theft and lateral movement within a network. The rule inspects process creation logs to detect specific parameters that are characteristic of Rubeus execution. It looks for the executable file name (`Rubeus.exe`) in conjunction with specific command-line arguments that signal illicit activities related to Kerberos authentication. These command-line parameters can involve actions such as AS-REP Roasting, ticket harvesting, and user impersonation, which are critical to unauthorized access and privilege escalation within an Active Directory environment.
+  The primary data sources for this detection rule include Windows process creation logs, specifically the image name and related command-line arguments. By analyzing these logs, SOC analysts can identify the presence of Rubeus and respond to potential credential access threats effectively.
+  ### Investigation Steps
+  - Investigate the process creation logs in the EDR for any instances of `Rubeus.exe` and examine the command-line parameters used during execution to determine the nature of the activity.
+  - Query the SIEM for additional context around the user and machine that executed Rubeus, including authentication events and any recent changes to permissions or user roles.
+  - Utilize the AV and EDR tools to perform a forensic analysis of the endpoint where Rubeus was detected, ensuring that no indicators of compromise remain and that no additional malicious tools are present.
+  - Check network logs in your NDR solution to identify any suspicious outbound connections or lateral movement attempts made during the time window of the Rubeus execution, providing insight into the attacker's potential objectives.

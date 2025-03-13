@@ -1,0 +1,49 @@
+title: AD Privileged Users or Groups Reconnaissance
+id: 35ba1d85-724d-42a3-889f-2e2362bcaf23
+status: test
+description: Detect priv users or groups recon based on 4661 eventid and known privileged
+  users or groups SIDs
+references:
+- https://web.archive.org/web/20230329163438/https://blog.menasec.net/2019/02/threat-hunting-5-detecting-enumeration.html
+author: Samir Bousseaden
+date: 2019-04-03
+modified: 2022-07-13
+tags:
+- attack.discovery
+- attack.t1087.002
+logsource:
+  product: windows
+  service: security
+  definition: 'Requirements: enable Object Access SAM on your Domain Controllers'
+detection:
+  selection:
+    EventID: 4661
+    ObjectType:
+    - 'SAM_USER'
+    - 'SAM_GROUP'
+  selection_object:
+  - ObjectName|endswith:
+    - '-512'
+    - '-502'
+    - '-500'
+    - '-505'
+    - '-519'
+    - '-520'
+    - '-544'
+    - '-551'
+    - '-555'
+  - ObjectName|contains: 'admin'
+  filter:
+    SubjectUserName|endswith: '$'
+  condition: selection and selection_object and not filter
+falsepositives:
+- If source account name is not an admin then its super suspicious
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potential reconnaissance activities conducted by attackers targeting privileged user accounts or groups in an Active Directory environment. The rule specifically looks for Windows Event ID 4661, which logs changes to objects, including those in the Security Account Manager (SAM). It examines objects that are either users or groups and checks for their SID values, including common administrative group identifiers (e.g., -500 for the Administrator account) and names that contain "admin." By filtering out accounts that end with a dollar sign (indicating service or computer accounts), the rule aims to pinpoint suspicious enumeration behavior of privileged accounts that could indicate an ongoing attack or prelude to privilege escalation.
+  ### Investigation Steps
+  - Check EDR logs for the identified Event ID 4661 to view detailed user actions and system changes at the time of the alert.
+  - Use Windows Security logs to confirm the user or group context and understand their recent activities, focusing on high-risk accounts.
+  - Review account activity and login patterns using the SIEM to identify any unusual access attempts or repeated queries targeting privileged accounts.
+  - Cross-reference Proxy and VPN logs for any anomalous network activities corresponding to the flagged accounts, looking for connections to known malicious IPs or external reconnaissance tools.

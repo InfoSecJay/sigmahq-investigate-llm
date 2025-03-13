@@ -1,0 +1,39 @@
+title: Tomcat WebServer Logs Deleted
+id: 270185ff-5f50-4d6d-a27f-24c3b8c9fef8
+status: test
+description: Detects the deletion of tomcat WebServer logs which may indicate an attempt
+  to destroy forensic evidence
+references:
+- Internal Research
+- https://linuxhint.com/view-tomcat-logs-windows/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-02-16
+tags:
+- attack.defense-evasion
+- attack.t1070
+logsource:
+  category: file_delete
+  product: windows
+detection:
+  selection:
+    TargetFilename|contains|all:
+    - '\Tomcat'
+    - '\logs\'
+    TargetFilename|contains:
+    - 'catalina.'
+    - '_access_log.'
+    - 'localhost.'
+  condition: selection
+falsepositives:
+- During uninstallation of the tomcat server
+- During log rotation
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the deletion of Tomcat WebServer logs on Windows systems, an action that could indicate an attempt to destroy forensic evidence of malicious activity. The rule focuses specifically on log files related to Tomcat, such as `catalina.` logs and `_access_log.` files typically stored in directory paths containing `\Tomcat\logs\`. By monitoring file deletion events, the rule captures cases where these critical logs are removed without a legitimate reason, aiding in the identification of potential defense evasion tactics employed by attackers.
+  The underlying technical data sources include file deletion logs which provide detailed information about deleted files, including their names and paths. By analyzing these logs, security teams can ascertain whether deletion actions align with expected server behavior or if they warrant further investigation.
+  ### Investigation Steps
+  - Investigate the relevant EDR logs for general user activity before and after the deletion event to determine if any unusual behaviors or processes were associated with the deletion.
+  - Query the file system for recent activity in the Tomcat logs directory to understand if other files were modified or deleted, potentially indicating a broader compromise.
+  - Check the system's event logs for any scheduled tasks or administrative actions that could have prompted the log deletion, like server maintenance activities.
+  - Review any proxy logs to determine if there were any unusual outbound connections from the server that may have occurred before the logs were deleted, suggesting malicious activity.

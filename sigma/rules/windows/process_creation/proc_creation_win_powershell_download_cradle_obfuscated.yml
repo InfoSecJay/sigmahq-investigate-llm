@@ -1,0 +1,39 @@
+title: Obfuscated PowerShell OneLiner Execution
+id: 44e24481-6202-4c62-9127-5a0ae8e3fe3d
+status: test
+description: Detects the execution of a specific OneLiner to download and execute
+  powershell modules in memory.
+author: '@Kostastsale, @TheDFIRReport'
+references:
+- https://thedfirreport.com/2022/05/09/seo-poisoning-a-gootloader-story/
+- https://gist.github.com/mgeeky/3b11169ab77a7de354f4111aa2f0df38
+date: 2022-05-09
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1059.001
+- attack.t1562.001
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    Image|endswith: '\powershell.exe'
+    CommandLine|contains|all:
+    - 'http://127.0.0.1'
+    - '%{(IRM $_)}'
+    - '.SubString.ToString()[67,72,64]-Join'
+    - 'Import-Module'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of obfuscated PowerShell one-liners that are commonly used by attackers to download and execute malicious payloads in memory. It identifies command-line parameters that contain specific patterns associated with these obfuscated scripts, such as references to local addresses and the use of string manipulation functions. The rule monitors process creation events on Windows systems, particularly focusing on instances of `powershell.exe`. By analyzing the command line of these processes for malicious indicators, it helps in identifying potential exploitation attempts, especially those associated with attack techniques such as execution and defense evasion.
+  ### Investigation Steps
+  - Review the process creation logs through your EDR solution to find instances of `powershell.exe` that match the alert criteria.
+    
+  - Analyze the command-line parameters from the detected instances to understand the nature of the obfuscation used and the intended payload.
+  - Check for any corresponding network activity in your NDR or proxy logs originating from or directed to `http://127.0.0.1` as part of the PowerShell command.
+  - Conduct a file system search for any downloaded modules or related artifacts that may have been created during the execution of the obfuscated command.

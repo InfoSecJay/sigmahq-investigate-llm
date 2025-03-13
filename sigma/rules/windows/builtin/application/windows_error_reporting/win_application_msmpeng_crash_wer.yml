@@ -1,0 +1,39 @@
+title: Microsoft Malware Protection Engine Crash - WER
+id: 6c82cf5c-090d-4d57-9188-533577631108
+status: test
+description: This rule detects a suspicious crash of the Microsoft Malware Protection
+  Engine
+references:
+- https://bugs.chromium.org/p/project-zero/issues/detail?id=1252&desc=5
+- https://technet.microsoft.com/en-us/library/security/4022344
+author: Florian Roth (Nextron Systems)
+date: 2017-05-09
+modified: 2023-04-14
+tags:
+- attack.defense-evasion
+- attack.t1211
+- attack.t1562.001
+logsource:
+  product: windows
+  service: application
+    # warning: The 'data' field used in the detection section is the container for the event data as a whole. You may have to adapt the rule for your backend accordingly
+detection:
+  selection:
+    Provider_Name: 'Windows Error Reporting'
+    EventID: 1001
+    Data|contains|all:
+    - 'MsMpEng.exe'
+    - 'mpengine.dll'
+  condition: selection
+falsepositives:
+- MsMpEng might crash if the "C:\" partition is full
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where the Microsoft Malware Protection Engine (MsMpEng.exe) has crashed, which may indicate a potential security concern. It focuses on Windows Event Reporting (WER) logs to identify Event ID 1001 that corresponds to application crashes. Specifically, the rule looks for the presence of both "MsMpEng.exe" and "mpengine.dll" in the event data. The objective is to flag these crashes since they can sometimes be a cover for malicious activities, especially if exploited by attackers trying to evade detection mechanisms.
+  The rule utilizes Windows application logs as its primary data source. By detecting the unusual behavior associated with the crashing of a core security application, it alerts SOC analysts to instances that may require further investigation to rule out malware evasion tactics or other threats.
+  ### Investigation Steps
+  - Query EDR logs for any recent crash reports related to MsMpEng.exe to gather context on the incident and any associated process activity.
+  - Review command-line parameters from the EDR for processes that interact with MsMpEng.exe to determine if there were any anomalous or unauthorized commands executed.
+  - Check the Windows Event Logs around the time of the crash for other indicators of compromise, such as abnormal user account activity or failed logins.
+  - Analyze relevant cloud logs (if applicable) to see if there were any suspicious activities at the same time as the crash, particularly focusing on unauthorized access attempts or unusual data transfers.

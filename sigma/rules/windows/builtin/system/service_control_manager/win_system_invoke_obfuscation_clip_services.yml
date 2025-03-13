@@ -1,0 +1,38 @@
+title: Invoke-Obfuscation CLIP+ Launcher - System
+id: f7385ee2-0e0c-11eb-adc1-0242ac120002
+status: test
+description: Detects Obfuscated use of Clip.exe to execute PowerShell
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009      # (Task 26)
+author: Jonathan Cheong, oscd.community
+date: 2020-10-13
+modified: 2023-02-20
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7045
+    ImagePath|contains|all:
+    - 'cmd'
+    - '&&'
+    - 'clipboard]::'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify instances where obfuscated usage of Clip.exe is employed to execute PowerShell commands on Windows systems. The rule focuses on monitoring system event logs, specifically targeting the creation of services that utilize the Service Control Manager (SCM), indicated by Event ID 7045. It looks for command-line indicators that suggest the use of command chaining (`cmd &&`) along with references to the clipboard embedded within the execution strings. This type of behavior is frequently associated with attempts to evade detection and can be a sign of malicious activity, particularly in the context of executing PowerShell scripts through unconventional means.
+  Responders should focus on the nature of these events, which signal suspicious or anomalous service creation activities that leverage known components like Clip.exe, as it might indicate an attacker's attempt to bypass built-in security measures. By monitoring this behavior, security teams can proactively recognize potential indicators of compromise relating to evasive tactics used by threat actors.
+  ### Investigation Steps
+  - Review the Event 7045 logs in the Windows Event Viewer to identify any unusual service creation patterns that mention `Clip.exe`. 
+  - Utilize the EDR to investigate the process tree associated with identified instances of Clip.exe to determine if any malicious parent processes spawned them.
+  - Check command-line parameters for any processes related to `cmd` to see if they include peculiar chaining commands that could indicate malicious intent.
+  - Analyze network logs from the NGFW or proxy solution for any suspicious outbound connections that may have been initiated by the obfuscated PowerShell commands executed via Clip.exe.

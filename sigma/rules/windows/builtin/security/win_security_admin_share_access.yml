@@ -1,0 +1,36 @@
+title: Access To ADMIN$ Network Share
+id: 098d7118-55bc-4912-a836-dc6483a8d150
+status: test
+description: Detects access to ADMIN$ network share
+references:
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-5140
+author: Florian Roth (Nextron Systems)
+date: 2017-03-04
+modified: 2024-01-16
+tags:
+- attack.lateral-movement
+- attack.t1021.002
+logsource:
+  product: windows
+  service: security
+  definition: 'Requirements: The advanced audit policy setting "Object Access > Audit
+    File Share" must be configured for Success/Failure'
+detection:
+  selection:
+    EventID: 5140
+    ShareName: 'Admin$'
+  filter_main_computer_account:
+    SubjectUserName|endswith: '$'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Legitimate administrative activity
+level: low
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Access To ADMIN$ Network Share" is designed to detect unauthorized or suspicious access attempts to the ADMIN$ share, which is a hidden administrative share on Windows systems commonly used for remote management. The rule focuses on Event ID 5140, which logs successful access to a network share, specifically looking for attempts to access the ADMIN$ share. To trigger an alert, the user's account must end with a dollar sign ('$'), indicating it is a machine account potentially representing a lateral movement tactic used by attackers. Effective detection of this rule requires that the advanced audit policy setting for "Object Access > Audit File Share" is properly configured to log such events.
+  Investigations prompted by this rule can help identify potential lateral movement within the network, which attackers often exploit to escalate privileges or exfiltrate sensitive data. Analysts will need to correlate these log entries with related activity across the environment to determine whether the access was legitimate or part of a broader malicious activity.
+  ### Investigation Steps
+  - Examine Windows security logs in your EDR tool for Event ID 5140 to identify any unauthorized access to the ADMIN$ share, noting the source user account and originating IP address.
+  - Cross-reference the user account involved with your organization's Active Directory to verify if the access attempt aligns with legitimate administrative practices or if it appears anomalous.
+  - Review other logs, such as process creation and command-line execution logs, to detect any suspicious activities that may have occurred around the same time as the ADMIN$ access event.
+  - Check for any related alerts in your SIEM solution to determine if there are other indicators of compromise (IoCs) that suggest a potential lateral movement campaign exploiting the ADMIN$ share.

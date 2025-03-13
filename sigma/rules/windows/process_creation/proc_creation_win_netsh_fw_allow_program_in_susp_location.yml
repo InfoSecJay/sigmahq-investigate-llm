@@ -1,0 +1,70 @@
+title: Suspicious Program Location Whitelisted In Firewall Via Netsh.EXE
+id: a35f5a72-f347-4e36-8895-9869b0d5fc6d
+status: test
+description: Detects Netsh command execution that whitelists a program located in
+  a suspicious location in the Windows Firewall
+references:
+- https://www.virusradar.com/en/Win32_Kasidet.AD/description
+- https://www.hybrid-analysis.com/sample/07e789f4f2f3259e7559fdccb36e96814c2dbff872a21e1fa03de9ee377d581f?environmentId=100
+author: Sander Wiebing, Jonhnathan Ribeiro, Daniil Yugoslavskiy, oscd.community
+date: 2020-05-25
+modified: 2023-12-11
+tags:
+- attack.defense-evasion
+- attack.t1562.004
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\netsh.exe'
+  - OriginalFileName: 'netsh.exe'
+  selection_cli:
+  - CommandLine|contains|all:
+    - 'firewall'
+    - 'add'
+    - 'allowedprogram'
+  - CommandLine|contains|all:
+    - 'advfirewall'
+    - 'firewall'
+    - 'add'
+    - 'rule'
+    - 'action=allow'
+    - 'program='
+  selection_paths:
+    CommandLine|contains:
+    - ':\$Recycle.bin\'
+    - ':\RECYCLER.BIN\'
+    - ':\RECYCLERS.BIN\'
+    - ':\SystemVolumeInformation\'
+    - ':\Temp\'
+    - ':\Users\Default\'
+    - ':\Users\Desktop\'
+    - ':\Users\Public\'
+    - ':\Windows\addins\'
+    - ':\Windows\cursors\'
+    - ':\Windows\debug\'
+    - ':\Windows\drivers\'
+    - ':\Windows\fonts\'
+    - ':\Windows\help\'
+    - ':\Windows\system32\tasks\'
+    - ':\Windows\Tasks\'
+    - ':\Windows\Temp\'
+    - '\Downloads\'
+    - '\Local Settings\Temporary Internet Files\'
+    - '\Temporary Internet Files\Content.Outlook\'
+    - '%Public%\'
+    - '%TEMP%'
+    - '%TMP%'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects suspicious execution of the `netsh.exe` command, which is used to configure Windows Firewall settings. Specifically, it looks for instances where `netsh.exe` is executed to whitelist programs from potentially unusual or insecure directories, such as system temporary folders or user profile paths. The detection leverages process creation logs to capture the execution of `netsh.exe` and analyzes its command line parameters for specific keywords indicating that an application is being permitted through the firewall. Key command elements include "firewall", "add", and variations like "allowedprogram" or "rule" with the action set to "allow". Monitoring for this behavior helps identify potential defensive evasion techniques often used by malware or malicious actors.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify instances of `netsh.exe` execution with the specified command line parameters indicating modification of firewall rules.
+  - Cross-reference the program paths listed in the logs against known safe and compromised locations to evaluate the legitimacy of the whitelisted applications.
+  - Utilize network traffic logs from your NGFW or NDR to check for any unusual or unauthorized traffic to or from the newly allowed programs, particularly focusing on data exfiltration or command-and-control communications.
+  - Consult endpoint security tools (AV/EDR) for additional context on the whitelisted applications, including any past detections or behaviors associated with those files.

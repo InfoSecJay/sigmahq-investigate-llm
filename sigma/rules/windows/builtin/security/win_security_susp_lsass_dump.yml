@@ -1,0 +1,34 @@
+title: Password Dumper Activity on LSASS
+id: aa1697b7-d611-4f9a-9cb2-5125b4ccfd5c
+status: test
+description: Detects process handle on LSASS process with certain access mask and
+  object type SAM_DOMAIN
+references:
+- https://twitter.com/jackcr/status/807385668833968128
+author: sigma
+date: 2017-02-12
+modified: 2022-10-09
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4656
+    ProcessName|endswith: '\lsass.exe'
+    AccessMask: '0x705'
+    ObjectType: 'SAM_DOMAIN'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Password Dumper Activity on LSASS" is designed to identify potential credential theft activities that target the Local Security Authority Subsystem Service (LSASS) process on Windows systems. LSASS is a critical process used for enforcing security policy on the system, managing user logins, and storing sensitive authentication information, including passwords. This rule specifically looks for Event ID 4656, which indicates a process handle request on LSASS with a particular access mask (`0x705`) and object type (`SAM_DOMAIN`). The access mask suggests that the requesting process is attempting to read and enumerate sensitive security information. By monitoring for this activity, SOC analysts can detect possible use of password dumping techniques employed by attackers to extract credentials for unauthorized access.
+  ### Investigation Steps
+  - Use EDR tools to query for process creation events related to `lsass.exe` around the time of the alert to identify any suspicious processes that may have accessed LSASS.
+  - Review security logs focusing on Event ID 4656 to confirm the access attempts targeted LSASS and analyze the source of the requests, noting any unusual process names or execution paths.
+  - Check network traffic logs from the NGFW or NDR for any anomalous outbound connections from the affected host that may suggest data exfiltration following the credential access.
+  - Examine the endpoint’s AV logs to determine if any alerts have been triggered related to known credential dumping tools or techniques, providing context for the detected activity.

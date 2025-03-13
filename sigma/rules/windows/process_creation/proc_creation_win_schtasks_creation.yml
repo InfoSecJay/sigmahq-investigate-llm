@@ -1,0 +1,42 @@
+title: Scheduled Task Creation Via Schtasks.EXE
+id: 92626ddd-662c-49e3-ac59-f6535f12d189
+status: test
+description: Detects the creation of scheduled tasks by user accounts via the "schtasks"
+  utility.
+references:
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks-create
+author: Florian Roth (Nextron Systems)
+date: 2019-01-16
+modified: 2024-01-18
+tags:
+- attack.execution
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1053.005
+- attack.s0111
+- car.2013-08-001
+- stp.1u
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\schtasks.exe'
+    CommandLine|contains: ' /create '
+  filter_main_system_user:
+    User|contains:     # covers many language settings
+    - 'AUTHORI'
+    - 'AUTORI'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Administrative activity
+- Software installation
+level: low
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Scheduled Task Creation Via Schtasks.EXE" is designed to detect potentially malicious activity associated with the creation of scheduled tasks on Windows systems using the `schtasks.exe` utility. This rule focuses on identifying command-line usage of `schtasks.exe` where the `/create` parameter is present, which is indicative of a user attempting to set up a scheduled task. The associated technical data sources primarily include process creation logs, which capture details such as the image name (`schtasks.exe`) and the command-line arguments supplied during execution. The rule also implements a filter based on user names to minimize false positives, as legitimate administrative activities and software installations may also utilize this functionality.
+  ### Investigation Steps
+  - Check EDR logs for recent activities involving `schtasks.exe`, focusing on process creation events and associated user accounts to determine if the activity is authorized.
+  - Review command-line arguments in the process creation logs to understand the parameters used for the scheduled task creation and assess if they align with normal operational behavior.
+  - Analyze user account activity in conjunction with internal policies to identify if the user has appropriate permissions for creating scheduled tasks, paying attention to any anomalies.
+  - Consult historical data from system logs and change management processes to identify any prior scheduled tasks that may be relevant to the investigation and evaluate their legitimacy.

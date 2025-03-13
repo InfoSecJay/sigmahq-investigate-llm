@@ -1,0 +1,38 @@
+title: Suspicious Unsigned Thor Scanner Execution
+id: ea5c131b-380d-49f9-aeb3-920694da4d4b
+status: stable
+description: Detects loading and execution of an unsigned thor scanner binary.
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-10-29
+tags:
+- attack.defense-evasion
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\thor.exe'
+    - '\thor64.exe'
+    ImageLoaded|endswith:
+    - '\thor.exe'
+    - '\thor64.exe'
+  filter_main:
+    Signed: 'true'
+    SignatureStatus: 'valid'
+    Signature: 'Nextron Systems GmbH'
+  condition: selection and not filter_main
+falsepositives:
+- Other legitimate binaries named "thor.exe" that aren't published by Nextron Systems
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to identify the execution of the Thor scanner binaries, specifically `thor.exe` and `thor64.exe`, that are unsigned or not associated with a valid signature from Nextron Systems GmbH. In particular, the detection leverages image load events that indicate whether these binaries are being executed or loaded into memory. The rule checks the signature status of these executables to differentiate between legitimate use of the Thor scanner and potentially malicious activity involving unauthorized or altered binaries. By focusing on the absence of valid signatures, this rule aims to highlight instances where threat actors might be attempting to use the tool for reconnaissance or other nefarious purposes without proper authorizations.
+  ### Investigation Steps
+  - Use EDR tools to review process creation logs and identify instances of `thor.exe` and `thor64.exe` execution, paying close attention to the parent processes.
+  - Verify the execution context by checking the command-line parameters associated with the loaded binaries to determine their intended use and any associated arguments.
+  - Consult the signature information available in AV or EDR tools to confirm whether the executed binary is indeed unsigned or if the signature is invalid, taking note of any discrepancies.
+  - Analyze network logs from NDR or Proxy to track any external communications initiated by the detected binaries, which may indicate further suspicious activities or data exfiltration attempts.

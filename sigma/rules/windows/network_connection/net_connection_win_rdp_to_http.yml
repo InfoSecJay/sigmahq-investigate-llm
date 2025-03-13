@@ -1,0 +1,41 @@
+title: RDP to HTTP or HTTPS Target Ports
+id: b1e5da3b-ca8e-4adf-915c-9921f3d85481
+status: test
+description: Detects svchost hosting RDP termsvcs communicating to target systems
+  on TCP port 80 or 443
+references:
+- https://twitter.com/tekdefense/status/1519711183162556416?s=12&t=OTsHCBkQOTNs1k3USz65Zg
+- https://www.mandiant.com/resources/bypassing-network-restrictions-through-rdp-tunneling
+author: Florian Roth (Nextron Systems)
+date: 2022-04-29
+modified: 2022-07-14
+tags:
+- attack.command-and-control
+- attack.t1572
+- attack.lateral-movement
+- attack.t1021.001
+- car.2013-07-002
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\svchost.exe'
+    Initiated: 'true'
+    SourcePort: 3389
+    DestinationPort:
+    - 80
+    - 443
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where a Windows service host process (svchost.exe) that manages Remote Desktop Protocol (RDP) services (termsvcs) is observed initiating network connections to target systems on HTTP (port 80) or HTTPS (port 443). This behavior is indicative of potential tunneling or data exfiltration attempts, as attackers may utilize RDP for lateral movement within an enterprise network and subsequently redirect that traffic to web service ports. The rule analyzes network connection logs, focusing on specific indicators such as the process name, source port (RDP 
+  - 3389), and destination ports (80 or 443) to identify this unusual communication pattern.
+  ### Investigation Steps
+  - Review EDR logs to trace the process activity and confirm the legitimacy of the svchost.exe instances involved, ensuring they are operating under expected conditions.
+  - Examine network traffic logs from the firewall or network detection tools to identify additional contextual information surrounding the connection, including destination IP addresses and any associated anomalies.
+  - Cross-reference the timestamps of the detected activity with user authentication logs to establish if any legitimate RDP sessions were in use during the same timeframe.
+  - Analyze proxy logs for any outbound web requests aligned with the identified target ports to assess potential data exfiltration or command and control communication attempts.

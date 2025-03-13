@@ -1,0 +1,42 @@
+title: Network Connection Initiated To Cloudflared Tunnels Domains
+id: 7cd1dcdc-6edf-4896-86dc-d1f19ad64903
+related:
+- id: a1d9eec5-33b2-4177-8d24-27fe754d0812
+  type: derived
+status: experimental
+description: |
+  Detects network connections to Cloudflared tunnels domains initiated by a process on the system.
+  Attackers can abuse that feature to establish a reverse shell or persistence on a machine.
+references:
+- https://defr0ggy.github.io/research/Abusing-Cloudflared-A-Proxy-Service-To-Host-Share-Applications/
+- https://www.guidepointsecurity.com/blog/tunnel-vision-cloudflared-abused-in-the-wild/
+- Internal Research
+author: Kamran Saifullah, Nasreddine Bencherchali (Nextron Systems)
+date: 2024-05-27
+tags:
+- attack.exfiltration
+- attack.command-and-control
+- attack.t1567.001
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Initiated: 'true'
+    DestinationHostname|endswith:
+    - '.v2.argotunnel.com'
+    - 'protocol-v2.argotunnel.com'
+    - 'trycloudflare.com'
+    - 'update.argotunnel.com'
+  condition: selection
+falsepositives:
+- Legitimate use of cloudflare tunnels will also trigger this.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies network connections initiated from a target system to specified Cloudflared tunnel domains, such as `*.v2.argotunnel.com` and `trycloudflare.com`. The primary focus of the rule is on processes that establish these outbound connections, which may indicate potential misuse. Attackers can exploit Cloudflared tunnels to create reverse shells, facilitating remote command execution or establishing persistence on compromised systems. The rule relies on network connection logs to capture instances of such initiated connections, making it critical to monitor for suspicious activities that could indicate an ongoing attack or data exfiltration attempt.
+  ### Investigation Steps
+  - Utilize EDR tools to identify processes that initiated network connections to the specified Cloudflared tunnel domains. Investigate any associated process attributes such as parent-child relationships or command-line parameters for anomalies.
+  - Review network traffic logs from your NDR solution to correlate the detected connections with the frequency and volume of communication, as excessive or unusual traffic patterns can indicate suspicious activity.
+  - Check proxy logs to identify any requests made to the same tunnel domains. Analyze the user-agent and referrer headers for any irregularities that may suggest malicious intent.
+  - Examine cloud platform logs (AWS, GCP, Azure) for any related activity that aligns with the identified connections, such as resource provisioning or unauthorized access attempts that may indicate exploitation of the Cloudflared service.

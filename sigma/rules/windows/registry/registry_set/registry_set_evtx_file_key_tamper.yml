@@ -1,0 +1,35 @@
+title: Potential EventLog File Location Tampering
+id: 0cb8d736-995d-4ce7-a31e-1e8d452a1459
+status: test
+description: Detects tampering with EventLog service "file" key. In order to change
+  the default location of an Evtx file. This technique is used to tamper with log
+  collection and alerting
+references:
+- https://learn.microsoft.com/en-us/windows/win32/eventlog/eventlog-key
+author: D3F7A5105
+date: 2023-01-02
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1562.002
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\SYSTEM\CurrentControlSet\Services\EventLog\'
+    TargetObject|endswith: '\File'
+  filter:
+    Details|contains: '\System32\Winevt\Logs\'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential tampering with the Windows EventLog file location by monitoring changes made to the Windows Registry. Specifically, it looks for modifications to the registry key associated with the EventLog service that could alter the default path where EventLog files (Evtx) are stored. When attackers seek to evade detection, they may change this location to prevent security monitoring and logging of potentially malicious activities. The rule focuses on the registry paths that signify legitimate EventLog locations, using `TargetObject` attributes in registry set logs as the primary data source. If modifications are detected at these paths but do not point to the default log file locations, this might indicate a defense evasion tactic.
+  ### Investigation Steps
+  - Review the registry modification logs in your EDR tool to confirm the changes made to the EventLog file path. Look for unusual alterations that deviate from standard configurations.
+  - Examine process creation logs around the time of the registry modification to identify any potentially suspicious processes that may be responsible for executing the tampering.
+  - Cross-reference user activity logs to check if the modification was performed by an authorized user or service. This can help determine whether the action was legitimate or malicious.
+  - Validate the presence of external indicators, such as unusual network traffic or other alerts from NGFW or NDR tools, that could correlate with the registry changes. This can provide a broader context for the potential threat involved.

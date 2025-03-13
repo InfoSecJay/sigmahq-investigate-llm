@@ -1,0 +1,41 @@
+title: PUA - CleanWipe Execution
+id: f44800ac-38ec-471f-936e-3fa7d9c53100
+status: test
+description: Detects the use of CleanWipe a tool usually used to delete Symantec antivirus.
+references:
+- https://github.com/3CORESec/MAL-CL/tree/master/Descriptors/Other/CleanWipe
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2021-12-18
+modified: 2023-02-14
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection1:
+    Image|endswith: '\SepRemovalToolNative_x64.exe'
+  selection2:
+    Image|endswith: '\CATClean.exe'
+    CommandLine|contains: '--uninstall'
+  selection3:
+    Image|endswith: '\NetInstaller.exe'
+    CommandLine|contains: '-r'
+  selection4:
+    Image|endswith: '\WFPUnins.exe'
+    CommandLine|contains|all:
+    - '/uninstall'
+    - '/enterprise'
+  condition: 1 of selection*
+falsepositives:
+- Legitimate administrative use (Should be investigated either way)
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of CleanWipe, a tool commonly used to remove Symantec antivirus software. It focuses on specific executable file names and command-line parameters associated with the tool. The rule monitors Windows process creation logs, inspecting the file names of executed processes to determine if they end with any of the known CleanWipe executables, such as `SepRemovalToolNative_x64.exe` or `CATClean.exe`. Additionally, it looks for command-line arguments that suggest uninstallation actions, such as `--uninstall` or flags that indicate forced removal. By leveraging these indicators, analysts can identify potentially unauthorized or malicious usage of CleanWipe within the enterprise environment, warranting further investigation.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR for alerts related to the execution of CleanWipe. Confirm the execution time and the user account that initiated the action.
+  - Investigate the associated command-line arguments to determine if the execution was part of legitimate administrative activity or if it raises any suspicion based on the context.
+  - Check for prior alerts or incidents linked to the detected user account, which may indicate a pattern of unauthorized use or other security threats.
+  - Analyze the surrounding network traffic in an NDR solution to verify any subsequent communications that may indicate further malicious behavior or data exfiltration.

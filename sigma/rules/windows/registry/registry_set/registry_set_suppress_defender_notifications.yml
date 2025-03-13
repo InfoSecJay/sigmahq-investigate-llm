@@ -1,0 +1,32 @@
+title: Activate Suppression of Windows Security Center Notifications
+id: 0c93308a-3f1b-40a9-b649-57ea1a1c1d63
+status: test
+description: Detect set Notification_Suppress to 1 to disable the Windows security
+  center notification
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/40b77d63808dd4f4eafb83949805636735a1fd15/atomics/T1112/T1112.md
+author: frack113
+date: 2022-08-19
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: 'SOFTWARE\Policies\Microsoft\Windows Defender\UX Configuration\Notification_Suppress'
+    Details: DWORD (0x00000001)
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect attempts to suppress notifications from the Windows Security Center by identifying a registry modification that sets the `Notification_Suppress` value to `1`. This action disables important security notifications and could indicate malicious intent, as it undermines the defensive capabilities provided by Windows Defender. The rule monitors changes within the Windows registry, specifically targeting the `SOFTWARE\Policies\Microsoft\Windows Defender\UX Configuration` path to check for the DWORD value being modified. Detection relies on registry set logs as a primary data source, providing SOC analysts with insights into potential evasion tactics employed by threat actors operating on Windows systems.
+  ### Investigation Steps
+  - Use EDR tools to review the associated process creation events and identify which applications or scripts made changes to the Windows registry. 
+  - Analyze any command-line arguments and parent-child process relationships to uncover the origin of the registry modification.
+  - Correlate findings with other security telemetry from the SIEM, like Windows event logs, to check for any preceding suspicious activities.
+  - Review network traffic logs via NDR or proxy to detect any unauthorized outbound communications from the involved endpoint that may indicate further malicious actions.

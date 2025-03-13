@@ -1,0 +1,40 @@
+title: Arbitrary File Download Via ConfigSecurityPolicy.EXE
+id: 1f0f6176-6482-4027-b151-00071af39d7e
+status: test
+description: |
+  Detects the execution of "ConfigSecurityPolicy.EXE", a binary part of Windows Defender used to manage settings in Windows Defender.
+  Users can configure different pilot collections for each of the co-management workloads.
+  It can be abused by attackers in order to upload or download files.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/ConfigSecurityPolicy/
+author: frack113
+date: 2021-11-26
+modified: 2022-05-16
+tags:
+- attack.exfiltration
+- attack.t1567
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - CommandLine|contains: ConfigSecurityPolicy.exe
+  - Image|endswith: '\ConfigSecurityPolicy.exe'
+  - OriginalFileName: 'ConfigSecurityPolicy.exe'
+  selection_url:
+    CommandLine|contains:
+    - 'ftp://'
+    - 'http://'
+    - 'https://'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of "ConfigSecurityPolicy.EXE," a legitimate binary utilized for managing Windows Defender settings. However, this binary can be maliciously leveraged by attackers to facilitate file uploads and downloads, posing a risk to organizational security. The rule specifically looks for instances where the command line includes the execution of "ConfigSecurityPolicy.EXE" and checks for URLs that initiate file transfers over FTP or HTTP/HTTPS protocols. The primary data sources scrutinized for this detection include process creation logs and command-line parameters provided during the execution of the binary. By monitoring for these patterns, the rule aims to identify potential exfiltration attempts in the enterprise environment.
+  ### Investigation Steps
+  - Utilize the EDR tool to search for instances where "ConfigSecurityPolicy.EXE" was executed, focusing on parameters passed in the command line.
+  - Review system and application logs for any associated download or upload activity during the time frame when "ConfigSecurityPolicy.EXE" was executed.
+  - Investigate any outbound network traffic to FTP or HTTP/HTTPS URLs from the system using the NDR or Proxy logs to identify unauthorized file transfers.
+  - Check antivirus logs to ensure that "ConfigSecurityPolicy.EXE" is from the legitimate source, ruling out any potential file integrity issues or known exploits associated with this binary.

@@ -1,0 +1,37 @@
+title: Amsi.DLL Loaded Via LOLBIN Process
+id: 6ec86d9e-912e-4726-91a2-209359b999b9
+status: test
+description: Detects loading of "Amsi.dll" by a living of the land process. This could
+  be an indication of a "PowerShell without PowerShell" attack
+references:
+- Internal Research
+- https://www.paloaltonetworks.com/blog/security-operations/stopping-powershell-without-powershell/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-06-01
+modified: 2023-09-20
+tags:
+- attack.defense-evasion
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\amsi.dll'
+    Image|endswith:
+            # TODO: Add more interesting processes
+    - '\ExtExport.exe'
+    - '\odbcconf.exe'
+    - '\regsvr32.exe'
+    - '\rundll32.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule "Amsi.DLL Loaded Via LOLBIN Process" is designed to detect potential misuse of the Amsi.dll library, a critical component of Microsoft's Antimalware Scan Interface, by commonly used living-off-the-land binaries (LOLBINs). This detection focuses on monitoring specific Windows processes that could load Amsi.dll in a manner indicative of a “PowerShell without PowerShell” attack. Such attacks leverage these native binaries to execute malicious scripts or command lines without invoking PowerShell directly, hence bypassing typical security controls. The rule checks for instances where Amsi.dll is loaded by executables like `ExtExport.exe`, `odbcconf.exe`, `regsvr32.exe`, and `rundll32.exe`, all of which can be exploited in various malicious scenarios. Key data sources involved in this detection include image load events, specifically targeting logs that demonstrate which processes are loading dynamic-link libraries.
+  ### Investigation Steps
+  - Examine recent activity in the EDR tool to identify the processes that triggered the detection, focusing on the execution context and command-line arguments associated with the loaded Amsi.dll.
+  - Review Windows Event Logs for additional information regarding the suspect processes, including creation timestamps and parent-child relationships that might reveal how the execution chain was initiated.
+  - Utilize network traffic logging to check for outbound connections initiated by the identified LOLBINs, which may indicate data exfiltration or communication with command and control servers.
+  - Analyze any relevant cloud security logs from GCP, AWS, or Azure if production workloads are involved, looking for unauthorized access patterns or interactions with potentially compromised resources.

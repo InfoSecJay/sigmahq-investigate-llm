@@ -1,0 +1,35 @@
+title: Uninstall Crowdstrike Falcon Sensor
+id: f0f7be61-9cf5-43be-9836-99d6ef448a18
+status: test
+description: Adversaries may disable security tools to avoid possible detection of
+  their tools and activities by uninstalling Crowdstrike Falcon
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1562.001/T1562.001.md
+author: frack113
+date: 2021-07-12
+modified: 2023-03-09
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - '\WindowsSensor.exe'
+    - ' /uninstall'
+    - ' /quiet'
+  condition: selection
+falsepositives:
+- Administrator might leverage the same command line for debugging or other purposes.
+  However this action must be always investigated
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects attempts by adversaries to uninstall the CrowdStrike Falcon sensor, a critical endpoint security agent, by monitoring Windows process creation logs. The rule specifically looks for command-line arguments associated with the Falcon sensor executable, `WindowsSensor.exe`, indicating an uninstallation action. The targeted command-line strings include ` /uninstall` and ` /quiet`, as these arguments suggest the sensor is being removed without user interaction. Monitoring these specific command lines helps identify potential security evasion tactics used by attackers attempting to disable protective measures and reduces visibility into their activities.
+  ### Investigation Steps
+  - Use your EDR to collect recent process creation logs, filtering for events where `WindowsSensor.exe` is being executed with the identified command-line parameters.
+  - Review the context of the alert by correlating the timestamp of the uninstallation command with other security events to determine if this action aligns with legitimate administrative activity.
+  - Check the user account that initiated the uninstallation process; if it is not an authorized admin account, escalate the investigation due to potential malicious activity.
+  - Search the proxy and VPN logs for unusual remote access patterns or authenticated sessions around the time of the uninstall command to identify if external actors initiated the action.

@@ -1,0 +1,37 @@
+title: Suspicious SSL Connection
+id: 195626f3-5f1b-4403-93b7-e6cfd4d6a078
+status: test
+description: Adversaries may employ a known encryption algorithm to conceal command
+  and control traffic rather than relying on any inherent protections provided by
+  a communication protocol.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1573/T1573.md#atomic-test-1---openssl-c2
+- https://medium.com/walmartglobaltech/openssl-server-reverse-shell-from-windows-client-aee2dbfa0926
+author: frack113
+date: 2022-01-23
+tags:
+- attack.command-and-control
+- attack.t1573
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - System.Net.Security.SslStream
+    - Net.Security.RemoteCertificateValidationCallback
+    - '.AuthenticateAsClient'
+  condition: selection
+falsepositives:
+- Legitimate administrative script
+level: low
+notes: |
+  ### Technical Context
+  The "Suspicious SSL Connection" Sigma rule is designed to identify potentially malicious use of SSL/TLS protocols in command and control (C2) communications on Windows systems. Specifically, the rule monitors Script Block logging for the presence of key phrases and functions associated with setting up secure connections, including `System.Net.Security.SslStream`, `Net.Security.RemoteCertificateValidationCallback`, and `'.AuthenticateAsClient'`. By detecting these elements, the rule can flag unusual behavior that may indicate adversarial activity attempting to obscure their C2 traffic within encrypted channels.
+  The data sources involved in this detection include Windows PowerShell Script Block logs, which must be enabled to capture the executed scripts. This forms a basis for understanding what commands and infrastructure an attacker may use, facilitating the detection of encrypted traffic that might otherwise go unnoticed in normal network operations.
+  ### Investigation Steps
+  - Review PowerShell execution logs in your EDR tool to analyze the context of the scripts that triggered the alert, particularly focusing on unusual script executions or patterns.
+  - Analyze any established network connections during the time of the alert using your NDR tools, checking for outbound traffic to suspicious IPs or domains that align with known C2 infrastructure.
+  - Inspect the command-line parameters and execution context of the detected script in the SIEM, ensuring relevant details are captured to differentiate between malicious activities and legitimate administrative tasks.
+  - Examine any associated logs from antivirus and endpoint solutions to identify if any components of the scripts were flagged or if there is a history of alerts tied to the involved processes.

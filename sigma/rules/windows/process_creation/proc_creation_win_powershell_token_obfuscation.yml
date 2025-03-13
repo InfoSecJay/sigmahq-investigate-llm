@@ -1,0 +1,43 @@
+title: Powershell Token Obfuscation - Process Creation
+id: deb9b646-a508-44ee-b7c9-d8965921c6b6
+related:
+- id: f3a98ce4-6164-4dd4-867c-4d83de7eca51
+  type: similar
+status: test
+description: Detects TOKEN OBFUSCATION technique from Invoke-Obfuscation
+references:
+- https://github.com/danielbohannon/Invoke-Obfuscation
+author: frack113
+date: 2022-12-27
+modified: 2024-08-11
+tags:
+- attack.defense-evasion
+- attack.t1027.009
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+        # Examples:
+        #   IN`V`o`Ke-eXp`ResSIOn (Ne`W-ob`ject Net.WebClient).DownloadString
+        #   &('In'+'voke-Expressi'+'o'+'n') (.('New-Ob'+'jec'+'t') Net.WebClient).DownloadString
+        #   &("{2}{3}{0}{4}{1}"-f 'e','Expression','I','nvok','-') (&("{0}{1}{2}"-f'N','ew-O','bject') Net.WebClient).DownloadString
+  - CommandLine|re: '\w+`(\w+|-|.)`[\w+|\s]'
+        # - CommandLine|re: '\((\'(\w|-|\.)+\'\+)+\'(\w|-|\.)+\'\)' TODO: fixme
+  - CommandLine|re: '"(\{\d\})+"\s*-f'
+        #   ${e`Nv:pATh}
+  - CommandLine|re: '(?i)\$\{`?e`?n`?v`?:`?p`?a`?t`?h`?\}'
+  filter_main_envpath:
+    CommandLine|contains: '${env:path}'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect obfuscation techniques used in PowerShell commands, particularly those that leverage the Invoke-Obfuscation framework. Obfuscation is a tactic employed by attackers to conceal the true intent of their code, making it challenging for security systems and analysts to recognize malicious behavior. The rule focuses on identifying specific patterns in the command-line parameters associated with process creation logs on Windows systems. By examining the use of characters and structures that suggest obfuscation (like backticks and odd combinations of strings), the detection aims to uncover potential attempts to bypass security controls. Data sources involved in this detection include process creation logs that capture the command-line arguments provided to executable files.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify instances of PowerShell processes with suspicious command-line arguments. Look specifically for the presence of backticks and obfuscation patterns.
+  - Cross-reference the detected PowerShell executions against known good processes to filter out false positives. Ensure that legitimate administrative tasks aren't being flagged by mistake.
+  - Investigate the source of any detected obfuscated PowerShell execution by checking logs from the corresponding Windows Event logs or security logs to identify the user and system involved.
+  - Examine network traffic logs via your NDR solution to determine if any outbound connections correspond with the suspicious PowerShell activity, which could indicate data exfiltration or C2 communication.

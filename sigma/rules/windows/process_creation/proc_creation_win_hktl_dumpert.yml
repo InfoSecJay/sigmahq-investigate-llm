@@ -1,0 +1,34 @@
+title: HackTool - Dumpert Process Dumper Execution
+id: 2704ab9e-afe2-4854-a3b1-0c0706d03578
+status: test
+description: Detects the use of Dumpert process dumper, which dumps the lsass.exe
+  process memory
+references:
+- https://github.com/outflanknl/Dumpert
+- https://unit42.paloaltonetworks.com/actors-still-exploiting-sharepoint-vulnerability/
+author: Florian Roth (Nextron Systems)
+date: 2020-02-04
+modified: 2025-01-22
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Hashes|contains: 'MD5=09D278F9DE118EF09163C6140255C690'
+  - CommandLine|contains: 'Dumpert.dll'
+  condition: selection
+falsepositives:
+- Very unlikely
+level: critical
+notes: |
+  ### Technical Context
+  The Sigma rule titled "HackTool 
+  - Dumpert Process Dumper Execution" is designed to detect the execution of the Dumpert process dumper, which is notably used to extract memory from the `lsass.exe` process. This rule looks for specific indicators indicating the execution of Dumpert, primarily focusing on particular command line parameters and file hashes associated with the tool. The primary data sources for this detection include process creation logs, which provide detailed information about running processes and their command-line arguments. By checking for the known hash of Dumpert's executable and the presence of its DLL in command-line invocations, this rule assists in identifying potential credential harvesting activities leveraged by malicious actors.
+  ### Investigation Steps
+  - Utilize your EDR solution to search for any processes with the hash `09D278F9DE118EF09163C6140255C690` that were executed during the time frame of the alert. 
+  - Review detailed process creation logs to analyze the command-line parameters for any instances where `Dumpert.dll` is referenced, to assess the context of its use.
+  - Investigate associated user accounts for any unusual login patterns or privileged access closely linked to the times of Dumpert execution.
+  - Cross-reference logs from your firewall, proxy, and VPN to identify any outgoing connections or suspicious traffic that may relate to data exfiltration following the execution of Dumpert.

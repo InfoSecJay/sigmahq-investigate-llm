@@ -1,0 +1,52 @@
+title: Persistence Via New SIP Provider
+id: 5a2b21ee-6aaa-4234-ac9d-59a59edf90a1
+status: test
+description: Detects when an attacker register a new SIP provider for persistence
+  and defense evasion
+references:
+- https://persistence-info.github.io/Data/codesigning.html
+- https://github.com/gtworek/PSBits/tree/master/SIP
+- https://specterops.io/assets/resources/SpecterOps_Subverting_Trust_in_Windows.pdf
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-21
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.defense-evasion
+- attack.t1553.003
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection_root:
+    TargetObject|contains:
+    - '\SOFTWARE\Microsoft\Cryptography\Providers\'
+    - '\SOFTWARE\Microsoft\Cryptography\OID\EncodingType'
+    - '\SOFTWARE\WOW6432Node\Microsoft\Cryptography\Providers\'
+    - '\SOFTWARE\WOW6432Node\Microsoft\Cryptography\OID\EncodingType'
+  selection_dll:
+    TargetObject|contains:
+    - '\Dll'
+    - '\$DLL'
+  filter:
+    Details:
+            # Add more legitimate SIP providers according to your env
+    - WINTRUST.DLL
+    - mso.dll
+  filter_poqexec:
+    Image: 'C:\Windows\System32\poqexec.exe'
+    TargetObject|contains: '\CryptSIPDll'
+    Details: 'C:\Windows\System32\PsfSip.dll'
+  condition: all of selection_* and not 1 of filter*
+falsepositives:
+- Legitimate SIP being registered by the OS or different software.
+level: medium
+notes: |
+  ### Technical Context
+  The "Persistence Via New SIP Provider" Sigma rule is designed to detect unauthorized attempts to register new Software Identity Providers (SIPs) within a Windows environment. SIPs can be leveraged by attackers to maintain persistence and evade defenses by introducing malicious dynamic link libraries (DLLs) without raising immediate alarms. This rule monitors specific registry keys associated with SIP registration, focusing on entries that typically contain suspicious or unauthorized DLL names, including paths indicative of common system files like `poqexec.exe`. By capturing events in the Windows Registry related to SIP provider registration, the rule identifies potentially malicious activity while filtering out legitimate entries.
+  The technical data sources involved primarily include Windows Registry set logs. The rule specifically looks for changes across several targeted registry paths that relate to cryptographic providers and their services. It's essential for responders to recognize the indicators this rule provides to ensure swift and thorough investigations into potential compromise.
+  ### Investigation Steps
+  - Examine recent process activity on the affected system using EDR tools to identify any unauthorized instances of `poqexec.exe`, including its parent processes and command-line arguments.
+  - Review Windows Registry logs for suspicious changes around the targeted registry paths, specifically looking for DLLs that do not align with recognized or legitimate SIPs in your environment.
+  - Utilize AV logs to scan for known malicious signatures that could correspond with the detected SIP registration attempts.
+  - Cross-reference the event log entries against user and application audit logs from cloud platforms (if applicable) to ascertain whether similar behavior was observed elsewhere in your organization.

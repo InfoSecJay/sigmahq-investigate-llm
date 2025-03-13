@@ -1,0 +1,41 @@
+title: File Recovery From Backup Via Wbadmin.EXE
+id: 6fe4aa1e-0531-4510-8be2-782154b73b48
+related:
+- id: 84972c80-251c-4c3a-9079-4f00aad93938
+  type: derived
+status: experimental
+description: |
+  Detects the recovery of files from backups via "wbadmin.exe".
+  Attackers can restore sensitive files such as NTDS.DIT or Registry Hives from backups in order to potentially extract credentials.
+references:
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/wbadmin-start-recovery
+- https://lolbas-project.github.io/lolbas/Binaries/Wbadmin/
+author: Nasreddine Bencherchali (Nextron Systems), frack113
+date: 2024-05-10
+tags:
+- attack.impact
+- attack.t1490
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\wbadmin.exe'
+  - OriginalFileName: 'WBADMIN.EXE'
+  selection_cli:
+    CommandLine|contains|all:
+    - ' recovery'
+    - 'recoveryTarget'
+    - 'itemtype:File'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially unauthorized recovery activities conducted via the Windows command-line utility `wbadmin.exe`. Attackers may use `wbadmin.exe` to restore sensitive files, such as the NTDS.DIT file or various registry hives, from backups, which can lead to credential theft and further compromise. The rule specifically looks for two key components: the usage of the 'recovery' command and parameters indicating the restoration of files. The primary data sources analyzed include process creation logs and command-line parameters to ascertain the context of the `wbadmin.exe` execution. By focusing on these indicators, security teams can effectively respond to suspicious file recovery activities that may indicate malicious intent.
+  ### Investigation Steps
+  - Review EDR logs to identify the process creation events for `wbadmin.exe`, including timestamps and user accounts involved in the execution.
+  - Analyze command-line arguments associated with `wbadmin.exe` executions to determine if any recoveries were made on sensitive files, especially those related to credentials or system configurations.
+  - Check backup logs or records on the configured backup solutions to correlate recovery events with authorized activities to assess if the file recovery was legitimate.
+  - Search Proxy and VPN logs for unusual access patterns or connections that align with the timing of the detected `wbadmin.exe` activity, as this may indicate an external actor attempting to exploit backup data.

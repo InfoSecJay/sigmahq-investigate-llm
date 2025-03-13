@@ -1,0 +1,46 @@
+title: Sysmon Channel Reference Deletion
+id: 18beca67-ab3e-4ee3-ba7a-a46ca8d7d0cc
+status: test
+description: Potential threat actor tampering with Sysmon manifest and eventually
+  disabling it
+references:
+- https://twitter.com/Flangvik/status/1283054508084473861
+- https://twitter.com/SecurityJosh/status/1283027365770276866
+- https://securityjosh.github.io/2020/04/23/Mute-Sysmon.html
+- https://gist.github.com/Cyb3rWard0g/cf08c38c61f7e46e8404b38201ca01c8
+author: Roberto Rodriguez (Cyb3rWard0g), OTR (Open Threat Research)
+date: 2020-07-14
+modified: 2022-10-05
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  product: windows
+  service: security
+detection:
+  selection1:
+    EventID: 4657
+    ObjectName|contains:
+    - 'WINEVT\Publishers\{5770385f-c22a-43e0-bf4c-06f5698ffbd9}'
+    - 'WINEVT\Channels\Microsoft-Windows-Sysmon/Operational'
+    ObjectValueName: 'Enabled'
+    NewValue: 0
+  selection2:
+    EventID: 4663
+    ObjectName|contains:
+    - 'WINEVT\Publishers\{5770385f-c22a-43e0-bf4c-06f5698ffbd9}'
+    - 'WINEVT\Channels\Microsoft-Windows-Sysmon/Operational'
+    AccessMask: 0x10000
+  condition: 1 of selection*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule for detecting Sysmon channel reference deletion is designed to identify potential threat actors attempting to tamper with the Sysmon manifest, which could ultimately lead to the disabling of Sysmon monitoring on Windows systems. This rule focuses on two key event logs: Event ID 4657, which captures changes made to registry objects, and Event ID 4663, which indicates access to files and objects. The rule specifically looks for events involving the Sysmon operational channel located in the Windows Event Log, and it will trigger an alert when it detects modifications that would disable the Sysmon functionality.
+  The detection logic examines the `ObjectName`, seeking specific references to the Sysmon event channel, and checks for changes to the `Enabled` value, indicating that Sysmon logging has been turned off. By monitoring these registry changes and access attempts, the rule provides vital insights into potential defensive evasion tactics employed by malicious actors seeking to disrupt system monitoring and logging capabilities.
+  ### Investigation Steps
+  - Query the EDR logs for Event IDs 4657 and 4663 to identify the specific changes made to the Sysmon channel and the user account responsible for these modifications.
+  - Review the command-line history on the affected system to ascertain whether any suspicious processes or scripts executed commands to alter the registry settings.
+  - Cross-reference the user account involved with activity logs to determine if there are any previous incidents that could indicate a compromised or malicious account.
+  - Examine network traffic logs (from NGFW and NDR) for unusual outbound connections following the registry modifications, which might suggest exfiltration attempts or further exploitation.

@@ -1,0 +1,33 @@
+title: Base64 MZ Header In CommandLine
+id: 22e58743-4ac8-4a9f-bf19-00a0428d8c5f
+status: test
+description: Detects encoded base64 MZ header in the commandline
+references:
+- https://thedfirreport.com/2022/07/11/select-xmrig-from-sqlserver/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-12
+tags:
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains:
+    - 'TVqQAAMAAAAEAAAA'         # MZ..........
+    - 'TVpQAAIAAAAEAA8A'
+    - 'TVqAAAEAAAAEABAA'
+    - 'TVoAAAAAAAAAAAAA'
+    - 'TVpTAQEAAAAEAAAA'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The "Base64 MZ Header In CommandLine" detection rule is designed to identify potentially suspicious command-line executions that contain Base64-encoded representations of Windows Executable (PE) file headers. The presence of these encoded headers often suggests an attempt to obfuscate malicious payloads, such as malware delivery or exploitation attempts. This rule looks for specific Base64 strings that correspond to the MZ header in executables, which is a common marker for Windows applications. It primarily analyzes process creation logs, utilizing the command-line parameters of newly launched processes to identify the presence of the defined encoded patterns. Given the nature of these patterns, high alert levels establish the need for immediate investigation, as they can indicate attempts to execute malicious code disguised through encoding.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify processes that triggered the alert, focusing on their command-line parameters to confirm the presence of the Base64 MZ header strings.
+  - Correlate the identified processes with user activity logs to determine whether the execution aligns with normal operational behavior, looking for any anomalies in the user account's actions.
+  - Investigate network traffic associated with the flagged process using NDR to identify any external communications to malicious domains or C2 servers during the time of execution.
+  - Analyze endpoint security alerts from AV and other security tools to check for any known detections related to the identified processes, which may provide additional context on the nature and intent of the activity.

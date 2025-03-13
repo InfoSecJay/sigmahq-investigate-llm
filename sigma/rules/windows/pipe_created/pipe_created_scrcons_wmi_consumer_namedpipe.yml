@@ -1,0 +1,36 @@
+title: WMI Event Consumer Created Named Pipe
+id: 493fb4ab-cdcc-4c4f-818c-0e363bd1e4bb
+status: test
+description: Detects the WMI Event Consumer service scrcons.exe creating a named pipe
+references:
+- https://github.com/RiccardoAncarani/LiquidSnake
+author: Florian Roth (Nextron Systems)
+date: 2021-09-01
+modified: 2023-11-30
+tags:
+- attack.t1047
+- attack.execution
+logsource:
+  product: windows
+  category: pipe_created
+  definition: 'Note that you have to configure logging for Named Pipe Events in Sysmon
+    config (Event ID 17 and Event ID 18). The basic configuration is in popular sysmon
+    configuration (https://github.com/SwiftOnSecurity/sysmon-config), but it is worth
+    verifying. You can also use other repo, e.g. https://github.com/Neo23x0/sysmon-config,
+    https://github.com/olafhartong/sysmon-modular. How to test detection? You can
+    check powershell script from this site https://svch0st.medium.com/guide-to-named-pipes-and-hunting-for-cobalt-strike-pipes-dc46b2c5f575'
+detection:
+  selection:
+    Image|endswith: '\scrcons.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to monitor the creation of named pipes by the WMI Event Consumer service, specifically focusing on the executable `scrcons.exe`. Named pipes are often used in Windows for inter-process communication, but their creation by certain services can indicate malicious or unauthorized activity, particularly in the context of attacks such as Cobalt Strike or other malicious frameworks leveraging WMI for persistence and communication. The rule specifically checks for log entries from Windows that are captured by Sysmon, requiring appropriate configurations to log named pipe events (Event IDs 17 and 18). When `scrcons.exe` is detected creating a named pipe, it may indicate an attempt to execute malicious actions, warranting further investigation.
+  ### Investigation Steps
+  - Verify the Sysmon configuration by ensuring that named pipe event logging (Event IDs 17 and 18) is enabled to capture relevant data.
+  - Utilize EDR tools to review the behavior of `scrcons.exe`, checking for any unusual parent-child relationships or command-line executions that could indicate suspicious activity.
+  - Analyze historical network activity through logs from proxies or firewalls to identify any anomalous connections initiated by the system running `scrcons.exe`.
+  - Correlate findings with threat intelligence feeds to determine if the behavior aligns with known tactics, techniques, and procedures (TTPs) related to WMI usage in cyber threats.

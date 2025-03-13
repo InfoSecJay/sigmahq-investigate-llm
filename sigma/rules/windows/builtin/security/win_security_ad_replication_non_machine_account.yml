@@ -1,0 +1,45 @@
+title: Active Directory Replication from Non Machine Account
+id: 17d619c1-e020-4347-957e-1d1207455c93
+status: test
+description: Detects potential abuse of Active Directory Replication Service (ADRS)
+  from a non machine account to request credentials.
+references:
+- https://threathunterplaybook.com/hunts/windows/180815-ADObjectAccessReplication/notebook.html
+- https://threathunterplaybook.com/library/windows/active_directory_replication.html
+- https://threathunterplaybook.com/hunts/windows/190101-ADModDirectoryReplication/notebook.html
+author: Roberto Rodriguez @Cyb3rWard0g
+date: 2019-07-26
+modified: 2021-11-27
+tags:
+- attack.credential-access
+- attack.t1003.006
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4662
+    AccessMask: '0x100'
+    Properties|contains:
+    - '1131f6aa-9c07-11d1-f79f-00c04fc2dcd2'
+    - '1131f6ad-9c07-11d1-f79f-00c04fc2dcd2'
+    - '89e95b76-444d-4c62-991a-0facbeda640c'
+  filter:
+  - SubjectUserName|endswith: '$'
+  - SubjectUserName|startswith: 'MSOL_'       # https://learn.microsoft.com/en-us/entra/identity/hybrid/connect/reference-connect-accounts-permissions#ad-ds-connector-account
+  condition: selection and not filter
+fields:
+- ComputerName
+- SubjectDomainName
+- SubjectUserName
+falsepositives:
+- Unknown
+level: critical
+notes: |
+  ### Technical Context
+  This detection rule identifies potential misuse of the Active Directory Replication Service (ADRS) by monitoring for replication requests made by non-machine accounts. It specifically looks for events logged under Event ID 4662, where the Access Mask indicates an attempt to replicate directory data. The rule focuses on access attempts linked to specific GUIDs that pertain to credential retrieval and other sensitive operations, ensuring that requests originating from user accounts that do not conform to the naming conventions for machine accounts are flagged. By utilizing data from Windows Security logs, the rule captures the necessary properties of the access events and filters out legitimate requests that would typically come from service accounts or system entities.
+  ### Investigation Steps
+  - Utilize the EDR tool to investigate the source computer for any suspicious process creation events around the time of the alert to identify potentially exploited accounts.
+  - Review audit logs in the Active Directory for Event ID 4662 related to the identified SubjectUserName, confirming whether malicious replication actions have been attempted.
+  - Check network traffic logs via the NDR solution for any unusual patterns or connections that may correlate with the times of the suspicious Active Directory actions.
+  - If applicable, utilize cloud services logs (e.g., Azure) to determine if there were any related anomalies in the cloud environments connected to the Active Directory in question.

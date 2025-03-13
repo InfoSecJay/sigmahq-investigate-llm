@@ -1,0 +1,44 @@
+title: Winrar Compressing Dump Files
+id: 1ac14d38-3dfc-4635-92c7-e3fd1c5f5bfc
+related:
+- id: ec570e53-4c76-45a9-804d-dc3f355ff7a7
+  type: similar
+status: test
+description: Detects execution of WinRAR in order to compress a file with a ".dmp"/".dump"
+  extension, which could be a step in a process of dump file exfiltration.
+references:
+- https://www.crowdstrike.com/blog/overwatch-exposes-aquatic-panda-in-possession-of-log-4-shell-exploit-tools/
+author: Florian Roth (Nextron Systems)
+date: 2022-01-04
+modified: 2023-09-12
+tags:
+- attack.collection
+- attack.t1560.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\rar.exe'
+    - '\winrar.exe'
+  - Description: 'Command line RAR'
+  selection_extension:
+    CommandLine|contains:
+    - '.dmp'
+    - '.dump'
+    - '.hdmp'
+  condition: all of selection_*
+falsepositives:
+- Legitimate use of WinRAR with a command line in which ".dmp" or ".dump" appears
+  accidentally
+- Legitimate use of WinRAR to compress WER ".dmp" files for troubleshooting
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of WinRAR with a command-line instruction that specifies the compression of files with the ".dmp" or ".dump" extensions. Such activity can indicate an attempt to exfiltrate dump files, which may contain sensitive information or forensic data related to system crashes. The rule analyzes process creation logs on Windows systems, specifically looking for instances where the command line includes references to WinRAR executables (such as `rar.exe` or `winrar.exe`) in conjunction with the presence of the specified file extensions in the command line parameters. By focusing on this combination, security teams can identify potential misuse of legitimate tools during suspicious behavioral patterns.
+  ### Investigation Steps
+  - Check the EDR logs to identify the user and the system involved in executing WinRAR with the specified command-line arguments. This can help determine if the activity was authorized.
+  - Review the command-line history and original process creation events for any surrounding actions that may indicate malicious intent, such as previous downloads or security alerts.
+  - Correlate the timestamp of the WinRAR execution with proxy logs to see if there were any unusual outbound data transfers following the compression process.
+  - Investigate any associated cloud logs (e.g., AWS, GCP) for patterns of data exfiltration or suspicious account activity that align with the timeline of the detected WinRAR usage.

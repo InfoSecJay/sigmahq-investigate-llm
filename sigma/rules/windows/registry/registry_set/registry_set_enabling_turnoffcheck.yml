@@ -1,0 +1,32 @@
+title: Scripted Diagnostics Turn Off Check Enabled - Registry
+id: 7d995e63-ec83-4aa3-89d5-8a17b5c87c86
+status: test
+description: Detects enabling TurnOffCheck which can be used to bypass defense of
+  MSDT Follina vulnerability
+references:
+- https://twitter.com/wdormann/status/1537075968568877057?s=20&t=0lr18OAnmAGoGpma6grLUw
+author: 'Christopher Peacock @securepeacock, SCYTHE @scythe_io'
+date: 2022-06-15
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject|endswith: '\Policies\Microsoft\Windows\ScriptedDiagnostics\TurnOffCheck'
+    Details: 'DWORD (0x00000001)'
+  condition: selection
+falsepositives:
+- Administrator actions
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule focuses on detecting potential evasion techniques related to the MSDT Follina vulnerability by monitoring specific changes in the Windows Registry. It looks for the enabling of the registry key located at `\Policies\Microsoft\Windows\ScriptedDiagnostics\TurnOffCheck`, where the assigned value is set to `DWORD (0x00000001)`. This configuration can potentially disable important security checks, thus allowing malicious actors to bypass certain defense mechanisms. The primary data source for this detection is the Windows registry change logs, which capture modifications to registry keys, thereby providing a clear signal when the TurnOffCheck is enabled or altered.
+  ### Investigation Steps
+  Investigate the relevant registry changes by ensuring you have visibility into the Registry Set logs within your EDR tool to confirm if the detection correlates to malicious activity.
+  Check the context around the registry modification by examining process creation logs to identify which application or user initiated the changes.
+  Review the command-line parameters associated with processes running around the time of the change to detect any suspicious arguments that may indicate exploitation attempts.
+  Utilize your SIEM to correlate this alert with other activities within the environment, such as unusual authentication patterns or network traffic behaviors, to assess the broader impact on the organization’s security posture.

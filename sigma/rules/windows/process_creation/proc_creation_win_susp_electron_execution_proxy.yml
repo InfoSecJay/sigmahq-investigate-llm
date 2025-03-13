@@ -1,0 +1,71 @@
+title: Potentially Suspicious Electron Application CommandLine
+id: 378a05d8-963c-46c9-bcce-13c7657eac99
+related:
+- id: f26eb764-fd89-464b-85e2-dc4a8e6e77b8
+  type: similar
+status: test
+description: Detects potentially suspicious CommandLine of electron apps (teams, discord,
+  slack, etc.). This could be a sign of abuse to proxy execution through a signed
+  binary.
+references:
+- https://positive.security/blog/ms-officecmd-rce
+- https://lolbas-project.github.io/lolbas/Binaries/Teams/
+- https://lolbas-project.github.io/lolbas/Binaries/Msedge/
+- https://lolbas-project.github.io/lolbas/Binaries/msedgewebview2/
+- https://medium.com/@MalFuzzer/one-electron-to-rule-them-all-dc2e9b263daf
+- https://chromium.googlesource.com/chromium/chromium/+/master/content/public/common/content_switches.cc
+author: frack113, Nasreddine Bencherchali (Nextron Systems)
+date: 2023-09-05
+modified: 2023-11-09
+tags:
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+              # Add more electron based app to the list
+    - '\chrome.exe'
+    - '\code.exe'
+    - '\discord.exe'
+    - '\GitHubDesktop.exe'
+    - '\keybase.exe'
+    - '\msedge_proxy.exe'
+    - '\msedge.exe'
+    - '\msedgewebview2.exe'
+    - '\msteams.exe'
+    - '\slack.exe'
+    - '\Teams.exe'
+  - OriginalFileName:
+              # Add more electron based app to the list
+    - 'chrome.exe'
+    - 'code.exe'
+    - 'discord.exe'
+    - 'GitHubDesktop.exe'
+    - 'keybase.exe'
+    - 'msedge_proxy.exe'
+    - 'msedge.exe'
+    - 'msedgewebview2.exe'
+    - 'msteams.exe'
+    - 'slack.exe'
+    - 'Teams.exe'
+  selection_cli:
+    CommandLine|contains:
+    - '--browser-subprocess-path'
+    - '--gpu-launcher'
+    - '--renderer-cmd-prefix'
+    - '--utility-cmd-prefix'
+  condition: all of selection_*
+falsepositives:
+- Legitimate usage for debugging purposes
+# Increase the level once FP rate is known better (see status)
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potential misuse of Electron applications, which are commonly used for platforms such as Microsoft Teams, Discord, and Slack. It analyzes the command-line parameters passed to the processes of these applications to reveal potentially suspicious behavior that may indicate the use of proxy execution through legitimate binaries. Specifically, the rule looks for command-line arguments that suggest misuse, such as `--browser-subprocess-path`, `--gpu-launcher`, and others associated with the internals of Electron apps. The data sources for this detection primarily include process creation logs, allowing monitoring of how and when these applications are launched, along with what command-line arguments they are provided.
+  ### Investigation Steps
+  - Review recent process creation logs in your EDR tool to find instances of the identified Electron applications executing with suspicious command-line arguments.
+  - Cross-reference the command-line arguments against a whitelist of accepted operations for each application to determine if the usage deviates from standard practices.
+  - Check for additional indicators of compromise, such as unusual network activity or abnormal file modifications, using your SIEM or NDR tools for contextual analysis.
+  - Investigate user activity and sessions from Proxy or VPN logs around the time of the alerts to establish a broader context of the behavior seen in the alert.

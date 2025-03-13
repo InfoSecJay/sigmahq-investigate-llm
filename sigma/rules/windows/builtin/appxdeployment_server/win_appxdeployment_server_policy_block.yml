@@ -1,0 +1,35 @@
+title: Deployment Of The AppX Package Was Blocked By The Policy
+id: e021bbb5-407f-41f5-9dc9-1864c45a7a51
+status: test
+description: Detects an appx package deployment that was blocked by the local computer
+  policy
+references:
+- https://learn.microsoft.com/en-us/windows/win32/appxpkg/troubleshooting
+- https://github.com/nasbench/EVTX-ETW-Resources/blob/7a806a148b3d9d381193d4a80356016e6e8b1ee8/ETWEventsList/CSV/Windows11/22H2/W11_22H2_Pro_20220920_22621.382/Providers/Microsoft-Windows-AppXDeployment-Server.csv
+author: frack113
+date: 2023-01-11
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  service: appxdeployment-server
+detection:
+  selection:
+    EventID:
+    - 441
+    - 442
+    - 453
+    - 454
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying events related to the deployment of AppX packages that have been blocked by local computer policies. AppX packages are used for installing applications on Windows systems, and when a deployment attempt is made, certain security policies may prevent the installation from proceeding. The rule utilizes Event IDs 441, 442, 453, and 454 from the AppX Deployment Service, which logs relevant actions and failures during the AppX installation process. By monitoring these events, the rule can help detect potential defense evasion tactics or unauthorized attempts to override established corporate policies regarding application installations.
+  When an AppX package deployment is blocked, it generates specific events that can indicate malicious intent or policy violations, providing an important signal for security teams to investigate. Responders can leverage data from Windows Event Logs and other endpoint detection sources to build a complete picture of the circumstances surrounding the blocked deployment.
+  ### Investigation Steps
+  - Review the specific Event IDs (441, 442, 453, and 454) from the Windows Event Logs to understand the context and details around the blocked AppX package installation.
+  - Utilize EDR tools to analyze the behavior of the processes that attempted to deploy the AppX package, checking for any unusual activity or patterns associated with the request.
+  - Determine if any related network requests or proxy logs were generated during the attempted deployment, which could indicate external influence or an attempt to download a malicious AppX package.
+  - Examine the endpoint's local security policies and configuration settings to confirm whether the blocking action was consistent with established enterprise security protocols or if it was an anomaly.

@@ -1,0 +1,43 @@
+title: Suspect Svchost Activity
+id: 16c37b52-b141-42a5-a3ea-bbe098444397
+status: test
+description: It is extremely abnormal for svchost.exe to spawn without any CLI arguments
+  and is normally observed when a malicious process spawns the process and injects
+  code into the process memory space.
+references:
+- https://web.archive.org/web/20180718061628/https://securitybytes.io/blue-team-fundamentals-part-two-windows-processes-759fe15965e2
+author: David Burkett, @signalblur
+date: 2019-12-28
+modified: 2022-06-27
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1055
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|endswith: 'svchost.exe'
+    Image|endswith: '\svchost.exe'
+  filter:
+  - ParentImage|endswith:
+    - '\rpcnet.exe'
+    - '\rpcnetp.exe'
+  - CommandLine:             # no CommandLine value available
+  condition: selection and not filter
+fields:
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Rpcnet.exe / rpcnetp.exe which is a lojack style software. 
+  https://www.blackhat.com/docs/us-14/materials/us-14-Kamlyuk-Kamluk-Computrace-Backdoor-Revisited.pdf
+level: high
+notes: |
+  ### Technical Context
+  The "Suspect Svchost Activity" detection rule focuses on identifying potentially malicious behaviors involving the Windows `svchost.exe` process that lacks command-line arguments. In legitimate operations, `svchost.exe` typically has associated command-line arguments that define its function; however, when spawned without any, it may indicate compromise, particularly if it is initiated by a suspicious parent process such as `rpcnet.exe` or `rpcnetp.exe`. The rule leverages process creation logs to monitor instances of `svchost.exe` and checks for instances where the command line is either absent or not as expected. If these conditions are met, an alert is generated, prompting analysts to investigate the potential misuse of this critical system process.
+  ### Investigation Steps
+  - Review EDR logs for recent instances of `svchost.exe` to determine the context of its execution, noting the parent process and any associated behavior.
+  - Check command-line arguments used in recent `svchost.exe` invocations to validate if they align with expected usage or if they are indeed missing.
+  - Correlate the alert with existing alerts or anomalies involving `rpcnet.exe` and `rpcnetp.exe`, as these may indicate a false positive or a more extensive compromise.
+  - Analyze network traffic logs for unusual activity or connections originating from the system in question, particularly following the execution timestamp of `svchost.exe`.

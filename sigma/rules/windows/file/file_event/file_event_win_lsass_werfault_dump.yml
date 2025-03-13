@@ -1,0 +1,33 @@
+title: WerFault LSASS Process Memory Dump
+id: c3e76af5-4ce0-4a14-9c9a-25ceb8fda182
+status: test
+description: Detects WerFault creating a dump file with a name that indicates that
+  the dump file could be an LSASS process memory, which contains user credentials
+references:
+- https://github.com/helpsystems/nanodump
+author: Florian Roth (Nextron Systems)
+date: 2022-06-27
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    Image: C:\WINDOWS\system32\WerFault.exe
+    TargetFilename|contains:
+    - '\lsass'
+    - 'lsass.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context  
+  This Sigma rule is designed to detect an instance where the Windows Error Reporting tool (WerFault.exe) creates a memory dump of the Local Security Authority Subsystem Service (LSASS). LSASS is a critical process responsible for enforcing security policies on the system and managing user logins. When WerFault generates a dump file with a name indicating that it is targeting LSASS (e.g., containing "lsass" or "lsass.exe"), this could signify an attempt to harvest credentials or engage in suspicious activity. The rule monitors file events specifically looking for this behavior against process creation logs, focusing on the executable image and targeted filename patterns.
+  ### Investigation Steps  
+  - Check the EDR solution for any alerts related to the execution of `WerFault.exe`, along with the command-line parameters used during the dump creation.  
+  - Review recent process creation logs around the time of the alert to identify other potentially malicious activities or processes spawned by the same user or system.  
+  - Investigate the file event logs to confirm the presence of the dump file and analyze its content for any sensitive information such as user credentials.  
+  - Utilize the SIEM to correlate this event with other security alerts to identify any related incidents that might indicate a broader compromise or attack vector.

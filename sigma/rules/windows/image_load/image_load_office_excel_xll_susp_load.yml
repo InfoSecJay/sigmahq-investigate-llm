@@ -1,0 +1,44 @@
+title: Microsoft Excel Add-In Loaded From Uncommon Location
+id: af4c4609-5755-42fe-8075-4effb49f5d44
+related:
+- id: c5f4b5cb-4c25-4249-ba91-aa03626e3185
+  type: derived
+status: test
+description: Detects Microsoft Excel loading an Add-In (.xll) file from an uncommon
+  location
+references:
+- https://www.mandiant.com/resources/blog/lnk-between-browsers
+- https://wazuh.com/blog/detecting-xll-files-used-for-dropping-fin7-jssloader-with-wazuh/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-12
+tags:
+- attack.execution
+- attack.t1204.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\excel.exe'
+    ImageLoaded|contains:
+            # Note: Add or remove locations from this list based on your internal policy
+    - '\Desktop\'
+    - '\Downloads\'
+    - '\Perflogs\'
+    - '\Temp\'
+    - '\Users\Public\'
+    - '\Windows\Tasks\'
+    ImageLoaded|endswith: '.xll'
+  condition: selection
+falsepositives:
+- Some tuning might be required to allow or remove certain locations used by the rule
+  if you consider them as safe locations
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule monitors Microsoft Excel's usage of Add-In files (.xll) loaded from uncommon locations on Windows systems. Typically, Excel Add-Ins are stored in standard directories such as the user’s Documents or Program Files. However, the rule specifies uncommon directories such as `\Desktop\`, `\Downloads\`, and other non-standard paths to identify potentially malicious activity. By examining the process creation logs for `excel.exe` and the associated memory image loads, the rule captures scenarios where Excel loads Add-Ins from suspicious locations. Analysts should be concerned about such behavior as it can be indicative of exploitation techniques, including document-based malware or persistent threats leveraging Excel's extensibility feature.
+  ### Investigation Steps
+  - Examine EDR logs to identify the specific instance of Excel that loaded the .xll file, paying close attention to the timestamp and user context.
+  - Review the command-line parameters for the `excel.exe` process to determine if any suspicious flags or arguments were used during execution, which may indicate malicious intent.
+  - Query the file system using the antivirus solution to check if any loaded .xll files are flagged as potentially harmful or relate to known malicious signatures.
+  - Analyze proxy logs to see if there were any suspicious network calls made by Excel during the time frame of the incident, which might indicate data exfiltration or command and control communication.

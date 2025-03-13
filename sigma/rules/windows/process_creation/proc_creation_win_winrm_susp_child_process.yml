@@ -1,0 +1,44 @@
+title: Suspicious Processes Spawned by WinRM
+id: 5cc2cda8-f261-4d88-a2de-e9e193c86716
+status: test
+description: Detects suspicious processes including shells spawnd from WinRM host
+  process
+author: Andreas Hunkeler (@Karneades), Markus Neis
+references:
+- Internal Research
+date: 2021-05-20
+modified: 2022-07-14
+tags:
+- attack.t1190
+- attack.initial-access
+- attack.persistence
+- attack.privilege-escalation
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\wsmprovhost.exe'
+    Image|endswith:
+    - '\cmd.exe'
+    - '\sh.exe'
+    - '\bash.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\wsl.exe'
+    - '\schtasks.exe'
+    - '\certutil.exe'
+    - '\whoami.exe'
+    - '\bitsadmin.exe'
+  condition: selection
+falsepositives:
+- Legitimate WinRM usage
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious processes that are spawned by the Windows Remote Management (WinRM) service, specifically through the 'wsmprovhost.exe' parent process. The detection focuses on various command-line interpreters and administrative tools such as 'cmd.exe', 'powershell.exe', and 'certutil.exe' that, when launched from a WinRM context, may indicate suspicious activity, including unauthorized access or privilege escalation attempts. The rule leverages Windows process creation logs, which capture details about running processes, including their parent processes and command-line arguments. By analyzing this information, the rule aims to highlight potentially malicious behavior resulting from external remote management.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR tool to identify the exact command-line arguments used when the suspicious processes were created by 'wsmprovhost.exe'.
+  - Cross-reference the timestamps of the detected processes with logs from your NGFW or VPN to determine if there was a corresponding unauthorized remote connection at that time.
+  - Analyze user activity logs to establish whether the account used to initiate the WinRM session has a history of legitimate access, or to identify any anomalies in its behavior leading up to the event.
+  - Assess any network traffic associated with the suspicious processes through NDR tools, focusing on external communication patterns that may suggest data exfiltration or command and control (C2) activity.

@@ -1,0 +1,36 @@
+title: WCE wceaux.dll Access
+id: 1de68c67-af5c-4097-9c85-fe5578e09e67
+status: test
+description: Detects wceaux.dll access while WCE pass-the-hash remote command execution
+  on source host
+references:
+- https://www.jpcert.or.jp/english/pub/sr/ir_research.html
+- https://jpcertcc.github.io/ToolAnalysisResultSheet
+author: Thomas Patzke
+date: 2017-06-14
+modified: 2025-01-30
+tags:
+- attack.credential-access
+- attack.t1003
+- attack.s0005
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID:
+    - 4656
+    - 4663
+    ObjectName|endswith: '\wceaux.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: critical
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying unauthorized access to the `wceaux.dll` library, which is associated with the Windows Credential Editor (WCE). The rule activates when it detects specific Windows security events (Event ID 4656 and 4663), which indicate attempts to access objects or files in the system. By monitoring for access events specifically targeting `wceaux.dll`, the rule helps identify potential pass-the-hash attacks executed by adversaries attempting to exploit credential management capabilities on a host. This monitoring utilizes process creation logs along with security event logs, providing a clear view of file access patterns relevant for penetrating investigations into credential access threats.
+  ### Investigation Steps
+  - Collect Windows security logs from the affected host to review Event ID 4656 and 4663 to establish a timeline of access attempts to `wceaux.dll`.
+  - Utilize your EDR tool to correlate process behavior during the time of the detected access, looking for any suspicious command-line parameters or associated processes that may indicate malicious activity.
+  - Inspect network activity using your NGFW or NDR systems to identify any unusual outbound connections that could correspond with command execution or data exfiltration attempts following the access event.
+  - Check AV and endpoint protection logs to see if any alerts correlate with WCE usage or credential theft activity, which may provide further context into how the threat actor gained initial access.

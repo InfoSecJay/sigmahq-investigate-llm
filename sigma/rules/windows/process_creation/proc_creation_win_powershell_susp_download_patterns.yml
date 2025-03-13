@@ -1,0 +1,42 @@
+title: Suspicious PowerShell Download and Execute Pattern
+id: e6c54d94-498c-4562-a37c-b469d8e9a275
+related:
+- id: 3b6ab547-8ec2-4991-b9d2-2b06702a48d7
+  type: derived
+status: test
+description: Detects suspicious PowerShell download patterns that are often used in
+  malicious scripts, stagers or downloaders (make sure that your backend applies the
+  strings case-insensitive)
+references:
+- https://gist.github.com/jivoi/c354eaaf3019352ce32522f916c03d70
+- https://www.trendmicro.com/en_us/research/22/j/lv-ransomware-exploits-proxyshell-in-attack.html
+author: Florian Roth (Nextron Systems)
+date: 2022-02-28
+modified: 2022-03-01
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains:     # make sure that your backend applies the strings case-insensitive
+    - 'IEX ((New-Object Net.WebClient).DownloadString'
+    - 'IEX (New-Object Net.WebClient).DownloadString'
+    - 'IEX((New-Object Net.WebClient).DownloadString'
+    - 'IEX(New-Object Net.WebClient).DownloadString'
+    - ' -command (New-Object System.Net.WebClient).DownloadFile('
+    - ' -c (New-Object System.Net.WebClient).DownloadFile('
+  condition: selection
+falsepositives:
+- Software installers that pull packages from remote systems and execute them
+level: high
+notes: |
+  ### Technical Context
+  The "Suspicious PowerShell Download and Execute Pattern" detection rule identifies potentially malicious PowerShell commands that exhibit behavior frequently associated with downloading and executing scripts from the internet. This rule specifically looks for command strings containing "IEX" (Invoke-Expression) combined with instances of `Net.WebClient`, which are often used in malicious scripts to fetch content from remote sources and execute it. By analyzing process creation logs, this rule can recognize suspicious command-line parameters indicative of an attack, such as downloading and executing payloads without user consent. The detection leverages case-insensitive pattern matching to ensure comprehensive coverage of variations in how commands may be crafted by attackers, while minimizing false positives from benign software installers that utilize similar commands.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR system to find instances where the suspicious PowerShell commands were executed, focusing on the user accounts involved.
+  - Check the command-line parameters of the identified processes for any additional flags or suspicious execution patterns that could indicate further malicious activity.
+  - Use the SIEM to correlate the alert with other security events (such as endpoint connections to known malicious domains or unusual network traffic spikes) to understand the context of the alert better.
+  - Investigate network logs from the NGFW or Proxy to trace any outgoing connections made by the affected host prior to or following the execution of the detected PowerShell commands.

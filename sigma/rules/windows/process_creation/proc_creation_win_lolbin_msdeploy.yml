@@ -1,0 +1,42 @@
+title: Execute Files with Msdeploy.exe
+id: 646bc99f-6682-4b47-a73a-17b1b64c9d34
+status: test
+description: Detects file execution using the msdeploy.exe lolbin
+references:
+- https://lolbas-project.github.io/lolbas/OtherMSBinaries/Msdeploy/
+- https://twitter.com/pabraeken/status/995837734379032576
+- https://twitter.com/pabraeken/status/999090532839313408
+author: Beyu Denis, oscd.community
+date: 2020-10-18
+modified: 2021-11-27
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - 'verb:sync'
+    - '-source:RunCommand'
+    - '-dest:runCommand'
+    Image|endswith: '\msdeploy.exe'
+  condition: selection
+fields:
+- ComputerName
+- User
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- System administrator Usage
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of `msdeploy.exe`, a legitimate Windows utility often abused by attackers for executing commands remotely under the guise of a normal application. The rule specifically looks for the command-line parameters "verb:sync," "-source:RunCommand," and "-dest:runCommand," typically indicating that the application is being summoned to execute potentially harmful commands. By monitoring process creation logs, particularly for the `msdeploy.exe` binary, this rule aims to catch situations where an attacker might leverage this utility as a Living Off The Land Binary (LOLBin) to evade detection while executing malicious payloads or administrative scripts. 
+  The primary data sources involved in this detection are Windows process creation logs, which provide insights into the processes initiated on endpoints, including details about command-line parameters and the parent process that invoked them.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify instances of `msdeploy.exe` running with the specific command-line parameters highlighted in the rule.
+  - Cross-reference the user associated with the alert to determine if the execution aligns with known administrative actions or if it appears anomalous.
+  - Check the parent command line of the process to gain context on what initiated the msdeploy.exe execution and assess if it was a legitimate administrative tool or potentially malicious.
+  - Investigate any outbound network activity associated with the same host during the time frame of the alert in your NDR system to identify potential exfiltration or command-and-control traffic.

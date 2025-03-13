@@ -1,0 +1,37 @@
+title: Explorer NOUACCHECK Flag
+id: 534f2ef7-e8a2-4433-816d-c91bccde289b
+status: test
+description: Detects suspicious starts of explorer.exe that use the /NOUACCHECK flag
+  that allows to run all sub processes of that newly started explorer.exe without
+  any UAC checks
+references:
+- https://twitter.com/ORCA6665/status/1496478087244095491
+author: Florian Roth (Nextron Systems)
+date: 2022-02-23
+modified: 2022-04-21
+tags:
+- attack.defense-evasion
+- attack.t1548.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\explorer.exe'
+    CommandLine|contains: '/NOUACCHECK'
+  filter_dc_logon:
+  - ParentCommandLine: 'C:\Windows\system32\svchost.exe -k netsvcs -p -s Schedule'
+  - ParentImage: 'C:\Windows\System32\svchost.exe'       # coarse filter needed for ID 4688 Events
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Domain Controller User Logon
+- Unknown how many legitimate software products use that method
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Explorer NOUACCHECK Flag" is designed to identify suspicious instances of `explorer.exe` that launch with the `/NOUACCHECK` flag. This flag disables User Account Control (UAC) for any processes initiated by the newly started instance of `explorer.exe`, providing a potential means of evading security measures. The rule specifically monitors the command-line arguments of process creation events on Windows systems, making use of logs that capture process creation activities (e.g., event ID 4688). In particular, it focuses on instances where the parent process is `svchost.exe`, filtering out legitimate user logon events to reduce false positives. Detecting such activity is critical, as it often indicates malicious intent or exploitation attempts within the system.
+  ### Investigation Steps
+  - Use the EDR solution to search for any recent instances of `explorer.exe` running with the `/NOUACCHECK` flag, filtering by process creation logs to find related behaviors.
+  - Examine the command-line history in the offending process's properties for any suspicious parameters or additional commands executed alongside the `/NOUACCHECK` flag.
+  - Review network logs from the NDR solution for any anomalous outbound connections linked to the same timeline of the detected `explorer.exe` instance.
+  - Check for any related logs in the SIEM from the user accounts that triggered the alert, focusing on any abnormal patterns or known indicators of compromise (IoCs).

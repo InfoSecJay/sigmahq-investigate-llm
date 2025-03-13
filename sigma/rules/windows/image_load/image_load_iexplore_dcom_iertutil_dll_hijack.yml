@@ -1,0 +1,39 @@
+title: Potential DCOM InternetExplorer.Application DLL Hijack - Image Load
+id: f354eba5-623b-450f-b073-0b5b2773b6aa
+related:
+- id: e554f142-5cf3-4e55-ace9-a1b59e0def65
+  type: obsolete
+- id: 2f7979ae-f82b-45af-ac1d-2b10e93b0baa
+  type: similar
+status: test
+description: Detects potential DLL hijack of "iertutil.dll" found in the DCOM InternetExplorer.Application
+  Class
+references:
+- https://threathunterplaybook.com/hunts/windows/201009-RemoteDCOMIErtUtilDLLHijack/notebook.html
+author: Roberto Rodriguez @Cyb3rWard0g, Open Threat Research (OTR), wagga
+date: 2020-10-12
+modified: 2022-12-18
+tags:
+- attack.lateral-movement
+- attack.t1021.002
+- attack.t1021.003
+logsource:
+  product: windows
+  category: image_load
+detection:
+  selection:
+    Image|endswith: '\Internet Explorer\iexplore.exe'
+    ImageLoaded|endswith: '\Internet Explorer\iertutil.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: critical
+notes: |
+  ### Technical Context
+  This detection rule identifies potential DLL hijacking attempts related to the Internet Explorer application, specifically targeting the `iertutil.dll` library. DLL hijacking occurs when a malicious actor places a rogue DLL in a folder that is searched before the legitimate DLL, thus allowing the rogue DLL to execute instead. The rule leverages Windows image load logs, monitoring for instances where `iexplore.exe` attempts to load `iertutil.dll` from an unexpected directory. This activity could indicate an attempt to exploit the DCOM service through Internet Explorer, allowing lateral movement within the network.
+  By correlating the image paths of both the running process (`iexplore.exe`) and the loaded library (`iertutil.dll`), the rule aims to catch unauthorized modifications that may bypass standard security controls. The detection is critical as successful DLL hijacking can lead to significant security breaches, including privilege escalation and unauthorized access to sensitive resources.
+  ### Investigation Steps
+  - Utilize EDR tools to review the process creation logs around the time of the alert to identify any suspicious command line inputs or parent processes that may have initiated the Internet Explorer instance.
+  - Examine the file paths associated with the loaded `iertutil.dll` by checking the relevant file attributes and signatures to verify if the DLL is legitimate or if it has been tampered with.
+  - Investigate network traffic logs via your NGFW and Proxy tools to determine if there were any unusual outbound connections made by the instance of Internet Explorer that could indicate data exfiltration or callback to a command-and-control server.
+  - Check cloud logs in AWS, GCP, or Azure (if applicable) to see if any remote access or lateral movement was performed leading up to the DLL hijacking attempt, correlating with other suspicious activity in your environment.

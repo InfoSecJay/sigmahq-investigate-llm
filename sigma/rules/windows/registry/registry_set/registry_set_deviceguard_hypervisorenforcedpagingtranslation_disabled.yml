@@ -1,0 +1,32 @@
+title: Hypervisor Enforced Paging Translation Disabled
+id: 7f2954d2-99c2-4d42-a065-ca36740f187b
+status: experimental
+description: |
+  Detects changes to the "DisableHypervisorEnforcedPagingTranslation" registry value. Where the it is set to "1" in order to disable the Hypervisor Enforced Paging Translation feature.
+references:
+- https://twitter.com/standa_t/status/1808868985678803222
+- https://github.com/AaLl86/WindowsInternals/blob/070dc4f317726dfb6ffd2b7a7c121a33a8659b5e/Slides/Hypervisor-enforced%20Paging%20Translation%20-%20The%20end%20of%20non%20data-driven%20Kernel%20Exploits%20(Recon2024).pdf
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2024-07-05
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: '\DisableHypervisorEnforcedPagingTranslation'
+    Details: 'DWORD (0x00000001)'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect a potentially malicious configuration change in Windows systems where the registry value for "DisableHypervisorEnforcedPagingTranslation" is set to "1." This setting disables the Hypervisor Enforced Paging Translation (HEPT), a security feature that helps prevent certain types of kernel exploits. The presence of this registry change can indicate an attempt to weaken the operating system's security posture by allowing unprivileged code to access sensitive kernel memory elements. The primary data source for this rule is the Windows registry, particularly monitoring for specific changes to this registry key.
+  ### Investigation Steps
+  - Utilize the EDR tool to review recent process creation events to identify any activities that may coincide with the time of the registry change. Look for any unusual or unauthorized applications that were executed.
+  - Check the Windows registry logs to validate the change to the "DisableHypervisorEnforcedPagingTranslation" value. Cross-reference timestamps to determine if any related files or processes were modified around the same period.
+  - Leverage AV logs to scan for known threats or indicators of compromise that may exploit the weaknesses introduced by disabling the HEPT feature. Pay particular attention to any alerts that coincide with the registry modification.
+  - Analyze network traffic through the NDR to detect any anomalous outbound connections that could indicate an ongoing attack or exploitation attempt. This may include unusual data exfiltration patterns or communications with suspect IP addresses.

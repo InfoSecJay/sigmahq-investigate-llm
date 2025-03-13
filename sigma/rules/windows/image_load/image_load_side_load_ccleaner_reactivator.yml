@@ -1,0 +1,38 @@
+title: Potential CCleanerReactivator.DLL Sideloading
+id: 3735d5ac-d770-4da0-99ff-156b180bc600
+status: test
+description: Detects potential DLL sideloading of "CCleanerReactivator.dll"
+references:
+- https://lab52.io/blog/2344-2/
+author: X__Junior
+date: 2023-07-13
+tags:
+- attack.defense-evasion
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\CCleanerReactivator.dll'
+  filter_main_path:
+    Image|startswith:
+    - 'C:\Program Files\CCleaner\'
+    - 'C:\Program Files (x86)\CCleaner\'
+    Image|endswith: '\CCleanerReactivator.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- False positives could occur from other custom installation paths. Apply additional
+  filters accordingly.
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Potential CCleanerReactivator.DLL Sideloading" is designed to detect potential malicious activity involving the sideloading of the "CCleanerReactivator.dll" file. Sideloading occurs when a malicious DLL is loaded into a legitimate process, which may lead to privilege escalation or persistence on a system. This rule looks for instances where the specified DLL is loaded into the memory of processes that match the legitimate application path of CCleaner, specifically checking for the presence of "CCleanerReactivator.EXE". The logs being analyzed are image load logs from Windows, which record when executable files and associated dynamic-link libraries (DLLs) are loaded into memory, making this detection focused on the integrity of application execution environments.
+  ### Investigation Steps
+  - Review EDR logs to identify the process history related to the instance of "CCleanerReactivator.exe" and confirm any unexpected execution patterns.
+  - Cross-reference command-line parameters associated with the process to ensure that no anomalous or suspicious arguments are present during the execution of the application.
+  - Analyze Windows event logs for any other recent activities involving "CCleanerReactivator.dll" or related file modifications that indicate potentially malicious behavior.
+  - Examine network traffic and cloud logs, if available, to detect any outbound communications initiated by the CCleaner instance that could signal data exfiltration or communication with command-and-control infrastructure.

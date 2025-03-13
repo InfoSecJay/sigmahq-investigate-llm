@@ -1,0 +1,36 @@
+title: PsExec Service Installation
+id: 42c575ea-e41e-41f1-b248-8093c3e82a28
+status: test
+description: Detects PsExec service installation and execution events
+references:
+- https://www.jpcert.or.jp/english/pub/sr/ir_research.html
+- https://jpcertcc.github.io/ToolAnalysisResultSheet
+author: Thomas Patzke
+date: 2017-06-12
+modified: 2023-08-04
+tags:
+- attack.execution
+- attack.t1569.002
+- attack.s0029
+logsource:
+  product: windows
+  service: system
+detection:
+  selection_eid:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7045
+  selection_service:
+  - ServiceName: 'PSEXESVC'
+  - ImagePath|endswith: '\PSEXESVC.exe'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the unauthorized installation and execution of the PsExec service, commonly associated with lateral movement and remote execution of commands within a network. Specifically, it targets events logged by the Windows Service Control Manager when a new service is created that matches the characteristics of the PsExec service (PSEXESVC), monitoring for Event ID 7045. By looking at the service name and the image path of the executable, the rule identifies potential malicious behavior associated with the deployment of PsExec, which is often utilized by threat actors to gain remote system access without proper authorization. This detection focuses on Windows log data, specifically service-related entries, enabling incident responders to quickly pinpoint instances of this tool being used inappropriately.
+  ### Investigation Steps
+  - Review the EDR logs to look for additional process creation events related to the detected PsExec service installation, focusing on command-line parameters that may indicate malicious use.
+  - Utilize the AV tool to scan the system for known malicious signatures or anomalies that may be associated with the PsExec execution.
+  - Analyze proxy logs to identify any unusual outbound connections or data exfiltration attempts that occurred around the time of the service installation.
+  - Check cloud logs for relevant activities or alerts, particularly focusing on any instances where cloud resources were accessed using credentials that may have been compromised via PsExec.

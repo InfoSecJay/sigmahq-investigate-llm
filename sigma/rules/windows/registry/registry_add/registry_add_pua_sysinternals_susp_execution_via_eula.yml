@@ -1,0 +1,49 @@
+title: PUA - Sysinternals Tools Execution - Registry
+id: c7da8edc-49ae-45a2-9e61-9fd860e4e73d
+related:
+- id: 25ffa65d-76d8-4da5-a832-3f2b0136e133
+  type: derived
+- id: 9841b233-8df8-4ad7-9133-b0b4402a9014
+  type: obsolete
+status: test
+description: Detects the execution of some potentially unwanted tools such as PsExec,
+  Procdump, etc. (part of the Sysinternals suite) via the creation of the "accepteula"
+  registry key.
+references:
+- https://twitter.com/Moti_B/status/1008587936735035392
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-24
+modified: 2023-02-07
+tags:
+- attack.resource-development
+- attack.t1588.002
+logsource:
+  product: windows
+  category: registry_add
+detection:
+  selection:
+    EventType: CreateKey
+    TargetObject|contains:
+    - '\Active Directory Explorer'
+    - '\Handle'
+    - '\LiveKd'
+    - '\Process Explorer'
+    - '\ProcDump'
+    - '\PsExec'
+    - '\PsLoglist'
+    - '\PsPasswd'
+    - '\SDelete'
+    - '\Sysinternals'         # Global level https://twitter.com/leonzandman/status/1561736801953382400
+    TargetObject|endswith: '\EulaAccepted'
+  condition: selection
+falsepositives:
+- Legitimate use of SysInternals tools. Filter the legitimate paths used in your environment
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of potentially unwanted applications (PUAs) from the Sysinternals suite through the creation of specific registry keys. It focuses on the creation of keys that indicate user acceptance of the End User License Agreement (EULA) for various Sysinternals tools such as PsExec, Process Explorer, and ProcDump. The rule triggers when specific registry keys are created under the HKEY_CURRENT_USER or HKEY_LOCAL_MACHINE hives, specifically where the target object names include these tools and end with '\EulaAccepted'. By monitoring the registry add events, the rule serves as an indicator of possible misuse of these utilities, which can facilitate malicious activities when leveraged by threat actors.
+  ### Investigation Steps
+  - Review the EDR logs to identify the process creation events around the time the registry key was created, focusing on any instances of the Sysinternals tools mentioned in the rule.
+  - Check the command-line parameters used during the execution of the detected tools to assess whether they were launched with suspicious or unauthorized options.
+  - Analyze network traffic in your NDR solution to look for any unusual outbound connections made by these tools, as this could indicate data exfiltration or command-and-control activity.
+  - Consult the logs from NGFW and Proxy to see if there were any attempted connections or downloads from known malicious sources at the time of the alert.

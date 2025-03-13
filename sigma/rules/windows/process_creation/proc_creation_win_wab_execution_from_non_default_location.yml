@@ -1,0 +1,40 @@
+title: Wab Execution From Non Default Location
+id: 395907ee-96e5-4666-af2e-2ca91688e151
+status: test
+description: Detects execution of wab.exe (Windows Contacts) and Wabmig.exe (Microsoft
+  Address Book Import Tool) from non default locations as seen with bumblebee activity
+references:
+- https://thedfirreport.com/2022/08/08/bumblebee-roasts-its-way-to-domain-admin/
+- https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/bumblebee-loader-cybercrime
+- https://thedfirreport.com/2022/09/26/bumblebee-round-two/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-12
+modified: 2022-09-27
+tags:
+- attack.defense-evasion
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\wab.exe'
+    - '\wabmig.exe'
+  filter:
+    Image|startswith:
+    - 'C:\Windows\WinSxS\'
+    - 'C:\Program Files\Windows Mail\'
+    - 'C:\Program Files (x86)\Windows Mail\'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule alerts on the execution of `wab.exe` (Windows Contacts) and `wabmig.exe` (Microsoft Address Book Import Tool) when these processes are initiated from non-standard locations within the Windows filesystem. Typically, these executables are located in specific directories such as `C:\Windows\WinSxS\` or `C:\Program Files\Windows Mail\`. The rule works by monitoring process creation logs for the execution of these binaries and verifying that they are not running from their expected locations. The underlying assumption is that adversaries may use these tools inappropriately, particularly in the context of activities associated with malware frameworks like Bumblebee, which aims to blend in with legitimate software for malicious purposes.
+  ### Investigation Steps
+  - Review process creation logs in the EDR system to identify instances of `wab.exe` or `wabmig.exe` execution from unexpected locations.
+  - Analyze command-line parameters associated with the processes to determine if any suspicious options or arguments were used.
+  - Check the originating user account and any recent logins to ensure there is no unauthorized usage or signs of account compromise.
+  - Correlate findings with network logs from the NGFW and proxy to identify any external communications or associated malicious activity related to these executions.

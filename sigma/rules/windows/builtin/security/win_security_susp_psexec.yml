@@ -1,0 +1,41 @@
+title: Suspicious PsExec Execution
+id: c462f537-a1e3-41a6-b5fc-b2c2cef9bf82
+status: test
+description: detects execution of psexec or paexec with renamed service name, this
+  rule helps to filter out the noise if psexec is used for legit purposes or if attacker
+  uses a different psexec client other than sysinternal one
+references:
+- https://web.archive.org/web/20230329171218/https://blog.menasec.net/2019/02/threat-hunting-3-detecting-psexec.html
+author: Samir Bousseaden
+date: 2019-04-03
+modified: 2022-08-11
+tags:
+- attack.lateral-movement
+- attack.t1021.002
+logsource:
+  product: windows
+  service: security
+  definition: 'The advanced audit policy setting "Object Access > Audit Detailed File
+    Share" must be configured for Success/Failure'
+detection:
+  selection1:
+    EventID: 5145
+    ShareName: '\\\\\*\\IPC$'     # looking for the string \\*\IPC$
+    RelativeTargetName|endswith:
+    - '-stdin'
+    - '-stdout'
+    - '-stderr'
+  filter:
+    RelativeTargetName|startswith: 'PSEXESVC'
+  condition: selection1 and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Suspicious PsExec Execution" rule is designed to detect instances of the PsExec tool being executed with a renamed service name, which is often indicative of lateral movement or potential misuse in an environment. PsExec, a utility from Sysinternals, allows the execution of processes on remote systems, and attackers frequently utilize it to escalate their privileges and perform actions across the network. This detection rule specifically looks for Windows security events (Event ID 5145) related to file share access, focusing on connections to the IPC$ share, which is commonly used for inter-process communication. By filtering for specific strings associated with PsExec operations (like service names ending in '-stdin', '-stdout', or '-stderr'), the rule effectively reduces false positives from legitimate usage while allowing incident responders to focus on potentially malicious activities. 
+  ### Investigation Steps
+  - Review the EDR logs for the event corresponding to Event ID 5145 to gather detailed information on the process execution context, including the user account and timestamps associated with the suspicious activity.
+  - Check for any processes that were executed in conjunction with PsExec, particularly focusing on those that involve the command line parameters ending with '-stdin', '-stdout', or '-stderr' for additional insights.
+  - Examine the security logs for other related events leading up to the suspicious execution to identify any precursor activities that may indicate compromised credentials or unauthorized access.
+  - Investigate any network traffic logs on the NGFW or NDR to pinpoint connections to the affected hosts during the time of the alert, ensuring that you consider traffic patterns associated with known malicious IPs or unusual outbound connections.

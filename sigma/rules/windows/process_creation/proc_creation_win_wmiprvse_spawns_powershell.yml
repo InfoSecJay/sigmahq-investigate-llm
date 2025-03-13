@@ -1,0 +1,46 @@
+title: Potential WMI Lateral Movement WmiPrvSE Spawned PowerShell
+id: 692f0bec-83ba-4d04-af7e-e884a96059b6
+related:
+- id: 8a582fe2-0882-4b89-a82a-da6b2dc32937
+  type: similar
+- id: d21374ff-f574-44a7-9998-4a8c8bf33d7d
+  type: similar
+status: stable
+description: Detects Powershell as a child of the WmiPrvSE process. Which could be
+  a sign of lateral movement via WMI.
+references:
+- https://any.run/report/68bc255f9b0db6a0d30a8f2dadfbee3256acfe12497bf93943bc1eab0735e45e/a2385d6f-34f7-403c-90d3-b1f9d2a90a5e
+author: Markus Neis @Karneades
+date: 2019-04-03
+modified: 2023-03-29
+tags:
+- attack.execution
+- attack.t1047
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|endswith: '\WmiPrvSE.exe'
+  selection_img:
+  - Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+  - OriginalFileName:
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+  condition: all of selection_*
+falsepositives:
+- AppvClient
+- CCM
+- WinRM
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule focuses on detecting instances where PowerShell processes are spawned as children of the WmiPrvSE.exe (Windows Management Instrumentation Provider Service). The WMI service is commonly used for executing commands and accessing data programmatically on Windows systems, and malicious actors may exploit it for lateral movement within a network. By monitoring process creation logs, specifically looking for the specific parent-child relationship between WmiPrvSE and PowerShell, this rule aims to identify potentially unauthorized or abnormal use of PowerShell that could indicate malicious activity. The data sources involved in this detection include process creation logs that provide insights into process hierarchies, including details such as the process image names and their original file names.
+  ### Investigation Steps
+  - Review the process tree in your EDR tool to confirm whether the detected PowerShell process was indeed spawned by WmiPrvSE.exe and assess other parent and child process relationships.
+  - Correlate the alert with network logs from the firewall (NGFW) to check for any unusual outbound connections initiated by the PowerShell process, which could indicate lateral movement or data exfiltration.
+  - Examine command-line parameters of the detected PowerShell execution to identify any suspicious scripts or commands being run, which may provide context for the intent behind the execution.
+  - Check for any impersonation or unusual behavior by reviewing the audit logs in your security systems to verify that there are no legitimate applications (such as AppvClient or WinRM) involved in the activity, which could result in false positives.

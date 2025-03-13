@@ -1,0 +1,41 @@
+title: Renamed Sysinternals Sdelete Execution
+id: c1d867fe-8d95-4487-aab4-e53f2d339f90
+status: test
+description: Detects the use of a renamed SysInternals Sdelete, which is something
+  an administrator shouldn't do (the renaming)
+references:
+- https://learn.microsoft.com/en-us/sysinternals/downloads/sdelete
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1485/T1485.md
+author: Florian Roth (Nextron Systems)
+date: 2022-09-06
+modified: 2023-02-03
+tags:
+- attack.impact
+- attack.t1485
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    OriginalFileName: 'sdelete.exe'
+  filter:
+    Image|endswith:
+    - '\sdelete.exe'
+    - '\sdelete64.exe'
+  condition: selection and not filter
+fields:
+- ComputerName
+- User
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- System administrator usage
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential misuse of the Sysinternals utility "Sdelete" when it is executed under a renamed file. The original executable is typically named `sdelete.exe` or `sdelete64.exe`, which is a legitimate tool used for securely deleting files. Renaming such tools can indicate malicious intent, such as an attempt to obscure execution from security monitoring. This detection utilizes process creation logs to capture specific attributes, including the original file name of the executed process. If the original file name matches `sdelete.exe` but the actual executed image does not match the expected name, the rule generates an alert. This can help security teams identify suspicious activities tied to file deletion and data exfiltration attempts.
+  ### Investigation Steps
+  - Review the **process creation logs** in your EDR solution to find instances where `sdelete.exe` was executed with a different file name. Analyze the time, user, and any associated parent processes.
+  - Check the **command line parameters** used in the execution. Look for any unusual flags or arguments that may suggest a harmful or unintended operation.
+  - Cross-reference with **AV logs** to determine if the renamed executable was flagged or similarly associated with known indicators of compromise.
+  - Investigate **network activity** related to the user or system involved, specifically looking for communications to suspicious external destinations within a relevant timeframe.

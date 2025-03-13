@@ -1,0 +1,42 @@
+title: Suspicious Cobalt Strike DNS Beaconing - Sysmon
+id: f356a9c4-effd-4608-bbf8-408afd5cd006
+related:
+- id: 0d18728b-f5bf-4381-9dcf-915539fff6c2
+  type: similar
+status: test
+description: Detects a program that invoked suspicious DNS queries known from Cobalt
+  Strike beacons
+references:
+- https://www.icebrg.io/blog/footprints-of-fin7-tracking-actor-patterns
+- https://www.sekoia.io/en/hunting-and-detecting-cobalt-strike/
+author: Florian Roth (Nextron Systems)
+date: 2021-11-09
+modified: 2023-01-16
+tags:
+- attack.command-and-control
+- attack.t1071.004
+logsource:
+  product: windows
+  category: dns_query
+detection:
+  selection1:
+    QueryName|startswith:
+    - 'aaa.stage.'
+    - 'post.1'
+  selection2:
+    QueryName|contains: '.stage.123456.'
+  condition: 1 of selection*
+falsepositives:
+- Unknown
+fields:
+- Image
+- CommandLine
+level: critical
+notes: |
+  ### Technical Context
+  This detection rule targets suspicious DNS queries associated with Cobalt Strike beacons, a widely utilized tool for command-and-control (C2) communication in cyber attacks. The rule specifically monitors DNS query logs for indicators such as queries starting with 'aaa.stage.' or 'post.1', as well as queries containing patterns like '.stage.123456.'. By filtering these suspicious DNS entries, the rule allows for the identification of potential malicious activities linked to advanced threats utilizing Cobalt Strike for remote access. The primary data sources leveraged for this detection include Sysmon-generated DNS query logs, where process information, including image names and command-line arguments, is crucial for contextual analysis.
+  ### Investigation Steps
+  - Review recent DNS query logs in your DNS infrastructure or Sysmon to identify any occurrences of the captured suspicious query patterns.
+  - Utilize EDR tools to investigate the endpoints from which the suspicious DNS queries were initiated, focusing on the associated processes and command-line parameters.
+  - Check for any related outbound network connections originating from those endpoints, utilizing NDR tools for a more comprehensive view of potential data exfiltration.
+  - Analyze any alerts from your NGFW or Proxy that may correlate with these DNS queries, reviewing for any other indicators of compromise related to Cobalt Strike activity.

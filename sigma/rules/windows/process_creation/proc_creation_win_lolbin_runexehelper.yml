@@ -1,0 +1,31 @@
+title: Lolbin Runexehelper Use As Proxy
+id: cd71385d-fd9b-4691-9b98-2b1f7e508714
+status: test
+description: Detect usage of the "runexehelper.exe" binary as a proxy to launch other
+  programs
+references:
+- https://twitter.com/0gtweet/status/1206692239839289344
+- https://lolbas-project.github.io/lolbas/Binaries/Runexehelper/
+author: frack113
+date: 2022-12-29
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\runexehelper.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule targets the use of "runexehelper.exe," a legitimate Windows binary that can be misused to execute other applications as a proxy. Attackers may deploy this technique to evade detection and run malicious processes under the guise of a trusted system executable. The rule works by monitoring process creation logs for instances where the parent image is "runexehelper.exe," indicating that it has been leveraged inappropriately to launch other binaries. This can raise suspicions of defense evasion tactics associated with various threat actors. The primary data source for this detection is Windows process creation logs, which include details such as the command-line parameters and the parent-child relationships of processes.
+  ### Investigation Steps
+  - Review recent process creation logs in your EDR tool to identify instances of "runexehelper.exe" launching other processes. Pay special attention to the command-line parameters to understand the context of its use.
+  - Cross-reference the execution times of detected events with the timeline of any recent security incidents to determine if the use of "runexehelper.exe" correlates with suspicious activity.
+  - Utilize your AV solution to scan for any related files or binaries that were launched by the runexehelper process. Look for known malicious signatures or anomalous behavior that may indicate a compromise.
+  - Check proxy logs for any outbound connections initiated by processes spawned from "runexehelper.exe." Analyze traffic patterns for signs of data exfiltration or connections to known malicious endpoints.

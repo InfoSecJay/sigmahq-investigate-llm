@@ -1,0 +1,47 @@
+title: Boot Configuration Tampering Via Bcdedit.EXE
+id: 1444443e-6757-43e4-9ea4-c8fc705f79a2
+status: stable
+description: Detects the use of the bcdedit command to tamper with the boot configuration
+  data. This technique is often times used by malware or attackers as a destructive
+  way before launching ransomware.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1490/T1490.md
+- https://eqllib.readthedocs.io/en/latest/analytics/c4732632-9c1d-4980-9fa8-1d98c93f918e.html
+author: E.M. Anhaus (originally from Atomic Blue Detections, Endgame), oscd.community
+date: 2019-10-24
+modified: 2023-02-15
+tags:
+- attack.impact
+- attack.t1490
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\bcdedit.exe'
+  - OriginalFileName: 'bcdedit.exe'
+  selection_set:
+    CommandLine|contains: 'set'
+  selection_cli:
+  - CommandLine|contains|all:
+    - 'bootstatuspolicy'
+    - 'ignoreallfailures'
+  - CommandLine|contains|all:
+    - 'recoveryenabled'
+    - 'no'
+  condition: all of selection_*
+fields:
+- ComputerName
+- User
+- CommandLine
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential tampering with the boot configuration on Windows systems using the `bcdedit.exe` utility. This command-line tool is often exploited by malicious actors to manipulate the Boot Configuration Data (BCD), compromising system recovery options or making it difficult to initiate safe modes—a technique frequently associated with pre-ransomware activities. The rule looks for specific conditions in process creation logs, targeting instances where `bcdedit.exe` is executed with command-line parameters that could indicate malicious intent, such as `bootstatuspolicy ignoreallfailures` or `recoveryenabled no`. By scrutinizing the command-line usage of the executable, the rule increases the likelihood of detecting attempts to alter the boot configuration without authorization.
+  ### Investigation Steps
+  - Utilize EDR tools to investigate the process creation logs for any instances of `bcdedit.exe` being executed, focusing on the respective command-line arguments.
+  - Check for any suspicious user accounts associated with the command execution and analyze their login history using logs from Active Directory or similar directories.
+  - Review alert details in the SIEM, correlating the time of the `bcdedit.exe` execution with other security events to identify potential lateral movement or escalation of privileges.
+  - If applicable, examine endpoints for any recent installation of fileless malware or anomalous behavioral patterns that could be linked to the identified command usage in the logs.

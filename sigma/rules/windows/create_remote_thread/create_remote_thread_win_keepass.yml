@@ -1,0 +1,34 @@
+title: Remote Thread Created In KeePass.EXE
+id: 77564cc2-7382-438b-a7f6-395c2ae53b9a
+status: test
+description: Detects remote thread creation in "KeePass.exe" which could indicates
+  potential password dumping activity
+references:
+- https://www.cisa.gov/uscert/ncas/alerts/aa20-259a
+- https://github.com/denandz/KeeFarce
+- https://github.com/GhostPack/KeeThief
+author: Timon Hackenjos
+date: 2022-04-22
+modified: 2023-05-05
+tags:
+- attack.credential-access
+- attack.t1555.005
+logsource:
+  product: windows
+  category: create_remote_thread
+detection:
+  selection:
+    TargetImage|endswith: '\KeePass.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential malicious activity related to password dumping by monitoring for the creation of remote threads in the KeePass application (`KeePass.exe`). Remote thread creation can indicate that an external process is attempting to manipulate KeePass, often to extract sensitive information, such as passwords stored by the application. The rule primarily relies on process creation logs that capture thread actions, specifically looking for instances where a remote thread is created in the KeePass executable. Given that KeePass is a widely used password manager, any unauthorized manipulation may represent a significant security risk.
+  The logs examined by this rule come from Windows systems, focusing on events related to `create_remote_thread` behavior. When this activity is detected, it may warrant further investigation as it could be indicative of credential theft techniques documented under MITRE ATT&CK, particularly T1555.005, which highlights the risk posed by attackers utilizing tools like KeeFarce or KeeThief to compromise password security.
+  ### Investigation Steps
+  - Utilize EDR tools to search for the process tree associated with the `KeePass.exe` execution and investigate any unusual parent processes that might indicate malicious behavior.
+  - Review the related command-line arguments passed to `KeePass.exe` to determine if any parameters indicate unauthorized access attempts or unusual operational modes.
+  - Analyze event logs for any unexpected remote thread creation events that coincide with the detection to track the source of the attempts and assess the extent of potential compromise.
+  - Query network logs from NGFW or Proxy services to identify any anomalous outbound connections or data exfiltration activities that could corroborate the detection of unauthorized access to KeePass.

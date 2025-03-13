@@ -1,0 +1,33 @@
+title: Potential MSTSC Shadowing Activity
+id: 6ba5a05f-b095-4f0a-8654-b825f4f16334
+status: test
+description: Detects RDP session hijacking by using MSTSC shadowing
+references:
+- https://twitter.com/kmkz_security/status/1220694202301976576
+- https://github.com/kmkz/Pentesting/blob/47592e5e160d3b86c2024f09ef04ceb87d204995/Post-Exploitation-Cheat-Sheet
+author: Florian Roth (Nextron Systems)
+date: 2020-01-24
+modified: 2023-02-05
+tags:
+- attack.lateral-movement
+- attack.t1563.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - 'noconsentprompt'
+    - 'shadow:'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule identifies potential Remote Desktop Protocol (RDP) session hijacking activity via Microsoft Terminal Services Client (MSTSC) shadowing. MSTSC shadowing allows one user to view and interact with another user's remote session. The rule specifically looks for command line parameters containing "noconsentprompt" and "shadow:", which are indicative of an unauthorized session shadowing attempt. The primary data source involved in this detection comes from Windows process creation logs, capturing the command lines executed when users initiate RDP sessions. Monitoring this behavior is crucial for identifying potential lateral movement by malicious actors within an enterprise network.
+  ### Investigation Steps
+  - Review process creation logs in the EDR for instances where MSTSC was executed with the parameters "noconsentprompt" and "shadow:". This data will help you confirm the context of the detected activity.
+  - Examine Windows Security Event logs for any corresponding RDP logon events to identify the original session being accessed. Look for any abnormal logon times or unauthorized user accounts involved.
+  - Check the user and group permissions in the Active Directory to establish whether the account that initiated the shadowing has legitimate access to perform such actions.
+  - Utilize network traffic logs from the NGFW or NDR to identify any unusual or unauthorized connections related to RDP activity. This includes checking for connections to unexpected IP addresses or locations.

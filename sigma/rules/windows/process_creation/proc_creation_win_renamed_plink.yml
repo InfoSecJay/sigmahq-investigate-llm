@@ -1,0 +1,37 @@
+title: Renamed Plink Execution
+id: 1c12727d-02bf-45ff-a9f3-d49806a3cf43
+status: test
+description: Detects the execution of a renamed version of the Plink binary
+references:
+- https://thedfirreport.com/2022/06/06/will-the-real-msiexec-please-stand-up-exploit-leads-to-data-exfiltration/
+- https://the.earth.li/~sgtatham/putty/0.58/htmldoc/Chapter7.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-06
+modified: 2023-02-03
+tags:
+- attack.defense-evasion
+- attack.t1036
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - OriginalFileName: 'Plink'
+  - CommandLine|contains|all:
+    - ' -l forward'
+    - ' -P '
+    - ' -R '
+  filter:
+    Image|endswith: '\plink.exe'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Renamed Plink Execution" detection rule is designed to identify instances where the Plink utility (a component of the PuTTY suite) is executed under a different name. The rule specifically looks for process creation events where the original filename is identified as 'Plink' and the command line parameters include flags associated with SSH connections, such as `-l` (for login), `-P` (for specifying a port), or `-R` (for reverse tunneling). This detection leverages Windows process creation logs as the primary data source, enabling the SOC to capture the execution of maliciously renamed binaries that might be used to bypass security measures while carrying out potentially harmful activities like data exfiltration.
+  ### Investigation Steps
+  - Review EDR logs for the specific process creation events involving the renamed Plink executable to gather contextual information about the execution time and user accounts involved.
+  - Investigate the command-line arguments associated with the execution to understand the nature of the connection being established and if it corresponds to any known threats.
+  - Check network logs on the NGFW or NDR for any outbound connections that may have been established by the renamed Plink binary to identify potential data exfiltration activities.
+  - Analyze user activity and access logs to determine if the account associated with the execution has a history of suspicious behavior or if it is compromised.

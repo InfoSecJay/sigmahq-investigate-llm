@@ -1,0 +1,44 @@
+title: Nslookup PowerShell Download Cradle - ProcessCreation
+id: 1b3b01c7-84e9-4072-86e5-fc285a41ff23
+related:
+- id: 72671447-4352-4413-bb91-b85569687135
+  type: obsolete
+- id: 999bff6d-dc15-44c9-9f5c-e1051bfc86e1
+  type: similar
+status: test
+description: Detects suspicious powershell download cradle using nslookup. This cradle
+  uses nslookup to extract payloads from DNS records
+references:
+- https://twitter.com/Alh4zr3d/status/1566489367232651264
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-05
+modified: 2022-12-19
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|contains: '\nslookup.exe'
+  - OriginalFileName: '\nslookup.exe'
+  selection_cmd:
+    ParentImage|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    CommandLine|contains:
+    - ' -q=txt '
+    - ' -querytype=txt '
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Nslookup PowerShell Download Cradle 
+  - ProcessCreation" is designed to detect potentially malicious PowerShell operations that utilize the `nslookup` command. This rule focuses on identifying commands that attempt to extract payloads from DNS records, commonly known as a download cradle. By monitoring process creation logs, the rule specifically looks for instances where `nslookup.exe` is invoked as a child process of PowerShell (either `powershell.exe` or `pwsh.exe`). The command line parameters, particularly those including `-q=txt` or `-querytype=txt`, are key indicators of such activity. This behavior is often associated with attackers attempting to download and execute malicious payloads under the radar by utilizing legitimate tools.
+  ### Investigation Steps
+  - Review the EDR logs to examine the full command line arguments for the `nslookup.exe` process and its parent PowerShell process to confirm the execution pattern.
+  - Check the network traffic logs for any associated DNS queries made around the time of the command execution to identify any suspicious DNS records accessed.
+  - Analyze the process tree from EDR to understand the sequence of commands executed, as this can provide context to the PowerShell script's activities and any subsequent processes spawned.
+  - Investigate any related alerts from AV or NGFW that might indicate known malicious domains or IP addresses linked to the detected `nslookup` activity.

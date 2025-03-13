@@ -1,0 +1,40 @@
+title: Assembly DLL Creation Via AspNetCompiler
+id: 4c7f49ee-2638-43bb-b85b-ce676c30b260 # TMP File
+related:
+- id: 9ccba514-7cb6-4c5c-b377-700758f2f120     # SuspChild
+  type: similar
+- id: 9f50fe98-fe5c-4a2d-86c7-fad7f63ed622     # Susp Paths
+  type: similar
+- id: a01b8329-5953-4f73-ae2d-aa01e1f35f00     # Exec
+  type: similar
+status: test
+description: |
+  Detects the creation of new DLL assembly files by "aspnet_compiler.exe", which could be a sign of "aspnet_compiler" abuse to proxy execution through a build provider.
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-08-14
+tags:
+- attack.execution
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    Image|endswith: '\aspnet_compiler.exe'
+    TargetFilename|contains|all:
+    - '\Temporary ASP.NET Files\'
+    - '\assembly\tmp\'
+    - '.dll'
+  condition: selection
+falsepositives:
+- Legitimate assembly compilation using a build provider
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule targets the behavior of the `aspnet_compiler.exe`, a tool commonly used for compiling ASP.NET applications. The rule detects cases where this tool creates new DLL assembly files in specific temporary directories, such as `\Temporary ASP.NET Files\` and `\assembly\tmp\`. The creation of DLL files in these locations might indicate an abuse of the `aspnet_compiler` functionality to execute potentially malicious code or to serve as a proxy for executing other processes. By focusing on the file creation event specifically tied to `aspnet_compiler.exe`, the rule aims to highlight suspicious activity that could be part of a broader attack targeting vulnerable applications or infrastructure components.
+  ### Investigation Steps
+  - Review the EDR logs to identify if `aspnet_compiler.exe` was executed in conjunction with any unusual process tree behavior or command-line arguments.
+  - Check file creation events in `\Temporary ASP.NET Files\` and `\assembly\tmp\` to correlate with the timestamps of the alerts and analyze the associated DLL files for any signs of malicious code.
+  - Utilize the AV tool to scan the newly created DLL files for known signatures or anomalies that could suggest malware.
+  - Analyze web proxy logs for any associated traffic patterns originating from the IP addresses or domains associated with the ASP.NET applications to determine if data exfiltration occurred.

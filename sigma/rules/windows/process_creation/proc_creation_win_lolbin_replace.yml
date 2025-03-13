@@ -1,0 +1,34 @@
+title: Replace.exe Usage
+id: 9292293b-8496-4715-9db6-37028dcda4b3
+status: test
+description: Detects the use of Replace.exe which can be used to replace file with
+  another file
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Replace/
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/replace
+author: frack113
+date: 2022-03-06
+modified: 2024-03-13
+tags:
+- attack.command-and-control
+- attack.t1105
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\replace.exe'
+  argument:
+    CommandLine|contains|windash: '-a'
+  condition: selection and argument
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Replace.exe Usage" detection rule is designed to monitor for the execution of the `Replace.exe` utility, a Windows command-line tool that can replace files within a given directory. The rule specifically looks for instances where this utility is called with the `-a` argument, which enables the replacement of files without prompting for confirmation. This behavior may be indicative of malicious activities, such as data manipulation or file replacement by adversaries in a compromise scenario. The rule leverages process creation logs as its primary data source, focusing on specific command-line parameters associated with the execution of `Replace.exe`. Analysts should remain vigilant as the legitimate use of this command may also occur in routine administrative tasks.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR to identify any instances of `Replace.exe` execution, particularly those invoking the `-a` argument.
+  - Utilize your SIEM to correlate any suspicious activity or alerts associated with the same user account or system to assess whether this execution might be part of a broader attack pattern.
+  - Check for any recently modified files in the directories where `Replace.exe` was executed, noting any unexpected changes that could indicate unauthorized access or data manipulation.
+  - Query network logs in your NGFW for any outbound connections that occurred around the same time as this command's execution to identify potential data exfiltration or command-and-control communications.

@@ -1,0 +1,39 @@
+title: Curl Download And Execute Combination
+id: 21dd6d38-2b18-4453-9404-a0fe4a0cc288
+status: test
+description: Adversaries can use curl to download payloads remotely and execute them.
+  Curl is included by default in Windows 10 build 17063 and later.
+references:
+- https://medium.com/@reegun/curl-exe-is-the-new-rundll32-exe-lolbin-3f79c5f35983     # Dead Link
+author: Sreeman, Nasreddine Bencherchali (Nextron Systems)
+date: 2020-01-13
+modified: 2024-03-05
+tags:
+- attack.defense-evasion
+- attack.t1218
+- attack.command-and-control
+- attack.t1105
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|windash: ' -c '
+    CommandLine|contains|all:
+    - 'curl '
+    - 'http'
+    - '-o'
+    - '&'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Curl Download And Execute Combination" detection rule identifies potentially malicious activities where an adversary utilizes the `curl` command-line tool to retrieve and execute payloads from remote sources on a Windows system. Specifically, the rule looks for command-line parameters that indicate the use of `curl` along with certain patterns, such as executing a command with `-c`, redirecting output with `-o`, and potentially chaining commands with the `&` operator. 
+  This rule leverages process creation logs as a data source to capture instances where `curl` is invoked with specific arguments. It is particularly relevant for environments using Windows 10 build 17063 and later, where `curl` comes pre-installed. By correlating such command usage with known malicious patterns, security analysts can detect instances of command-and-control activities or payload delivery mechanisms employed by threat actors.
+  ### Investigation Steps
+  - Utilize the EDR tool to analyze the process creation logs on the affected endpoint, focusing on instances where `curl` was executed with suspicious command-line arguments.
+  - Cross-reference the timestamp of the detected `curl` execution with other related logs, such as network connections in the NDR logs, to identify any outbound traffic to unusual or known malicious domains.
+  - Review AV logs for any recorded alert or detection associated with the same execution to determine if the downloaded payload was flagged as malicious.
+  - Check proxy logs for any attempts to download files from the specific URLs used in `curl` commands to gain context on the source of these requests and assess the nature of the content being requested.

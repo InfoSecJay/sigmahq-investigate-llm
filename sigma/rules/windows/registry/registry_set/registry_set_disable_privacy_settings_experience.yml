@@ -1,0 +1,31 @@
+title: Disable Privacy Settings Experience in Registry
+id: 0372e1f9-0fd2-40f7-be1b-a7b2b848fa7b
+status: test
+description: Detects registry modifications that disable Privacy Settings Experience
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/9e5b12c4912c07562aec7500447b11fa3e17e254/atomics/T1562.001/T1562.001.md
+author: frack113
+date: 2022-10-02
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: '\SOFTWARE\Policies\Microsoft\Windows\OOBE\DisablePrivacyExperience'
+    Details: 'DWORD (0x00000000)'
+  condition: selection
+falsepositives:
+- Legitimate admin script
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule monitors for specific changes in the Windows Registry, particularly focusing on the "DisablePrivacyExperience" setting under the OOBE (Out-of-Box Experience) key. When this registry entry is modified to a value of `0` (DWORD 0x00000000), it disables the Privacy Settings Experience feature in Windows, which may indicate an effort to evade privacy checks and expose users to potential risks. This rule captures events where the specified registry modification occurs, utilizing data from Windows Registry logs to identify unauthorized or suspicious changes. It is crucial for incident responders to be aware of such modifications, as they may signify unusual administrative actions or potential malicious activity.
+  ### Investigation Steps
+  - Review the registry change event in the EDR for the specified key to confirm the context of the modification and identify the initiating user or process.
+  - Cross-reference the timestamp of the registry modification with any relevant alert or activity logs that might indicate suspicious behavior, using the SIEM for enriched context.
+  - Check for recent administrative scripts or group policy updates that may have been deployed, as these can sometimes lead to legitimate changes that trigger the rule.
+  - If deemed suspicious, analyze other system logs (such as process creation logs) around the same timeframe to identify any abnormal system behavior or further potential indicators of compromise.

@@ -1,0 +1,35 @@
+title: HackTool - EDRSilencer Execution - Filter Added
+id: 98054878-5eab-434c-85d4-72d4e5a3361b
+status: test
+description: |
+  Detects execution of EDRSilencer, a tool that abuses the Windows Filtering Platform (WFP) to block the outbound traffic of running EDR agents based on specific hardcoded filter names.
+references:
+- https://github.com/netero1010/EDRSilencer
+author: Thodoris Polyzos (@SmoothDeploy)
+date: 2024-01-29
+modified: 2024-01-30
+tags:
+- attack.defense-evasion
+- attack.t1562
+logsource:
+  product: windows
+  service: security
+  definition: 'Requirements: Audit Filtering Platform Policy Change needs to be enabled'
+detection:
+  selection:
+    EventID:
+    - 5441
+    - 5447
+    FilterName|contains: 'Custom Outbound Filter'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of EDRSilencer, a malicious tool that exploits the Windows Filtering Platform (WFP) to manipulate outbound traffic, effectively disabling Endpoint Detection and Response (EDR) agents. The rule identifies specific telemetry events associated with filter modifications, particularly those that involve event IDs 5441 and 5447, which signal changes to filter policies. This detection operates by looking for the presence of a hardcoded filter name, specifically "Custom Outbound Filter", indicating attempts to silence EDR capabilities. To successfully monitor this activity, organizations must ensure that the audit for filtering platform policy changes is enabled in their Windows environments.
+  ### Investigation Steps
+  - Review the EDR logs for processes associated with the EDRSilencer tool around the time of the alert to ascertain any abnormal behavior.
+  - Utilize the SIEM to correlate alerts related to the identified event IDs (5441, 5447) with other related security events to gain context on any potential attack paths.
+  - Analyze the network traffic logs through your NGFW or NDR solutions to determine if any outbound connections were made during the suspected usage of EDRSilencer.
+  - Examine the Windows Security event logs to identify any recent configuration changes or policy modifications made to the WFP that may indicate an assault on security controls.

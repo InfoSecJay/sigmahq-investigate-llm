@@ -1,0 +1,48 @@
+title: Firewall Disabled via Netsh.EXE
+id: 57c4bf16-227f-4394-8ec7-1b745ee061c3
+status: test
+description: Detects netsh commands that turns off the Windows firewall
+references:
+- https://www.winhelponline.com/blog/enable-and-disable-windows-firewall-quickly-using-command-line/
+- https://app.any.run/tasks/210244b9-0b6b-4a2c-83a3-04bd3175d017/
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1562.004/T1562.004.md#atomic-test-1---disable-microsoft-defender-firewall
+author: Fatih Sirin
+date: 2019-11-01
+modified: 2023-02-13
+tags:
+- attack.defense-evasion
+- attack.t1562.004
+- attack.s0108
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\netsh.exe'
+  - OriginalFileName: 'netsh.exe'
+  selection_cli_1:
+        # Example: netsh firewall set opmode disable
+    CommandLine|contains|all:
+    - 'firewall'
+    - 'set'
+    - 'opmode'
+    - 'disable'
+  selection_cli_2:
+        # Example: netsh advfirewall set currentprofile state off
+    CommandLine|contains|all:
+    - 'advfirewall'
+    - 'set'
+    - 'state'
+    - 'off'
+  condition: selection_img and 1 of selection_cli_*
+falsepositives:
+- Legitimate administration activity
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies instances of the `netsh.exe` command-line tool being used to disable the Windows firewall. The rule specifically looks for process creation logs that indicate the execution of `netsh.exe`, accompanied by certain command-line parameters that signify firewall deactivation. The key phrases targeted include commands that contain "firewall set opmode disable" or "advfirewall set state off." By monitoring these actions, the rule helps detect potentially unauthorized changes to firewall settings, which could indicate an attempt to evade security measures or facilitate further malicious activities within the environment. The main data sources involved in this rule are process creation logs, which capture information on the command execution context, including the image name, original file name, and command line parameters.
+  ### Investigation Steps
+  - Review process creation logs using EDR to identify the `netsh.exe` execution context, focusing on the timestamp and user account associated with the action.
+  - Examine the command line parameters to confirm whether they include any of the specified phrases indicating firewall deactivation, noting any patterns related to user behavior.
+  - Cross-reference firewall logs to determine if there was a legitimate business need for the firewall to be disabled during the noted timeframe.
+  - Check for other potentially related activities in SIEM logs, such as changes to security policies or unusual access attempts that may correlate with the netsh command execution.

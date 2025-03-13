@@ -1,0 +1,41 @@
+title: Suspicious Unsigned Dbghelp/Dbgcore DLL Loaded
+id: bdc64095-d59a-42a2-8588-71fd9c9d9abc
+related:
+- id: 0e277796-5f23-4e49-a490-483131d4f6e1     # Suspicious Loading
+  type: similar
+status: test
+description: |
+  Detects the load of dbghelp/dbgcore DLL (used to make memory dumps) by suspicious processes.
+  Tools like ProcessHacker and some attacker tradecract use MiniDumpWriteDump API found in dbghelp.dll or dbgcore.dll.
+  As an example, SilentTrynity C2 Framework has a module that leverages this API to dump the contents of Lsass.exe and transfer it over the network back to the attacker's machine.
+references:
+- https://learn.microsoft.com/en-us/windows/win32/api/minidumpapiset/nf-minidumpapiset-minidumpwritedump
+- https://www.pinvoke.net/default.aspx/dbghelp/MiniDumpWriteDump.html
+- https://medium.com/@fsx30/bypass-edrs-memory-protection-introduction-to-hooking-2efb21acffd6
+author: Perez Diego (@darkquassar), oscd.community, Ecco
+date: 2019-10-27
+modified: 2022-12-09
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith:
+    - '\dbghelp.dll'
+    - '\dbgcore.dll'
+    Signed: 'false'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The detection rule titled "Suspicious Unsigned Dbghelp/Dbgcore DLL Loaded" is designed to identify instances where potentially malicious processes load unsigned versions of the dbghelp.dll or dbgcore.dll libraries. These libraries are typically utilized for creating memory dumps, which can be exploited by attackers through APIs like MiniDumpWriteDump, as seen in various threat actor techniques, including those employed by the SilentTrynity C2 Framework. By monitoring for the loading of these unsigned DLLs, the rule helps to flag suspicious activity indicative of credential theft or other unauthorized memory access actions. The technical data sources involved primarily include image load events on Windows systems, allowing the rule to capture the relevant details surrounding DLL interactions by processes.
+  ### Investigation Steps
+  - Utilize your EDR tool to identify the process that loaded the unsigned dbghelp.dll or dbgcore.dll, checking for associated command-line arguments and parent processes.
+  - Investigate the process's behavior by examining recorded activities and if possible, retrieve any memory dumps to analyze for further malicious behavior.
+  - Check firewall and proxy logs for any outbound connections made by the suspicious process, which may help identify data exfiltration attempts.
+  - Review the system or cloud logs (if applicable) for unusual login activities or privilege escalations correlated to the time the DLLs were loaded.

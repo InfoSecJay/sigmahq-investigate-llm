@@ -1,0 +1,45 @@
+title: Add Potential Suspicious New Download Source To Winget
+id: c15a46a0-07d4-4c87-b4b6-89207835a83b
+related:
+- id: 05ebafc8-7aa2-4bcd-a269-2aec93f9e842
+  type: similar
+- id: 81a0ecb5-0a41-4ba1-b2ba-c944eb92bfa2
+  type: similar
+status: test
+description: Detects usage of winget to add new potentially suspicious download sources
+references:
+- https://learn.microsoft.com/en-us/windows/package-manager/winget/source
+- https://github.com/nasbench/Misc-Research/tree/b9596e8109dcdb16ec353f316678927e507a5b8d/LOLBINs/Winget
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-04-17
+modified: 2023-12-04
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1059
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\winget.exe'
+  - OriginalFileName: 'winget.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'source '
+    - 'add '
+  selection_source_direct_ip:
+        # This is a best effort. A better way to handle this is to limit it via whitelist. Check Group Policy for more details
+    CommandLine|re: '://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule monitors for the use of the Windows Package Manager, `winget`, specifically when it is invoked to add new sources that could potentially be deemed suspicious. The rule focuses on process creation events where `winget.exe` is executed with command-line arguments indicating an attempt to add a new source (`source add`). It looks for command-line inputs that contain direct IP addresses, suggesting that the source being added is not from a known or trusted repository. By analyzing attributes such as the command-line input and the original filename of the executable, this rule aims to identify possible evasion techniques used by malicious actors to circumvent security measures and introduce unverified software sources.
+  ### Investigation Steps
+  - Review the process creation logs from your EDR to confirm the execution of `winget.exe` and retrieve the corresponding command-line parameters for additional context.
+  - Investigate the network activity logs to track any connections made to the IP addresses that were specified in the command-line input, looking for patterns or unusual behavior.
+  - Check your firewall or proxy logs for any access attempts to the newly added sources, confirming whether they align with known malicious indicators or previously unregistered domains.
+  - Query the organization's Group Policy settings to determine whether there are any restrictions on adding new sources to `winget`, and evaluate if the activity violates established policies.

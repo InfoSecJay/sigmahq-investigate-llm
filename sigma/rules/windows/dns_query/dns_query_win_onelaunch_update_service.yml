@@ -1,0 +1,34 @@
+title: DNS Query Request To OneLaunch Update Service
+id: df68f791-ad95-447f-a271-640a0dab9cf8
+status: test
+description: |
+  Detects DNS query requests to "update.onelaunch.com". This domain is associated with the OneLaunch adware application.
+  When the OneLaunch application is installed it will attempt to get updates from this domain.
+references:
+- https://www.malwarebytes.com/blog/detections/pup-optional-onelaunch-silentcf
+- https://www.myantispyware.com/2020/12/14/how-to-uninstall-onelaunch-browser-removal-guide/
+- https://malware.guide/browser-hijacker/remove-onelaunch-virus/
+author: Josh Nickels
+date: 2024-02-26
+tags:
+- attack.collection
+- attack.t1056
+logsource:
+  category: dns_query
+  product: windows
+detection:
+  selection:
+    QueryName: 'update.onelaunch.com'
+    Image|endswith: '\OneLaunch.exe'
+  condition: selection
+falsepositives:
+- Unlikely
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies DNS query requests specifically targeting "update.onelaunch.com," which is linked to the OneLaunch adware application. The OneLaunch program, when installed, attempts to connect to this domain to check for updates or potentially malicious content. This detection utilizes DNS query logs as a primary data source, looking for entries where the queried domain matches "update.onelaunch.com" and confirming that the request originates from an instance of the OneLaunch application (indicated by the process name "OneLaunch.exe"). The rule is particularly aimed at uncovering potentially unwanted programs (PUPs) that may impact user privacy and system performance.
+  ### Investigation Steps
+  - Investigate the affected host using the Endpoint Detection and Response (EDR) tool to confirm the presence of the OneLaunch application, checking for any additional anomalous behavior.
+  - Review DNS logs to identify the frequency of queries to "update.onelaunch.com" and check for any associated attempts to connect to other suspicious domains.
+  - Utilize Antivirus (AV) tools to perform a scan on the affected host, ensuring that any related PUPs or malware are identified and remediated.
+  - Consult user activity logs from Proxy or VPN to determine if other sites or services were accessed that could suggest broader malicious activity or exploitation.

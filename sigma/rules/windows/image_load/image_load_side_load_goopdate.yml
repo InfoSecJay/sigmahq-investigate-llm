@@ -1,0 +1,46 @@
+title: Potential Goopdate.DLL Sideloading
+id: b6188d2f-b3c4-4d2c-a17d-9706e0851af0
+status: test
+description: Detects potential DLL sideloading of "goopdate.dll", a DLL used by googleupdate.exe
+references:
+- https://www.ncsc.gov.uk/static-assets/documents/malware-analysis-reports/goofy-guineapig/NCSC-MAR-Goofy-Guineapig.pdf
+author: X__Junior (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-15
+modified: 2023-05-20
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\goopdate.dll'
+  filter_main_generic:
+    ImageLoaded|startswith:
+            # Many third party chromium based apps use this DLLs. It's better to create a baseline and add specific filters
+    - 'C:\Program Files (x86)\'
+    - 'C:\Program Files\'
+  filter_optional_dropbox_installer_temp:
+    Image|contains|all:
+    - '\AppData\Local\Temp\GUM'
+    - '.tmp\Dropbox'
+    ImageLoaded|contains|all:
+    - '\AppData\Local\Temp\GUM'
+    - '.tmp\\goopdate.dll'
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- False positives are expected from Google Chrome installations running from user
+  locations (AppData) and other custom locations. Apply additional filters accordingly.
+- Other third party chromium browsers located in AppData
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule targets potential malicious activity involving the "goopdate.dll", a dynamic-link library commonly associated with the `googleupdate.exe` process. The rule specifically looks for instances where `goopdate.dll` is loaded from non-standard directories, particularly directories that aren't typical for legitimate installations, such as `C:\Program Files` or `C:\Program Files (x86)`. The detection leverages application logs detailing image loads within the Windows environment, capturing the `ImageLoaded` attribute and checking it against expected patterns and known malicious behaviors. By filtering for specific paths and characteristics associated with the use of `goopdate.dll`, security teams can identify potential DLL sideloading attempts that may indicate broader security threats.
+  ### Investigation Steps
+  - Review EDR logs to identify the process that loaded `goopdate.dll` along with the associated command-line arguments to gather context about its execution.
+  - Check recent file activity in the `C:\Program Files` and `C:\Program Files (x86)` directories to identify any unauthorized modifications or installations that could indicate a compromise.
+  - Analyze Proxy and network logs for suspicious outbound connections made by the associated process, particularly to any unverified domains which may indicate communication with an external actor.
+  - Conduct a search in cloud logs (if applicable) to check for any related events or anomalies in user actions that might correlate with the detection of this DLL, especially from known user locations.

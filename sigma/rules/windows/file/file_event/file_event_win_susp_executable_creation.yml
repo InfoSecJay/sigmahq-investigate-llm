@@ -1,0 +1,40 @@
+title: Suspicious Executable File Creation
+id: 74babdd6-a758-4549-9632-26535279e654
+status: test
+description: |
+  Detect creation of suspicious executable file names.
+  Some strings look for suspicious file extensions, others look for filenames that exploit unquoted service paths.
+references:
+- https://medium.com/@SumitVerma101/windows-privilege-escalation-part-1-unquoted-service-path-c7a011a8d8ae
+- https://app.any.run/tasks/76c69e2d-01e8-49d9-9aea-fb7cc0c4d3ad/
+author: frack113
+date: 2022-09-05
+modified: 2023-12-11
+tags:
+- attack.defense-evasion
+- attack.t1564
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|endswith:
+    - ':\$Recycle.Bin.exe'
+    - ':\Documents and Settings.exe'
+    - ':\MSOCache.exe'
+    - ':\PerfLogs.exe'
+    - ':\Recovery.exe'
+    - '.bat.exe'
+    - '.sys.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Suspicious Executable File Creation" rule monitors for the creation of executable files that have names typically associated with malicious activities or exploitation techniques. This includes filenames like `.bat.exe`, and executables that may appear in directories such as `$Recycle.Bin`, `Documents and Settings`, and `MSOCache`, which are often targeted by attackers attempting to evade detection. The rule utilizes file event logs from Windows systems, examining the `TargetFilename` field to identify these suspicious patterns. By concentrating on specific file extensions and paths, the rule aims to detect potential threats such as malware deployment or misuse of unquoted service paths, which can lead to privilege escalation vulnerabilities.
+  ### Investigation Steps
+  - Review recent file creation events in EDR to determine whether the flagged executable has been executed and if it has exhibited any harmful behavior.
+  - Investigate the originating process details, including command-line parameters, to assess any unusual activity or patterns that may indicate malicious intent.
+  - Check any associated logs from the Windows Event Viewer such as Application and System logs to correlate with the file creation event for additional context.
+  - Utilize AV and NDR solutions to scan the affected hosts and network paths for indicators of compromise (IoCs) related to the suspected executables.

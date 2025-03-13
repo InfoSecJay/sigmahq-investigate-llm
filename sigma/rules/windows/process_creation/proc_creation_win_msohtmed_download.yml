@@ -1,0 +1,37 @@
+title: Arbitrary File Download Via MSOHTMED.EXE
+id: 459f2f98-397b-4a4a-9f47-6a5ec2f1c69d
+status: test
+description: Detects usage of "MSOHTMED" to download arbitrary files
+references:
+- https://github.com/LOLBAS-Project/LOLBAS/pull/238/files
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-19
+modified: 2023-11-09
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\MSOHTMED.exe'
+  - OriginalFileName: 'MsoHtmEd.exe'
+  selection_cli:
+    CommandLine|contains:
+    - 'ftp://'
+    - 'http://'
+    - 'https://'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the use of the executable `MSOHTMED.EXE`, which is a legitimate tool that can be misused to download arbitrary files from the internet. The rule specifically looks for process creation events where the image name ends with `\MSOHTMED.EXE` and has the original file name `MsoHtmEd.exe`, accompanied by command-line parameters containing URLs starting with `ftp://`, `http://`, or `https://`. By focusing on these indicators, the rule aims to spot potential abuse of this executable for unauthorized file downloads, which is commonly associated with defense evasion and exploitation tactics. The data sources involved in this detection include Windows process creation logs that provide insight into the execution of applications and their command-line arguments.
+  ### Investigation Steps
+  - Review the EDR logs for instances of `MSOHTMED.EXE` to identify the execution context, including the user account and system where it was launched.
+  - Analyze the command-line parameters associated with the detected instances, specifically looking for any URLs that may indicate attempts to access external resources.
+  - Cross-reference with AV logs to determine if the detected process has raised any flag or if the files being downloaded are malicious in nature.
+  - Examine network traffic through your Proxy or NGFW logs to identify any suspicious connections made to the identified URLs, assessing potential data exfiltration or C2 communications.

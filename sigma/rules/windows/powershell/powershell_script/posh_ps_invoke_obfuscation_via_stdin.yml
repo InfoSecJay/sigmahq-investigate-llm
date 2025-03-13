@@ -1,0 +1,33 @@
+title: Invoke-Obfuscation Via Stdin - Powershell
+id: 86b896ba-ffa1-4fea-83e3-ee28a4c915c7
+status: test
+description: Detects Obfuscated Powershell via Stdin in Scripts
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009      # (Task28)
+author: Nikita Nazarov, oscd.community
+date: 2020-10-12
+modified: 2024-04-05
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_4104:
+    ScriptBlockText|re: '(?i)(set).*&&\s?set.*(environment|invoke|\$\{?input).*&&.*"'
+  condition: selection_4104
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the use of obfuscated PowerShell commands that utilize Standard Input (Stdin). Specifically, it looks for script blocks containing a combination of `set` commands related to setting environment variables or invoking commands through input redirection. To effectively detect this, the rule requires PowerShell Script Block Logging to be enabled, which records detailed information about the execution of PowerShell scripts and commands. By analyzing the captured script block text for specific patterns, the rule can help pinpoint potential attempts at evading security measures through obfuscation techniques.
+  ### Investigation Steps
+  - Use EDR tools to identify the processes that triggered the alert, focusing on the associated PowerShell activity and the context in which the script was executed.
+  - Review the related process execution logs to gather details about parent-child relationships, checking if suspicious processes spawned PowerShell instances.
+  - Analyze network logs from the NGFW or NDR to determine if there were any unusual outbound connections made by the affected system immediately before or after the alert was triggered.
+  - Check for any relevant logs from AV and Proxy services to identify if any associated files were flagged, downloaded, or executed as part of the obfuscated PowerShell command execution.

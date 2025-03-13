@@ -1,0 +1,62 @@
+title: Remote Access Tool Services Have Been Installed - Security
+id: c8b00925-926c-47e3-beea-298fd563728e
+related:
+- id: 1a31b18a-f00c-4061-9900-f735b96c99fc
+  type: similar
+status: test
+description: Detects service installation of different remote access tools software.
+  These software are often abused by threat actors to perform
+references:
+- https://redcanary.com/blog/misbehaving-rats/
+author: Connor Martin, Nasreddine Bencherchali (Nextron Systems)
+date: 2022-12-23
+modified: 2024-12-07
+tags:
+- attack.persistence
+- attack.t1543.003
+- attack.t1569.002
+logsource:
+  product: windows
+  service: security
+  definition: The 'System Security Extension' audit subcategory need to be enabled
+    to log the EID 4697
+detection:
+  selection:
+    EventID: 4697
+    ServiceName|contains:
+            # Based on https://github.com/SigmaHQ/sigma/pull/2841
+    - 'AmmyyAdmin'         # https://www.ammyy.com/en/
+    - 'AnyDesk'         # https://usersince99.medium.com/windows-privilege-escalation-8214ceaf4db8
+    - 'Atera'
+    - 'BASupportExpressSrvcUpdater'         # https://www.systemlookup.com/O23/6837-BASupSrvcUpdater_exe.html
+    - 'BASupportExpressStandaloneService'         # https://www.systemlookup.com/O23/6839-BASupSrvc_exe.html
+    - 'chromoting'
+    - 'GoToAssist'         # https://www.goto.com/it-management/resolve
+    - 'GoToMyPC'         # https://get.gotomypc.com/
+    - 'jumpcloud'
+    - 'LMIGuardianSvc'         # https://www.logmein.com/
+    - 'LogMeIn'         # https://www.logmein.com/
+    - 'monblanking'
+    - 'Parsec'
+    - 'RManService'         # https://www.systemlookup.com/O23/7855-rutserv_exe.html
+    - 'RPCPerformanceService'         # https://www.remotepc.com/
+    - 'RPCService'         # https://www.remotepc.com/
+    - 'SplashtopRemoteService'         # https://www.splashtop.com/
+    - 'SSUService'
+    - 'TeamViewer'
+    - 'TightVNC'         # https://www.tightvnc.com/
+    - 'vncserver'
+    - 'Zoho'
+  condition: selection
+falsepositives:
+- The rule doesn't look for anything suspicious so false positives are expected. If
+  you use one of the tools mentioned, comment it out
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects the installation of remote access tools (RATs) on Windows systems by monitoring for specific event logs, particularly Event ID 4697, which indicates that a service has been created. RATs can be exploited by threat actors to gain unauthorized access and control over systems, making their detection critical for maintaining security. The rule specifically looks for service names associated with known remote access tools such as TeamViewer, AnyDesk, and AmmyyAdmin. The data source for this rule comes from the Windows Security log and requires the 'System Security Extension' audit subcategory to be enabled to capture the relevant events. By identifying the installation of these services, the rule helps security teams proactively respond to potential threats posed by unwanted remote access.
+  ### Investigation Steps
+  - Review the security logs in your SIEM for Event ID 4697 and extract the details related to the identified remote access tools to understand the context of the installation.
+  - Using EDR tools, analyze the process creation and command line parameters around the time of the service installation to determine if any suspicious activities occurred.
+  - Consult network proxy logs to track outbound connections made by the installed remote access tools, which may indicate unauthorized remote access.
+  - Check user activity logs and access management in cloud platforms like AWS, GCP, or Azure for any unusual access attempts that correlate with the installation of the detected services.

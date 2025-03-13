@@ -1,0 +1,57 @@
+title: Suspicious MSHTA Child Process
+id: 03cc0c25-389f-4bf8-b48d-11878079f1ca
+status: test
+description: Detects a suspicious process spawning from an "mshta.exe" process, which
+  could be indicative of a malicious HTA script execution
+references:
+- https://www.trustedsec.com/july-2015/malicious-htas/
+author: Michael Haag
+date: 2019-01-16
+modified: 2023-02-06
+tags:
+- attack.defense-evasion
+- attack.t1218.005
+- car.2013-02-003
+- car.2013-03-001
+- car.2014-04-003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|endswith: '\mshta.exe'
+  selection_child:
+  - Image|endswith:
+    - '\cmd.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\wscript.exe'
+    - '\cscript.exe'
+    - '\sh.exe'
+    - '\bash.exe'
+    - '\reg.exe'
+    - '\regsvr32.exe'
+    - '\bitsadmin.exe'
+  - OriginalFileName:
+    - 'Cmd.Exe'
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+    - 'wscript.exe'
+    - 'cscript.exe'
+    - 'Bash.exe'
+    - 'reg.exe'
+    - 'REGSVR32.EXE'
+    - 'bitsadmin.exe'
+  condition: all of selection*
+falsepositives:
+- Printer software / driver installations
+- HP software
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious behavior characterized by a child process spawned from an `mshta.exe` parent process. The `mshta.exe` executable is often exploited by attackers to run malicious HTML Application (HTA) files that can execute scripts on a Windows system. This rule focuses on monitoring process creation logs for specified child processes, including common scripting and command-line utilities like `cmd.exe`, `powershell.exe`, and `wscript.exe`, among others. The detection is reliant on analyzing the parent-child relationship of processes, specifically looking for cases where legitimate application behavior may involve spawning one of these specified child processes from `mshta.exe`. Observations of this activity could indicate attempts to bypass security measures and execute harmful scripts.
+  ### Investigation Steps
+  - Use the EDR tool to run a process tree analysis to trace the origin of the suspicious `mshta.exe` execution and identify any other related processes spawned in its context.
+  - Validate the integrity of the `mshta.exe` binary by checking its file hash against legitimate sources to ensure that it hasn't been replaced with a malicious version.
+  - Query SIEM logs for any network connections initiated by the suspicious child processes to identify potential command and control communications or data exfiltration attempts.
+  - Review the execution context of the detected process, including command-line arguments and user account details, to ascertain whether the action aligns with typical user behavior or indicates unauthorized access.

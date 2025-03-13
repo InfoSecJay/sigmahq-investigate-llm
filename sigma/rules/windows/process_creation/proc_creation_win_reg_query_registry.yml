@@ -1,0 +1,44 @@
+title: Potential Configuration And Service Reconnaissance Via Reg.EXE
+id: 970007b7-ce32-49d0-a4a4-fbef016950bd
+status: test
+description: Detects the usage of "reg.exe" in order to query reconnaissance information
+  from the registry. Adversaries may interact with the Windows registry to gather
+  information about credentials, the system, configuration, and installed software.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1012/T1012.md
+author: Timur Zinniatullin, oscd.community
+date: 2019-10-21
+modified: 2023-02-05
+tags:
+- attack.discovery
+- attack.t1012
+- attack.t1007
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\reg.exe'
+  - OriginalFileName: 'reg.exe'
+  selection_flag:
+    CommandLine|contains: 'query'
+  selection_key:
+    CommandLine|contains:
+    - 'currentVersion\windows'
+    - 'winlogon\'
+    - 'currentVersion\shellServiceObjectDelayLoad'
+    - 'currentVersion\run'         # Also covers the strings "RunOnce", "RunOnceEx" and "runServicesOnce"
+    - 'currentVersion\policies\explorer\run'
+    - 'currentcontrolset\services'
+  condition: all of selection_*
+falsepositives:
+- Discord
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the invocation of the `reg.exe` command-line utility in Windows for the purpose of querying specific registry keys that can expose sensitive information regarding system configuration, software installations, and credentials. Adversaries often utilize `reg.exe` as part of their reconnaissance phase to obtain crucial insights about a target environment, which can facilitate further malicious actions. The rule specifically monitors for the execution of `reg.exe` with command line parameters indicative of such reconnaissance activities, focusing on keywords associated with various registry paths like current version settings, services, and run keys. The primary data source leveraged here is process creation logs, capturing information about the execution of processes, command-line parameters, and the original executable file name.
+  ### Investigation Steps
+  - Review process creation logs using your EDR to identify instances of `reg.exe` running with suspicious command-line arguments related to registry queries.
+  - Use the SIEM to correlate alerts with user activity logs to distinguish between legitimate administrative tasks and potentially malicious reconnaissance activities by identifying the user and their behavior.
+  - Analyze the contents of the registry at the queried paths to check for unauthorized or unusual configurations, which may indicate that an attacker is probing the environment.
+  - Check for any associated network activity that might indicate exfiltration or communication with external systems, utilizing NDR and proxy logs for comprehensive visibility.

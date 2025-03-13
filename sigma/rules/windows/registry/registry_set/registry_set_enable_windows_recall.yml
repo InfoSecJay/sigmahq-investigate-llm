@@ -1,0 +1,41 @@
+title: Windows Recall Feature Enabled - Registry
+id: 75180c5f-4ea1-461a-a4f6-6e4700c065d4
+related:
+- id: 5dfc1465-8f65-4fde-8eb5-6194380c6a62
+  type: similar
+- id: 817f252c-5143-4dae-b418-48c3e9f63728
+  type: similar
+status: experimental
+description: |
+  Detects the enabling of the Windows Recall feature via registry manipulation. Windows Recall can be enabled by setting the value of "DisableAIDataAnalysis" to "0".
+  Adversaries may enable Windows Recall as part of post-exploitation discovery and collection activities.
+  This rule assumes that Recall is already explicitly disabled on the host, and subsequently enabled by the adversary.
+references:
+- https://learn.microsoft.com/en-us/windows/client-management/manage-recall
+- https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-windowsai#disableaidataanalysis
+author: Sajid Nawaz Khan
+date: 2024-06-02
+tags:
+- attack.collection
+- attack.t1113
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+        # HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\WindowsAI\DisableAIDataAnalysis
+        # HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAI\DisableAIDataAnalysis
+    TargetObject|endswith: '\Software\Policies\Microsoft\Windows\WindowsAI\DisableAIDataAnalysis'
+    Details: 'DWORD (0x00000000)'
+  condition: selection
+falsepositives:
+- Legitimate use/activation of Windows Recall
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect unauthorized changes to the Windows registry that enable the Windows Recall feature. The Windows Recall feature can potentially be utilized by adversaries to gather data about the system and user behavior. The rule specifically looks for modifications to the registry key `DisableAIDataAnalysis` under both `HKEY_CURRENT_USER` and `HKEY_LOCAL_MACHINE`. Initially, this key must be set to a value indicating that Windows Recall is disabled (typically `1`), and the detection occurs when it is changed to `0`, thereby enabling the feature. By observing changes to this specific registry setting, the rule helps identify potential post-exploitation activities by an adversary who seeks to leverage such features for data collection.
+  ### Investigation Steps
+  - Review recent changes in the Windows registry to confirm if the `DisableAIDataAnalysis` setting was altered, utilizing EDR tools for visibility.
+  - Analyze process creation logs around the time of the registry change to identify any suspicious processes that may have initiated this modification.
+  - Investigate user activity logs to determine whether legitimate users were present on the system during the timeframe of the registry change.
+  - Check for any external connections through VPN or Proxy logs, as adversaries may attempt to exfiltrate collected data using these pathways.

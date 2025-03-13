@@ -1,0 +1,40 @@
+title: Firewall Rule Deleted Via Netsh.EXE
+id: 1a5fefe6-734f-452e-a07d-fc1c35bce4b2
+status: test
+description: Detects the removal of a port or application rule in the Windows Firewall
+  configuration using netsh
+references:
+- https://app.any.run/tasks/8bbd5b4c-b82d-4e6d-a3ea-d454594a37cc/
+author: frack113
+date: 2022-08-14
+modified: 2023-02-10
+tags:
+- attack.defense-evasion
+- attack.t1562.004
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\netsh.exe'
+  - OriginalFileName: 'netsh.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'firewall'
+    - 'delete '
+  filter_optional_dropbox:
+    ParentImage|endswith: '\Dropbox.exe'
+    CommandLine|contains: 'name=Dropbox'
+  condition: all of selection_* and not 1 of filter_optional_*
+falsepositives:
+- Legitimate administration activity
+- Software installations and removal
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect unauthorized changes to the Windows Firewall configuration, specifically when a port or application rule is deleted using the `netsh.exe` command-line utility. It identifies process creation events involving `netsh.exe` that contain the keywords "firewall" and "delete" in the command-line parameters, indicating a potential attempt to bypass network security measures. By monitoring these command-line activities, security teams can prevent potential threats associated with disabling firewall rules, which could lead to heightened exposure to attacks. The data sources involved in this rule include Windows process creation logs, which provide vital information such as the command-line arguments passed to the executable.
+  ### Investigation Steps
+  - Utilize EDR solutions to search for recent instances of `netsh.exe` execution, focusing on command-line arguments containing "firewall" and "delete". Review additional context surrounding the execution, such as the user account and process tree.
+  - Cross-reference any detected `netsh.exe` command executions with log entries from the Windows Firewall to confirm whether any rules were indeed deleted. This will help validate the alert and understand its impact.
+  - Inspect the associated user account’s activity using user logs to determine if this action aligns with typical administrative practices or if it appears suspicious. Look for anomalies or patterns in user behavior before and after the alert.
+  - Analyze related logs from network devices such as firewalls and proxies that may indicate related traffic changes or connections that coincide with the deletion of firewall rules, providing insights into potential unauthorized access attempts.

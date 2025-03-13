@@ -1,0 +1,40 @@
+title: Internet Explorer DisableFirstRunCustomize Enabled
+id: ab567429-1dfb-4674-b6d2-979fd2f9d125
+status: test
+description: |
+  Detects changes to the Internet Explorer "DisableFirstRunCustomize" value, which prevents Internet Explorer from running the first run wizard the first time a user starts the browser after installing Internet Explorer or Windows.
+references:
+- https://www.ncsc.gov.uk/static-assets/documents/malware-analysis-reports/devil-bait/NCSC-MAR-Devil-Bait.pdf
+- https://unit42.paloaltonetworks.com/operation-ke3chang-resurfaces-with-new-tidepool-malware/
+- https://admx.help/?Category=InternetExplorer&Policy=Microsoft.Policies.InternetExplorer::NoFirstRunCustomise
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-16
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject|endswith: '\Microsoft\Internet Explorer\Main\DisableFirstRunCustomize'
+    Details:
+    - 'DWORD (0x00000001)'         # Home Page
+    - 'DWORD (0x00000002)'         # Welcome To IE
+  filter_main_generic:
+    Image:
+    - 'C:\Windows\explorer.exe'
+    - 'C:\Windows\System32\ie4uinit.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- As this is controlled by group policy as well as user settings. Some false positives
+  may occur.
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule focuses on detecting modifications to the "DisableFirstRunCustomize" registry value for Internet Explorer. Setting this value to `DWORD (0x00000001)` or `DWORD (0x00000002)` can influence how the Internet Explorer browser presents its startup experience, which includes bypassing the first run wizard. The change is typically made by malicious actors attempting to manipulate browser settings for various evasion techniques. The primary data source monitored for these changes is registry access logs, specifically targeting modifications to the registry path `\Microsoft\Internet Explorer\Main\DisableFirstRunCustomize`. This rule helps highlight potential unauthorized alterations that could indicate defense evasion tactics being deployed by attackers.
+  ### Investigation Steps
+  - Review the EDR logs to identify any recent changes to the registry keys related to Internet Explorer, specifically the "DisableFirstRunCustomize" value.
+  - Investigate the process associated with the registry change using the process creation logs to identify whether the modification was made by a known legitimate application or a potentially malicious entity.
+  - Analyze the network traffic via the Proxy logs around the time of the change to check for any unusual outbound connections that may indicate the presence of malware or command and control activity.
+  - Cross-reference Azure, AWS, or GCP logs to determine if any cloud-based resources were accessed or configured accordingly that may relate to the context of the registry change, especially if involving remote user endpoints.

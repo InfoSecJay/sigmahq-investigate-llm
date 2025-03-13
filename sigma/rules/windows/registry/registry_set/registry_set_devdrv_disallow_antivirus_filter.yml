@@ -1,0 +1,32 @@
+title: Antivirus Filter Driver Disallowed On Dev Drive - Registry
+id: 31e124fb-5dc4-42a0-83b3-44a69c77b271
+status: experimental
+description: |
+  Detects activity that indicates a user disabling the ability for Antivirus mini filter to inspect a "Dev Drive".
+references:
+- https://twitter.com/0gtweet/status/1720419490519752955
+author: '@kostastsale, Nasreddine Bencherchali (Nextron Systems)'
+date: 2023-11-05
+modified: 2024-08-16
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: '\FilterManager\FltmgrDevDriveAllowAntivirusFilter'
+    Details: 'DWORD (0x00000000)'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where users disable the ability of an antivirus mini filter to inspect a "Dev Drive" by modifying a specific registry key on Windows systems. The rule looks for changes to the registry path `\FilterManager\FltmgrDevDriveAllowAntivirusFilter`, specifically checking for the DWORD value set to `0x00000000`. This configuration essentially prevents antivirus filters from monitoring file access activities on Dev Drives, which could lead to potential evasion of malware detection methods. The primary data sources for this rule are registry set logs, which capture alterations to the Windows registry, allowing SOC analysts to respond to potentially malicious intent to circumvent antivirus protections.
+  ### Investigation Steps
+  - Review the registry logs for the modification of `\FilterManager\FltmgrDevDriveAllowAntivirusFilter` to confirm the change to `DWORD (0x00000000)`.
+  - Utilize EDR tools to conduct a timeline analysis of process activities around the time of the registry change to identify any suspicious executable or script initiations.
+  - Check for related alerts or events from your AV solution that may indicate previous detections on the same system, providing context on potential threats.
+  - Assess any network traffic through the NGFW or proxy logs that might indicate communication with known malicious domains or IP addresses following the registry modification.

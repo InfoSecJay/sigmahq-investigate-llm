@@ -1,0 +1,34 @@
+title: Use Get-NetTCPConnection - PowerShell Module
+id: aff815cc-e400-4bf0-a47a-5d8a2407d4e1
+status: test
+description: Adversaries may attempt to get a listing of network connections to or
+  from the compromised system they are currently accessing or from remote systems
+  by querying for information over the network.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1049/T1049.md#atomic-test-2---system-network-connections-discovery-with-powershell
+author: frack113
+date: 2021-12-10
+modified: 2022-12-02
+tags:
+- attack.discovery
+- attack.t1049
+logsource:
+  product: windows
+  category: ps_module
+  definition: 0ad03ef1-f21b-4a79-8ce8-e6900c54b65b
+detection:
+  selection:
+    ContextInfo|contains: 'Get-NetTCPConnection'
+  condition: selection
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the use of the PowerShell module `Get-NetTCPConnection`, which adversaries may utilize to discover network connections on a Windows system. By executing this command, attackers can retrieve information about current TCP connections, which can lead to insights into potential targets or exfiltration points. The rule relies on PowerShell module logs, specifically looking for instances where the command is invoked. This log collection is crucial as it can often be overlooked in standard monitoring practices, facilitating early detection of potentially malicious reconnaissance activities.
+  The key indicators are found within the Windows logs related to PowerShell activity, focusing on the presence of the string 'Get-NetTCPConnection' in the `ContextInfo`. By correlating this information with broader network activity, defenders can gain insights into the potential exploitation or lateral movement within their environment.
+  ### Investigation Steps
+  - Review PowerShell logs in the EDR for occurrences of the `Get-NetTCPConnection` command to understand the context of the executed command and identify the user or process that initiated it.
+  - Check for any unusual outbound or inbound network activity around the time of the PowerShell execution by examining firewall logs and network threat detection alerts.
+  - Investigate endpoint activity around the time of the command's execution using the EDR to look for any other suspicious behavior or connections established by the user or system.
+  - Consult event logs in the Windows Security and Application logs to correlate user behavior and confirm whether this activity is part of normal operations or indicative of a potential compromise.

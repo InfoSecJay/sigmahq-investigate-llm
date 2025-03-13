@@ -1,0 +1,109 @@
+title: Webshell Hacking Activity Patterns
+id: 4ebc877f-4612-45cb-b3a5-8e3834db36c9
+status: test
+description: |
+  Detects certain parent child patterns found in cases in which a web shell is used to perform certain credential dumping or exfiltration activities on a compromised system
+references:
+- https://youtu.be/7aemGhaE9ds?t=641
+author: Florian Roth (Nextron Systems)
+date: 2022-03-17
+modified: 2023-11-09
+tags:
+- attack.persistence
+- attack.t1505.003
+- attack.t1018
+- attack.t1033
+- attack.t1087
+logsource:
+  category: process_creation
+  product: windows
+detection:
+   # Webserver
+  selection_webserver_image:
+    ParentImage|endswith:
+    - '\caddy.exe'
+    - '\httpd.exe'
+    - '\nginx.exe'
+    - '\php-cgi.exe'
+    - '\w3wp.exe'
+    - '\ws_tomcatservice.exe'
+  selection_webserver_characteristics_tomcat1:
+    ParentImage|endswith:
+    - '\java.exe'
+    - '\javaw.exe'
+    ParentImage|contains:
+    - '-tomcat-'
+    - '\tomcat'
+  selection_webserver_characteristics_tomcat2:
+    ParentImage|endswith:
+    - '\java.exe'
+    - '\javaw.exe'
+    CommandLine|contains:
+    - 'catalina.jar'
+    - 'CATALINA_HOME'
+    # Suspicious child processes
+  selection_child_1:
+        # Process dumping
+    CommandLine|contains|all:
+    - 'rundll32'
+    - 'comsvcs'
+  selection_child_2:
+        # Winrar exfil
+    CommandLine|contains|all:
+    - ' -hp'
+    - ' a '
+    - ' -m'
+  selection_child_3:
+        # User add
+    CommandLine|contains|all:
+    - 'net'
+    - ' user '
+    - ' /add'
+  selection_child_4:
+    CommandLine|contains|all:
+    - 'net'
+    - ' localgroup '
+    - ' administrators '
+    - '/add'
+  selection_child_5:
+    Image|endswith:
+            # Credential stealing
+    - '\ntdsutil.exe'
+            # AD recon
+    - '\ldifde.exe'
+    - '\adfind.exe'
+            # Process dumping
+    - '\procdump.exe'
+    - '\Nanodump.exe'
+            # Destruction / ransom groups
+    - '\vssadmin.exe'
+    - '\fsutil.exe'
+  selection_child_6:
+        # SUspicious patterns
+    CommandLine|contains:
+    - ' -decode '          # Used with certutil
+    - ' -NoP '          # Often used in malicious PowerShell commands
+    - ' -W Hidden '          # Often used in malicious PowerShell commands
+    - ' /decode '          # Used with certutil
+    - ' /ticket:'          # Rubeus
+    - ' sekurlsa'          # Mimikatz
+    - '.dmp full'          # Process dumping method apart from procdump
+    - '.downloadfile('          # PowerShell download command
+    - '.downloadstring('          # PowerShell download command
+    - 'FromBase64String'         # PowerShell encoded payload
+    - 'process call create'         # WMIC process creation
+    - 'reg save '          # save registry SAM - syskey extraction
+    - 'whoami /priv'
+  condition: 1 of selection_webserver_* and 1 of selection_child_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The "Webshell Hacking Activity Patterns" Sigma rule is designed to detect suspicious processes that may indicate the presence of a webshell and subsequent malicious activities, such as credential dumping or exfiltration. The rule focuses on identifying specific parent-child process relationships where web servers (e.g., Caddy, Apache, Nginx, and Tomcat) spawn child processes associated with known malicious behaviors. Key indicators include command-line parameters indicative of credential manipulation, unauthorized user creation, and registry access typically leveraged by attackers. The rule primarily utilizes process creation logs from Windows, assessing both the parent process image for web server characteristics and various command-line patterns linked to nefarious activities.
+  By monitoring these patterns, the detection mechanism aims to assist incident response teams in identifying potential compromised systems and malicious activity early. The identified parent-child relationships could necessitate further investigation of the system's integrity and the overall security posture of the network.
+  ### Investigation Steps
+  - Analyze the EDR logs for the identified parent processes (`caddy.exe`, `httpd.exe`, etc.) and check if any spawned suspicious child processes within the same timeframe.
+  - Review command-line arguments of child processes for patterns associated with credential dumping or unauthorized user management, such as those containing "net user /add" or "rundll32".
+  - Check the Proxy logs for any unusual outbound connections which may relate to exfiltration attempts following the webshell activity.
+  - Investigate cloud platform logs (if applicable) for any suspicious activities that correlate with the web server's identified processes, focusing on AWS, GCP, or Azure events related to credential creation or modifications.

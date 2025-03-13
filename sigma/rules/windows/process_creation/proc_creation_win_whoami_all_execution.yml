@@ -1,0 +1,36 @@
+title: Enumerate All Information With Whoami.EXE
+id: c248c896-e412-4279-8c15-1c558067b6fa
+status: test
+description: Detects the execution of "whoami.exe" with the "/all" flag
+references:
+- https://brica.de/alerts/alert/public/1247926/agent-tesla-keylogger-delivered-inside-a-power-iso-daa-archive/
+- https://app.any.run/tasks/7eaba74e-c1ea-400f-9c17-5e30eee89906/
+- https://www.youtube.com/watch?v=DsJ9ByX84o4&t=6s
+author: Florian Roth (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2023-12-04
+modified: 2024-03-05
+tags:
+- attack.discovery
+- attack.t1033
+- car.2016-03-001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_main_img:
+  - Image|endswith: '\whoami.exe'
+  - OriginalFileName: 'whoami.exe'
+  selection_main_cli:
+    CommandLine|contains|windash: ' -all'
+  condition: all of selection_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying the execution of `whoami.exe` with the `/all` flag on Windows systems. The `whoami.exe` command-line utility provides a wide range of information about the current user, including their group memberships, security identifier (SID), and privileges. When the `/all` flag is used, it reveals comprehensive details about the user context, making this command potentially useful for malicious actors attempting to gather information for further exploitations. The rule analyzes process creation logs to detect instances when `whoami.exe` is invoked with the specific command-line argument. The primary data sources involved in this detection include Windows process creation events that capture the image name and original file name of the executed process, along with the command-line arguments used.
+  ### Investigation Steps
+  - Review the EDR or process creation logs to identify the exact timestamp and context of the `whoami.exe` execution, including the user account that invoked it.
+  - Analyze associated command-line arguments to ensure there are no other suspicious flags or commands used in conjunction with `whoami.exe`.
+  - Cross-reference the account executing the command with user access levels and potential abuse indicators to determine if this behavior aligns with normal user activity.
+  - Check network activity logs via proxy or firewall solutions for any suspicious outbound connections following the execution of `whoami.exe` to assess potential data exfiltration attempts.

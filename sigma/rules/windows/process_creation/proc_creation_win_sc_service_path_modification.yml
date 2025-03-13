@@ -1,0 +1,62 @@
+title: Suspicious Service Path Modification
+id: 138d3531-8793-4f50-a2cd-f291b2863d78
+status: test
+description: Detects service path modification via the "sc" binary to a suspicious
+  command or path
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1543.003/T1543.003.md
+- https://web.archive.org/web/20180331144337/https://www.fireeye.com/blog/threat-research/2018/03/sanny-malware-delivery-method-updated-in-recently-observed-attacks.html
+author: Victor Sergeev, oscd.community, Nasreddine Bencherchali (Nextron Systems)
+date: 2019-10-21
+modified: 2022-11-18
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1543.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\sc.exe'
+    CommandLine|contains|all:
+    - 'config'
+    - 'binPath'
+    CommandLine|contains:
+            # Add more suspicious commands or binaries
+    - 'powershell'
+    - 'cmd '
+    - 'mshta'
+    - 'wscript'
+    - 'cscript'
+    - 'rundll32'
+    - 'svchost'
+    - 'dllhost'
+    - 'cmd.exe /c'
+    - 'cmd.exe /k'
+    - 'cmd.exe /r'
+    - 'cmd /c'
+    - 'cmd /k'
+    - 'cmd /r'
+            # Add more suspicious paths
+    - 'C:\Users\Public'
+    - '\Downloads\'
+    - '\Desktop\'
+    - '\Microsoft\Windows\Start Menu\Programs\Startup\'
+    - 'C:\Windows\TEMP\'
+    - '\AppData\Local\Temp'
+  condition: selection
+fields:
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential service path modifications that utilize the Windows Service Control (sc.exe) command-line tool. The rule specifically looks for instances where the command line includes the keywords 'config' and 'binPath', which are commonly employed to modify service configurations. Additionally, it flags the use of suspicious executables such as PowerShell, MSHTA, and command-line interpreters (cmd.exe) that could potentially be leveraged by attackers to create or alter services. The relevant data sources for this detection include process creation logs, which provide visibility into command-line parameters and the parent command lines that initiated these processes. By monitoring these indicators, the rule helps identify malicious activities aiming to manipulate service behaviors, which may lead to privilege escalation or persistent threats.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify the relevant instances of `sc.exe` where the command line parameters include 'config' and 'binPath'.
+  - Investigate the parent command line associated with the suspicious `sc.exe` executions to ascertain the context and legitimacy of the process initiating the service modification.
+  - Check for related network activities in your NDR or Proxy logs for communications that may indicate data exfiltration or callbacks associated with the modified services.
+  - Examine the historical data for the affected services to determine any prior modifications and evaluate the timeline of changes for potential malicious intent.

@@ -1,0 +1,37 @@
+title: Invoke-Obfuscation VAR+ Launcher - PowerShell Module
+id: 6bfb8fa7-b2e7-4f6c-8d9d-824e5d06ea9e
+related:
+- id: 0adfbc14-0ed1-11eb-adc1-0242ac120002
+  type: derived
+status: test
+description: Detects Obfuscated use of Environment Variables to execute PowerShell
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009      # (Task 24)
+author: Jonathan Cheong, oscd.community
+date: 2020-10-15
+modified: 2024-04-05
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_module
+  definition: 0ad03ef1-f21b-4a79-8ce8-e6900c54b65b
+detection:
+  selection_4103:
+    Payload|re: 'cmd.{0,5}(?:/c|/r)(?:\s|)"set\s[a-zA-Z]{3,6}.*(?:\{\d\}){1,}\\"\s+?-f(?:.*\)){1,}.*"'
+  condition: selection_4103
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Invoke-Obfuscation VAR+ Launcher 
+  - PowerShell Module" detection rule is designed to identify obfuscated PowerShell commands that use environment variables in a clandestine manner. Specifically, it targets command executions that utilize the `cmd` executable to indirectly invoke PowerShell scripts through set environment variables, a common tactic used by attackers to evade detection. The detection relies on the analysis of Windows PowerShell module logs, monitoring specific patterns in the command strings where environment variables are manipulated and then executed. This behavior, often seen in malicious payloads, can indicate attempts to execute unauthorized code or maintain persistence in a compromised system.
+  ### Investigation Steps
+  - Review the corresponding PowerShell logs in your EDR tool to identify any occurrences of the specified obfuscated command pattern. Look for context around the execution time and the user account involved.
+  - Cross-reference the identified logs with network activity using your NDR tool to detect any unusual outbound connections that may correlate with the execution event. This may provide insights into data exfiltration or command-and-control (C2) communication.
+  - Check for any associated alerts in your SIEM regarding the same user or system from which the alert was generated. Historical data may reveal whether this is part of a series of suspicious activities.
+  - Analyze the endpoint using your AV tools to run a full scan and identify any malware signatures or unusual processes that may have been created as a result of the execution. This can help confirm whether the incident is linked to a broader compromise.

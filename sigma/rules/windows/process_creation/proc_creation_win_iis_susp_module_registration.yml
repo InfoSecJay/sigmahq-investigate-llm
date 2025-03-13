@@ -1,0 +1,40 @@
+title: Suspicious IIS Module Registration
+id: 043c4b8b-3a54-4780-9682-081cb6b8185c
+status: test
+description: Detects a suspicious IIS module registration as described in Microsoft
+  threat report on IIS backdoors
+references:
+- https://www.microsoft.com/security/blog/2022/07/26/malicious-iis-extensions-quietly-open-persistent-backdoors-into-servers/
+author: Florian Roth (Nextron Systems), Microsoft (idea)
+date: 2022-08-04
+modified: 2023-01-23
+tags:
+- attack.persistence
+- attack.t1505.004
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|endswith: '\w3wp.exe'
+  selection_cli_1:
+    CommandLine|contains: 'appcmd.exe add module'
+  selection_cli_2:
+    CommandLine|contains: ' system.enterpriseservices.internal.publish'
+    Image|endswith: '\powershell.exe'
+  selection_cli_3:
+    CommandLine|contains|all:
+    - 'gacutil'
+    - ' /I'
+  condition: selection_parent and 1 of selection_cli_*
+falsepositives:
+- Administrative activity
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule aims to detect suspicious registrations of IIS modules, a potential sign of backdoor installations on Windows servers running the Internet Information Services (IIS). The rule focuses on process creation events where the parent process is `w3wp.exe`, which is the worker process for IIS applications. It specifically looks for command-line activity indicative of module registration, such as usage of `appcmd.exe`, `powershell.exe` with specific parameters, or `gacutil.exe`, which can be exploited to insert unauthorized modules. The presence of these command-line arguments amidst legitimate IIS process execution can reveal attempts to establish persistent backdoors that may compromise server integrity, as highlighted in Microsoft's threat report on malicious IIS extensions.
+  ### Investigation Steps
+  - Review the alert details in the SIEM to confirm the parent process is `w3wp.exe` and examine the associated command-line arguments for red flags.
+  - Use EDR tools to gather the process creation logs and identify any anomalies or additional suspicious processes that may have run before or after the detected command.
+  - Monitor network traffic through NDR solutions to detect any unusual outbound connections that may indicate exfiltration or communication with command-and-control servers.
+  - Check web server access logs and any related Proxy logs for unusual access patterns or requests that align with the timeframe of the suspicious module registration.

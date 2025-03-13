@@ -1,0 +1,47 @@
+title: Automated Collection Command PowerShell
+id: c1dda054-d638-4c16-afc8-53e007f3fbc5
+status: test
+description: Once established within a system or network, an adversary may use automated
+  techniques for collecting internal data.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1119/T1119.md
+author: frack113
+date: 2021-07-28
+modified: 2022-12-25
+tags:
+- attack.collection
+- attack.t1119
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_ext:
+    ScriptBlockText|contains:
+    - '.doc'
+    - '.docx'
+    - '.xls'
+    - '.xlsx'
+    - '.ppt'
+    - '.pptx'
+    - '.rtf'
+    - '.pdf'
+    - '.txt'
+  selection_cmd:
+    ScriptBlockText|contains|all:
+    - 'Get-ChildItem'
+    - ' -Recurse '
+    - ' -Include '
+  condition: all of selection*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Automated Collection Command PowerShell" Sigma rule is designed to detect potentially malicious PowerShell scripts that an adversary may use to automate the collection of sensitive internal documents from a Windows environment. Specifically, this rule focuses on identifying the use of the `Get-ChildItem` command combined with parameters that allow recursive file searches for document types commonly targeted by attackers, such as `.doc`, `.xls`, and `.pdf`. The detection relies on Windows Script Block Logging, which captures and logs the contents of PowerShell scripts executed on the system, allowing the SIEM to analyze these logs for specific command patterns indicative of data collection activities.
+  By monitoring ScriptBlockText for known document extensions and PowerShell commands used for searching large sets of files, the rule aims to identify when an automated process is being used to collect files that could be exfiltrated or misused. This information is critical for SOC analysts to quickly respond to potential data breaches or reconnaissance activities within the enterprise.
+  ### Investigation Steps
+  - Examine PowerShell logs in your SIEM for any alerts that match the criteria set by the Sigma rule, focusing on the presence of `Get-ChildItem` with the specified parameters.
+  - Utilize your EDR to trace back the process lineage of the PowerShell command execution to identify the parent process and any other related activities that may indicate malicious intent.
+  - Review file access logs to determine whether the documents identified by the PowerShell command were accessed, copied, or modified around the same timeframe as the alert.
+  - Cross-reference the event with user behavior analytics to assess whether the user running the suspicious command has a legitimate business need to access the files in question or if the behavior is abnormal.

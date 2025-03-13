@@ -1,0 +1,42 @@
+title: Registry Hide Function from User
+id: 5a93eb65-dffa-4543-b761-94aa60098fb6
+status: test
+description: Detects registry modifications that hide internal tools or functions
+  from the user (malware like Agent Tesla, Hermetic Wiper uses this technique)
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1564.001/T1564.001.md
+author: frack113
+date: 2022-03-18
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection_set_1:
+    TargetObject|endswith:
+    - 'SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\HideClock'
+    - 'SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\HideSCAHealth'
+    - 'SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\HideSCANetwork'
+    - 'SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\HideSCAPower'
+    - 'SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\HideSCAVolume'
+    Details: 'DWORD (0x00000001)'
+  selection_set_0:
+    TargetObject|endswith:
+    - 'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\ShowInfoTip'
+    - 'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\ShowCompColor'
+    Details: 'DWORD (0x00000000)'
+  condition: 1 of selection_set_*
+falsepositives:
+- Legitimate admin script
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies unauthorized modifications to specific Windows registry keys that are commonly used by malware to hide system functionalities from users. Threat actors, such as those associated with malware like Agent Tesla and Hermetic Wiper, often manipulate registry settings to disable features that provide system information, such as the clock, volume, and network statuses. The rule scans registry changes where the `TargetObject` ends with designated keys indicating hidden functions, specifically checking for values set to `1` for hiding and `0` for exposing critical user interface elements. The primary data source for this detection is Windows registry modification logs, which detail changes made to the system registry, thus allowing incident responders to identify possible evasion techniques utilized by malicious software.
+  ### Investigation Steps
+  - Review recent Windows registry change logs within your EDR tool to identify any changes made to keys related to hiding system functionalities.
+  - Monitor command-line parameters of processes that made the registry modifications, as they may provide context on whether the changes were made by legitimate administration or by malware.
+  - Check the associated processes and their behaviors in your endpoint detection solutions to confirm if they exhibit signs of compromise or malicious activity.
+  - Correlate the timing of the detected modifications with other security alerts in your SIEM to gain further insights into the context and potential impact of the event.

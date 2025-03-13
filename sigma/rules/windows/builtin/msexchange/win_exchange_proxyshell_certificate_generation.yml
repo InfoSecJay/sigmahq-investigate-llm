@@ -1,0 +1,41 @@
+title: Certificate Request Export to Exchange Webserver
+id: b7bc7038-638b-4ffd-880c-292c692209ef
+status: test
+description: Detects a write of an Exchange CSR to an untypical directory or with
+  aspx name suffix which can be used to place a webshell
+references:
+- https://twitter.com/GossiTheDog/status/1429175908905127938
+author: Max Altgelt (Nextron Systems)
+date: 2021-08-23
+modified: 2023-01-23
+tags:
+- attack.persistence
+- attack.t1505.003
+logsource:
+  service: msexchange-management
+  product: windows
+detection:
+  keywords_export_command:
+    '|all':
+    - 'New-ExchangeCertificate'
+    - ' -GenerateRequest'
+    - ' -BinaryEncoded'
+    - ' -RequestFile'
+  keywords_export_params:
+  - '\\\\localhost\\C$'
+  - '\\\\127.0.0.1\\C$'
+  - 'C:\\inetpub'
+  - '.aspx'
+  condition: keywords_export_command and keywords_export_params
+falsepositives:
+- Unlikely
+level: critical
+notes: |
+  ### Technical Context
+  The "Certificate Request Export to Exchange Webserver" rule aims to detect potentially malicious activities involving the exportation of Exchange Certificate Signing Requests (CSRs) to unusual directories or using suspicious file extensions such as .aspx. This detection operates by monitoring events from the Microsoft Exchange Management logs, specifically looking for the use of the `New-ExchangeCertificate` command coupled with parameters that indicate a request file being written to paths like `C:\inetpub` or network shares (`\\localhost\C$`, `\\127.0.0.1\C$`). An attacker could exploit this functionality to place a web shell in a directory accessible via the internet, enabling further malicious actions.
+  This rule is particularly important for incident responders as it highlights potential persistence mechanisms being employed by attackers. The appearance of a CSR export to unconventional locations, especially with common web hosting extensions, should raise red flags for compromise, warranting swift investigation.
+  ### Investigation Steps
+  - Review the EDR logs for any recent execution of the `New-ExchangeCertificate` command to validate if it aligns with normal operations for your organization.
+  - Check any abnormal file writes to `C:\inetpub` or the specified UNC paths for the presence of .aspx files, which may indicate an attempt to deploy a web shell.
+  - Query the SIEM for any related alerts or historical events concerning Exchange management commands executed from unusual hosts or accounts, which could provide insight into unauthorized access.
+  - Analyze the network traffic logs from the NGFW and Proxy to identify any suspicious outbound connections that may correlate with the suspicious certificate requests to ensure no data exfiltration is occurring.

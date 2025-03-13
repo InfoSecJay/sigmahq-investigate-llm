@@ -1,0 +1,36 @@
+title: Suspicious Rundll32 Invoking Inline VBScript
+id: 1cc50f3f-1fc8-4acf-b2e9-6f172e1fdebd
+status: test
+description: Detects suspicious process related to rundll32 based on command line
+  that invokes inline VBScript as seen being used by UNC2452
+references:
+- https://www.microsoft.com/security/blog/2021/03/04/goldmax-goldfinder-sibot-analyzing-nobelium-malware/
+author: Florian Roth (Nextron Systems)
+date: 2021-03-05
+modified: 2022-10-09
+tags:
+- attack.defense-evasion
+- attack.t1055
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - 'rundll32.exe'
+    - 'Execute'
+    - 'RegRead'
+    - 'window.close'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activity associated with the `rundll32.exe` process, specifically when it is invoked with command-line parameters that suggest the execution of inline VBScript. The command-line elements such as `Execute`, `RegRead`, and `window.close` are indicators of potentially harmful behavior, which has been observed in attacks orchestrated by known threat actors like UNC2452. The rule primarily relies on process creation logs from Windows systems to capture the suspicious invocation of `rundll32.exe` and extract critical context around the executing command.
+  By monitoring for these specific command-line patterns, the rule enhances the detection capabilities of security operations centers (SOCs) in identifying potential exploits and evasion tactics used by adversaries. The intention is to facilitate the early detection of threats that utilize scripting and code execution via trusted Windows processes.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution for any instances of `rundll32.exe` with the suspicious command-line parameters detected by the rule.
+  - Analyze any related processes that may have spawned concurrently to gather context on the user activity and system state at the time of execution.
+  - Examine network logs from the NGFW or NDR tools to identify any unusual outbound connections that may align with the timing of the detected process invocation.
+  - Check the endpoint’s AV logs and quarantine events to see if any actions were taken against the files or scripts involved, which can provide additional indicators of compromise.

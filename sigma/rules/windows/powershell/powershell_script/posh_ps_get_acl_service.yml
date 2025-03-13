@@ -1,0 +1,38 @@
+title: Service Registry Permissions Weakness Check
+id: 95afc12e-3cbb-40c3-9340-84a032e596a3
+status: test
+description: |
+  Adversaries may execute their own malicious payloads by hijacking the Registry entries used by services.
+  Adversaries may use flaws in the permissions for registry to redirect from the originally specified executable to one that they control, in order to launch their own code at Service start.
+  Windows stores local service configuration information in the Registry under HKLM\SYSTEM\CurrentControlSet\Services
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1574.011/T1574.011.md#atomic-test-1---service-registry-permissions-weakness
+- https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/get-acl?view=powershell-7.4
+author: frack113
+date: 2021-12-30
+tags:
+- attack.persistence
+- attack.t1574.011
+- stp.2a
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'get-acl'
+    - 'REGISTRY::HKLM\SYSTEM\CurrentControlSet\Services\'
+  condition: selection
+falsepositives:
+- Legitimate administrative script
+level: medium
+notes: |
+  ### Technical Context
+  The "Service Registry Permissions Weakness Check" rule is designed to identify potentially malicious attempts by adversaries to hijack Windows service registry entries. This is achieved by monitoring scripts that manipulate access control lists (ACLs) for the registry keys located at `HKLM\SYSTEM\CurrentControlSet\Services`. By executing a command that contains the PowerShell cmdlet `get-acl`, the rule can flag instances where the permissions may have been altered inappropriately, allowing an adversary to redirect service executions to their own malicious payloads. This technique is part of attack patterns aimed at persisting malicious activity by exploiting weak permission settings within the Windows environment.
+  To effectively trigger this rule, the analysis relies on PowerShell script block logging, which captures relevant execution details that indicate potential tampering with service registry entries. The investigation must focus on examining the details of the scripts run, specifically looking for suspicious command lines that may imply an attempt to modify service configurations.
+  ### Investigation Steps
+  - Review PowerShell logs and identify instances of `get-acl` commands executed within the context of the registry path `HKLM\SYSTEM\CurrentControlSet\Services`. This may highlight whether unauthorized permission changes were attempted.
+  - Investigate the source of the script execution using EDR tools to determine the user and process initiating the command, which may help in identifying whether it was a legitimate administrative action or malicious intent.
+  - Check for unusual service behavior or discrepancies by correlating with service logs to see if any services were altered or restarted unexpectedly after the `get-acl` command execution.
+  - Assess the permissions of the targeted service registry entries using PowerShell or other administrative tools, validating if the ACLs are appropriate or if they have been modified to allow unauthorized access.

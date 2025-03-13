@@ -1,0 +1,38 @@
+title: Invoke-Obfuscation Via Use MSHTA
+id: ac20ae82-8758-4f38-958e-b44a3140ca88
+status: test
+description: Detects Obfuscated Powershell via use MSHTA in Scripts
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009       # (Task31)
+author: Nikita Nazarov, oscd.community
+date: 2020-10-08
+modified: 2022-03-08
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - 'set'
+    - '&&'
+    - 'mshta'
+    - 'vbscript:createobject'
+    - '.run'
+    - '(window.close)'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Invoke-Obfuscation Via Use MSHTA" is designed to detect the use of Microsoft HTML Application (MSHTA) as a vector for invoking obfuscated PowerShell scripts. This technique is often employed by adversaries to bypass traditional security measures due to its capability to execute scripts indirectly through command-line arguments that include obfuscated commands. The rule leverages process creation logs to identify when the command-line parameters of a new process include specific strings associated with this evasion method, such as 'set', '&&', 'mshta', 'vbscript:createobject', '.run', and '(window.close)'. By monitoring for these keywords, security teams can pinpoint potentially malicious activity that seeks to obfuscate execution logic, making it a critical detection point in threat hunting and incident response.
+  ### Investigation Steps
+  - Review the EDR solution for any process creation events related to MSHTA, particularly focusing on those that match the command-line patterns configured in this rule.
+  - Check command-line arguments and parent processes of any identified MSHTA invocations to determine the origin and intent of the script being executed.
+  - Analyze network activity originating from the affected hosts using NDR tools to identify any suspicious external communications or data exfiltration attempts associated with the detected activity.
+  - Utilize SIEM to correlate alerts with other security events and logs from AV and NGFW, looking for patterns consistent with known attack methodologies and indicators of compromise.

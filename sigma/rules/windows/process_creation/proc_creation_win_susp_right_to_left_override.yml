@@ -1,0 +1,40 @@
+title: Potential Defense Evasion Via Right-to-Left Override
+id: ad691d92-15f2-4181-9aa4-723c74f9ddc3
+related:
+- id: e0552b19-5a83-4222-b141-b36184bb8d79
+  type: derived
+- id: 584bca0f-3608-4402-80fd-4075ff6072e3
+  type: derived
+status: test
+description: |
+  Detects the presence of the "u202+E" character, which causes a terminal, browser, or operating system to render text in a right-to-left sequence.
+  This is used as an obfuscation and masquerading techniques.
+references:
+- https://redcanary.com/blog/right-to-left-override/
+- https://www.malwarebytes.com/blog/news/2014/01/the-rtlo-method
+- https://unicode-explorer.com/c/202E
+author: Micah Babinski, @micahbabinski
+date: 2023-02-15
+tags:
+- attack.defense-evasion
+- attack.t1036.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains: "‮"
+  condition: selection
+falsepositives:
+- Commandlines that contains scriptures such as arabic or hebrew might make use of
+  this character
+level: high
+notes: |
+  ### Technical Context
+  The "Potential Defense Evasion Via Right-to-Left Override" detection rule identifies instances where a command-line input includes the Unicode character U+202E, which activates right-to-left text rendering. This character is often leveraged by threat actors to obfuscate malicious commands in order to disguise them from security mechanisms or analysts, effectively circumventing standard detection methods. The rule monitors process creation logs across Windows environments to flag any suspicious command-line activities that may indicate attempts at defense evasion.
+  By focusing on the presence of this character in command-line arguments, security teams can preemptively identify potential threats that utilize this obfuscation technique. Investigators should be aware that legitimate applications, particularly those processing right-to-left languages like Arabic or Hebrew, may also produce similar command lines, necessitating thorough follow-up.
+  ### Investigation Steps
+  - Review the EDR for the affected system, focusing on process creation logs around the time of the alert. Investigate other command-line arguments and related process behavior to assess the legitimacy of the command.
+  - Correlate any network activity logged by the NDR or NGFW associated with the identified process. Look for unusual outbound connections that may indicate data exfiltration or communication with known malicious domains.
+  - Double-check any AV logs to see if the potential malicious file has been flagged as a threat. This can provide context regarding whether the command-line usage is part of a recognized malware signature.
+  - Examine proxy logs for web activity that aligns with the timing of the alert to identify any suspicious downloads or interactions with potentially harmful sites. Check for abnormal user-agent strings or access patterns that could point to exploitation attempts.

@@ -1,0 +1,38 @@
+title: Use of Pcalua For Execution
+id: 0955e4e1-c281-4fb9-9ee1-5ee7b4b754d2
+related:
+- id: fa47597e-90e9-41cd-ab72-c3b74cfb0d02
+  type: obsolete
+status: test
+description: Detects execition of commands and binaries from the context of The program
+  compatibility assistant (Pcalua.exe). This can be used as a LOLBIN in order to bypass
+  application whitelisting.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Pcalua/
+- https://pentestlab.blog/2020/07/06/indirect-command-execution/
+author: Nasreddine Bencherchali (Nextron Systems), E.M. Anhaus (originally from Atomic
+  Blue Detections, Endgame), oscd.community
+date: 2022-06-14
+modified: 2023-01-04
+tags:
+- attack.execution
+- attack.t1059
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\pcalua.exe'
+    CommandLine|contains: ' -a'     # No space after the flag because it accepts anything as long as there a "-a"
+  condition: selection
+falsepositives:
+- Legitimate use by a via a batch script or by an administrator.
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Use of Pcalua For Execution" is designed to detect potentially malicious activities involving the execution of commands and binaries using Pcalua.exe, which is the Program Compatibility Assistant in Windows. This executable can be exploited as a living off the land binary (LOLBIN) to circumvent application whitelisting mechanisms. The rule focuses on process creation logs, specifically targeting instances where the Pcalua executable is invoked with the command line argument "-a". This combination can indicate an attempt to execute commands in a manner that may evade detection, as the legitimate usage of Pcalua typically does not include such parameters. The rule thus serves as an alert mechanism for security analysts to investigate activities that might otherwise blend in with regular system operations due to the nature of Pcalua's intended function.
+  ### Investigation Steps
+  - Utilize your EDR tool to search for instances of Pcalua.exe being executed and monitor associated command line arguments, especially those that include the flag " -a".
+  - Review process creation logs for any unrelated or unexpected parent-child relationships that emanate from instances of Pcalua.exe, which may indicate suspicious activity.
+  - Analyze network traffic logs from your NDR to identify any outbound connections initiated around the same time as the Pcalua execution, looking for unusual or unexpected destinations.
+  - Inspect endpoint security alerts from your AV solution to see if there were any detections or suspicious behavior reported around the time of the Pcalua execution.

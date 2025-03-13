@@ -1,0 +1,47 @@
+title: Potential SysInternals ProcDump Evasion
+id: 79b06761-465f-4f88-9ef2-150e24d3d737
+status: test
+description: Detects uses of the SysInternals ProcDump utility in which ProcDump or
+  its output get renamed, or a dump file is moved or copied to a different name
+references:
+- https://twitter.com/mrd0x/status/1480785527901204481
+author: Florian Roth (Nextron Systems)
+date: 2022-01-11
+modified: 2023-05-09
+tags:
+- attack.defense-evasion
+- attack.t1036
+- attack.t1003.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_1:
+    CommandLine|contains:
+    - 'copy procdump'
+    - 'move procdump'
+  selection_2:
+    CommandLine|contains|all:
+    - 'copy '
+    - '.dmp '
+    CommandLine|contains:
+    - '2.dmp'
+    - 'lsass'
+    - 'out.dmp'
+  selection_3:
+    CommandLine|contains:
+    - 'copy lsass.exe_'          # procdump default pattern e.g. lsass.exe_220111_085234.dmp
+    - 'move lsass.exe_'          # procdump default pattern e.g. lsass.exe_220111_085234.dmp
+  condition: 1 of selection_*
+falsepositives:
+- False positives are expected in cases in which ProcDump just gets copied to a different
+  directory without any renaming
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies possible evasion tactics related to the SysInternals ProcDump utility, commonly used for capturing memory dumps of processes such as lsass.exe. The rule specifically looks for command-line activity that indicates ProcDump or its generated dump files are being renamed, copied, or moved. It analyzes Windows process creation logs to track command-line parameters that include distinct phrases such as "copy procdump," "move procdump," and patterns relating to dump file names like "lsass.exe_" and "2.dmp." By highlighting these activities, the rule helps to detect potential attempts to avoid detection or analysis of sensitive information, particularly when dealing with the extraction of credentials from memory dumps, which is a common tactic used by attackers.
+  ### Investigation Steps
+  - **Review process creation logs** for instances where the command line includes terms like "copy procdump" or "move procdump," which may indicate unauthorized usage of ProcDump.
+  - **Examine EDR alerts** related to lsass.exe memory dumps, particularly looking for names such as "lsass.exe_" or "2.dmp" to determine if an attacker may have manipulated dump files.
+  - **Check file system logs** for any recent modifications, copies, or movements of .dmp files, especially in sensitive directories, to uncover anomalies in file management.
+  - **Cross-reference with AV and threat intelligence feeds** to identify if the activity is linked to known malicious behavior associated with memory dumping and process manipulation.

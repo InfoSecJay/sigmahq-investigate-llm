@@ -1,0 +1,35 @@
+title: Binary Proxy Execution Via Dotnet-Trace.EXE
+id: 9257c05b-4a4a-48e5-a670-b7b073cf401b
+status: test
+description: Detects commandline arguments for executing a child process via dotnet-trace.exe
+references:
+- https://twitter.com/bohops/status/1740022869198037480
+author: Jimmy Bayne (@bohops)
+date: 2024-01-02
+tags:
+- attack.execution
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\dotnet-trace.exe'
+  - OriginalFileName: 'dotnet-trace.dll'
+  selection_cli:
+    CommandLine|contains|all:
+    - '-- '
+    - 'collect'
+  condition: all of selection_*
+falsepositives:
+- Legitimate usage of the utility in order to debug and trace a program.
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Binary Proxy Execution Via Dotnet-Trace.EXE" aims to detect potentially malicious activities involving the execution of commands through the `dotnet-trace.exe` utility on Windows systems. This utility is primarily used for diagnosing and tracing .NET applications, but it can also be misused by attackers to execute payloads stealthily. The rule specifically looks for processes created with command-line arguments that include the phrases `--` and `collect`, indicating an attempt to leverage `dotnet-trace.exe` in constructing command executions that may evade detection. The detection relies on process creation logs, tracking the executable image path (`dotnet-trace.exe`) and validating the original file name against `dotnet-trace.dll` to confirm legitimate execution.
+  ### Investigation Steps
+  - Review process creation logs within your EDR tool to identify instances of `dotnet-trace.exe` being executed with suspicious command-line arguments.
+  - Investigate the command-line parameters utilized in conjunction with `dotnet-trace.exe`, checking for any signs of unauthorized execution or unusual patterns.
+  - Correlate alerts with network logs (from the NDR) to identify any outbound connections that may indicate data exfiltration or further compromise related to the executed processes.
+  - Assess the context of the execution by checking user activity logs in your SIEM to determine if the execution is aligned with legitimate user actions or if it appears anomalous.

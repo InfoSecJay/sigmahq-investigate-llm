@@ -1,0 +1,37 @@
+title: Potential Download/Upload Activity Using Type Command
+id: aa0b3a82-eacc-4ec3-9150-b5a9a3e3f82f
+status: test
+description: Detects usage of the "type" command to download/upload data from WebDAV
+  server
+references:
+- https://mr0range.com/a-new-lolbin-using-the-windows-type-command-to-upload-download-files-81d7b6179e22
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-12-14
+tags:
+- attack.command-and-control
+- attack.t1105
+logsource:
+  product: windows
+  category: process_creation
+detection:
+    # Note that since built in CMD commands do not trigger a process creation. This would be detected only if used in a "/c" command
+  selection_upload:
+    CommandLine|contains|all:
+    - 'type '
+    - ' > \\\\'
+  selection_download:
+    CommandLine|contains|all:
+    - 'type \\\\'
+    - ' > '         # Space are added to increase atom length and speed up matching. If your backend can handle this remove the space
+  condition: 1 of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule aims to detect potential data exfiltration or infiltration activities leveraging the Windows command-line utility "type." The rule focuses on identifying command-line executions involving the "type" command when operated with specific patterns that indicate interaction with a WebDAV server. The key indicators include command-line strings that include "type" followed by output redirection to a UNC path (indicating uploads) and usage of a UNC path as input (indicating downloads). The primary data source for this detection is process creation logs, which capture command-line parameters used when processes are spawned, allowing the rule to pinpoint suspicious file transfer activities.
+  ### Investigation Steps
+  - Review process creation logs in your EDR system to identify instances of the "type" command being executed with suspicious parameters, especially those directing output to a UNC path.
+  - Check the network traffic logs on the NGFW to see if any unusual connections were made to WebDAV servers during the timeframe of the suspicious "type" commands.
+  - Analyze user activity logs in the cloud platforms (AWS, GCP, or Azure) to identify any recent file uploads or downloads that correlate with the identified command usage.
+  - Investigate proxy logs for any outgoing or incoming connections to WebDAV URLs that were accessed around the same time as the detected "type" command executions.

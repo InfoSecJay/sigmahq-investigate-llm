@@ -1,0 +1,43 @@
+title: Driver/DLL Installation Via Odbcconf.EXE
+id: 3f5491e2-8db8-496b-9e95-1029fce852d4
+related:
+- id: cb0fe7c5-f3a3-484d-aa25-d350a7912729
+  type: similar
+status: test
+description: Detects execution of "odbcconf" with "INSTALLDRIVER" which installs a
+  new ODBC driver. Attackers abuse this to install and run malicious DLLs.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Odbcconf/
+- https://web.archive.org/web/20191023232753/https://twitter.com/Hexacorn/status/1187143326673330176
+- https://www.hexacorn.com/blog/2020/08/23/odbcconf-lolbin-trifecta/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-22
+tags:
+- attack.defense-evasion
+- attack.t1218.008
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\odbcconf.exe'
+  - OriginalFileName: 'odbcconf.exe'
+  selection_cli:
+        # Note: The "/A" flag is not required to call a specific action
+    CommandLine|contains|all:
+    - 'INSTALLDRIVER '
+    - '.dll'
+  condition: all of selection_*
+falsepositives:
+- Legitimate driver DLLs being registered via "odbcconf" will generate false positives.
+  Investigate the path of the DLL and its contents to determine if the action is authorized.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the execution of `odbcconf.exe`, a Windows utility used to install ODBC drivers, with the specific command-line argument `INSTALLDRIVER`. Attackers may exploit this tool to register malicious Dynamic Link Libraries (DLLs) under the guise of legitimate driver installations. The rule looks for process creation logs indicating the execution of `odbcconf.exe`, along with the presence of `.dll` files in the command-line arguments. By capturing such activities, the SOC can detect potential unauthorized installations of malicious components, which could indicate an attempt at defense evasion or escalation of privileges.
+  The primary data source for this detection is process creation logs from Windows, which provide insights into command-line parameters, the executing image, and file properties. Analysts can use this information to flag any suspicious installations that deviate from standard operational behavior.
+  ### Investigation Steps
+  - Use EDR tools to gather the process creation log associated with `odbcconf.exe` to verify its execution context, including user details and timestamps.
+  - Review the command-line arguments passed to `odbcconf.exe` to identify the specific DLL files being installed and determine if they are authorized or known malware.
+  - Check system logs or application logs for any recent changes or installations that might correlate with the alert; investigate if legitimate software or updates may account for the detected activity.
+  - If the installation appears malicious, correlate findings with network traffic data from NDR tools to identify any outbound connections from the associated process.

@@ -1,0 +1,33 @@
+title: Winlogon Notify Key Logon Persistence
+id: bbf59793-6efb-4fa1-95ca-a7d288e52c88
+status: test
+description: |
+  Adversaries may abuse features of Winlogon to execute DLLs and/or executables when a user logs in.
+  Winlogon.exe is a Windows component responsible for actions at logon/logoff as well as the secure attention sequence (SAS) triggered by Ctrl-Alt-Delete.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1547.004/T1547.004.md#atomic-test-3---winlogon-notify-key-logon-persistence---powershell
+author: frack113
+date: 2021-12-30
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.t1547.004
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: '\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\logon'
+    Details|endswith: '.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Winlogon Notify Key Logon Persistence" is designed to detect potential misuse of the Winlogon component in Windows systems. Specifically, it focuses on registry modifications under the path `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\logon`. Adversaries can exploit this feature to execute malicious DLLs or executables during user logon, thereby achieving persistence on the machine. The rule scans for registry entries that end with `.dll`, indicating that a malicious or unauthorized Dynamic Link Library has been registered for execution when a user logs into the system. The detection utilizes logs from registry modifications, enabling the identification of unexpected changes indicative of a persistence mechanism employed by threat actors.
+  ### Investigation Steps
+  - Utilize the EDR tool to query the affected endpoints for recent registry key changes, specifically looking at the Winlogon Notify key under the specified registry path.
+  - Check process creation logs for unusual or suspicious processes spawned at user logon time, paying particular attention to any that may correlate with the detected DLL execution.
+  - Review the system's Windows Event Logs, specifically those related to security and application events, to find any entries that reference malicious DLLs or unexpected logon activities.
+  - If cloud services are involved, examine any corresponding logging from AWS, GCP, or Azure that may relate to user authentications or remote executions linked to the affected systems.

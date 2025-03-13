@@ -1,0 +1,35 @@
+title: Rebuild Performance Counter Values Via Lodctr.EXE
+id: cc9d3712-6310-4320-b2df-7cb408274d53
+status: test
+description: Detects the execution of "lodctr.exe" to rebuild the performance counter
+  registry values. This can be abused by attackers by providing a malicious config
+  file to overwrite performance counter configuration to confuse and evade monitoring
+  and security solutions.
+references:
+- https://learn.microsoft.com/en-us/windows/security/identity-protection/virtual-smart-cards/virtual-smart-card-tpmvscmgr
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-06-15
+modified: 2024-03-05
+tags:
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+    Image|endswith: '\lodctr.exe'
+    OriginalFileName: 'LODCTR.EXE'
+  selection_cli:
+    CommandLine|contains|windash: ' -r'
+  condition: all of selection_*
+falsepositives:
+- Legitimate usage by an administrator
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on the execution of `lodctr.exe`, a Windows utility that rebuilds performance counter registry values. While this tool can have legitimate administrative uses, it can also be exploited by attackers to manipulate performance counter configurations. By supplying a tampered configuration file, malicious actors may use `lodctr.exe` to obscure their activities and evade detection mechanisms. The rule monitors process creation events, specifically filtering for instances where `lodctr.exe` is executed with a command-line argument that includes "-r". Relevant data sources include process creation logs, which capture details like the executable image, command-line parameters, and additional metadata linked to the process execution.
+  ### Investigation Steps
+  - Check the process creation logs in your EDR solution for instances of `lodctr.exe` being executed and note the associated command-line arguments. 
+  - Review system and application logs to determine if legitimate administrative actions correlate with the use of `lodctr.exe` and its parameters.
+  - Analyze the configuration files used with `lodctr.exe` to assess whether they contain any suspicious or unexpected settings.
+  - Perform a network traffic analysis through NDR tools or proxy logs to ascertain if any exfiltration or unusual communication occurred around the time of the execution.

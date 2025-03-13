@@ -1,0 +1,39 @@
+title: Detected Windows Software Discovery - PowerShell
+id: 2650dd1a-eb2a-412d-ac36-83f06c4f2282
+status: test
+description: Adversaries may attempt to enumerate software for a variety of reasons,
+  such as figuring out what security measures are present or if the compromised system
+  has a version of software that is vulnerable.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1518/T1518.md
+- https://github.com/harleyQu1nn/AggressorScripts     # AVQuery.cna
+author: Nikita Nazarov, oscd.community
+date: 2020-10-16
+modified: 2022-12-02
+tags:
+- attack.discovery
+- attack.t1518
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+            # Example: Get-ItemProperty HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\* | Select-Object DisplayName, DisplayVersion, Publisher, InstallDate | Format-Table -Autosize
+    - 'get-itemProperty'
+    - '\software\'
+    - 'select-object'
+    - 'format-table'
+  condition: selection
+falsepositives:
+- Legitimate administration activities
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects potential software discovery activities on Windows systems executed via PowerShell. Adversaries may use such techniques to enumerate installed software in order to identify security measures or to locate vulnerable applications for exploitation. The rule operates by monitoring PowerShell script block logging for specific commands that involve retrieving properties from the Windows registry, particularly focusing on the `Get-ItemProperty` cmdlet, which is often used to query information about installed software. The key indicators for detection include the presence of commands related to the registry path for installed applications, combined with the use of `Select-Object` and `Format-Table`, which suggests an attempt to format and present the gathered information. Ensuring that script block logging is enabled is crucial for this detection to function effectively.
+  ### Investigation Steps
+  - Review the PowerShell execution logs in the EDR tool to identify the context in which the software discovery command was executed, including the user account and the involved process.
+  - Analyze command-line parameters for any unusual PowerShell invocations, focusing on the specific commands that match the detection criteria for further insights.
+  - Check the Windows Event Logs for complementary events related to PowerShell usage, as they might provide additional context about potential unauthorized access or activities.
+  - Cross-reference the time of the alert with network traffic logs from the NDR or proxy to identify any suspicious external connections made shortly thereafter, which may indicate data exfiltration attempts.

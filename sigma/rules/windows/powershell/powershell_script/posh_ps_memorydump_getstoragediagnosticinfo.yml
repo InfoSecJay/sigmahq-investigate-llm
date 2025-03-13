@@ -1,0 +1,33 @@
+title: Live Memory Dump Using Powershell
+id: cd185561-4760-45d6-a63e-a51325112cae
+status: test
+description: Detects usage of a PowerShell command to dump the live memory of a Windows
+  machine
+references:
+- https://learn.microsoft.com/en-us/powershell/module/storage/get-storagediagnosticinfo?view=windowsserver2022-ps
+author: Max Altgelt (Nextron Systems)
+date: 2021-09-21
+modified: 2022-12-25
+tags:
+- attack.t1003
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'Get-StorageDiagnosticInfo'
+    - '-IncludeLiveDump'
+  condition: selection
+falsepositives:
+- Diagnostics
+level: high
+notes: |
+  ### Technical Context
+  The "Live Memory Dump Using PowerShell" detection rule aims to identify potentially malicious usage of PowerShell commands that could signify an attempt to extract sensitive data from a Windows machine's memory. Specifically, it looks for the execution of the `Get-StorageDiagnosticInfo` command with the `-IncludeLiveDump` parameter, which can be used to create a live memory dump. This command can enable attackers to capture information stored in memory, such as passwords, encryption keys, or other sensitive data, making it a significant point of interest in threat detection. Effective detection relies on the collection of PowerShell script block logs, which must be enabled for this rule to function properly, as they provide the necessary context for script execution.
+  ### Investigation Steps
+  - Review PowerShell logs from the EDR tool to find instances of the `Get-StorageDiagnosticInfo` command with the `-IncludeLiveDump` parameter. Correlate these actions with user activity to determine if they are legitimate or suspicious.
+  - Check for associated process creation events to identify the parent processes related to the PowerShell command execution. Investigating the lineage of processes can provide insight into possible exploitation.
+  - Utilize the SIEM to analyze timeline data and identify any related alerts or indicators of compromise (IOCs) that may suggest a broader attack pattern. Look for unusual behavior around the time the script was executed.
+  - Examine the output of any memory dumps created to assess for the presence of sensitive information or signs of intrusion. If located, escalate the findings immediately for further analysis by the incident response team.

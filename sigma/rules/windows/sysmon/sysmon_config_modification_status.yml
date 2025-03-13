@@ -1,0 +1,37 @@
+title: Sysmon Configuration Modification
+id: 1f2b5353-573f-4880-8e33-7d04dcf97744
+status: test
+description: Detects when an attacker tries to hide from Sysmon by disabling or stopping
+  it
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1562.001/T1562.001.md
+- https://talesfrominfosec.blogspot.com/2017/12/killing-sysmon-silently.html
+author: frack113
+date: 2021-06-04
+modified: 2022-08-02
+tags:
+- attack.defense-evasion
+- attack.t1564
+logsource:
+  product: windows
+  category: sysmon_status
+detection:
+  selection_stop:
+    State: Stopped
+  selection_conf:
+  - 'Sysmon config state changed'
+  filter:
+    State: Started
+  condition: 1 of selection_* and not filter
+falsepositives:
+- Legitimate administrative action
+level: high
+notes: |
+  ### Technical Context
+  The "Sysmon Configuration Modification" detection rule is designed to identify attempts by an attacker to disable or stop Microsoft Sysmon, a system monitoring tool that logs essential security events. The rule specifically monitors for changes in Sysmon's operational state, particularly when it transitions from "Started" to "Stopped" without valid administrative context. This could indicate that a malicious actor is trying to evade detection by manipulating Sysmon's configuration. The rule relies on Windows Sysmon status logs, which provide insights into the state of the Sysmon service and any configuration changes.
+  By tracking these events, the rule helps security teams recognize potential attempts to suppress logging capabilities, thus providing crucial evidence of malicious intent. Active monitoring of Sysmon state changes is essential for maintaining detection integrity, especially in environments where advanced persistent threats (APTs) may seek to undermine security measures.
+  ### Investigation Steps
+  - Review the Sysmon status logs to confirm the timing and context of the state change from "Started" to "Stopped." Look for any preceding events that may indicate unauthorized access or manipulation. 
+  - Utilize EDR tools to assess the process history and command-line activity leading up to the change in Sysmon status. Identify any suspicious processes that may correlate with administrative tasks.
+  - Investigate user authentication logs and account activity to determine if there was any unauthorized access to administrative accounts around the time of the event.
+  - Examine the integrity of the Sysmon configuration file and related logs to identify potential tampering or unusual modifications that could relate to attempts to bypass monitoring.

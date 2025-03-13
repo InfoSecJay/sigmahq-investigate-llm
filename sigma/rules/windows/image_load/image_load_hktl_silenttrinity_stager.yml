@@ -1,0 +1,34 @@
+title: HackTool - SILENTTRINITY Stager DLL Load
+id: 75c505b1-711d-4f68-a357-8c3fe37dbf2d
+related:
+- id: 03552375-cc2c-4883-bbe4-7958d5a980be     # Process Creation
+  type: derived
+status: test
+description: Detects SILENTTRINITY stager dll loading activity
+references:
+- https://github.com/byt3bl33d3r/SILENTTRINITY
+author: Aleksey Potapov, oscd.community
+date: 2019-10-22
+modified: 2023-02-17
+tags:
+- attack.command-and-control
+- attack.t1071
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Description|contains: 'st2stager'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "HackTool 
+  - SILENTTRINITY Stager DLL Load" is designed to detect the loading of the SILENTTRINITY stager DLL, which is associated with command and control (C2) activities used by threat actors for remote exploitation. This rule specifically looks for DLL load events on Windows systems where the description of the loaded DLL contains the string 'st2stager'. The primary data source for this detection is image load logs, which track when dynamic link libraries (DLLs) are loaded into processes. By monitoring for this specific description, the rule aims to identify potential indicators of compromise associated with SILENTTRINITY, a known hacking tool that facilitates stealthy attacks.
+  ### Investigation Steps
+  - Query EDR tools to identify the process that loaded the DLL and any associated commands or parameters used during its execution. Pay attention to the parent process for context.
+  - Review firewall logs from the NGFW for any unusual outbound connections originating from the affected host around the time of the alert. Look specifically for connections to known malicious IP addresses or domains.
+  - Check AV logs to determine if any alerts or detections were triggered around the time of the event. This may provide additional context about the nature of the loaded DLL.
+  - Analyze user activity logs in cloud platforms (if applicable) for any unauthorized access or suspicious activities that correlate with the detected DLL load. Focus on activities by users with elevated privileges.

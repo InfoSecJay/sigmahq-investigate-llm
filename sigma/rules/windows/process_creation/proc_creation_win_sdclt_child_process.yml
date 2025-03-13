@@ -1,0 +1,32 @@
+title: Sdclt Child Processes
+id: da2738f2-fadb-4394-afa7-0a0674885afa
+status: test
+description: A General detection for sdclt spawning new processes. This could be an
+  indicator of sdclt being used for bypass UAC techniques.
+references:
+- https://github.com/OTRF/detection-hackathon-apt29/issues/6
+- https://github.com/OTRF/ThreatHunter-Playbook/blob/2d4257f630f4c9770f78d0c1df059f891ffc3fec/docs/evals/apt29/detections/3.B.2_C36B49B5-DF58-4A34-9FE9-56189B9DEFEA.md
+author: Roberto Rodriguez (Cyb3rWard0g), OTR (Open Threat Research)
+date: 2020-05-02
+modified: 2021-11-27
+tags:
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\sdclt.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule targets process creation events associated with the Windows executable `sdclt.exe`. Specifically, it looks for instances where `sdclt.exe` is the parent process of newly spawned child processes. This behavior can often be indicative of attempts to bypass User Account Control (UAC) mechanisms by leveraging `sdclt.exe`, which is typically a benign system component involved in software distribution. The rule operates on data collected from process creation logs, which record details such as the parent process and the command-line parameters used during process execution. By monitoring these logs, the rule helps identify potentially malicious activities that exploit legitimate system processes to escalate privileges.
+  ### Investigation Steps
+  - Review the process creation logs from your EDR solution to identify all child processes spawned by `sdclt.exe`. Take note of the command-line arguments associated with these processes for further analysis.
+  - Check the event logs for any anomalous activity or common indicators of compromise (IoCs) related to the identified child processes. Focus on IP addresses, file paths, or unusual user accounts.
+  - Utilize your SIEM to correlate this activity with other events occurring on the network around the same time. Look for lateral movement patterns or unauthorized access attempts.
+  - Assess any outbound connections related to the child processes using proxy and network logs to determine if there are unusual or unauthorized communications that could indicate exfiltration attempts.

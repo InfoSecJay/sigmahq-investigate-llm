@@ -1,0 +1,40 @@
+title: Application Terminated Via Wmic.EXE
+id: 49d9671b-0a0a-4c09-8280-d215bfd30662
+related:
+- id: 847d5ff3-8a31-4737-a970-aeae8fe21765     # Uninstall Security Products
+  type: derived
+status: test
+description: Detects calls to the "terminate" function via wmic in order to kill an
+  application
+references:
+- https://cyble.com/blog/lockfile-ransomware-using-proxyshell-attack-to-deploy-ransomware/
+- https://www.bitdefender.com/files/News/CaseStudies/study/377/Bitdefender-Whitepaper-WMI-creat4871-en-EN-GenericUse.pdf
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-09-11
+tags:
+- attack.execution
+- attack.t1047
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\WMIC.exe'
+  - OriginalFileName: 'wmic.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'call'
+    - 'terminate'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule targets the use of `WMIC.exe` (Windows Management Instrumentation Command-line) to terminate an application. WMIC is a powerful command-line utility that provides a command-line interface for Windows Management Instrumentation, allowing administrators to perform management tasks from the command line. The rule specifically looks for instances where WMIC is invoked with the `call` command followed by `terminate`, indicating an attempt to forcefully stop processes. The primary data sources involved in this detection are process creation logs that capture the execution of WMIC, including details about the command line used and the image executing the command.
+  By tracking these specific command patterns associated with WMIC, security teams can identify potentially malicious activities, such as attempts by threat actors to disable security software or disrupt services on a system.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify instances of `WMIC.exe` being called, focusing on the command line parameters that include `call` and `terminate`.
+  - Investigate the originating user account and system context to determine if the action was executed by a legitimate user or if a potentially compromised account was used.
+  - Cross-reference the event with logs from your NGFW or Proxy to look for any suspicious outbound connections or unusual traffic patterns that may correlate with the timeline of the WMIC termination events.
+  - Check for any changes in application behaviors or security events in your AV solution around the same timeframe to ascertain if the termination was part of a larger malicious campaign, such as ransomware operations.

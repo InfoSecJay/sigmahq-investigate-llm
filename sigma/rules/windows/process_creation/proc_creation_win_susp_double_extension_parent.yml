@@ -1,0 +1,72 @@
+title: Suspicious Parent Double Extension File Execution
+id: 5e6a80c8-2d45-4633-9ef4-fa2671a39c5c
+related:
+- id: 1cdd9a09-06c9-4769-99ff-626e2b3991b8     # Image/CommandLine
+  type: derived
+status: test
+description: Detect execution of suspicious double extension files in ParentCommandLine
+references:
+- https://www.virustotal.com/gui/file/7872d8845a332dce517adae9c3389fde5313ff2fed38c2577f3b498da786db68/behavior
+- https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/bluebottle-banks-targeted-africa
+author: frack113, Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-06
+modified: 2023-02-28
+tags:
+- attack.defense-evasion
+- attack.t1036.007
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - ParentImage|endswith:
+    - '.doc.lnk'
+    - '.docx.lnk'
+    - '.xls.lnk'
+    - '.xlsx.lnk'
+    - '.ppt.lnk'
+    - '.pptx.lnk'
+    - '.rtf.lnk'
+    - '.pdf.lnk'
+    - '.txt.lnk'
+    - '.doc.js'
+    - '.docx.js'
+    - '.xls.js'
+    - '.xlsx.js'
+    - '.ppt.js'
+    - '.pptx.js'
+    - '.rtf.js'
+    - '.pdf.js'
+    - '.txt.js'
+  - ParentCommandLine|contains:
+    - '.doc.lnk'
+    - '.docx.lnk'
+    - '.xls.lnk'
+    - '.xlsx.lnk'
+    - '.ppt.lnk'
+    - '.pptx.lnk'
+    - '.rtf.lnk'
+    - '.pdf.lnk'
+    - '.txt.lnk'
+    - '.doc.js'
+    - '.docx.js'
+    - '.xls.js'
+    - '.xlsx.js'
+    - '.ppt.js'
+    - '.pptx.js'
+    - '.rtf.js'
+    - '.pdf.js'
+    - '.txt.js'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potentially malicious file executions characterized by suspicious double extensions (e.g., `.doc.lnk`, `.doc.js`) in a Windows environment. The rule looks at the `ParentImage` and `ParentCommandLine` fields of process creation logs to detect instances where files with double extensions are executed by legitimate applications. Double extension files are often used as a technique to evade detection mechanisms by masquerading malicious scripts as harmless files, such as documents. By monitoring for executions of these suspicious file types, the rule aims to flag potential malicious activity and alert incident responders to investigate further.
+  The technical data sources involved in this detection include Windows process creation logs, which capture critical information about the process's parent image and the command line used during execution. Analyzing these logs enables security teams to identify and respond to possible threats stemming from the execution of purportedly benign files with harmful payloads.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR or SIEM to find the triggered alerts associated with suspicious file executions, focusing on entries that contain double extensions.
+  - Examine the `ParentImage` and `ParentCommandLine` fields of the identified processes to verify if they align with known application paths and determine if they are executing as expected.
+  - Cross-reference the detected file names against threat intelligence sources or VirusTotal to check for any reported malicious behavior related to the specific file executions.
+  - Investigate user and system activities around the time of the alert, utilizing cloud logs and network activity data (including Proxy or Firewall logs) to identify any further anomalies or indicators of compromise.

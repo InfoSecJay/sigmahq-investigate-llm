@@ -1,0 +1,39 @@
+title: SyncAppvPublishingServer VBS Execute Arbitrary PowerShell Code
+id: 36475a7d-0f6d-4dce-9b01-6aeb473bbaf1
+status: test
+description: Executes arbitrary PowerShell code using SyncAppvPublishingServer.vbs
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1216/T1216.md
+- https://lolbas-project.github.io/lolbas/Binaries/Syncappvpublishingserver/
+author: frack113
+date: 2021-07-16
+modified: 2022-06-22
+tags:
+- attack.defense-evasion
+- attack.t1218
+- attack.t1216
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - '\SyncAppvPublishingServer.vbs'
+    - ';'          # at a minimum, a semi-colon is required
+  condition: selection
+fields:
+- ComputerName
+- User
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule identified as "SyncAppvPublishingServer VBS Execute Arbitrary PowerShell Code" aims to detect the execution of potentially malicious PowerShell code through the use of the `SyncAppvPublishingServer.vbs` script. The detection mechanism specifically looks for command-line invocations that include the script's filename along with the presence of a semicolon (`;`). The semicolon is a common delimiter in command-line arguments which may indicate an attempt to execute multiple commands or code injections, commonly associated with malicious activities. The primary data sources for this rule are Windows process creation logs that capture the details of executed processes, including command-line parameters and parent processes relevant to the execution context.
+  ### Investigation Steps
+  - Review the process creation logs using the EDR tool to identify instances of `SyncAppvPublishingServer.vbs` being invoked along with any suspicious command-line arguments.
+  - Cross-reference the suspicious command-line entries with user activity logs to determine if the invoking user account is associated with legitimate business operations or appears anomalous.
+  - Investigate the parent command line for the execution of `SyncAppvPublishingServer.vbs` to identify any potentially malicious parent processes that could indicate a larger threat.
+  - Utilize the AV and NDR tools to perform a scan on the host machine for any signs of compromise or lateral movement that could be related to the execution of PowerShell code.

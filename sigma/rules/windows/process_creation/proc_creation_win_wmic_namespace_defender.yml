@@ -1,0 +1,37 @@
+title: Potential Windows Defender Tampering Via Wmic.EXE
+id: 51cbac1e-eee3-4a90-b1b7-358efb81fa0a
+status: test
+description: Detects potential tampering with Windows Defender settings such as adding
+  exclusion using wmic
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/5c1e6f1b4fafd01c8d1ece85f510160fc1275fbf/atomics/T1562.001/T1562.001.md
+- https://www.bleepingcomputer.com/news/security/gootkit-malware-bypasses-windows-defender-by-setting-path-exclusions/
+- https://www.bleepingcomputer.com/news/security/iobit-forums-hacked-to-spread-ransomware-to-its-members/
+author: frack113
+date: 2022-12-11
+modified: 2023-02-14
+tags:
+- attack.credential-access
+- attack.t1546.008
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - OriginalFileName: 'wmic.exe'
+  - Image|endswith: '\WMIC.exe'
+  selection_cli:
+    CommandLine|contains: '/Namespace:\\\\root\\Microsoft\\Windows\\Defender'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential tampering with Windows Defender settings, particularly through the use of the Windows Management Instrumentation Command-line (WMIC) tool. Specifically, it looks for instances where `wmic.exe` is executed with command-line parameters that include `/Namespace:\\root\\Microsoft\\Windows\\Defender`, which typically indicates an attempt to modify Windows Defender configurations such as adding exclusion paths. The primary data source for this rule is process creation logs that provide insight into executable actions within the Windows environment, enabling the identification of potentially malicious behaviors aimed at bypassing security controls.
+  The rule serves as a proactive measure to alert SOC analysts to possible credential access tactics or techniques associated with altering security software settings, which is often a precursor to further malicious activities such as persistent malware infections or evasion of detection systems.
+  ### Investigation Steps
+  - Review process creation logs in your EDR solution to identify any instances of `wmic.exe` being executed. Pay close attention to the timestamp and the user account that initiated the command.
+  - Check command-line parameters associated with the `wmic.exe` execution for entries that contain `/Namespace:\\root\\Microsoft\\Windows\\Defender`. This could reveal attempts to alter Defender settings.
+  - Query the antivirus logs for any notifications or actions taken in response to the WMIC execution, which could provide indications of whether the action was blocked or allowed.
+  - Investigate the user account involved in the incident to determine if it has an elevated privilege level or if there has been unusual activity associated with it prior to the event.

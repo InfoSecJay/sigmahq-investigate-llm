@@ -1,0 +1,59 @@
+title: PUA - Process Hacker Execution
+id: 811e0002-b13b-4a15-9d00-a613fce66e42
+related:
+- id: 5722dff1-4bdd-4949-86ab-fbaf707e767a
+  type: similar
+status: test
+description: |
+  Detects the execution of Process Hacker based on binary metadata information (Image, Hash, Imphash, etc).
+  Process Hacker is a tool to view and manipulate processes, kernel options and other low level options.
+  Threat actors abused older vulnerable versions to manipulate system processes.
+references:
+- https://processhacker.sourceforge.io/
+- https://www.crowdstrike.com/blog/falcon-overwatch-report-finds-increase-in-ecrime/
+author: Florian Roth (Nextron Systems)
+date: 2022-10-10
+modified: 2024-11-23
+tags:
+- attack.defense-evasion
+- attack.discovery
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1622
+- attack.t1564
+- attack.t1543
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|contains: '\ProcessHacker_'
+  - Image|endswith: '\ProcessHacker.exe'
+  - OriginalFileName:
+    - 'ProcessHacker.exe'
+    - 'Process Hacker'
+  - Description: 'Process Hacker'
+  - Product: 'Process Hacker'
+  - Hashes|contains:
+    - 'MD5=68F9B52895F4D34E74112F3129B3B00D'
+    - 'MD5=B365AF317AE730A67C936F21432B9C71'
+    - 'SHA1=A0BDFAC3CE1880B32FF9B696458327CE352E3B1D'
+    - 'SHA1=C5E2018BF7C0F314FED4FD7FE7E69FA2E648359E'
+    - 'SHA256=D4A0FE56316A2C45B9BA9AC1005363309A3EDC7ACF9E4DF64D326A0FF273E80F'
+    - 'SHA256=BD2C2CF0631D881ED382817AFCCE2B093F4E412FFB170A719E2762F250ABFEA4'
+    - 'IMPHASH=3695333C60DEDECDCAFF1590409AA462'
+    - 'IMPHASH=04DE0AD9C37EB7BD52043D2ECAC958DF'
+  condition: selection
+falsepositives:
+- While sometimes 'Process Hacker is used by legitimate administrators, the execution
+  of Process Hacker must be investigated and allowed on a case by case basis
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects the execution of Process Hacker, a powerful tool that is often exploited by threat actors to manipulate system processes and perform various evasion tactics. The detection logic focuses on identifying specific characteristics associated with the Process Hacker binary, including its file name, original file name, product designation, and metadata such as hashes (MD5, SHA1, SHA256) and import hash (IMPHASH). By monitoring process creation logs from Windows systems, the rule looks for any instances where the Process Hacker application's metadata appears, providing a proactive measure to identify potentially malicious activity linked to this tool.
+  Threat actors have historically leveraged older versions of Process Hacker to bypass security mechanisms and perform unauthorized actions on systems. Therefore, alerts generated from this rule should be treated with urgency, guiding responders to investigate the context of the execution and any related activities on the affected system.
+  ### Investigation Steps
+  - Investigate the endpoint using EDR tools to examine the full process creation tree and evaluate what other processes were running at the time of the Process Hacker execution.
+  - Review command-line parameters passed to the Process Hacker executable to determine if any suspicious or unusual flags were used that indicate potential malicious intent.
+  - Analyze Windows Event Logs or Sysmon logs to correlate the alert with other security events, such as privilege escalation attempts or unusual access patterns that coincide with the execution of Process Hacker.
+  - Check for outbound connections to known malicious IPs or domains in proxy logs to see if the tool was used to facilitate any exfiltration or command-and-control communications.

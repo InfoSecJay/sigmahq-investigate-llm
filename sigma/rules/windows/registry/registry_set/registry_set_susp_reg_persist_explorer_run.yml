@@ -1,0 +1,40 @@
+title: Registry Persistence via Explorer Run Key
+id: b7916c2a-fa2f-4795-9477-32b731f70f11
+status: test
+description: Detects a possible persistence mechanism using RUN key for Windows Explorer
+  and pointing to a suspicious folder
+references:
+- https://researchcenter.paloaltonetworks.com/2018/07/unit42-upatre-continues-evolve-new-anti-analysis-techniques/
+author: Florian Roth (Nextron Systems), oscd.community
+date: 2018-07-18
+modified: 2023-12-11
+tags:
+- attack.persistence
+- attack.t1547.001
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: '\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run'
+    Details|contains:
+    - ':\$Recycle.bin\'
+    - ':\ProgramData\'
+    - ':\Temp\'
+    - ':\Users\Default\'
+    - ':\Users\Public\'
+    - ':\Windows\Temp\'
+    - '\AppData\Local\Temp\'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies attempts to establish persistence on Windows systems by monitoring changes made to the registry, specifically focusing on the Explorer Run key located at `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run`. The rule looks for suspicious entries that lead to known temporary or public folders, which are common locations for malware to hide and persist across reboots. By examining registry set events that add new values pointing to these paths, the rule helps detect potentially malicious behavior that could indicate an initial compromise or post-exploitation activity.
+  This rule utilizes registry event logs from Windows systems to detect entries that match specific criteria. The presence of certain file paths, such as `$Recycle.bin`, `ProgramData`, and various `Temp` directories, raises the alert level due to their common association with malicious persistence mechanisms. 
+  ### Investigation Steps
+  - **Examine EDR alerts for related process activity.** Investigate any processes that were running around the time the registry change occurred to determine if they correspond to known malicious activity or unusual behavior.
+  - **Check Windows Event Logs for user logon sessions.** Determine if the registry changes were made during a legitimate user session or if there is evidence of unauthorized access, such as unusual login times or new accounts.
+  - **Analyze file system activity in the suspicious folders.** Using endpoint detection and response tools, look for executable files or scripts created in the identified locations (e.g., Temp, ProgramData) around the same time as the registry modification.
+  - **Review firewall and proxy logs for anomalous communications.** Investigate network connections initiated by processes that were linked to the registry change to identify potential callbacks to command and control servers associated with malware.

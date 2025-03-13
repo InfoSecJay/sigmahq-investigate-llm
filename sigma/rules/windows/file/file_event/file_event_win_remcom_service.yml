@@ -1,0 +1,32 @@
+title: RemCom Service File Creation
+id: 7eff1a7f-dd45-4c20-877a-f21e342a7611
+status: test
+description: Detects default RemCom service filename which indicates RemCom service
+  installation and execution
+references:
+- https://github.com/kavika13/RemCom/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-08-04
+tags:
+- attack.execution
+- attack.t1569.002
+- attack.s0029
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|endswith: '\RemComSvc.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The detected activity pertains to the creation of the RemCom service file, specifically `RemComSvc.exe`, which is often associated with remote command execution and could be leveraged by attackers for persistence or remote administration. This Sigma rule monitors file events generated on Windows systems, specifically observing for the creation of files whose names end with `RemComSvc.exe`. By integrating insights from log sources like Windows file event logs, the rule can identify potential unauthorized installations of the RemCom service which may indicate malicious activity or a security breach.
+  When the file creation event for `RemComSvc.exe` is logged, it suggests that the service may have been installed on that machine. Incident responders should further investigate the context of this file operation to determine if it was initiated by a legitimate user or a malicious actor.
+  ### Investigation Steps
+  - Review the file creation event details in the EDR to identify the user account and process that initiated the creation of `RemComSvc.exe`.
+  - Check for any associated process activity or parent processes linked to the creation event in the process execution logs.
+  - Analyze recent changes in the environment using the SIEM, focusing on log entries that may correlate with unusual remote access or command executions around the time of the file creation.
+  - Search the firewall logs for any outbound connections from the device in question, particularly to unknown IPs, which may indicate misuse of the newly created RemCom service.

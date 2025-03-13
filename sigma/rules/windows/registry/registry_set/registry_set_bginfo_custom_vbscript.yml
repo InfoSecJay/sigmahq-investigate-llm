@@ -1,0 +1,35 @@
+title: New BgInfo.EXE Custom VBScript Registry Configuration
+id: 992dd79f-dde8-4bb0-9085-6350ba97cfb3
+related:
+- id: cd277474-5c52-4423-a52b-ac2d7969902f
+  type: similar
+status: test
+description: Detects setting of a new registry value related to BgInfo configuration,
+  which can be abused to execute custom VBScript via "BgInfo.exe"
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-08-16
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    EventType: SetValue
+    TargetObject|contains: '\Software\Winternals\BGInfo\UserFields\'
+    Details|startswith: '4'     # WMI
+  condition: selection
+falsepositives:
+- Legitimate VBScript
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation or modification of a specific registry value associated with BgInfo, a tool that displays system information on the desktop. The rule is designed to flag any changes to the registry path `\Software\Winternals\BGInfo\UserFields\`, where custom VBScript execution can be configured. By monitoring registry set events, specifically those indicating that the event type is a `SetValue`, the rule captures attempts to abuse BgInfo for executing custom scripts, which could serve as a tactic for evading detection during malicious activities. The critical data source leveraged for this detection is Windows registry logs, as these logs provide the necessary details about registry modifications in real-time.
+  ### Investigation Steps
+  - Utilize EDR tools to review process creation logs around the time of the registry modification to identify any execution of BgInfo.exe or related scripts.
+  - Investigate the command-line parameters used with BgInfo.exe to determine if any suspicious or unusual arguments were passed during execution.
+  - Check the Windows Event Logs for additional contextual information surrounding the registry change, focusing on entries that could indicate unauthorized access or modifications.
+  - Query cloud logs (if applicable) for any abnormal user activity or network connections that coincide with the timeline of the detected registry change.

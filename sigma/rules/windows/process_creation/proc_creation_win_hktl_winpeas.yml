@@ -1,0 +1,58 @@
+title: HackTool - winPEAS Execution
+id: 98b53e78-ebaf-46f8-be06-421aafd176d9
+status: test
+description: WinPEAS is a script that search for possible paths to escalate privileges
+  on Windows hosts. The checks are explained on book.hacktricks.xyz
+references:
+- https://github.com/carlospolop/PEASS-ng
+- https://book.hacktricks.xyz/windows-hardening/windows-local-privilege-escalation
+author: Georg Lauenstein (sure[secure])
+date: 2022-09-19
+modified: 2023-03-23
+tags:
+- attack.privilege-escalation
+- attack.t1082
+- attack.t1087
+- attack.t1046
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - OriginalFileName: 'winPEAS.exe'
+  - Image|endswith:
+    - '\winPEASany_ofs.exe'
+    - '\winPEASany.exe'
+    - '\winPEASx64_ofs.exe'
+    - '\winPEASx64.exe'
+    - '\winPEASx86_ofs.exe'
+    - '\winPEASx86.exe'
+  selection_cli_option:
+    CommandLine|contains:
+    - ' applicationsinfo'         # Search installed applications information
+    - ' browserinfo'         # Search browser information
+    - ' eventsinfo'         # Display interesting events information
+    - ' fileanalysis'         # Search specific files that can contains credentials and for regexes inside files
+    - ' filesinfo'         # Search generic files that can contains credentials
+    - ' processinfo'         # Search processes information
+    - ' servicesinfo'         # Search services information
+    - ' windowscreds'         # Search windows credentials
+  selection_cli_dl:
+    CommandLine|contains: 'https://github.com/carlospolop/PEASS-ng/releases/latest/download/'
+  selection_cli_specific:
+  - ParentCommandLine|endswith: ' -linpeas'
+  - CommandLine|endswith: ' -linpeas'
+  condition: 1 of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "HackTool 
+  - winPEAS Execution" is designed to detect the execution of the winPEAS tool, which is commonly used for scanning Windows systems to identify potential privilege escalation pathways. The rule focuses on various indicators, including specific executable file names associated with winPEAS (e.g., `winPEAS.exe`, `winPEASany.exe`) and command-line options that might indicate suspicious activities, such as gathering sensitive information about installed applications, services, and user credentials. The primary data sources for this detection are process creation logs, which provide insights into the execution of processes and their associated command-line parameters, helping to flag potential misuse of the tool in an enterprise environment.
+  Given the ease with which tools like winPEAS can be leveraged by both security practitioners and malicious actors, this detection rule plays a critical role in providing alerts on their usage. Investigators need to be aware of the contexts in which winPEAS may appear positively, such as authorized pentesting activities, while also being cautious of its potential misuse in unauthorized privilege escalation attempts.
+  ### Investigation Steps
+  - Query process creation logs from your EDR to identify instances of winPEAS executables being run, focusing on recent entries to pinpoint suspicious activities.
+  - Examine the command-line parameters associated with winPEAS executions by using command history logs or the EDR’s process details to determine if any malicious options were employed.
+  - Review relevant logs from NGFW and Proxy to check for any unusual outbound connections initiated around the same timeframe, especially to known repositories or URLs associated with winPEAS.
+  - Cross-reference with user access logs from your directory service to confirm whether the accounts that executed winPEAS had legitimate privileges to run such a tool, ensuring no unauthorized activity occurred.

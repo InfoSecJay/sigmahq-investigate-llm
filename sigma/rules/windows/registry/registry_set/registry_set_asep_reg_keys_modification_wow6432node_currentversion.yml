@@ -1,0 +1,53 @@
+title: Wow6432Node Windows NT CurrentVersion Autorun Keys Modification
+id: 480421f9-417f-4d3b-9552-fd2728443ec8
+related:
+- id: 17f878b8-9968-4578-b814-c4217fc5768c
+  type: obsolete
+status: test
+description: Detects modification of autostart extensibility point (ASEP) in registry.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1547.001/T1547.001.md
+- https://learn.microsoft.com/en-us/sysinternals/downloads/autoruns
+- https://gist.github.com/GlebSukhodolskiy/0fc5fa5f482903064b448890db1eaf9d     # a list with registry keys
+author: Victor Sergeev, Daniil Yugoslavskiy, Gleb Sukhodolskiy, Timur Zinniatullin,
+  oscd.community, Tim Shelton, frack113 (split)
+date: 2019-10-25
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.t1547.001
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  wow_nt_current_version_base:
+    TargetObject|contains: '\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion'
+  wow_nt_current_version:
+    TargetObject|contains:
+    - '\Windows\Appinit_Dlls'
+    - '\Image File Execution Options'
+    - '\Drivers32'
+  filter:
+    Details:
+    - '(Empty)'
+    - '\REGISTRY\MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution
+      Options'
+  condition: wow_nt_current_version_base and wow_nt_current_version and not filter
+fields:
+- SecurityID
+- ObjectName
+- OldValueType
+- NewValueType
+falsepositives:
+- Legitimate software automatically (mostly, during installation) sets up autorun
+  keys for legitimate reason
+- Legitimate administrator sets up autorun keys for legitimate reason
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies unauthorized modifications to critical autorun registry keys in the Windows operating system, specifically those under the `Wow6432Node` path. These registry keys are associated with the automatic execution of programs and are commonly exploited by malware to maintain persistence on infected systems. The rule focuses on changes within the `\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion` registry keys, monitoring the addition or alteration of entries that pertain to components like `Appinit_Dlls`, `Image File Execution Options`, and `Drivers32`. By analyzing registry set logs, this rule helps analysts detect potential malicious activity while filtering out known benign changes that may be made by legitimate software or administrators.
+  ### Investigation Steps
+  - Review recent registry modification logs related to the `Wow6432Node` path using your EDR tool to identify any unauthorized changes made to autorun keys.
+  - Analyze the baseline of legitimate software installations or configurations in the environment, focusing on those causing modifications to the `CurrentVersion` registry entries.
+  - Utilize the SIEM platform to correlate the detected changes with other telemetry, such as process creation events, to determine if there were suspicious processes executed post-modification.
+  - Check AV logs or cloud security logs for any alerts triggered in the vicinity of the registry changes to identify whether known threats or anomalies were present.

@@ -1,0 +1,70 @@
+title: Potential Initial Access via DLL Search Order Hijacking
+id: dbbd9f66-2ed3-4ca2-98a4-6ea985dd1a1c
+status: test
+description: Detects attempts to create a DLL file to a known desktop application
+  dependencies folder such as Slack, Teams or OneDrive and by an unusual process.
+  This may indicate an attempt to load a malicious module via DLL search order hijacking.
+references:
+- https://github.com/elastic/protections-artifacts/commit/746086721fd385d9f5c6647cada1788db4aea95f#diff-5d46dd4ac6866b4337ec126be8cee0e115467b3e8703794ba6f6df6432c806bc
+- https://posts.specterops.io/automating-dll-hijack-discovery-81c4295904b0
+author: Tim Rauch (rule), Elastic (idea)
+date: 2022-10-21
+tags:
+- attack.t1566
+- attack.t1566.001
+- attack.initial-access
+- attack.t1574
+- attack.t1574.001
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    Image|endswith:
+            # add more processes when you find them
+    - '\winword.exe'
+    - '\excel.exe'
+    - '\powerpnt.exe'
+    - '\MSACCESS.EXE'
+    - '\MSPUB.EXE'
+    - '\fltldr.exe'
+    - '\cmd.exe'
+    - '\certutil.exe'
+    - '\mshta.exe'
+    - '\cscript.exe'
+    - '\wscript.exe'
+    - '\curl.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    TargetFilename|endswith: '.dll'
+    TargetFilename|contains|all:
+    - '\Users\'
+    - '\AppData\'
+    TargetFilename|contains:
+            # add more suspicious paths when you find them
+    - '\Microsoft\OneDrive\'
+    - '\Microsoft OneDrive\'
+    - '\Microsoft\Teams\'
+    - '\Local\slack\app-'
+    - '\Local\Programs\Microsoft VS Code\'
+  filter:
+    Image|endswith: '\cmd.exe'
+    TargetFilename|contains|all:
+    - '\Users\'
+    - '\AppData\'
+    - '\Microsoft\OneDrive\'
+    - '\api-ms-win-core-'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule aims to identify potential initial access attempts using DLL search order hijacking. It specifically looks for processes that create a `.dll` file in suspicious directories related to known desktop applications such as Slack, Microsoft Teams, and OneDrive. By monitoring file events on Windows systems, it detects instances where processes associated with system commands (e.g., `cmd.exe`, `powershell.exe`) are involved in this activity, indicating possible exploitation scenarios. The presence of certain keywords in the file paths (e.g., `api-ms-win-core-`) further enhances the specificity of the detection, aligning with known malicious patterns.
+  The primary data sources utilized are file event logs from Windows systems that capture process image names, target filenames, and their respective paths. This detection approach allows security analysts to flag unusual activity that could signify an attempt to load malicious code through legitimate applications, prompting further investigation into these potentially harmful actions.
+  ### Investigation Steps
+  - Review EDR logs to identify any processes that triggered this rule and examine their command-line arguments for any suspicious parameters or unusual execution patterns.
+  - Check the file creation timestamps against the known operational hours of related applications (e.g., Slack, Teams) to determine if the activity occurred during normal usage, or outside of expected behavior.
+  - Analyze the context of the detected `.dll` file by examining its properties (hash, digital signature) through the AV system or threat intelligence feeds to confirm if it is recognized as malicious.
+  - Investigate related network activity using NDR logs to assess if the identified processes made unusual outbound connections or attempted to contact known malicious hosts.

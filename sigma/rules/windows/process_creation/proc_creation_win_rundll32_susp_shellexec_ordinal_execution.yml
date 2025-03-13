@@ -1,0 +1,76 @@
+title: Suspicious ShellExec_RunDLL Call Via Ordinal
+id: 8823e85d-31d8-473e-b7f4-92da070f0fc6
+related:
+- id: d87bd452-6da1-456e-8155-7dc988157b7d
+  type: derived
+status: experimental
+description: |
+  Detects suspicious call to the "ShellExec_RunDLL" exported function of SHELL32.DLL through the ordinal number to launch other commands.
+  Adversary might only use the ordinal number in order to bypass existing detection that alert on usage of ShellExec_RunDLL on CommandLine.
+references:
+- https://redcanary.com/blog/raspberry-robin/
+- https://www.microsoft.com/en-us/security/blog/2022/10/27/raspberry-robin-worm-part-of-larger-ecosystem-facilitating-pre-ransomware-activity/
+- https://github.com/SigmaHQ/sigma/issues/1009
+- https://strontic.github.io/xcyclopedia/library/shell32.dll-65DA072F25DE83D9F83653E3FEA3644D.html
+author: Swachchhanda Shrawan Poudel
+date: 2024-12-01
+tags:
+- attack.defense-evasion
+- attack.t1218.011
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent_img:
+    ParentCommandLine|contains: 'SHELL32.DLL'
+  selection_parent_ordinal:
+    ParentCommandLine|contains:
+            # Note: The ordinal number may differ depending on the DLL version
+            # Example: rundll32 SHELL32.DLL,#572 "cmd.exe" "/c calc.exe"
+    - '#568'
+    - '#570'
+    - '#572'
+    - '#576'
+  selection_susp_cli_parent:
+        # Note: Add additional binaries and suspicious paths to increase coverage
+  - ParentCommandLine|contains:
+    - 'comspec'
+    - 'iex'
+    - 'Invoke-'
+    - 'msiexec'
+    - 'odbcconf'
+    - 'regsvr32'
+  - ParentCommandLine|contains:
+    - '\Desktop\'
+    - '\ProgramData\'
+    - '\Temp\'
+    - '\Users\Public\'
+  selection_susp_child_img:
+    Image|endswith:
+    - '\bash.exe'
+    - '\bitsadmin.exe'
+    - '\cmd.exe'
+    - '\cscript.exe'
+    - '\curl.exe'
+    - '\mshta.exe'
+    - '\msiexec.exe'
+    - '\msxsl.exe'
+    - '\odbcconf.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\regsvr32.exe'
+    - '\schtasks.exe'
+    - '\wmic.exe'
+    - '\wscript.exe'
+  condition: all of selection_parent_* and 1 of selection_susp_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify suspicious activity involving the use of the `ShellExec_RunDLL` function from the `SHELL32.DLL` library in Windows. Specifically, it looks for calls to this function using ordinal numbers instead of the full command line, which can be a tactic used by adversaries to evade detection mechanisms that monitor command-line parameters for this function. The rule captures instances where the parent process creates a command that invokes certain ordinal numbers related to `SHELL32.DLL`, while also considering common suspicious command-line patterns associated with potentially malicious activity (e.g., using binaries like `wget`, `cmd.exe`, or `PowerShell`). The primary data sources leveraged for this rule are process creation logs, which include the `ParentCommandLine` and the properties of the involved processes.
+  ### Investigation Steps
+  - Query your EDR solution for any recent alerts related to the process creation of `SHELL32.DLL` and check the command lines associated with those instances.
+  - Investigate the parent processes that are invoking `ShellExec_RunDLL` through the identified ordinal numbers to determine if they are being executed in an unusual context or environment.
+  - Review logs from your SIEM to correlate these process creations with other network activity or file modifications to establish a broader context of the potential attack.
+  - Examine any associated children's processes for known malicious indicators by checking their execution paths and command-line parameters against threat intelligence resources.

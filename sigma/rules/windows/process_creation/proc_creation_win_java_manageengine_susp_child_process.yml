@@ -1,0 +1,69 @@
+title: Suspicious Child Process Of Manage Engine ServiceDesk
+id: cea2b7ea-792b-405f-95a1-b903ea06458f
+status: test
+description: Detects suspicious child processes of the "Manage Engine ServiceDesk
+  Plus" Java web service
+references:
+- https://www.horizon3.ai/manageengine-cve-2022-47966-technical-deep-dive/
+- https://github.com/horizon3ai/CVE-2022-47966/blob/3a51c6b72ebbd87392babd955a8fbeaee2090b35/CVE-2022-47966.py
+- https://blog.viettelcybersecurity.com/saml-show-stopper/
+author: Florian Roth (Nextron Systems)
+date: 2023-01-18
+modified: 2023-08-29
+tags:
+- attack.command-and-control
+- attack.t1102
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|contains|all:
+    - '\ManageEngine\ServiceDesk\'
+    - '\java.exe'
+    Image|endswith:
+    - '\AppVLP.exe'
+    - '\bash.exe'
+    - '\bitsadmin.exe'
+    - '\calc.exe'
+    - '\certutil.exe'
+    - '\cscript.exe'
+    - '\curl.exe'
+    - '\forfiles.exe'
+    - '\mftrace.exe'
+    - '\mshta.exe'
+    - '\net.exe'
+    - '\net1.exe'
+    - '\notepad.exe'          # Often used in POCs
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\query.exe'
+    - '\reg.exe'
+    - '\schtasks.exe'
+    - '\scrcons.exe'
+    - '\sh.exe'
+    - '\systeminfo.exe'
+    - '\whoami.exe'          # Often used in POCs
+    - '\wmic.exe'
+    - '\wscript.exe'
+            # - '\hh.exe'
+            # - '\regsvr32.exe'
+            # - '\rundll32.exe'
+            # - '\scriptrunner.exe'
+  filter_main_net:
+    Image|endswith:
+    - '\net.exe'
+    - '\net1.exe'
+    CommandLine|contains: ' stop'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Legitimate sub processes started by Manage Engine ServiceDesk Pro
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially malicious child processes spawned by the "Manage Engine ServiceDesk Plus" Java web service. It specifically targets instances where certain executable files, known for their potential abuse in command-and-control (C2) scenarios, are initiated as child processes of the Manage Engine service. The rule analyzes process creation logs, particularly looking at the parent image paths along with the names of the executables, such as PowerShell, curl, and others commonly used by attackers for nefarious purposes. By focusing on this relationship between parent and child processes, the rule aims to identify behaviors that deviate from typical operational patterns, thereby flagging suspicious activity that may warrant further investigation.
+  ### Investigation Steps
+  - Review EDR logs to confirm the process hierarchy, specifically focusing on the relationship between the Manage Engine ServiceDesk process and any flagged child processes.
+  - Investigate command-line parameters associated with the identified child processes, particularly looking for unusual commands or parameters that may indicate malicious intent.
+  - Use the SIEM to correlate the detected activity with other security events occurring around the same timeframe, such as alerts from antivirus or network traffic anomalies.
+  - Examine logs from the network firewall (NGFW) to identify any outbound connections initiated by the suspicious processes, paying close attention to any unrelated or unexpected destination IP addresses.

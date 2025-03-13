@@ -1,0 +1,38 @@
+title: DotNET Assembly DLL Loaded Via Office Application
+id: ff0f2b05-09db-4095-b96d-1b75ca24894a
+status: test
+description: Detects any assembly DLL being loaded by an Office Product
+references:
+- https://medium.com/threatpunter/detecting-adversary-tradecraft-with-image-load-event-logging-and-eql-8de93338c16
+author: Antonlovesdnb
+date: 2020-02-19
+modified: 2023-03-29
+tags:
+- attack.execution
+- attack.t1204.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\excel.exe'
+    - '\mspub.exe'
+    - '\onenote.exe'
+    - '\onenoteim.exe'         # Just in case
+    - '\outlook.exe'
+    - '\powerpnt.exe'
+    - '\winword.exe'
+    ImageLoaded|startswith: 'C:\Windows\assembly\'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "DotNET Assembly DLL Loaded Via Office Application" seeks to detect potentially malicious activity by monitoring instances where a DotNET assembly DLL is loaded by commonly used Microsoft Office applications. Office applications, such as Word, Excel, and PowerPoint, are often targeted by attackers to deploy malware through exploited vulnerabilities. This detection rule analyzes image load events and looks for specific Office application processes (like `excel.exe`, `winword.exe`, etc.) that are loading assemblies from the `C:\Windows\assembly\` directory. This behavior might indicate an attempt to execute malicious code embedded in or relying on these assemblies, necessitating further investigation. The primary data sources leveraged for this detection include process creation logs and image load events from Windows systems.
+  ### Investigation Steps
+  - Review the alerts in your EDR system to identify the specific Office application involved and the timing of the event to assess the context of the potential malicious activity.
+  - Analyze the command-line parameters associated with the Office application process to determine if any suspicious arguments were used that could indicate exploitation.
+  - Check firewall and proxy logs for any outbound connections made by the Office application around the time of the detection; this can reveal efforts to communicate with malicious servers.
+  - Inspect additional logs from Windows Event Viewer, particularly focusing on application and security logs, to gather further evidence of suspicious activities that may have occurred in the time frame surrounding the alert.

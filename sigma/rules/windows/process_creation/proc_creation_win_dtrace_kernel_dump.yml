@@ -1,0 +1,37 @@
+title: Suspicious Kernel Dump Using Dtrace
+id: 7124aebe-4cd7-4ccb-8df0-6d6b93c96795
+status: test
+description: Detects suspicious way to dump the kernel on Windows systems using dtrace.exe,
+  which is available on Windows systems since Windows 10 19H1
+references:
+- https://twitter.com/0gtweet/status/1474899714290208777?s=12
+- https://learn.microsoft.com/en-us/windows-hardware/drivers/devtest/dtrace
+author: Florian Roth (Nextron Systems)
+date: 2021-12-28
+tags:
+- attack.discovery
+- attack.t1082
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_plain:
+    Image|endswith: '\dtrace.exe'
+    CommandLine|contains: 'lkd(0)'
+  selection_obfuscated:
+    CommandLine|contains|all:
+    - 'syscall:::return'
+    - 'lkd('
+  condition: 1 of selection*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Suspicious Kernel Dump Using Dtrace" aims to identify potentially malicious activities on Windows systems involving the use of `dtrace.exe`, a tool included in Windows 10 since version 19H1. This rule focuses on the process creation events, specifically targeting instances where the `dtrace.exe` executable is launched with command-line parameters commonly associated with kernel dumping, namely those that include `lkd(0)` or specific syscall patterns. By monitoring these process creation logs, the rule helps to flag unusual techniques that could indicate an attempt to gather sensitive information from the kernel-level memory, a tactic often leveraged during advanced attacks.
+  The rule captures two selection sets: the first targets straightforward command-line arguments, while the second looks for more obfuscated patterns that may signal an attempt to evade detection. When triggered, this rule generates alerts that warrant further investigation due to the high risk associated with kernel dumping activities, which can lead to unauthorized access to sensitive system data.
+  ### Investigation Steps
+  - Use endpoint detection and response (EDR) tools to inspect recent process creation logs for instances of `dtrace.exe` and analyze its command-line parameters for suspicious content.
+  - Review the system events and logs in the antivirus (AV) solution to determine if there were any flags raised during the execution of `dtrace.exe`.
+  - Check proxy logs to see if any outbound communications occurred during or immediately after the execution of `dtrace.exe`, as these may indicate exfiltration attempts.
+  - Explore cloud platform logs (if applicable) to correlate any related activities around the time of the alert, especially looking for unusual access patterns or service requests that align with the suspicious kernel dumping.

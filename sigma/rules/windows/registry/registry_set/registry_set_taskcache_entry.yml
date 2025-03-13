@@ -1,0 +1,69 @@
+title: Scheduled TaskCache Change by Uncommon Program
+id: 4720b7df-40c3-48fd-bbdf-fd4b3c464f0d
+status: test
+description: Monitor the creation of a new key under 'TaskCache' when a new scheduled
+  task is registered by a process that is not svchost.exe, which is suspicious
+references:
+- https://thedfirreport.com/2021/03/29/sodinokibi-aka-revil-ransomware/
+- https://labs.f-secure.com/blog/scheduled-task-tampering/
+author: Syed Hasan (@syedhasan009)
+date: 2021-06-18
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.t1053
+- attack.t1053.005
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: 'SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\'
+  filter:
+    TargetObject|contains:
+    - 'Microsoft\Windows\UpdateOrchestrator'
+    - 'Microsoft\Windows\SoftwareProtectionPlatform\SvcRestartTask\Index'
+    - 'Microsoft\Windows\Flighting\OneSettings\RefreshCache\Index'
+  filter_tiworker:
+    Image|startswith: 'C:\Windows\'
+    Image|endswith: '\TiWorker.exe'
+  filter_svchost:
+    Image: 'C:\WINDOWS\system32\svchost.exe'
+  filter_ngen:
+    Image|startswith: 'C:\Windows\Microsoft.NET\Framework'     # \Framework\ and \Framework64\
+    Image|endswith: '\ngen.exe'
+    TargetObject|contains:
+    - '\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{B66B135D-DA06-4FC4-95F8-7458E1D10129}'
+    - '\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\Microsoft\Windows\.NET
+      Framework\.NET Framework NGEN'
+  filter_office_click_to_run:
+    Image:
+    - 'C:\Program Files\Microsoft Office\root\Integration\Integrator.exe'
+    - 'C:\Program Files (x86)\Microsoft Office\root\Integration\Integrator.exe'
+  filter_msiexec:
+    Image: 'C:\Windows\System32\msiexec.exe'
+  filter_dropbox_updater:
+    Image:
+    - 'C:\Program Files (x86)\Dropbox\Update\DropboxUpdate.exe'
+    - 'C:\Program Files\Dropbox\Update\DropboxUpdate.exe'
+  filter_explorer:
+    Image: 'C:\Windows\explorer.exe'
+    TargetObject|contains: '\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\Microsoft\Windows\PLA\Server
+      Manager Performance Monitor\'
+  filter_system:
+    Image: 'System'
+  condition: selection and not 1 of filter*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule monitors for suspicious modifications to the Windows Task Scheduler's TaskCache. Specifically, it triggers alerts when a new registry key is created under the TaskCache path (i.e., `SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\`) by a process that is not recognized as a legitimate Windows component, such as `svchost.exe`. This activity can indicate potential malicious behavior, such as the presence of ransomware or unauthorized scheduled tasks used for persistence purposes. The rule examines process execution logs to identify the source processes that initiate these registry changes, filtering out known benign applications and common system services to focus on uncommon executables.
+  ### Investigation Steps
+  Investigate the alert by confirming the process associated with the registry change using the EDR tool to trace process creation events and the corresponding command-line parameters. 
+    
+  Cross-reference the task creation with Windows Event Logs focusing on Task Scheduler events to ascertain the legitimacy of the scheduled task registrations.
+    
+  Examine registry access logs to track any unauthorized access attempts or changes made by unexpected processes, which may lead to further insights on malicious activity.
+    
+  Utilize antivirus and endpoint protection logs to check if any flagged threats or anomalies are associated with the detected process and its actions during the timeframe of the alert.

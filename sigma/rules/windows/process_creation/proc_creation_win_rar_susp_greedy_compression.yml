@@ -1,0 +1,52 @@
+title: Suspicious Greedy Compression Using Rar.EXE
+id: afe52666-401e-4a02-b4ff-5d128990b8cb
+status: test
+description: Detects RAR usage that creates an archive from a suspicious folder, either
+  a system folder or one of the folders often used by attackers for staging purposes
+references:
+- https://decoded.avast.io/martinchlumecky/png-steganography
+author: X__Junior (Nextron Systems), Florian Roth (Nextron Systems)
+date: 2022-12-15
+modified: 2024-01-02
+tags:
+- attack.execution
+- attack.t1059
+logsource:
+  product: windows
+  category: process_creation
+detection:
+    # Example : rar.exe a -m5 -r -y -ta20210204000000 -hp1qazxcde32ws -v2560k Asia1Dpt-PC-c.rar c:\\*.doc c:\\*.docx c:\\*.xls c:\\*.xlsx c:\\*.pdf c:\\*.ppt c:\\*.pptx c:\\*.jpg c:\\*.txt >nul
+  selection_opt_1:
+  - Image|endswith: '\rar.exe'
+  - Description: 'Command line RAR'
+  selection_opt_2:
+    CommandLine|contains:
+    - '.exe a '
+    - ' a -m'
+  selection_cli_flags:
+    CommandLine|contains|all:
+    - ' -hp'         # password
+    - ' -r '         # recursive
+  selection_cli_folders:
+    CommandLine|contains:
+    - ' ?:\\\*.'
+    - ' ?:\\\\\*.'
+    - ' ?:\$Recycle.bin\'
+    - ' ?:\PerfLogs\'
+    - ' ?:\Temp'
+    - ' ?:\Users\Public\'
+    - ' ?:\Windows\'
+    - ' %public%'
+  condition: 1 of selection_opt_* and all of selection_cli_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule for detecting suspicious RAR compression activity focuses on identifying the use of `rar.exe` in potentially harmful scenarios. This involves monitoring process creation logs for signs that RAR is being used to compress files from sensitive or commonly exploited folders, such as system directories or staging areas for malware. The rule specifically looks for command-line parameters indicative of a malicious intent, such as the use of the `-hp` flag to create password-protected archives and `-r` for recursive file operations. It seeks to identify command lines that not only reference RAR but also contain certain patterns that may signify an attempt to compress a wide array of file types from directories that attackers frequently use.
+  The primary data sources leveraged by this detection rule include process creation logs that capture details about the execution of `rar.exe`, including its file path and command-line arguments. By correlating the execution context with paths known for containing sensitive data, this rule aims to flag potentially harmful activities for further investigation.
+  ### Investigation Steps
+  - Review the EDR process creation logs for occurrences of `rar.exe` and check the associated command-line arguments for any use of the `-hp` and `-r` flags.
+  - Investigate the folders specified in the command line that were targeted during the compression process, focusing particularly on system folders and public user directories.
+  - Utilize endpoint antivirus tools to scan the directories involved for any recent file modifications or known malicious files that may indicate further compromise.
+  - Analyze network traffic logs for any outgoing connections that occur immediately following the detection of suspicious RAR activity, as these may signal exfiltration attempts.

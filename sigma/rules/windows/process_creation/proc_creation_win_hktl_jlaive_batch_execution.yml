@@ -1,0 +1,48 @@
+title: HackTool - Jlaive In-Memory Assembly Execution
+id: 0a99eb3e-1617-41bd-b095-13dc767f3def
+status: test
+description: Detects the use of Jlaive to execute assemblies in a copied PowerShell
+references:
+- https://jstnk9.github.io/jstnk9/research/Jlaive-Antivirus-Evasion-Tool
+- https://web.archive.org/web/20220514073704/https://github.com/ch2sh/Jlaive
+author: Jose Luis Sanchez Martinez (@Joseliyo_Jstnk)
+date: 2022-05-24
+modified: 2023-02-22
+tags:
+- attack.execution
+- attack.t1059.003
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  parent_selection:
+    ParentImage|endswith: '\cmd.exe'
+    ParentCommandLine|endswith: '.bat'
+  selection1:
+    Image|endswith: '\xcopy.exe'
+    CommandLine|contains|all:
+    - 'powershell.exe'
+    - '.bat.exe'
+  selection2:
+    Image|endswith: '\xcopy.exe'
+    CommandLine|contains|all:
+    - 'pwsh.exe'
+    - '.bat.exe'
+  selection3:
+    Image|endswith: '\attrib.exe'
+    CommandLine|contains|all:
+    - '+s'
+    - '+h'
+    - '.bat.exe'
+  condition: parent_selection and (1 of selection*)
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of Jlaive, a known tool that can be used for executing PowerShell commands in memory, often in an attempt to evade traditional security measures. The rule looks for instances where `cmd.exe` or a batch file (`.bat`) is used as a parent process, and it analyzes the command-line arguments passed to certain executables, such as `xcopy.exe` and `attrib.exe`. Specifically, it tracks if these executables are invoked with PowerShell (`powershell.exe` or `pwsh.exe`) alongside a batch file, which is a common pattern for executing assemblies in a stealthy manner. The rule relies primarily on process creation logs to detect these patterns, making it crucial for identifying potential malicious behavior in a Windows environment.
+  ### Investigation Steps
+    Review recent process creation logs in your EDR system to identify any instances of `cmd.exe` or `.bat` file executions that may have spawned from suspicious sources.
+    Investigate command-line arguments associated with `xcopy.exe` and `attrib.exe` to confirm if they include PowerShell executions, specifically looking for patterns indicating potential in-memory execution of assemblies.
+    Analyze network activity through your NDR tools to see if there is any abnormal outbound traffic or connections initiated around the time the alert was triggered.
+    Check logs from firewalls and proxies for any attempts to download or execute potentially harmful payloads that could exploit the identified process behaviors.

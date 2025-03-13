@@ -1,0 +1,47 @@
+title: Suspicious Access to Sensitive File Extensions
+id: 91c945bc-2ad1-4799-a591-4d00198a1215
+related:
+- id: 286b47ed-f6fe-40b3-b3a8-35129acd43bc
+  type: similar
+status: test
+description: Detects known sensitive file extensions accessed on a network share
+references:
+- Internal Research
+author: Samir Bousseaden
+date: 2019-04-03
+modified: 2022-10-09
+tags:
+- attack.collection
+- attack.t1039
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 5145
+    RelativeTargetName|endswith:
+    - '.bak'
+    - '.dmp'
+    - '.edb'
+    - '.kirbi'
+    - '.msg'
+    - '.nsf'
+    - '.nst'
+    - '.oab'
+    - '.ost'
+    - '.pst'
+    - '.rdp'
+    - '\groups.xml'
+  condition: selection
+falsepositives:
+- Help Desk operator doing backup or re-imaging end user machine or backup software
+- Users working with these data types or exchanging message files
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule aims to identify suspicious access events to sensitive file extensions on network shares within a Windows environment. Specifically, it focuses on events logged by the Security log (EventID 5145) that indicate unauthorized or unexpected file access attempts on files with extensions that are often associated with sensitive data, such as backups (.bak), memory dumps (.dmp), and email files (.pst). By analyzing these file access events, security teams can pinpoint potential data exfiltration activities or unauthorized access that could indicate malicious actors attempting to compromise sensitive information. The log sources primarily involved in this analysis include Windows security logs related to file access events.
+  ### Investigation Steps
+  - Review security logs in the EDR platform to correlate EventID 5145 occurrences with user activity and system events around the time of the alert.
+  - Utilize file activity logs from the network share to determine the context and legitimacy of the access, including identifying the user who accessed the files.
+  - Check for other related alerts or indicators stemming from the same user or workstation to understand if this access is part of a broader suspicious activity pattern.
+  - Consult historical data from the AV and Proxy tools to ascertain if the accessed file types have been flagged previously for any security concerns.

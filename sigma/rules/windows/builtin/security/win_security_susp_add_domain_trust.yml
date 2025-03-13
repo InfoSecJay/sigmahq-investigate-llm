@@ -1,0 +1,30 @@
+title: A New Trust Was Created To A Domain
+id: 0255a820-e564-4e40-af2b-6ac61160335c
+status: stable
+description: Addition of domains is seldom and should be verified for legitimacy.
+references:
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4706
+author: Thomas Patzke
+date: 2019-12-03
+modified: 2024-01-16
+tags:
+- attack.persistence
+- attack.t1098
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4706
+  condition: selection
+falsepositives:
+- Legitimate extension of domain structure
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation of new trusts to domains within a Windows environment, specifically focusing on Event ID 4706, which logs the addition of a trust relationship between domains. The establishment of domain trusts is a critical part of Active Directory functionality; however, such actions are infrequent and should be scrutinized to prevent potential unauthorized access or privilege escalation by attackers. This rule leverages Windows security event logs, particularly monitoring for any instances where new trusts are created, thereby enabling incident response teams to validate the activity and investigate any potentially malicious intentions behind the trust creation.
+  ### Investigation Steps
+  - Utilize EDR tools to examine the system logs for Event ID 4706 occurrences and correlate them with credentials used for the action to verify legitimacy.
+  - Check for recent changes in Active Directory configurations and verify if any authorized administrators performed the trust creation.
+  - Review proxy logs for any unusual outbound connections following the trust creation event that might indicate exploitation of the new trust relationship.
+  - Conduct a search across cloud logs (AWS, Azure, GCP) for any activities or modifications to resources that might coincide with the timing of the new trust creation, looking for suspicious patterns or anomalies.

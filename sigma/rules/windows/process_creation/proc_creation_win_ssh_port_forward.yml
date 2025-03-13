@@ -1,0 +1,34 @@
+title: Port Forwarding Activity Via SSH.EXE
+id: 327f48c1-a6db-4eb8-875a-f6981f1b0183
+status: test
+description: Detects port forwarding activity via SSH.exe
+references:
+- https://www.absolomb.com/2018-01-26-Windows-Privilege-Escalation-Guide/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-10-12
+modified: 2024-03-05
+tags:
+- attack.command-and-control
+- attack.lateral-movement
+- attack.t1572
+- attack.t1021.001
+- attack.t1021.004
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\ssh.exe'
+    CommandLine|contains|windash: ' -R '
+  condition: selection
+falsepositives:
+- Administrative activity using a remote port forwarding to a local port
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies suspicious port forwarding activity through SSH (Secure Shell) on Windows systems. Specifically, it looks for instances where the process `ssh.exe` is being executed with a command-line argument that includes the option `-R`, which indicates remote port forwarding. This is often used in command-and-control (C2) scenarios or lateral movement by attackers to gain unauthorized access to internal resources. The rule leverages process creation logs as the primary data source, focusing on the target process and its associated command-line parameters to detect potential misuse of legitimate remote access tools.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR to identify the `ssh.exe` instances that triggered the alert and examine their command-line arguments for any unauthorized usage.
+  - Cross-reference the user account associated with the `ssh.exe` execution in the event logs to determine if it aligns with expected operational behavior or if it appears anomalous.
+  - Utilize network traffic logs from the NDR to investigate any outgoing connections established by the identified `ssh.exe` activity, particularly focusing on unusual destination IP addresses.
+  - Check proxy logs to see if any web traffic correlates with the identified SSH sessions, which may provide insight into potential data exfiltration or command-and-control communications.

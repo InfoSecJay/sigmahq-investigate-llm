@@ -1,0 +1,43 @@
+title: Microsoft Sync Center Suspicious Network Connections
+id: 9f2cc74d-78af-4eb2-bb64-9cd1d292b87b
+status: test
+description: Detects suspicious connections from Microsoft Sync Center to non-private
+  IPs.
+references:
+- https://redcanary.com/blog/intelligence-insights-november-2021/
+author: elhoim
+date: 2022-04-28
+modified: 2024-03-12
+tags:
+- attack.t1055
+- attack.t1218
+- attack.execution
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: network_connection
+detection:
+  selection:
+    Image|endswith: '\mobsync.exe'
+  filter_main_local_ranges:
+    DestinationIp|cidr:
+    - '127.0.0.0/8'
+    - '10.0.0.0/8'
+    - '172.16.0.0/12'
+    - '192.168.0.0/16'
+    - '169.254.0.0/16'
+    - '::1/128'          # IPv6 loopback
+    - 'fe80::/10'          # IPv6 link-local addresses
+    - 'fc00::/7'          # IPv6 private addresses
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious network connections initiated by Microsoft Sync Center (mobsync.exe) to external (non-private) IP addresses. The analysis is focused on process creation logs that capture network connection attempts, specifically monitoring for any requests stemming from mobsync.exe. The rule filters out common private IP ranges (e.g., local network addresses such as 192.168.x.x and 10.x.x.x) to focus exclusively on connections that may indicate malicious activity, often associated with attacks that leverage legitimate applications to avoid detection. By identifying these unusual connections, analysts can investigate potential misuse of the Sync Center application, which normally operates internal to a network.
+  ### Investigation Steps
+  - Utilize EDR tools to review the process execution history of mobsync.exe, paying attention to the timestamps and parent processes for any anomalous behavior.
+  - Check network logs in the SIEM for the specific external IP addresses that mobsync.exe has connected to, identifying any known malicious IPs or unusual destinations.
+  - Analyze firewall logs in the NGFW to assess whether other internal applications are making similar suspicious external connections, which may indicate a broader attack vector.
+  - Conduct a review of user activity logs and recent changes to group policies within the environment to determine if any changes could explain the anomalous behavior of mobsync.exe.

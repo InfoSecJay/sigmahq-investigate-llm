@@ -1,0 +1,33 @@
+title: Network Connection Initiated By AddinUtil.EXE
+id: 5205613d-2a63-4412-a895-3a2458b587b3
+status: test
+description: |
+  Detects a network connection initiated by the Add-In deployment cache updating utility "AddInutil.exe".
+  This could indicate a potential command and control communication as this tool doesn't usually initiate network activity.
+references:
+- https://www.blue-prints.blog/content/blog/posts/lolbin/addinutil-lolbas.html
+author: Michael McKinley (@McKinleyMike), Tony Latteri (@TheLatteri)
+date: 2023-09-18
+modified: 2024-07-16
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Initiated: 'true'
+    Image|endswith: '\addinutil.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets network connections initiated by `AddInUtil.EXE`, a utility typically used to manage add-ins in Microsoft applications. The rule identifies instances where this executable attempts to establish network communication, which is abnormal behavior. Normally, `AddInUtil.EXE` functions without network activity, hence its invocation for a network connection may indicate a potential command and control (C2) communication, raising flags for possible malicious activity. The primary data sources for this rule include network connection logs from Windows systems where such processes are monitored, coupled with process execution details that reveal the image name and the initiation status of the process.
+  ### Investigation Steps
+  - Review the EDR logs to locate recent executions of `AddInUtil.EXE` and correlate them with timestamps of the detected network connections for context. 
+  - Check for any corresponding alerts or anomalies in the AV logs that may indicate the presence of malware or other malicious behaviors related to the observed network activity.
+  - Analyze the network connection details, including destination IP addresses and protocols, to determine if they are known malicious or suspicious endpoints by querying threat intelligence sources.
+  - Cross-reference user activity logs and any proxy logs to understand the user context during the time of the alert and to confirm whether legitimate activities led to the initiation of `AddInUtil.EXE`.

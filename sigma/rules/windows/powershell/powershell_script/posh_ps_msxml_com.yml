@@ -1,0 +1,40 @@
+title: Powershell MsXml COM Object
+id: 78aa1347-1517-4454-9982-b338d6df8343
+status: test
+description: |
+  Adversaries may abuse PowerShell commands and scripts for execution.
+  PowerShell is a powerful interactive command-line interface and scripting environment included in the Windows operating system. (Citation: TechNet PowerShell)
+  Adversaries can use PowerShell to perform a number of actions, including discovery of information and execution of code
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1059.001/T1059.001.md#atomic-test-7---powershell-msxml-com-object---with-prompt
+- https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ms766431(v=vs.85)
+- https://www.trendmicro.com/en_id/research/22/e/uncovering-a-kingminer-botnet-attack-using-trend-micro-managed-x.html
+author: frack113, MatilJ
+date: 2022-01-19
+modified: 2022-05-19
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'New-Object'
+    - '-ComObject'
+    - 'MsXml2.'
+    - 'XmlHttp'
+  condition: selection
+falsepositives:
+- Legitimate administrative script
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially malicious use of PowerShell by monitoring PowerShell script block logs for specific commands related to the Microsoft XML (MsXml) COM object. Adversaries commonly exploit PowerShell for various purposes, including executing unauthorized commands and exfiltrating information. The rule focuses on identifying script blocks that include a combination of terms such as 'New-Object', '-ComObject', 'MsXml2.', and 'XmlHttp'. These keywords indicate an attempt to leverage the MsXml COM object to perform actions like HTTP requests or data manipulation. For this detection to be effective, Script Block Logging must be enabled to capture detailed PowerShell activity in the environment.
+  ### Investigation Steps
+  - Review the detected PowerShell command in the EDR for context, identifying the user and system where it executed, as well as any associated processes.
+  - Analyze the command-line parameters and script block details to ascertain the legitimacy of the activity and determine if it aligns with known good administrative practices.
+  - Check the network logs through the NDR or Proxy to verify whether any outbound requests were made as a result of the PowerShell execution, especially focusing on unusual endpoints.
+  - Consult user account activity in the SIEM to identify any previous anomalous behavior or compromise indicators associated with the user that executed the command.

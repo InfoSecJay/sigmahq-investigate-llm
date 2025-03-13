@@ -1,0 +1,29 @@
+title: Process Deletion of Its Own Executable
+id: f01d1f70-cd41-42ec-9c0b-26dd9c22bf29
+status: experimental
+description: |
+  Detects the deletion of a process's executable by itself. This is usually not possible without workarounds and may be used by malware to hide its traces.
+references:
+- https://github.com/joaoviictorti/RustRedOps/tree/ce04369a246006d399e8c61d9fe0e6b34f988a49/Self_Deletion
+author: Max Altgelt (Nextron Systems)
+date: 2024-09-03
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: file_delete
+detection:
+  selection:
+    TargetFilename|fieldref: Image
+  condition: selection
+falsepositives:
+- Some false positives are to be expected from uninstallers.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where a running process attempts to delete its own executable file. Normally, legitimate applications do not perform self-deleting operations, as it poses a risk of breaking the application itself. However, malicious software often employs this tactic to remove evidence of its presence and evade detection. The rule focuses on file deletion events captured in Windows file logs, specifically targeting instances where the executable file of a process (referenced by `TargetFilename` as `Image`) is deleted. By monitoring this unusual behavior, the security operations team can flag potential malware activity and anomalies that warrant further investigation.
+  ### Investigation Steps
+  - Review the process creation logs to identify the executable that initiated the deletion. This will help determine if the process follows typical behavior for legitimate applications.
+  - Check the command-line parameters associated with the process to analyze any suspicious arguments that may indicate malicious intent.
+  - Utilize EDR tools to investigate associated file activity and any other processes spawned by the executable in question, ensuring a comprehensive view of the potential threat.
+  - Correlate alerts with network activity logs to confirm if any anomalous communications occurred around the time of the deletion, as this may indicate coordinated malicious actions.

@@ -1,0 +1,33 @@
+title: Potential ShellDispatch.DLL Functionality Abuse
+id: 82343930-652f-43f5-ab70-2ee9fdd6d5e9
+status: test
+description: Detects potential "ShellDispatch.dll" functionality abuse to execute
+  arbitrary binaries via "ShellExecute"
+references:
+- https://www.hexacorn.com/blog/2023/06/07/this-lolbin-doesnt-exist/
+author: X__Junior (Nextron Systems)
+date: 2023-06-20
+tags:
+- attack.execution
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\rundll32.exe'
+  - OriginalFileName: 'RUNDLL32.EXE'
+  selection_cli:
+    CommandLine|contains: 'RunDll_ShellExecuteW'
+  condition: all of selection_*
+falsepositives:
+- Unlikely
+level: medium
+notes: |
+  ### Technical Context
+  The detection rule identifies potential misuse of the "ShellDispatch.dll" functionality through the execution of arbitrary binaries using the "ShellExecute" method. The rule specifically monitors process creation logs focusing on instances of `rundll32.exe`, a legitimate Windows process that can be exploited by attackers for malicious purposes. It looks for processes that have "RunDll_ShellExecuteW" in their command line, which may indicate unauthorized or suspicious execution of arbitrary files through the use of DLL hijacking techniques. By correlating these factors, the rule can effectively detect potential execution of malicious payloads, offering early warning signs of execution-related attacks within a Windows environment.
+  ### Investigation Steps
+  - Verify the context of the alert by reviewing the process creation logs in your EDR to determine the parent process and the sequence of executed commands related to `rundll32.exe`.
+  - Analyze the command-line parameters logged for the detected process to understand the specific payload being executed and its origin.
+  - Check the history of the file associated with `ShellDispatch.dll` for any indicators of compromise, including unexpected modifications or unusual file paths.
+  - Cross-reference any inbound and outbound traffic related to the identified process in the firewall or proxy logs to identify potential communication with malicious external endpoints.

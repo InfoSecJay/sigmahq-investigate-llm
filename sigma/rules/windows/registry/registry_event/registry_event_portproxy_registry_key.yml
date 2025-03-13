@@ -1,0 +1,37 @@
+title: New PortProxy Registry Entry Added
+id: a54f842a-3713-4b45-8c84-5f136fdebd3c
+status: test
+description: Detects the modification of the PortProxy registry key which is used
+  for port forwarding.
+references:
+- https://www.fireeye.com/blog/threat-research/2019/01/bypassing-network-restrictions-through-rdp-tunneling.html
+- https://adepts.of0x.cc/netsh-portproxy-code/
+- https://www.dfirnotes.net/portproxy_detection/
+author: Andreas Hunkeler (@Karneades)
+date: 2021-06-22
+modified: 2024-03-25
+tags:
+- attack.lateral-movement
+- attack.defense-evasion
+- attack.command-and-control
+- attack.t1090
+logsource:
+  category: registry_event
+  product: windows
+detection:
+  selection:
+        # Example: HKLM\System\CurrentControlSet\Services\PortProxy\v4tov4\tcp\0.0.0.0/1337
+    TargetObject|contains: '\Services\PortProxy\v4tov4\tcp\'
+  condition: selection
+falsepositives:
+- WSL2 network bridge PowerShell script used for WSL/Kubernetes/Docker (e.g. https://github.com/microsoft/WSL/issues/4150#issuecomment-504209723)
+- Synergy Software KVM (https://symless.com/synergy)
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies modifications to the PortProxy registry key in Windows, which is commonly used for redirecting network traffic through port forwarding. Specifically, the rule focuses on changes to the `HKLM\System\CurrentControlSet\Services\PortProxy\v4tov4\tcp\` registry path, where entries can facilitate remote access via protocols like RDP and potentially bypass network restrictions. By tracking such changes, this rule aids in detecting lateral movement, command-and-control activities, and evasive behavior from threat actors who may exploit these mechanisms to maintain access within the network. The primary technical data source for this detection is the Windows registry event log, which logs operations performed on registry keys.
+  ### Investigation Steps
+  - Review EDR logs for any recent changes to the PortProxy registry keys, focusing on timestamps around the alert to identify associated processes or users.
+  - Utilize the SIEM to correlate this registry modification with other detection alerts, such as unusual network connections or authentication attempts, to build a comprehensive picture of potential malicious activity.
+  - Check firewall and network logs for unexpected outbound traffic patterns that may suggest unauthorized remote access or data exfiltration attempts linked to the PortProxy modifications.
+  - Investigate endpoint activities by analyzing PowerShell logs and other command execution logs to determine if any scripts or commands were executed that typically modify the registry, especially in the context of known false positives.

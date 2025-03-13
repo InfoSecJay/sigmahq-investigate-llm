@@ -1,0 +1,36 @@
+title: AddinUtil.EXE Execution From Uncommon Directory
+id: 6120ac2a-a34b-42c0-a9bd-1fb9f459f348
+status: test
+description: Detects execution of the Add-In deployment cache updating utility (AddInutil.exe)
+  from a non-standard directory.
+references:
+- https://www.blue-prints.blog/content/blog/posts/lolbin/addinutil-lolbas.html
+author: Michael McKinley (@McKinleyMike), Tony Latteri (@TheLatteri)
+date: 2023-09-18
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\addinutil.exe'
+  - OriginalFileName: 'AddInUtil.exe'
+  filter_main_legit_location:
+    Image|contains:
+    - ':\Windows\Microsoft.NET\Framework\'
+    - ':\Windows\Microsoft.NET\Framework64\'
+    - ':\Windows\WinSxS\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule "AddinUtil.EXE Execution From Uncommon Directory" detects a potentially malicious execution of the AddInUtil.exe, a legitimate utility associated with updating the Microsoft Office Add-in cache. This detection specifically looks for instances where AddInUtil.exe is executed from non-standard directories, which is an indication of potential abuse, commonly known as "living off the land" (LOL). The rule examines process creation logs that capture details about running processes, including the command-line parameters and the execution paths of binaries. By filtering out legitimate execution paths—such as those found in the Windows directories—it helps to identify suspicious behavior that may warrant further investigation.
+  ### Investigation Steps
+  - Review endpoint activity in the EDR for any recent executions of AddInUtil.exe, particularly focusing on the process creation logs to identify the executing user and the command-line parameters used.
+  - Cross-reference the execution path with known legitimate directories versus the detected uncommon directory to establish the potential intent behind its execution.
+  - Check the AV and threat intelligence sources for any historical detections associated with AddInUtil.exe in non-standard directories to assess the risk level.
+  - Analyze any network traffic logs, if available, to identify any outbound connections made by the process, which may indicate data exfiltration or command-and-control communications.

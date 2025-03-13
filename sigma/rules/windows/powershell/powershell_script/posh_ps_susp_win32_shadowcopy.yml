@@ -1,0 +1,36 @@
+title: Delete Volume Shadow Copies via WMI with PowerShell - PS Script
+id: e17121b4-ef2a-4418-8a59-12fb1631fa9e
+status: test
+description: Deletes Windows Volume Shadow Copies with PowerShell code and Get-WMIObject.
+  This technique is used by numerous ransomware families such as Sodinokibi/REvil
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1490/T1490.md#atomic-test-5---windows---delete-volume-shadow-copies-via-wmi-with-powershell
+author: frack113
+date: 2021-12-26
+modified: 2022-12-02
+tags:
+- attack.impact
+- attack.t1490
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'Get-WmiObject'
+    - 'Win32_ShadowCopy'
+    - '.Delete()'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying malicious attempts to delete Windows Volume Shadow Copies using PowerShell commands via the Windows Management Instrumentation (WMI) framework. The rule looks for specific PowerShell script commands that invoke `Get-WmiObject` to access the `Win32_ShadowCopy` class and call the `.Delete()` method, which is commonly utilized by ransomware families, such as Sodinokibi/REvil, to erase backup copies and hinder data recovery efforts. Effective detection requires that Script Block Logging is enabled on the monitored systems, allowing the capture of detailed PowerShell activities that would otherwise remain hidden.
+  The primary data source for this detection lies in PowerShell script logs, particularly where the relevant commands are recorded. By examining these logs, security analysts can ascertain potential ransomware activities, enabling timely responses to mitigate the threat.
+  ### Investigation Steps
+  - Review the EDR logs to identify the execution of PowerShell processes around the time of the alert, focusing on the command line arguments to confirm the presence of the suspect strings.
+  - Check Windows Event logs for event ID 4104, which provides details on the PowerShell script block that was executed, and determine if the script was run from a legitimate source or if it appears suspicious.
+  - Examine any associated network logs (NDR) to look for communication with known malicious IP addresses or domains that could indicate exfiltration or callback attempts.
+  - Validate the environment by inspecting backup status and configurations in relevant cloud logs (e.g., AWS S3 or Azure Blob storage) to ensure that legitimate backups are intact and not impacted by potential malicious activity.

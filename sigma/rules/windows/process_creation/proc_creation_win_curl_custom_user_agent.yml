@@ -1,0 +1,36 @@
+title: Curl Web Request With Potential Custom User-Agent
+id: 85de1f22-d189-44e4-8239-dc276b45379b
+status: test
+description: Detects execution of "curl.exe" with a potential custom "User-Agent".
+  Attackers can leverage this to download or exfiltrate data via "curl" to a domain
+  that only accept specific "User-Agent" strings
+references:
+- https://labs.withsecure.com/publications/fin7-target-veeam-servers
+- https://github.com/WithSecureLabs/iocs/blob/344203de742bb7e68bd56618f66d34be95a9f9fc/FIN7VEEAM/iocs.csv
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-07-27
+tags:
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\curl.exe'
+  - OriginalFileName: 'curl.exe'
+  selection_header:
+    CommandLine|re: '\s-H\s'     # Must be Regex as the flag needs to be case sensitive
+    CommandLine|contains: 'User-Agent:'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to identify the execution of `curl.exe` on Windows systems, particularly when a custom `User-Agent` is specified in the command line. The rule examines process creation logs for instances of `curl.exe` invoked with a `User-Agent` parameter, which attackers may use to evade detection while transferring data or communicating with malicious servers that require specific headers. By monitoring the command line invocation and the parameters passed to `curl`, this detection rule assists in identifying potentially malicious activities leveraged by threat actors to download exfiltration tools or sensitive data under the radar.
+  The primary data sources involved in this detection are process creation logs, which capture crucial details regarding the execution of processes, including their command-line parameters. By analyzing these logs, security analysts can pinpoint when `curl.exe` is used in an unusual or suspicious manner, enabling timely investigation and response to potential threats.
+  ### Investigation Steps
+  - Utilize the EDR solution to search for instances of `curl.exe` across endpoints, particularly focusing on those with custom `User-Agent` strings in the command line.
+  - Review the command line arguments used with `curl.exe` by examining the process creation logs to identify any potentially malicious patterns or suspicious domain connections.
+  - Investigate the network activity associated with the detected process, using NDR tools to capture any data exfiltration attempts or connections to known malicious domains.
+  - Cross-reference any identified IP addresses or domains with threat intelligence sources to determine if they are associated with known malicious activities or campaigns.

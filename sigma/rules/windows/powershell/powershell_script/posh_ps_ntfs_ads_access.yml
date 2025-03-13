@@ -1,0 +1,39 @@
+title: NTFS Alternate Data Stream
+id: 8c521530-5169-495d-a199-0a3a881ad24e
+status: test
+description: Detects writing data into NTFS alternate data streams from powershell.
+  Needs Script Block Logging.
+references:
+- https://web.archive.org/web/20220614030603/http://www.powertheshell.com/ntfsstreams/
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1564.004/T1564.004.md
+author: Sami Ruohonen
+date: 2018-07-24
+modified: 2022-12-25
+tags:
+- attack.defense-evasion
+- attack.t1564.004
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_content:
+    ScriptBlockText|contains:
+    - set-content
+    - add-content
+  selection_stream:
+    ScriptBlockText|contains: '-stream'
+  condition: all of selection*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential misuse of NTFS Alternate Data Streams (ADS) via PowerShell commands, specifically looking for the use of `set-content` or `add-content` alongside the `-stream` parameter. NTFS ADS can be leveraged by attackers to hide malicious content in file metadata, evading standard security controls. The effectiveness of this detection hinges on the availability of PowerShell script block logging, which captures the complete content of PowerShell scripts executed in the environment. When this rule triggers, it indicates that a script was executed that may be attempting to write data into an ADS, an activity often associated with techniques for evading detection and maintaining persistence.
+  ### Investigation Steps
+  - Review the corresponding PowerShell logs in the EDR solution to analyze the command history and identify the context in which the `set-content` or `add-content` commands were executed.
+  - Utilize script block logging data to examine the full contents of the PowerShell command and any associated parameters to understand the intent and potential impact.
+  - Check for the existence of unknown or suspicious files within the NTFS Alternate Data Streams of affected files using command-line tools or alternatives designed for inspecting ADS.
+  - Correlate alerts with network traffic logs and cloud service logs to determine if there are any outbound connections made by the host that may indicate exfiltration of data or further malicious activities.

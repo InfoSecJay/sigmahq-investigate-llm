@@ -1,0 +1,35 @@
+title: Add Debugger Entry To AeDebug For Persistence
+id: 092af964-4233-4373-b4ba-d86ea2890288
+status: test
+description: Detects when an attacker adds a new "Debugger" value to the "AeDebug"
+  key in order to achieve persistence which will get invoked when an application crashes
+references:
+- https://persistence-info.github.io/Data/aedebug.html
+- https://learn.microsoft.com/en-us/windows/win32/debug/configuring-automatic-debugging
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-21
+modified: 2023-08-17
+tags:
+- attack.persistence
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug\Debugger'
+    Details|endswith: '.dll'
+  filter:
+    Details: '"C:\WINDOWS\system32\vsjitdebugger.exe" -p %ld -e %ld -j 0x%p'
+  condition: selection and not filter
+falsepositives:
+- Legitimate use of the key to setup a debugger. Which is often the case on developers
+  machines
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential malicious activity related to the modification of the Windows registry to establish persistence via the AeDebug key. Specifically, it looks for instances where a new "Debugger" value is added to the registry path `\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug\Debugger`, particularly focusing on values that end with '.dll'. This manipulation is commonly used by attackers, as it enables the execution of specified DLL files when an application crashes, thereby providing the attacker a way to ensure their malicious payload can be persistently invoked. The rule includes filtering to disregard legitimate entries where the command line refers to `vsjitdebugger.exe`, which is a standard debugger used by developers. Data sources involved in this detection include Windows registry logs capturing changes, which allow the SOC to monitor for unauthorized alterations to critical system configurations.
+  ### Investigation Steps
+  - Review the registry logs for changes made to the `AeDebug` key to identify specific timestamps and user accounts associated with the modification.
+  - Examine process creation logs to find any activities around the time the registry change was made, focusing on the execution of processes that may have triggered this persistence mechanism.
+  - Utilize EDR tools to analyze endpoint behavior for unusual DLL executions or suspicious processes that correspond with the newly added debugger entry.
+  - Check additional logs, such as AV and NDR, to correlate any detected anomalies with network activity or malware signatures that may indicate broader exploit attempts related to the persistence mechanism.

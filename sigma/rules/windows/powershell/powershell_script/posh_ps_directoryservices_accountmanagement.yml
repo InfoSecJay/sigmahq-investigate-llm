@@ -1,0 +1,33 @@
+title: Manipulation of User Computer or Group Security Principals Across AD
+id: b29a93fb-087c-4b5b-a84d-ee3309e69d08
+status: test
+description: |
+  Adversaries may create a domain account to maintain access to victim systems.
+  Domain accounts are those managed by Active Directory Domain Services where access and permissions are configured across systems and services that are part of that domain..
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1136.002/T1136.002.md#atomic-test-3---create-a-new-domain-account-using-powershell
+- https://learn.microsoft.com/en-us/dotnet/api/system.directoryservices.accountmanagement?view=net-8.0
+author: frack113
+date: 2021-12-28
+tags:
+- attack.persistence
+- attack.t1136.002
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains: System.DirectoryServices.AccountManagement
+  condition: selection
+falsepositives:
+- Legitimate administrative script
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule targets the manipulation of Active Directory (AD) user accounts, specifically when adversaries create new domain accounts to maintain access to victim systems. The rule operates by monitoring PowerShell script executions that include references to the `System.DirectoryServices.AccountManagement` namespace, which is commonly associated with managing user accounts and groups in an Active Directory environment. Effectively, the rule looks for specific script block executions that suggest the creation or modification of user accounts. To utilize this detection, the environment must have Script Block Logging enabled to capture PowerShell activities, facilitating the identification of potentially malicious account manipulation attempts by threat actors.
+  ### Investigation Steps
+  - Review EDR logs for PowerShell script activity related to the identified account manipulation and examine any anomalies in user account behavior.
+  - Investigate the context of the PowerShell command by checking related events in Active Directory, including changes in group memberships or account creations.
+  - Query the SIEM for any alerts associated with the creation of new domain accounts, focusing on timestamps and user accounts involved to understand potential impact.
+  - Assess network activity through logs from the NGFW or Proxy to identify any unusual access patterns that coincide with the timeframe of the detected manipulations.

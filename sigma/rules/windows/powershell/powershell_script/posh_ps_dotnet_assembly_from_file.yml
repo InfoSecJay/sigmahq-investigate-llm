@@ -1,0 +1,31 @@
+title: Potential In-Memory Execution Using Reflection.Assembly
+id: ddcd88cb-7f62-4ce5-86f9-1704190feb0a
+status: test
+description: Detects usage of "Reflection.Assembly" load functions to dynamically
+  load assemblies in memory
+references:
+- https://speakerdeck.com/heirhabarov/hunting-for-powershell-abuse?slide=50
+author: frack113
+date: 2022-12-25
+tags:
+- attack.defense-evasion
+- attack.t1620
+logsource:
+  product: windows
+  category: ps_script
+  definition: Script Block Logging must be enable
+detection:
+  selection:
+    ScriptBlockText|contains: '[Reflection.Assembly]::load'
+  condition: selection
+falsepositives:
+- Legitimate use of the library
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Potential In-Memory Execution Using Reflection.Assembly" is designed to detect potential misuse of the .NET `Reflection.Assembly` methods within PowerShell scripts. Specifically, it looks for script blocks that contain the text '[Reflection.Assembly]::load', which indicates an attempt to dynamically load assemblies directly into memory. This behavior is often exploited by attackers to evade traditional security measures, as it avoids writing potentially malicious code to disk, which could be monitored by conventional tools. The primary technical data source leveraged in this detection rule is PowerShell Script Block Logging, which must be enabled for the rule to yield results. When enabled, this feature allows organizations to capture and analyze the complete content of PowerShell commands and scripts executed on Windows systems.
+  ### Investigation Steps
+  - Review recent PowerShell execution logs in the EDR to identify the user context in which the potentially malicious script was run and evaluate whether it aligns with typical user behavior.
+  - Analyze related process creation logs to trace any processes spawned by the PowerShell execution, focusing on unusual parent-child relationships that may indicate malicious activity.
+  - Check network traffic logs in the NDR for any outbound connections initiated by the process to detect possible data exfiltration or communication with command and control servers.
+  - Conduct a search within AV logs to see if any previous alerts were triggered pertaining to the specific user or system involved, which could provide context on the associated risk level.

@@ -1,0 +1,31 @@
+title: Certificate Exported From Local Certificate Store
+id: 58c0bff0-40a0-46e8-b5e8-b734b84d2017
+status: test
+description: Detects when an application exports a certificate (and potentially the
+  private key as well) from the local Windows certificate store.
+references:
+- https://www.splunk.com/en_us/blog/security/breaking-the-chain-defending-against-certificate-services-abuse.html
+author: Zach Mathis
+date: 2023-05-13
+tags:
+- attack.credential-access
+- attack.t1649
+logsource:
+  product: windows
+  service: certificateservicesclient-lifecycle-system
+detection:
+  selection:
+    EventID: 1007     # A certificate has been exported
+  condition: selection
+falsepositives:
+- Legitimate application requesting certificate exports will trigger this. Apply additional
+  filters as needed
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies when a certificate, and potentially its corresponding private key, is exported from the local Windows certificate store, which can indicate credential access violations. It specifically targets EventID 1007 from the Windows Certificate Services Client Lifecycle System, which logs instances of certificate exports. Attackers may exploit this functionality to obtain sensitive certificates for unauthorized access or further attacks. Event logs captured by this rule should be monitored closely for unusual activities, particularly in environments where certificates are managed rigorously or where applications do not typically require certificate exports.
+  ### Investigation Steps
+  - Review the event logs in your SIEM to identify any instances of EventID 1007 and the associated user accounts and processes that initiated the export.
+  - Use EDR tools to investigate the behavior of the applications that triggered this event, checking for any unusual process activities or connections that could indicate malicious intent.
+  - Query your AV solutions for alerts related to the same application or process to identify if any additional malicious behavior has been flagged during the timeframe of the certificate export.
+  - Analyze cloud platform logs (if applicable) to see if there are any associated events or access patterns that correlate with the certificate exports, particularly from users with elevated privileges.

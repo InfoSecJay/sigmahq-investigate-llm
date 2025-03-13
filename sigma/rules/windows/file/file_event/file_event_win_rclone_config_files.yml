@@ -1,0 +1,32 @@
+title: Rclone Config File Creation
+id: 34986307-b7f4-49be-92f3-e7a4d01ac5db
+status: test
+description: Detects Rclone config files being created
+references:
+- https://research.nccgroup.com/2021/05/27/detecting-rclone-an-effective-tool-for-exfiltration/
+author: Aaron Greetham (@beardofbinary) - NCC Group
+date: 2021-05-26
+modified: 2023-05-09
+tags:
+- attack.exfiltration
+- attack.t1567.002
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|contains|all:
+    - ':\Users\'
+    - '\.config\rclone\'
+  condition: selection
+falsepositives:
+- Legitimate Rclone usage
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation of configuration files for Rclone, a command-line tool that is often used for file synchronization and cloud storage. The rule looks for file events in Windows logs, specifically targeting paths that indicate the creation of config files in the user's directory under `.config\rclone`. The presence of such files can indicate potential unauthorized data exfiltration activities, as Rclone can be leveraged to move large amounts of data to various cloud destinations. Analysts should be aware that while this detection is aimed at identifying possibly malicious activities, there can be legitimate use cases for Rclone that may lead to false positives.
+  ### Investigation Steps
+  - Review recent file creation events from EDR to identify Rclone config files that have been created and the associated user accounts.
+  - Collect related process creation logs around the time of the config file creation to determine if there was any suspicious command-line usage indicative of data exfiltration.
+  - Check network traffic logs from NDR or proxy systems to see if any Rclone-related outbound connections were made to unauthorized cloud storage services.
+  - Search for any alerts triggered by AV solutions that may have flagged Rclone activity, particularly focusing on unusual file transfers or data movement patterns.

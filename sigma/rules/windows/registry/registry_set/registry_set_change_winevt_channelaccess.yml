@@ -1,0 +1,44 @@
+title: Change Winevt Channel Access Permission Via Registry
+id: 7d9263bd-dc47-4a58-bc92-5474abab390c
+status: test
+description: Detects tampering with the "ChannelAccess" registry key in order to change
+  access to Windows event channel.
+references:
+- https://app.any.run/tasks/77b2e328-8f36-46b2-b2e2-8a80398217ab/
+- https://learn.microsoft.com/en-us/windows/win32/api/winevt/
+- https://itconnect.uw.edu/tools-services-support/it-systems-infrastructure/msinf/other-help/understanding-sddl-syntax/
+author: frack113
+date: 2022-09-17
+modified: 2024-03-25
+tags:
+- attack.defense-evasion
+- attack.t1562.002
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\Microsoft\Windows\CurrentVersion\WINEVT\Channels\'
+    TargetObject|endswith: '\ChannelAccess'
+        # Add more interesting combinations if you found them
+    Details|contains:
+    - '(A;;0x1;;;LA)'         # Local administrator having GENERIC ALL
+    - '(A;;0x1;;;SY)'         # Local System having GENERIC ALL
+    - '(A;;0x5;;;BA)'         # Built-in administrators having GENERIC ALL and  GENERIC WRITE
+  filter_main_trustedinstaller:
+    Image: 'C:\Windows\servicing\TrustedInstaller.exe'
+  filter_main_tiworker:
+    Image|startswith: 'C:\Windows\WinSxS\'
+    Image|endswith: '\TiWorker.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential tampering with the "ChannelAccess" registry key, specifically within the Windows Event Log channels. By monitoring changes made to keys under the path `\Microsoft\Windows\CurrentVersion\WINEVT\Channels\`, the rule looks for modifications where the `ChannelAccess` key has been altered to grant extensive permissions to local users or system accounts. The rule scrutinizes the details to detect explicit permission assignments that could allow unauthorized access to sensitive event data, a common tactic used in concealment by malicious actors. The technical sources utilized include registry set logs that capture changes made to the registry, providing crucial visibility into potentially malicious configurations.
+  ### Investigation Steps
+  - Review the registry change events captured by EDR tools to identify which account made the alteration to the `ChannelAccess` key.
+  - Check the command-line parameters and process tree around the time of the change to identify any unusual processes that may have initiated the access modification.
+  - Utilize SIEM to correlate these registry changes with other suspicious activities, such as unusual login patterns or unexpected access attempts to sensitive channels.
+  - Analyze the audit logs of the affected channels via Event Viewer or cloud logging solutions to assess whether there were any unauthorized access attempts following the permissions change.

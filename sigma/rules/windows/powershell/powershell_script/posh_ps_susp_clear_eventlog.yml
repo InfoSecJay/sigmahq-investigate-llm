@@ -1,0 +1,41 @@
+title: Suspicious Eventlog Clear
+id: 0f017df3-8f5a-414f-ad6b-24aff1128278
+related:
+- id: cc36992a-4671-4f21-a91d-6c2b72a2edf5
+  type: derived
+status: test
+description: Detects usage of known powershell cmdlets such as "Clear-EventLog" to
+  clear the Windows event logs
+references:
+- https://twitter.com/oroneequalsone/status/1568432028361830402
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1070.001/T1070.001.md
+- https://eqllib.readthedocs.io/en/latest/analytics/5b223758-07d6-4100-9e11-238cfdd0fe97.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-12
+tags:
+- attack.defense-evasion
+- attack.t1070.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains:
+    - 'Clear-EventLog '
+    - 'Remove-EventLog '
+    - 'Limit-EventLog '
+    - 'Clear-WinEvent '
+  condition: selection
+falsepositives:
+- Rare need to clear logs before doing something. Sometimes used by installers or
+  cleaner scripts. The script should be investigated to determine if it's legitimate
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious activities related to the clearing of Windows event logs, specifically through the use of PowerShell cmdlets such as `Clear-EventLog`, `Remove-EventLog`, `Limit-EventLog`, and `Clear-WinEvent`. Logging of script blocks in PowerShell must be enabled for this detection to function correctly, as the rule inspects the ScriptBlockText for specific keywords indicating log-clearing actions. The presence of these cmdlets in execution could suggest an attempt to cover tracks during malicious activities, making such events a red flag for security teams. The data sources involved include PowerShell execution logs that capture script activities on Windows systems.
+  ### Investigation Steps
+  - Review the specific PowerShell execution logs for the detected script to identify the context of the command and the user account initiating the action.
+  - Check for any prior or subsequent activities by the same user or processes to determine if this log-clearing action is part of a larger malicious campaign.
+  - Investigate related network activities in the EDR or NDR tools to see if there are any connections to known malicious IP addresses or domains around the time of the log-clearing event.
+  - Assess any other security tools for alerts or logs indicating concurrent actions, such as data exfiltration or unauthorized access, that may correlate with the event log clearing.

@@ -1,0 +1,89 @@
+title: Malicious Base64 Encoded PowerShell Keywords in Command Lines
+id: f26c6093-6f14-4b12-800f-0fcb46f5ffd0
+status: test
+description: Detects base64 encoded strings used in hidden malicious PowerShell command
+  lines
+references:
+- http://www.leeholmes.com/blog/2017/09/21/searching-for-content-in-base-64-strings/
+author: John Lambert (rule)
+date: 2019-01-16
+modified: 2023-01-05
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+  - OriginalFileName:
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+  selection_hidden:
+    CommandLine|contains: ' hidden '
+  selection_encoded:
+    CommandLine|contains:
+    - 'AGkAdABzAGEAZABtAGkAbgAgAC8AdAByAGEAbgBzAGYAZQByA'
+    - 'aXRzYWRtaW4gL3RyYW5zZmVy'
+    - 'IAaQB0AHMAYQBkAG0AaQBuACAALwB0AHIAYQBuAHMAZgBlAHIA'
+    - 'JpdHNhZG1pbiAvdHJhbnNmZX'
+    - 'YgBpAHQAcwBhAGQAbQBpAG4AIAAvAHQAcgBhAG4AcwBmAGUAcg'
+    - 'Yml0c2FkbWluIC90cmFuc2Zlc'
+    - 'AGMAaAB1AG4AawBfAHMAaQB6AGUA'
+    - 'JABjAGgAdQBuAGsAXwBzAGkAegBlA'
+    - 'JGNodW5rX3Npem'
+    - 'QAYwBoAHUAbgBrAF8AcwBpAHoAZQ'
+    - 'RjaHVua19zaXpl'
+    - 'Y2h1bmtfc2l6Z'
+    - 'AE8ALgBDAG8AbQBwAHIAZQBzAHMAaQBvAG4A'
+    - 'kATwAuAEMAbwBtAHAAcgBlAHMAcwBpAG8Abg'
+    - 'lPLkNvbXByZXNzaW9u'
+    - 'SQBPAC4AQwBvAG0AcAByAGUAcwBzAGkAbwBuA'
+    - 'SU8uQ29tcHJlc3Npb2'
+    - 'Ty5Db21wcmVzc2lvb'
+    - 'AE8ALgBNAGUAbQBvAHIAeQBTAHQAcgBlAGEAbQ'
+    - 'kATwAuAE0AZQBtAG8AcgB5AFMAdAByAGUAYQBtA'
+    - 'lPLk1lbW9yeVN0cmVhb'
+    - 'SQBPAC4ATQBlAG0AbwByAHkAUwB0AHIAZQBhAG0A'
+    - 'SU8uTWVtb3J5U3RyZWFt'
+    - 'Ty5NZW1vcnlTdHJlYW'
+    - '4ARwBlAHQAQwBoAHUAbgBrA'
+    - '5HZXRDaHVua'
+    - 'AEcAZQB0AEMAaAB1AG4Aaw'
+    - 'LgBHAGUAdABDAGgAdQBuAGsA'
+    - 'LkdldENodW5r'
+    - 'R2V0Q2h1bm'
+    - 'AEgAUgBFAEEARABfAEkATgBGAE8ANgA0A'
+    - 'QASABSAEUAQQBEAF8ASQBOAEYATwA2ADQA'
+    - 'RIUkVBRF9JTkZPNj'
+    - 'SFJFQURfSU5GTzY0'
+    - 'VABIAFIARQBBAEQAXwBJAE4ARgBPADYANA'
+    - 'VEhSRUFEX0lORk82N'
+    - 'AHIAZQBhAHQAZQBSAGUAbQBvAHQAZQBUAGgAcgBlAGEAZA'
+    - 'cmVhdGVSZW1vdGVUaHJlYW'
+    - 'MAcgBlAGEAdABlAFIAZQBtAG8AdABlAFQAaAByAGUAYQBkA'
+    - 'NyZWF0ZVJlbW90ZVRocmVhZ'
+    - 'Q3JlYXRlUmVtb3RlVGhyZWFk'
+    - 'QwByAGUAYQB0AGUAUgBlAG0AbwB0AGUAVABoAHIAZQBhAGQA'
+    - '0AZQBtAG0AbwB2AGUA'
+    - '1lbW1vdm'
+    - 'AGUAbQBtAG8AdgBlA'
+    - 'bQBlAG0AbQBvAHYAZQ'
+    - 'bWVtbW92Z'
+    - 'ZW1tb3Zl'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule aims to detect the execution of potentially malicious PowerShell commands that are encoded in Base64, a method often used to obfuscate the true intent of the commands. The rule focuses on process creation logs from Windows systems, specifically targeting the PowerShell executable (`powershell.exe` or `pwsh.exe`). It looks for command-line parameters containing specific patterns of Base64-encoded strings, which are commonly utilized in attacks to bypass traditional security measures. Additionally, the rule checks for the presence of the word "hidden" in the command line to further filter out potential malicious usage.
+  When the specified conditions are met, such as the execution of PowerShell commands with suspicious encoding patterns, an alert is generated. This approach helps analysts identify command-line executions that may signify an attempt to execute malicious scripts or commands, thereby enhancing the overall detection of potentially harmful activities within the enterprise environment.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR platform to identify the specific instance of PowerShell execution associated with the alert, including the complete command line used.
+  - Investigate the context of the execution by checking the user account under which the PowerShell command ran to understand whether it aligns with normal activity patterns.
+  - Search through network data or proxy logs for any outbound connections made by the compromised PowerShell process to identify data exfiltration or communication with malicious servers.
+  - Correlate findings with other security events in the SIEM to determine if there were precedents or associated alerts that could indicate a broader threat campaign targeting the environment.

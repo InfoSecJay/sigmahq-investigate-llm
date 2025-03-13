@@ -1,0 +1,38 @@
+title: Outlook Security Settings Updated - Registry
+id: c3cefdf4-6703-4e1c-bad8-bf422fc5015a
+related:
+- id: a166f74e-bf44-409d-b9ba-ea4b2dd8b3cd     # EnableUnsafeClientMailRules
+  type: similar
+status: test
+description: Detects changes to the registry values related to outlook security settings
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1137/T1137.md
+- https://learn.microsoft.com/en-us/outlook/troubleshoot/security/information-about-email-security-settings
+author: frack113
+date: 2021-12-28
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.t1137
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains|all:
+    - '\SOFTWARE\Microsoft\Office\'
+    - '\Outlook\Security\'
+  condition: selection
+falsepositives:
+- Administrative activity
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Outlook Security Settings Updated 
+  - Registry" is designed to detect changes made to the registry values related to Microsoft Outlook's security settings. These adjustments can significantly impact the security posture of Outlook, possibly indicating the presence of adversarial activities, such as unauthorized modifications that could allow for unsafe email processing. The rule primarily focuses on entries within the Windows registry under the paths pertaining to Microsoft Office and Outlook, specifically checking for alterations in keys that influence security settings. By monitoring these registry changes, the rule provides insight into potential persistence mechanisms or configurations that might facilitate malicious activities.
+  The key data sources for this detection include registry set logs, which are crucial for identifying when specific registry values are altered. These logs capture the target objects within the registry that are modified, allowing incident responders to assess whether the changes were legitimate administrative actions or potentially malicious activities.
+  ### Investigation Steps
+  - Review the EDR tool's endpoint activity logs to identify which user or process initiated the registry change, examining any associated process creation logs for unusual behaviors.
+  - Check the AV and anti-malware logs to assess if any related threats were detected on the endpoint following the registry modification, determining if there is a link to known malware behaviors.
+  - Investigate proxy logs to see if there were any suspicious web requests originating from the affected endpoint shortly before or after the registry change, looking for unusual patterns or indicators of compromise.
+  - Consult cloud platform logs (if applicable) to track any unexpected configurations or user access patterns that coincide with the timing of the registry update, ensuring there are no broader organizational impacts.

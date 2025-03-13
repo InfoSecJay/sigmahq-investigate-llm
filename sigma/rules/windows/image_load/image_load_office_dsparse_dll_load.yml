@@ -1,0 +1,38 @@
+title: Active Directory Parsing DLL Loaded Via Office Application
+id: a2a3b925-7bb0-433b-b508-db9003263cc4
+status: test
+description: Detects DSParse DLL being loaded by an Office Product
+references:
+- https://medium.com/threatpunter/detecting-adversary-tradecraft-with-image-load-event-logging-and-eql-8de93338c16
+author: Antonlovesdnb
+date: 2020-02-19
+modified: 2023-03-28
+tags:
+- attack.execution
+- attack.t1204.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\excel.exe'
+    - '\mspub.exe'
+    - '\onenote.exe'
+    - '\onenoteim.exe'         # Just in case
+    - '\outlook.exe'
+    - '\powerpnt.exe'
+    - '\winword.exe'
+    ImageLoaded|contains: '\dsparse.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects the loading of the DSParse DLL by Microsoft Office applications such as Excel, Word, and PowerPoint. The loading of this specific DLL is often associated with malicious activity, as it can be exploited by attackers to parse Active Directory data and potentially facilitate lateral movement within an enterprise network. The rule relies on monitoring image load events, specifically looking for instances where the aforementioned Office applications load the DSParse DLL. It utilizes data sources such as process creation logs and image load events from Windows to identify this behavior, enabling security teams to correlate applications and DLLs to potential threats.
+  ### Investigation Steps
+  - Review the EDR logs for the specific Office application involved in the alert, focusing on the process creation history around the time of the DLL loading event to identify any preceding suspicious activities.
+  - Search for recent command-line parameters used by the Office application in question; unusual parameters may indicate an attempted exploitation or malicious use.
+  - Analyze network logs from your NGFW or Proxy to investigate any outbound connections made by the Office application during the same timeframe as the alert, examining any unusual IP addresses or domains.
+  - If applicable, check cloud logs (AWS, GCP, Azure) for any interactions or access attempts between user sessions and Active Directory resources linked to the same user or machine flagging the alert.

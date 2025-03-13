@@ -1,0 +1,46 @@
+title: Invoke-Obfuscation Via Use Rundll32 - PowerShell Module
+id: 88a22f69-62f9-4b8a-aa00-6b0212f2f05a
+related:
+- id: a5a30a6e-75ca-4233-8b8c-42e0f2037d3b
+  type: derived
+status: test
+description: Detects Obfuscated Powershell via use Rundll32 in Scripts
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009
+author: Nikita Nazarov, oscd.community
+date: 2019-10-08
+modified: 2022-11-29
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_module
+  definition: 0ad03ef1-f21b-4a79-8ce8-e6900c54b65b
+detection:
+  selection_4103:
+    Payload|contains|all:
+    - '&&'
+    - 'rundll32'
+    - 'shell32.dll'
+    - 'shellexec_rundll'
+    Payload|contains:
+    - 'value'
+    - 'invoke'
+    - 'comspec'
+    - 'iex'
+  condition: selection_4103
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the use of the `rundll32.exe` utility to invoke obfuscated PowerShell scripts that may indicate malicious intent. The rule specifically looks for command-line arguments that include keywords like "rundll32", "shell32.dll", and "shellexec_rundll", in addition to other contextual keywords such as "invoke" and "iex". By analyzing PowerShell module logs, the detection mechanism flags any instances where these keywords are found in the payload of the script execution. This is significant because attackers often use obfuscation techniques to bypass security measures and execute malicious commands in a stealthy manner.
+  The primary data sources involved in this detection include Windows PowerShell logs that capture details about executed scripts and their parameters. This helps security analysts identify potentially harmful activities in the environment, especially since the use of `rundll32.exe` in conjunction with PowerShell can signify attempts at executing hidden or unauthorized commands.
+  ### Investigation Steps
+  - Use EDR tools to review process creation logs for instances of `rundll32.exe` execution, focusing on command-line arguments to identify any obfuscation techniques employed.
+  - Check PowerShell logs for any executed commands that contain the detected keywords, paying particular attention to the command history for any suspicious activities.
+  - Analyze network traffic and proxy logs for any outbound connections initiated by the detected process, as this may provide indicators of data exfiltration or callbacks to command and control servers.
+  - Perform a search across cloud platforms (like AWS, GCP, and Azure) for any related IAM roles or services that could have been compromised, especially if the suspicious activity aligns with cloud functionality.

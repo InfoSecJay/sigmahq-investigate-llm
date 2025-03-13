@@ -1,0 +1,34 @@
+title: Invoke-Obfuscation Via Use Clip - System
+id: 63e3365d-4824-42d8-8b82-e56810fefa0c
+status: test
+description: Detects Obfuscated Powershell via use Clip.exe in Scripts
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009     # (Task29)
+author: Nikita Nazarov, oscd.community
+date: 2020-10-09
+modified: 2022-11-29
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7045
+    ImagePath|contains: '(Clipboard|i'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potential obfuscation attempts in PowerShell scripts by monitoring the use of the `Clip.exe` utility, which is often exploited by attackers to transfer obfuscated code for execution. The rule focuses on Windows Event ID 7045, which logs the installation of a service, particularly those initiated by the Service Control Manager. By examining the `ImagePath` for indicators of `Clipboard` use, the rule can help detect scenarios where malicious actors may be trying to execute obfuscated PowerShell commands that were clipboard-pasted into a system. The main data source involved in this detection is the system event log, specifically relating to service installations.
+  ### Investigation Steps
+  - Utilize your EDR solution to search for any instances of `Clip.exe` being executed around the same time as the suspected event, focusing on command-line parameters to determine if obfuscated scripts were involved.
+  - Review process creation logs to trace the origin of the PowerShell command that triggered the use of `Clip.exe`, looking for unusual parent processes that may indicate malicious activity.
+  - Consult the system event logs for any other Event ID 7045 entries that may correlate with the alert, checking for suspicious service installations or modifications.
+  - Explore the network traffic captured by your NDR solution for any outbound connections that might have been established after the use of `Clip.exe`, as these may indicate data exfiltration or command-and-control (C2) communications.

@@ -1,0 +1,39 @@
+title: ISO or Image Mount Indicator in Recent Files
+id: 4358e5a5-7542-4dcb-b9f3-87667371839b
+status: test
+description: |
+  Detects the creation of recent element file that points to an .ISO, .IMG, .VHD or .VHDX file as often used in phishing attacks.
+  This can be a false positive on server systems but on workstations users should rarely mount .iso or .img files.
+references:
+- https://www.microsoft.com/security/blog/2021/05/27/new-sophisticated-email-based-attack-from-nobelium/
+- https://www.trendmicro.com/vinfo/us/security/news/cybercrime-and-digital-threats/malicious-spam-campaign-uses-iso-image-files-to-deliver-lokibot-and-nanocore
+- https://blog.emsisoft.com/en/32373/beware-new-wave-of-malware-spreads-via-iso-file-email-attachments/
+- https://insights.sei.cmu.edu/blog/the-dangers-of-vhd-and-vhdx-files/
+author: Florian Roth (Nextron Systems)
+date: 2022-02-11
+tags:
+- attack.initial-access
+- attack.t1566.001
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|endswith:
+    - '.iso.lnk'
+    - '.img.lnk'
+    - '.vhd.lnk'
+    - '.vhdx.lnk'
+    TargetFilename|contains: '\Microsoft\Windows\Recent\'
+  condition: selection
+falsepositives:
+- Cases in which a user mounts an image file for legitimate reasons
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious activities associated with the creation of shortcut files in the Windows "Recent" folder that lead to disk image files, such as .ISO, .IMG, .VHD, or .VHDX. These file types have become common vectors for phishing attacks, as they can be used to deliver malicious payloads. The detection looks for specific file names that end with '.iso.lnk', '.img.lnk', '.vhd.lnk', or '.vhdx.lnk' while verifying that these shortcuts are located within the user’s recent files directory. Given the nature of typical desktop user behavior, the presence of these shortcuts might indicate malicious intent, particularly when found on workstations where mounting such files is not a common practice.
+  ### Investigation Steps
+  - Review the EDR logs for the affected workstation to identify any recent file creations or process executions related to the suspicious shortcut files.
+  - Examine the command-line parameters associated with any processes that created or accessed the identified shortcut files for unauthorized behaviors or unusual activities.
+  - Check the organization’s email logs or proxy logs for potential phishing emails that may contain ISO or image links, especially targeting the affected user.
+  - Investigate any related alerts across other endpoint and network security tools to determine if there are recurring patterns or additional malicious activities associated with the incident.

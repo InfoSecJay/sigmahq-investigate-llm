@@ -1,0 +1,33 @@
+title: UAC Bypass Using .NET Code Profiler on MMC
+id: 93a19907-d4f9-4deb-9f91-aac4692776a6
+status: test
+description: Detects the pattern of UAC Bypass using .NET Code Profiler and mmc.exe
+  DLL hijacking (UACMe 39)
+references:
+- https://github.com/hfiref0x/UACME
+author: Christian Burkard (Nextron Systems)
+date: 2021-08-30
+modified: 2022-10-09
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|startswith: 'C:\Users\'
+    TargetFilename|endswith: '\AppData\Local\Temp\pe386.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential User Account Control (UAC) bypass attempts that leverage a .NET code profiler in conjunction with the Microsoft Management Console (mmc.exe). The detection focuses on identifying file events where a target filename starts with “C:\Users\” and ends with “\AppData\Local\Temp\pe386.dll”, suggesting a likely DLL hijacking exploit utilized to execute malicious code while bypassing security controls. With specific attention to the imposition of a code profiler, this rule highlights scenarios typical of privilege escalation tactics used by attackers. The primary data source for this detection is Windows file event logs, which provide insights into file creation and modification activities that can indicate suspicious behavior.
+  ### Investigation Steps
+  - Review EDR alerts for processes that reference `mmc.exe` and check their command-line parameters for signs of unusual activity, particularly those involving the `pe386.dll` file.
+  - Analyze Windows event logs for any file event messages related to `C:\Users\*\AppData\Local\Temp\pe386.dll`, looking for patterns of repeated access or unusual creation timestamps.
+  - Correlate findings with endpoint security tools to assess if any known indicators of compromise are associated with `pe386.dll` or related malicious activities.
+  - Inspect network traffic logs from the NGFW and Proxy for any data exfiltration or communications originating from processes identified in your previous steps, focusing on unusual outbound connections.

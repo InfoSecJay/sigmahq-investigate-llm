@@ -1,0 +1,36 @@
+title: Network Reconnaissance Activity
+id: e6313acd-208c-44fc-a0ff-db85d572e90e
+status: test
+description: Detects a set of suspicious network related commands often used in recon
+  stages
+references:
+- https://thedfirreport.com/2022/02/07/qbot-likes-to-move-it-move-it/
+author: Florian Roth (Nextron Systems)
+date: 2022-02-07
+tags:
+- attack.discovery
+- attack.t1087
+- attack.t1082
+- car.2016-03-001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - 'nslookup'
+    - '_ldap._tcp.dc._msdcs.'
+  condition: selection
+falsepositives:
+- False positives depend on scripts and administrative tools used in the monitored
+  environment
+level: high
+notes: |
+  ### Technical Context
+  The "Network Reconnaissance Activity" Sigma rule is designed to detect potentially malicious network discovery commands executed in a Windows environment. Specifically, it tracks the usage of the `nslookup` command combined with the targeted DNS query for LDAP services, which is often indicative of reconnaissance activities typically performed by attackers during the initial stages of a breach. By monitoring process creation logs, this rule identifies instances where these commands are used together, allowing SOC analysts to flag activities that may warrant further scrutiny.
+  The rule leverages data from process creation events to recognize when suspicious command-line arguments are executed. It can signal potential threats when executed by unauthorized users or in unusual contexts, thereby supporting incident responders in distinguishing between regular network administrative behavior and potential malicious actions.
+  ### Investigation Steps
+  - Review process creation logs in the EDR for the specific execution of the `nslookup` command with the query parameter `'_ldap._tcp.dc._msdcs.'` to identify the involved user and process.
+  - Cross-reference the timeline of the detected activity with user access logs in the SIEM to determine if the command was executed by a legitimate administrative user or an unauthorized account.
+  - Examine related network traffic in the NDR to assess if there is unusual outbound or inbound communication associated with the IP addresses queried in the `nslookup` command.
+  - Investigate potential false positives by checking for legitimate scripts or administrative tools that may use the same parameters in the environment to contextualize the alert.

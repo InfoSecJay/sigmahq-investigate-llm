@@ -1,0 +1,36 @@
+title: DNS Query Request By Regsvr32.EXE
+id: 36e037c4-c228-4866-b6a3-48eb292b9955
+related:
+- id: c7e91a02-d771-4a6d-a700-42587e0b1095
+  type: derived
+status: test
+description: Detects DNS queries initiated by "Regsvr32.exe"
+references:
+- https://pentestlab.blog/2017/05/11/applocker-bypass-regsvr32/
+- https://oddvar.moe/2017/12/13/applocker-case-study-how-insecure-is-it-really-part-1/
+author: Dmitriy Lifanov, oscd.community
+date: 2019-10-25
+modified: 2023-09-18
+tags:
+- attack.execution
+- attack.t1559.001
+- attack.defense-evasion
+- attack.t1218.010
+logsource:
+  category: dns_query
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\regsvr32.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies DNS queries initiated by the "Regsvr32.exe" process on Windows systems. Regsvr32 is a legitimate Microsoft utility used to register and unregister DLLs; however, attackers often exploit it for malicious purposes such as executing scripts or bypassing application whitelisting controls. This rule leverages logs from DNS queries to detect when Regsvr32 initiates a network request, which is a common tactic for further communications during an attack lifecycle. By focusing on the specific executable, the rule aims to reduce false positives while providing early detection of potentially malicious activities associated with this process. 
+  ### Investigation Steps
+  - Review the timeline of DNS queries related to the alert, checking for any unusual domain names or patterns within the DNS query logs.
+  - Use EDR tools to examine the process tree of "Regsvr32.exe" to identify any potentially suspicious parent processes or subsequent child processes that may indicate a compromise.
+  - Correlate the findings with any recent changes in application whitelisting or security policy configurations that could indicate attempts to bypass protective measures.
+  - Check for associated network traffic patterns (NDR logs) to see if there’s any outbound communication to known malicious IPs or domains connected with the detected activity.

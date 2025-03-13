@@ -1,0 +1,52 @@
+title: External Remote RDP Logon from Public IP
+id: 259a9cdf-c4dd-4fa2-b243-2269e5ab18a2
+related:
+- id: 78d5cab4-557e-454f-9fb9-a222bd0d5edc
+  type: derived
+status: test
+description: Detects successful logon from public IP address via RDP. This can indicate
+  a publicly-exposed RDP port.
+references:
+- https://www.inversecos.com/2020/04/successful-4624-anonymous-logons-to.html
+- https://twitter.com/Purp1eW0lf/status/1616144561965002752
+author: Micah Babinski (@micahbabinski), Zach Mathis (@yamatosecurity)
+date: 2023-01-19
+modified: 2024-03-11
+tags:
+- attack.initial-access
+- attack.credential-access
+- attack.t1133
+- attack.t1078
+- attack.t1110
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4624
+    LogonType: 10
+  filter_main_local_ranges:
+    IpAddress|cidr:
+    - '::1/128'          # IPv6 loopback
+    - '10.0.0.0/8'
+    - '127.0.0.0/8'
+    - '172.16.0.0/12'
+    - '192.168.0.0/16'
+    - '169.254.0.0/16'
+    - 'fc00::/7'          # IPv6 private addresses
+    - 'fe80::/10'          # IPv6 link-local addresses
+  filter_main_empty:
+    IpAddress: '-'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Legitimate or intentional inbound connections from public IP addresses on the RDP
+  port.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies successful Remote Desktop Protocol (RDP) logon events (Event ID 4624) originating from public IP addresses. By monitoring logon attempts where the LogonType is set to 10 (indicating remote interactive logins), the rule assesses whether these logins are occurring outside of standard private IP address ranges. This can alert security analysts to potentially unauthorized access attempts, highlighting vulnerabilities such as improperly exposed RDP ports on enterprise systems. The rule effectively narrows down the log instances to filter out internal connections from safe IP ranges, thereby focusing only on those that pose a risk due to their external origins.
+  ### Investigation Steps
+  - Review the event details associated with the detected logon event in the Windows security logs using your EDR tool, looking specifically for user accounts involved and the timestamps of the logon attempts.
+  - Check the firewall and NDR logs to confirm if the public IP addresses associated with the logon attempts have been flagged for malicious activity or are known to be involved in other security incidents.
+  - Investigate the connection trajectory by reviewing proxy logs for any related outbound communications from the affected machine to the public IP address prior to or following the RDP logon event.
+  - Conduct a user behavioral analysis using threat intelligence and user account logs to determine whether the user behavior leading up to the event was typical or indicative of a potential compromise.

@@ -1,0 +1,40 @@
+title: Enable LM Hash Storage - ProcCreation
+id: 98dedfdd-8333-49d4-9f23-d7018cccae53
+related:
+- id: c420410f-c2d8-4010-856b-dffe21866437     # Registry
+  type: similar
+status: test
+description: |
+  Detects changes to the "NoLMHash" registry value in order to allow Windows to store LM Hashes.
+  By setting this registry value to "0" (DWORD), Windows will be allowed to store a LAN manager hash of your password in Active Directory and local SAM databases.
+references:
+- https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-347a
+- https://learn.microsoft.com/en-us/troubleshoot/windows-server/windows-security/prevent-windows-store-lm-hash-password
+- https://www.sans.org/blog/protecting-privileged-domain-accounts-lm-hashes-the-good-the-bad-and-the-ugly/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-12-15
+modified: 2023-12-22
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    CommandLine|contains|all:
+    - '\System\CurrentControlSet\Control\Lsa'
+    - 'NoLMHash'
+    - ' 0'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies changes to the "NoLMHash" registry key, specifically when the value is set to "0". Modifying this key allows Windows to store LAN Manager (LM) hashes of passwords, which is a significant security risk because LM hashes are considered weak and can be exploited by attackers. The rule focuses on monitoring process creation logs, capturing command-line arguments that include the path to the registry setting and the specific configuration adjustment. By leveraging process creation logs as the primary data source, this rule aims to alert security personnel to potentially malicious attempts to weaken authentication measures and increase the risk of credential theft.
+  ### Investigation Steps
+  - Use EDR tools to review process creation logs for the executed commands associated with the detected change, ensuring there’s context around who made the modification and from which machine.
+  - Query Windows event logs for additional context on the specific user and services involved in the modification to the registry value, establishing whether this was a legitimate administrative action or unauthorized.
+  - Examine User and Admin access logs in Active Directory to determine if this change aligns with expected behavior or if it originated from an unknown or potentially compromised account.
+  - Use SIEM to correlate this detection with other security alerts to identify related anomalous activities that may suggest an ongoing attack or security breach.

@@ -1,0 +1,64 @@
+title: Schtasks Creation Or Modification With SYSTEM Privileges
+id: 89ca78fd-b37c-4310-b3d3-81a023f83936
+status: test
+description: Detects the creation or update of a scheduled task to run with "NT AUTHORITY\SYSTEM"
+  privileges
+references:
+- https://www.elastic.co/security-labs/exploring-the-qbot-attack-pattern
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-28
+modified: 2025-02-15
+tags:
+- attack.execution
+- attack.persistence
+- attack.t1053.005
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_root:
+    Image|endswith: '\schtasks.exe'
+    CommandLine|contains:
+    - ' /change '
+    - ' /create '
+  selection_run:
+    CommandLine|contains: '/ru '
+  selection_user:
+    CommandLine|contains:
+    - 'NT AUT'         # This covers the usual NT AUTHORITY\SYSTEM
+    - ' SYSTEM '         # SYSTEM is a valid value for schtasks hence it gets it's own value with space
+  filter_optional_teamviewer:
+        # FP from test set in SIGMA
+        # Cannot use ParentImage on all OSes for 4688 events
+        # ParentImage|contains|all:
+        #     - '\AppData\Local\Temp\'
+        #     - 'TeamViewer_.exe'
+    Image|endswith: '\schtasks.exe'
+    CommandLine|contains|all:
+    - '/TN TVInstallRestore'
+    - '\TeamViewer_.exe'
+  filter_optional_office:
+    CommandLine|contains|all:
+            # https://answers.microsoft.com/en-us/msoffice/forum/all/office-15-subscription-heartbeat-task-created-on/43ab5e53-a9fb-47c6-8c14-44889974b9ff
+    - 'Subscription Heartbeat'
+    - '\HeartbeatConfig.xml'
+    - '\Microsoft Shared\OFFICE'
+  filter_optional_avira:
+    CommandLine|contains:
+    - '/Create /F /RU System /SC WEEKLY /TN AviraSystemSpeedupVerify /TR '
+    - ':\Program Files (x86)\Avira\System Speedup\setup\avira_speedup_setup.exe'
+    - '/VERIFY /VERYSILENT /NOSTART /NODOTNET /NORESTART" /RL HIGHEST'
+  condition: all of selection_* and not 1 of filter_optional_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activities involving the creation or modification of scheduled tasks that execute with elevated privileges under the "NT AUTHORITY\SYSTEM" user account. Such operations are commonly leveraged by attackers to maintain persistence on compromised systems, enabling them to execute harmful programs or scripts seamlessly in the background without user intervention. The rule specifically monitors the execution of `schtasks.exe`, focusing on command lines that contain keywords indicating task creation or alteration (e.g., "/create" or "/change") along with identifying the user context as "SYSTEM". 
+  Technical data sources essential for this detection include process creation logs that capture details about the invocation of processes, including command-line parameters. By analyzing this data, security analysts can detect anomalous behavior that signifies misused system privileges, allowing for timely investigations into potential system compromises.
+  ### Investigation Steps
+  - Utilize your EDR tool to search for recent instances of `schtasks.exe` execution and review the associated command-line arguments for suspicious patterns, especially those involving the user context "NT AUTHORITY\SYSTEM".
+  - Check system logs for any scheduled tasks that were created or modified recently, particularly focusing on tasks that may not align with typical or expected operations in your environment.
+  - Cross-reference the findings with historical data in your SIEM or endpoint logging solution to identify if similar activities have occurred in the past, which could indicate recurring malicious behavior.
+  - Investigate network traffic logs (e.g., from your NGFW or NDR tools) to determine if there were any outbound connections made by the identified scheduled tasks, which could reveal further indicators of compromise.

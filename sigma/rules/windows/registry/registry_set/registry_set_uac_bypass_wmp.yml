@@ -1,0 +1,34 @@
+title: UAC Bypass Using Windows Media Player - Registry
+id: 5f9db380-ea57-4d1e-beab-8a2d33397e93
+status: test
+description: Detects the pattern of UAC Bypass using Windows Media Player osksupport.dll
+  (UACMe 32)
+references:
+- https://github.com/hfiref0x/UACME
+author: Christian Burkard (Nextron Systems)
+date: 2021-08-23
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: '\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Compatibility
+      Assistant\Store\C:\Program Files\Windows Media Player\osk.exe'
+    Details: 'Binary Data'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect instances of User Account Control (UAC) bypass using Windows Media Player, specifically targeting the modification of registry keys associated with the application. The rule looks for specific registry changes that signal an attempt to manipulate Windows Media Player's functionality, leveraging the `osksupport.dll` to bypass UAC protections. By monitoring the Windows registry for entries related to the `Compatibility Assistant`, the detection can reveal unauthorized attempts to escalate privileges. The primary data source used in this detection is the Windows registry itself, which logs changes made to system configurations, and the focus is specifically on the `TargetObject` that is associated with the path to the `osk.exe` executable within Windows Media Player.
+  ### Investigation Steps
+  - Review recent registry modifications in your EDR for any entries identical to the specified target object path associated with Windows Media Player.
+  - Use the SIEM to correlate the alert with process creation logs, checking for instances of `osk.exe` being executed around the same time as the registry change.
+  - Verify the execution context of the `osk.exe` process to determine if it was run with elevated privileges, which may indicate a successful UAC bypass.
+  - Assess network activity through the NDR or Proxy logs to identify any suspicious outbound connections that coincide with the timeframe of the detected registry changes, as this may point to malicious activity.

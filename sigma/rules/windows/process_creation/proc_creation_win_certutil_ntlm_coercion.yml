@@ -1,0 +1,36 @@
+title: Potential NTLM Coercion Via Certutil.EXE
+id: 6c6d9280-e6d0-4b9d-80ac-254701b64916
+status: test
+description: Detects possible NTLM coercion via certutil using the 'syncwithWU' flag
+references:
+- https://github.com/LOLBAS-Project/LOLBAS/issues/243
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-01
+modified: 2023-02-14
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\certutil.exe'
+  - OriginalFileName: 'CertUtil.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - ' -syncwithWU '
+    - ' \\\\'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The rule titled "Potential NTLM Coercion Via Certutil.EXE" aims to detect potentially malicious activity related to NTLM coercion using the Windows utility `certutil.exe`. This tool is often leveraged by threat actors for various evasion techniques. The detection focuses specifically on instances where `certutil.exe` is executed with the `-syncwithWU` flag in conjunction with a command-line argument that contains a UNC path (indicated by '\\\\'). By monitoring process creation logs, the rule captures any attempts where this combination is present, which may indicate that an attacker is trying to manipulate NTLM authentication in a way that could allow for credential theft or lateral movement within the network.
+  The data sources primarily involved in this detection are Windows process creation logs, which provide detailed information about executed processes, including command-line parameters and the associated executable names. Utilizing this information, incident responders can identify suspect behavior linked to NTLM coercion attempts that could compromise enterprise security.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR for any instances of `certutil.exe` being executed with the `-syncwithWU` flag to confirm alert validity.
+  - Investigate the command-line history associated with `certutil.exe` for any suspicious UNC paths, which may indicate an attempt to access resources on a remote system.
+  - Check authentication logs for any unusual NTLM authentications or failed login attempts that may correlate with the execution of the suspect command.
+  - Utilize network logs from the NDR to look for any unusual outbound connections to the identified UNC paths, as these could reveal further details about the attack vector used.

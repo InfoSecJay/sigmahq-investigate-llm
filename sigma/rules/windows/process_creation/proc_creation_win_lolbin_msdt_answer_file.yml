@@ -1,0 +1,39 @@
+title: Execute MSDT Via Answer File
+id: 9c8c7000-3065-44a8-a555-79bcba5d9955
+status: test
+description: Detects execution of "msdt.exe" using an answer file which is simulating
+  the legitimate way of calling msdt via "pcwrun.exe" (For example from the compatibility
+  tab)
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Msdt/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-13
+tags:
+- attack.defense-evasion
+- attack.t1218
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_cli:
+    Image|endswith: '\msdt.exe'
+    CommandLine|contains: '\WINDOWS\diagnostics\index\PCWDiagnostic.xml'
+  selection_answer:
+    CommandLine|contains:
+    - ' -af '
+    - ' /af '
+  filter:
+    ParentImage|endswith: '\pcwrun.exe'
+  condition: all of selection* and not filter
+falsepositives:
+- Possible undocumented parents of "msdt" other than "pcwrun"
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects potentially malicious use of the Windows troubleshooting tool "msdt.exe" when executed with an answer file. The rule identifies instances where "msdt.exe" is launched with command-line arguments containing indicators of an answer file, specifically looking for patterns such as `-af` or `/af`. The execution is further constrained to situations where the parent process is "pcwrun.exe," which may indicate an attempt to simulate legitimate behavior. The data sources leveraged for this detection include process creation logs that provide details about the command-line parameters used during the execution, helping analysts distinguish between valid and suspicious behavior.
+  ### Investigation Steps
+  - Use EDR tools to investigate the process tree and confirm the parent-child relationship between "pcwrun.exe" and "msdt.exe."
+  - Review the command-line arguments of the detected instances in the EDR logs to verify the presence of answer file indicators like `-af` or `/af`.
+  - Check for any pre-existing incidents or alerts related to "msdt.exe" or "pcwrun.exe" that may provide context to the current alert.
+  - Analyze any relevant system logs or behavioral analytics from AV and SIEM solutions to determine if the execution aligns with known malicious activities or user behavior anomalies.

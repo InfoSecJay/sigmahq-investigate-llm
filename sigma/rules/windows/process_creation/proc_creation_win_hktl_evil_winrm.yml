@@ -1,0 +1,37 @@
+title: HackTool - WinRM Access Via Evil-WinRM
+id: a197e378-d31b-41c0-9635-cfdf1c1bb423
+status: test
+description: Adversaries may use Valid Accounts to log into a computer using the Remote
+  Desktop Protocol (RDP). The adversary may then perform actions as the logged-on
+  user.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1021.006/T1021.006.md#atomic-test-3---winrm-access-with-evil-winrm
+- https://github.com/Hackplayers/evil-winrm
+author: frack113
+date: 2022-01-07
+modified: 2023-02-13
+tags:
+- attack.lateral-movement
+- attack.t1021.006
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\ruby.exe'
+    CommandLine|contains|all:
+    - '-i '
+    - '-u '
+    - '-p '
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect instances of the Evil-WinRM tool being used for lateral movement within a Windows environment. It specifically looks for processes that end with `ruby.exe`, which is typical for Evil-WinRM, along with the associated command-line parameters that indicate the use of WinRM, such as `-i` for the interactive mode, `-u` for the username, and `-p` for the password. By monitoring process creation logs, the rule identifies potentially malicious activity where a valid user account is exploited to gain unauthorized access to other systems via Remote Desktop Protocol (RDP) interfaces. This detection is critical in mitigating the risk of lateral movement strategies employed by adversaries during an attack.
+  ### Investigation Steps
+  - Search EDR logs for any recent instances of `ruby.exe` executing with the command-line parameters `-i`, `-u`, and `-p` in the time frame surrounding the alert.
+  - Review user authentication logs from the targeted systems to confirm if valid user credentials were utilized and trace the source of login attempts.
+  - Analyze network traffic through your NDR tool to identify any unusual communication patterns or sessions established from the compromised host to other systems.
+  - Check firewall logs in the NGFW for allowed RDP connections, particularly focusing on connections originating from the suspected machine to detect lateral movement.

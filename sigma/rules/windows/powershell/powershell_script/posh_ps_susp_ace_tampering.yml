@@ -1,0 +1,43 @@
+title: Potential Persistence Via Security Descriptors - ScriptBlock
+id: 2f77047c-e6e9-4c11-b088-a3de399524cd
+status: test
+description: Detects usage of certain functions and keywords that are used to manipulate
+  security descriptors in order to potentially set a backdoor. As seen used in the
+  DAMP project.
+references:
+- https://github.com/HarmJ0y/DAMP
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-05
+tags:
+- attack.persistence
+- attack.defense-evasion
+- attack.privilege-escalation
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'win32_Trustee'
+    - 'win32_Ace'
+    - '.AccessMask'
+    - '.AceType'
+    - '.SetSecurityDescriptor'
+    ScriptBlockText|contains:
+    - '\Lsa\JD'
+    - '\Lsa\Skew1'
+    - '\Lsa\Data'
+    - '\Lsa\GBG'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious behaviors in PowerShell script blocks that manipulate security descriptors, which could indicate attempts to establish persistence in a compromised environment. Specifically, it looks for the presence of certain keywords and functions, such as `win32_Trustee`, `win32_Ace`, and `SetSecurityDescriptor`, commonly associated with modifying security permissions. By focusing on these elements, the rule aims to uncover activities that might be indicative of backdoor creation and privilege escalation tactics, as highlighted in the DAMP project. This rule relies on the logging of PowerShell script blocks, necessitating that Script Block Logging be enabled in order to capture the relevant data.
+  ### Investigation Steps
+  - Examine PowerShell logs in your EDR for recent script block executions that match the detected keywords. This will help identify any potentially malicious activity.
+  - Utilize the SIEM to search for related alerts and contextual information about user activities leading up to the detection, focusing specifically on unusual logins or privilege changes.
+  - Review system and security event logs on affected hosts for any unauthorized attempts to modify security descriptors or unusual account activities, particularly around the timestamps of the alerts.
+  - Investigate any affected user accounts for signs of compromise, such as unfamiliar login locations or abnormal behavior patterns, to assess the overall security posture of the environment.

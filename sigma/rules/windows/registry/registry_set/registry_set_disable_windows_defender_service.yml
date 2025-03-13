@@ -1,0 +1,33 @@
+title: Windows Defender Service Disabled - Registry
+id: e1aa95de-610a-427d-b9e7-9b46cfafbe6a
+status: test
+description: Detects when an attacker or tool disables the  Windows Defender service
+  (WinDefend) via the registry
+references:
+- https://thedfirreport.com/2021/10/18/icedid-to-xinglocker-ransomware-in-24-hours/
+- https://gist.github.com/anadr/7465a9fde63d41341136949f14c21105
+author: Ján Trenčanský, frack113, AlertIQ, Nasreddine Bencherchali
+date: 2022-08-01
+modified: 2024-03-25
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject|endswith: '\Services\WinDefend\Start'
+    Details: 'DWORD (0x00000004)'
+  condition: selection
+falsepositives:
+- Administrator actions
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect when the Windows Defender service (WinDefend) is disabled through changes made in the Windows registry. Specifically, it identifies alterations to the registry key associated with the service's startup type, checking for a specific DWORD value of "4" which indicates the service is disabled. This type of modification is often a tactic employed by attackers to circumvent security protocols, allowing malicious activities to proceed without detection. The rule leverages registry set logs as its primary data source, enabling quick identification of potential misconfigurations or malicious actions pertaining to critical security services.
+  ### Investigation Steps
+  - Review registry change logs to identify the user or process that made modifications to the WinDefend service settings, focusing on timestamps around the alert.
+  - Use EDR tools to analyze process histories and command-line arguments for any suspicious activity or patterns leading to the registry change.
+  - Check for related event logs that indicate unusual behavior on the system, such as unexpected service starts or stops, especially around the time of the registry modification.
+  - Correlate findings with threat intelligence and incident reports to assess if the behavior aligns with known attacker tactics, techniques, and procedures (TTPs).

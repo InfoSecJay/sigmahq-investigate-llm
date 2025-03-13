@@ -1,0 +1,35 @@
+title: Potential Mfdetours.DLL Sideloading
+id: d2605a99-2218-4894-8fd3-2afb7946514d
+status: test
+description: Detects potential DLL sideloading of "mfdetours.dll". While using "mftrace.exe"
+  it can be abused to attach to an arbitrary process and force load any DLL named
+  "mfdetours.dll" from the current directory of execution.
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-08-03
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\mfdetours.dll'
+  filter_main_legit_path:
+    ImageLoaded|contains: ':\Program Files (x86)\Windows Kits\10\bin\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unlikely
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies suspicious behavior associated with DLL sideloading, specifically targeting the `mfdetours.dll` file. DLL sideloading is a technique where a malicious or undesired DLL is loaded in the place of a legitimate one, allowing attackers to execute arbitrary code within the context of a legitimate executable. The rule leverages logs from image load events on Windows systems, specifically looking for instances where `mfdetours.dll` is loaded. By monitoring the process of legitimate applications, such as `mftrace.exe`, the rule checks for anomalies by filtering based on file paths that typically indicate legitimate usage, notably excluding common system directories like "C:\Program Files (x86)\Windows Kits\10\bin\". If the DLL is loaded from an unauthorized directory, it raises a flag for further investigation.
+  ### Investigation Steps
+  - Investigate the alert in the EDR platform by checking the process tree to identify the parent process of `mftrace.exe` and any other related processes to understand the context of the execution.
+  - Review command-line parameters used with `mftrace.exe` in the EDR logs, ensuring they are consistent with normal usage patterns and not indicative of potential abuse.
+  - Query the SIEM for additional events related to other processes that may have interacted with `mfdetours.dll` to assess whether this incident is part of a broader attack activity.
+  - Examine relevant AV logs for any detections or alerts associated with `mfdetours.dll` that may indicate previous or ongoing malicious behavior.

@@ -1,0 +1,43 @@
+title: Potential Active Directory Enumeration Using AD Module - PsModule
+id: 74176142-4684-4d8a-8b0a-713257e7df8e
+related:
+- id: 70bc5215-526f-4477-963c-a47a5c9ebd12
+  type: similar
+- id: 9e620995-f2d8-4630-8430-4afd89f77604
+  type: similar
+status: test
+description: Detects usage of the "Import-Module" cmdlet to load the "Microsoft.ActiveDirectory.Management.dl"
+  DLL. Which is often used by attackers to perform AD enumeration.
+references:
+- https://github.com/samratashok/ADModule
+- https://twitter.com/cyb3rops/status/1617108657166061568?s=20
+- https://www.ired.team/offensive-security-experiments/active-directory-kerberos-abuse/active-directory-enumeration-with-ad-module-without-rsat-or-admin-privileges
+author: Nasreddine Bencherchali (Nextron Systems), frack113
+date: 2023-01-22
+tags:
+- attack.reconnaissance
+- attack.discovery
+- attack.impact
+logsource:
+  product: windows
+  category: ps_module
+  definition: 0ad03ef1-f21b-4a79-8ce8-e6900c54b65b
+detection:
+  selection_cmdlet:
+    Payload|contains:
+    - 'Import-Module '
+    - 'ipmo '
+  selection_dll:
+    Payload|contains: 'Microsoft.ActiveDirectory.Management.dll'
+  condition: all of selection_*
+falsepositives:
+- Legitimate use of the library for administrative activity
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule detects potential Active Directory (AD) enumeration through the use of the `Import-Module` PowerShell cmdlet, specifically when loading the `Microsoft.ActiveDirectory.Management.dll` library. This DLL is often leveraged by attackers as part of their reconnaissance efforts to gather information about an organization's AD environment without requiring elevated privileges. The rule focuses on monitoring PowerShell command execution logs that contain the specified cmdlet and DLL, which can indicate unauthorized attempts to query or manipulate AD objects. By tracking these specific APIs, this detection rule can help identify potentially malicious activities targeting organizational resources.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR to identify any suspicious PowerShell commands executed around the alert time, paying special attention to user accounts that are not typically associated with administrative tasks.
+  - Analyze the command-line arguments associated with the detected `Import-Module` cmdlet using the logs from the command line history in the target environment to determine if there are additional indicators of compromise.
+  - Check network traffic logs from the NGFW and NDR tools for any unusual outbound connections made by the machine that executed the potentially malicious PowerShell command, especially to known malicious IP addresses or domains.
+  - Investigate the affected user account in your identity and access management systems to ascertain if there were recent changes to permissions or if the account has been reported as compromised.

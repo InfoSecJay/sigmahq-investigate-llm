@@ -1,0 +1,90 @@
+title: Network Communication Initiated To File Sharing Domains From Process Located
+  In Suspicious Folder
+id: e0f8ab85-0ac9-423b-a73a-81b3c7b1aa97
+related:
+- id: 635dbb88-67b3-4b41-9ea5-a3af2dd88153
+  type: obsolete
+status: test
+description: Detects executables located in potentially suspicious directories initiating
+  network connections towards file sharing domains.
+references:
+- https://twitter.com/M_haggis/status/900741347035889665
+- https://twitter.com/M_haggis/status/1032799638213066752
+- https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/ransomware-hive-conti-avoslocker
+- https://www.cisa.gov/uscert/ncas/alerts/aa22-321a
+- https://github.com/EmpireProject/Empire/blob/e37fb2eef8ff8f5a0a689f1589f424906fe13055/data/module_source/exfil/Invoke-ExfilDataToGitHub.ps1
+author: Florian Roth (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2018-08-30
+modified: 2024-10-21
+tags:
+- attack.command-and-control
+- attack.t1105
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection_paths:
+    Image|contains:
+    - ':\$Recycle.bin'
+    - ':\Perflogs\'
+    - ':\Temp\'
+    - ':\Users\Default\'
+    - ':\Users\Public\'
+    - ':\Windows\Fonts\'
+    - ':\Windows\IME\'
+    - ':\Windows\System32\Tasks\'
+    - ':\Windows\Tasks\'
+    - ':\Windows\Temp\'
+    - '\AppData\Temp\'
+    - '\config\systemprofile\'
+    - '\Windows\addins\'
+  selection_domains:
+    Initiated: 'true'
+    DestinationHostname|endswith:
+    - '.githubusercontent.com'               # Includes both gists and github repositories / Michael Haag (idea)
+    - 'anonfiles.com'
+    - 'cdn.discordapp.com'
+    - 'ddns.net'
+    - 'dl.dropboxusercontent.com'
+    - 'ghostbin.co'
+    - 'glitch.me'
+    - 'gofile.io'
+    - 'hastebin.com'
+    - 'mediafire.com'
+    - 'mega.co.nz'
+    - 'mega.nz'
+    - 'onrender.com'
+    - 'pages.dev'
+    - 'paste.ee'
+    - 'pastebin.com'
+    - 'pastebin.pl'
+    - 'pastetext.net'
+    - 'pixeldrain.com'
+    - 'privatlab.com'
+    - 'privatlab.net'
+    - 'send.exploit.in'
+    - 'sendspace.com'
+    - 'storage.googleapis.com'
+    - 'storjshare.io'
+    - 'supabase.co'
+    - 'temp.sh'
+    - 'transfer.sh'
+    - 'trycloudflare.com'
+    - 'ufile.io'
+    - 'w3spaces.com'
+    - 'workers.dev'
+  condition: all of selection_*
+falsepositives:
+- Some installers located in the temp directory might communicate with the Github
+  domains in order to download additional software. Baseline these cases or move the
+  github domain to a lower level hunting rule.
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially malicious behavior by monitoring for executable files located in suspicious directories, such as temporary files or common user folders. Specifically, it looks for instances where these executables initiate network connections to known file-sharing domains, which are often used for the distribution of unauthorized or malicious content. The data sources involved include network connection logs that record outbound traffic, specifically focusing on events where a process attempts to reach destinations that end with certain file-sharing domain extensions, indicating potential data exfiltration or command-and-control activities.
+  The primary indicators of compromise are unusual network connections from executables residing in directories such as `$Recycle.bin` or `Temp`, which are not typically associated with legitimate application behavior. By identifying these patterns, this rule helps in recognizing potentially malicious intentions, such as ransomware communications or unauthorized data sharing.
+  ### Investigation Steps
+  - Check EDR logs to identify the process names and command-line parameters of the executables that triggered the alert, focusing on their source paths.
+  - Review network connection logs in your SIEM to pinpoint the specific timestamps and details of the outbound traffic to the flagged file-sharing domains.
+  - Utilize AV tools to scan the identified executables for known malware signatures or any suspicious behavior patterns.
+  - Investigate user activity logs to determine whether the process executions align with normal user behaviors, identifying any anomalies or unauthorized access attempts.

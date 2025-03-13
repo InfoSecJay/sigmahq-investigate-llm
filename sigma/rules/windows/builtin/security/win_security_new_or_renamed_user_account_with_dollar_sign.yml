@@ -1,0 +1,38 @@
+title: New or Renamed User Account with '$' Character
+id: cfeed607-6aa4-4bbd-9627-b637deb723c8
+status: test
+description: |
+  Detects the creation of a user with the "$" character. This can be used by attackers to hide a user or trick detection systems that lack the parsing mechanisms.
+references:
+- https://twitter.com/SBousseaden/status/1387743867663958021
+author: Ilyas Ochkov, oscd.community
+date: 2019-10-25
+modified: 2024-01-16
+tags:
+- attack.defense-evasion
+- attack.t1036
+logsource:
+  product: windows
+  service: security
+detection:
+  selection_create:
+    EventID: 4720     # create user
+    SamAccountName|contains: '$'
+  selection_rename:
+    EventID: 4781     # rename user
+    NewTargetUserName|contains: '$'
+  filter_main_homegroup:
+    EventID: 4720
+    TargetUserName: 'HomeGroupUser$'
+  condition: 1 of selection_* and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation or renaming of user accounts that include a "$" character in their names. In Windows environments, user accounts with a "$" suffix are often associated with hidden administrative accounts, which attackers may utilize to circumvent detection mechanisms that do not adequately parse or flag these accounts. The rule leverages Windows security event logs, specifically Event IDs 4720 (for user creation) and 4781 (for user renaming), to monitor for anomalous account behaviors. Importantly, the rule excludes legitimate system accounts, such as "HomeGroupUser$", to reduce false positives. 
+  ### Investigation Steps
+  - Review the EDR logs to track the user account's creation or renaming events. Check for additional context, such as the originating process and user, to help determine if the action was legitimate or malicious.
+  - Query the SIEM for related security events around the time of the user account creation or renaming. Look for suspicious activities like failed logins or attempts to access sensitive resources associated with the new or renamed account.
+  - Examine the command-line arguments of processes that were active when the event was logged. Investigate if there are any scripts or tools that could have been used to automate the account modification.
+  - Analyze the logs from the VPN and Proxy to identify any external access attempts by the newly created or renamed account. This can reveal whether the account is being used to access sensitive systems or data.

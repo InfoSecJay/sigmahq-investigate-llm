@@ -1,0 +1,33 @@
+title: HackTool - SecurityXploded Execution
+id: 7679d464-4f74-45e2-9e01-ac66c5eb041a
+status: stable
+description: Detects the execution of SecurityXploded Tools
+references:
+- https://securityxploded.com/
+- https://web.archive.org/web/20200601000524/https://cyberx-labs.com/blog/gangnam-industrial-style-apt-campaign-targets-korean-industrial-companies/
+author: Florian Roth (Nextron Systems)
+date: 2018-12-19
+modified: 2023-02-04
+tags:
+- attack.credential-access
+- attack.t1555
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Company: SecurityXploded
+  - Image|endswith: 'PasswordDump.exe'
+  - OriginalFileName|endswith: 'PasswordDump.exe'
+  condition: selection
+falsepositives:
+- Unlikely
+level: critical
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of tools from SecurityXploded, specifically focusing on the `PasswordDump.exe` executable. The rule identifies instances where processes are created on Windows systems that match certain attributes associated with the SecurityXploded suite. It leverages process creation logs, checking for names and attributes like `Company`, `Image`, and `OriginalFileName` to pinpoint potential unauthorized activities. Detecting such unauthorized execution can be critical, as tools like PasswordDump.exe are often leveraged in credential theft scenarios and can indicate an active threat to the organization's security posture.
+  ### Investigation Steps
+  - Review EDR logs to identify the source of `PasswordDump.exe` and any parent processes to understand how the executable was launched.
+  - Check for related command-line parameters used during the execution of the process in the activity logs to gather contextual information.
+  - Analyze any network traffic captured by NDR or Proxy solutions for connections made by the executable, looking for suspicious or unauthorized outbound communications.
+  - Investigate user activity and authentication logs to determine whether there were any compromised accounts that could have facilitated the execution of the tool.

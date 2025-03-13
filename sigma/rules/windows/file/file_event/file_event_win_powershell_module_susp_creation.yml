@@ -1,0 +1,36 @@
+title: Potential Suspicious PowerShell Module File Created
+id: e8a52bbd-bced-459f-bd93-64db45ce7657
+status: test
+description: Detects the creation of a new PowerShell module in the first folder of
+  the module directory structure "\WindowsPowerShell\Modules\malware\malware.psm1".
+  This is somewhat an uncommon practice as legitimate modules often includes a version
+  folder.
+references:
+- Internal Research
+- https://learn.microsoft.com/en-us/powershell/scripting/developer/module/understanding-a-windows-powershell-module?view=powershell-7.3
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-09
+tags:
+- attack.persistence
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|endswith:
+            # Note: Don't include PowerShell 7 as it has default modules that don't follow this logic
+    - '\\WindowsPowerShell\\Modules\\*\.ps'
+    - '\\WindowsPowerShell\\Modules\\*\.dll'
+  condition: selection
+falsepositives:
+- False positive rate will vary depending on the environments. Additional filters
+  might be required to make this logic usable in production.
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the suspicious creation of PowerShell module files, particularly in a non-standard format that deviates from typical practices observed in legitimate PowerShell module development. The rule specifically looks for the creation of files with the `.psm1` and `.dll` extensions located directly in the `\WindowsPowerShell\Modules\malware\` directory, which is uncommon as most legitimate PowerShell modules are organized within version-defined subdirectories. The primary technical data sources involved in this detection include file event logs from the Windows operating system that capture file creation activities, allowing analysts to identify potentially malicious modules that could be leveraged for persistence in an environment.
+  ### Investigation Steps
+  - Review the file creation logs using EDR tools to track the timeline and source of the suspicious module file creation, noting any related processes or user accounts involved.
+  - Analyze any execution logs from PowerShell to identify if the created module has been instantiated or run, as this may indicate further malicious intent.
+  - Check the network traffic logs via NDR or proxy tools to determine if there are any unusual external connections made by the involved user or processes, which could suggest data exfiltration or command-and-control activity.
+  - Monitor for other anomalies within the same environment, such as additional unusual modules created or executed, to understand if this is part of a broader attack vector or single isolated incident.

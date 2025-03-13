@@ -1,0 +1,43 @@
+title: Powershell XML Execute Command
+id: 6c6c6282-7671-4fe9-a0ce-a2dcebdc342b
+status: test
+description: |
+  Adversaries may abuse PowerShell commands and scripts for execution.
+  PowerShell is a powerful interactive command-line interface and scripting environment included in the Windows operating system. (Citation: TechNet PowerShell)
+  Adversaries can use PowerShell to perform a number of actions, including discovery of information and execution of code
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1059.001/T1059.001.md#atomic-test-8---powershell-xml-requests
+author: frack113
+date: 2022-01-19
+modified: 2023-01-19
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_xml:
+    ScriptBlockText|contains|all:
+    - 'New-Object'
+    - 'System.Xml.XmlDocument'
+    - '.Load'
+  selection_exec:
+    ScriptBlockText|contains:
+    - 'IEX '
+    - 'Invoke-Expression '
+    - 'Invoke-Command '
+    - 'ICM -'
+  condition: all of selection_*
+falsepositives:
+- Legitimate administrative script
+level: medium
+notes: |
+  ### Technical Context
+  The "Powershell XML Execute Command" detection rule is designed to identify potential abuse of PowerShell scripts that employ XML command execution. Attackers may leverage PowerShell’s capability to create and manipulate XML documents to execute unauthorized commands or scripts. This rule specifically looks for instance occurrences of script blocks that incorporate the creation of a new XML document object, such as the command `New-Object System.Xml.XmlDocument`, alongside other PowerShell execution commands like `Invoke-Expression` (IEX) and `Invoke-Command`. To ensure accurate detections, Script Block Logging must be enabled on Windows systems, allowing the collection of detailed logs that capture the content of PowerShell execution attempts.
+  ### Investigation Steps
+  - Review the PowerShell logs in your EDR solution to identify any occurrences of the detected script blocks, particularly focusing on scripts utilizing `New-Object System.Xml.XmlDocument`.
+  - Analyze the process execution history to check for suspicious parent-child relationships that may indicate malicious execution chains from the PowerShell scripts.
+  - Search through command-line parameters in system logs for any instances of `IEX ` or variations of `Invoke-Command` that may indicate suspicious activities.
+  - If applicable, audit any corresponding XML documents accessed or modified during the logged PowerShell execution to determine if they contain malicious content or requests.

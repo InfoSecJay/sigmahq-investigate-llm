@@ -1,0 +1,43 @@
+title: Potential Persistence Via Notepad++ Plugins
+id: 54127bd4-f541-4ac3-afdb-ea073f63f692
+status: test
+description: Detects creation of new ".dll" files inside the plugins directory of
+  a notepad++ installation by a process other than "gup.exe". Which could indicates
+  possible persistence
+references:
+- https://pentestlab.blog/2022/02/14/persistence-notepad-plugins/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-10
+modified: 2023-01-05
+tags:
+- attack.persistence
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|contains: '\Notepad++\plugins\'
+    TargetFilename|endswith: '.dll'
+  filter_gup:
+    Image|endswith: '\Notepad++\updater\gup.exe'
+  filter_install:
+        # This filter is for Sigma dataset you could remove it or change when using the rule in your own env
+    Image|startswith: 'C:\Users\'
+    Image|contains: '\AppData\Local\Temp\'
+    Image|endswith:
+    - '\target.exe'
+    - 'Installer.x64.exe'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Possible FPs during first installation of Notepad++
+- Legitimate use of custom plugins by users in order to enhance notepad++ functionalities
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Potential Persistence Via Notepad++ Plugins" detects suspicious activity involving Notepad++ by monitoring the creation of new ".dll" files within the Notepad++ plugins directory. The rule is specifically designed to identify when these files are created by any process other than "gup.exe," the official updater for Notepad++. This could indicate an attempt at malicious persistence, where an attacker installs unauthorized plugins to maintain access to the system. The detection is based on file event logs, specifically monitoring the target filenames for specific patterns and excluding legitimate activities associated with the updater or typical installation behaviors.
+  This rule leverages Windows file event logs to capture relevant data, specifically looking for files created within the plugins directory that have the .dll extension. When such a file is detected, the rule checks the associated process to ensure that it does not originate from the typical Notepad++ update mechanism. By ruling out these legitimate processes, the detection focuses on potentially malicious actions that users may inadvertently overlook, helping to spot attempts to establish persistence.
+  ### Investigation Steps
+  - Review EDR logs for any processes that created new ".dll" files in the Notepad++ plugins directory, paying close attention to their names and execution paths.
+  - Check the command-line parameters of the processes associated with the creation events to identify any suspicious behavior or indicators of compromise.
+  - Analyze the related user activity in Proxy or VPN logs to determine if any anomalies correlate with the reported file creation events, such as unusual web traffic or downloads.
+  - Search for additional indicators of persistence on the endpoint using AV logs or a threat intelligence platform, to confirm if there are other components installed alongside the identified suspicious plugin files.

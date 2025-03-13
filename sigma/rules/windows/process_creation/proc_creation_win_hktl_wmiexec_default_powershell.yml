@@ -1,0 +1,30 @@
+title: HackTool - Wmiexec Default Powershell Command
+id: 022eaba8-f0bf-4dd9-9217-4604b0bb3bb0
+status: test
+description: Detects the execution of PowerShell with a specific flag sequence that
+  is used by the Wmiexec script
+references:
+- https://github.com/fortra/impacket/blob/f4b848fa27654ca95bc0f4c73dbba8b9c2c9f30a/examples/wmiexec.py
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-03-08
+tags:
+- attack.defense-evasion
+- attack.lateral-movement
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains: '-NoP -NoL -sta -NonI -W Hidden -Exec Bypass -Enc'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of PowerShell commands that contain a specific sequence of flags indicative of the usage of the Wmiexec tool, often employed for lateral movement and evasion tactics within a network environment. The rule looks for the presence of command-line parameters such as `-NoP`, `-NoL`, `-sta`, `-NonI`, `-W Hidden`, and `-Exec Bypass -Enc`, which suggest that an attacker is executing PowerShell in a way that's designed to avoid detection and execute encoded commands. The primary data source for this detection is Windows process creation logs that capture details on newly launched processes, including their command-line arguments.
+  ### Investigation Steps
+  - Analyze the process creation logs through the EDR to identify any instances of PowerShell launching with the specified command-line parameters.
+  - Review the associated user account activities to understand the context in which the command was executed and assess whether the user typically runs PowerShell scripts.
+  - Utilize threat intelligence and contextual cloud logs (if applicable) to correlate the activity with known Wmiexec usage patterns or reported attack scenarios.
+  - Check proxy logs for any unusual outbound connections that may indicate follow-on activity from the initial PowerShell execution, particularly targeting sensitive resources or external entities.

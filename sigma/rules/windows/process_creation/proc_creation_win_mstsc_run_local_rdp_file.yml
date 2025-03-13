@@ -1,0 +1,39 @@
+title: Mstsc.EXE Execution With Local RDP File
+id: 5fdce3ac-e7f9-4ecd-a3aa-a4d78ebbf0af
+status: test
+description: Detects potential RDP connection via Mstsc using a local ".rdp" file
+references:
+- https://www.blackhillsinfosec.com/rogue-rdp-revisiting-initial-access-methods/
+- https://web.archive.org/web/20230726144748/https://blog.thickmints.dev/mintsights/detecting-rogue-rdp/
+author: Nasreddine Bencherchali (Nextron Systems), Christopher Peacock @securepeacock
+date: 2023-04-18
+modified: 2023-04-30
+tags:
+- attack.command-and-control
+- attack.t1219
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\mstsc.exe'
+  - OriginalFileName: 'mstsc.exe'
+  selection_cli:
+    CommandLine|endswith:
+    - '.rdp'
+    - '.rdp"'
+  filter_optional_wsl:
+    ParentImage: 'C:\Windows\System32\lxss\wslhost.exe'
+    CommandLine|contains: 'C:\ProgramData\Microsoft\WSL\wslg.rdp'
+  condition: all of selection_* and not 1 of filter_optional_*
+falsepositives:
+- Likely with legitimate usage of ".rdp" files
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies potential Remote Desktop Protocol (RDP) connections initiated via the Microsoft Terminal Services Client (Mstsc.exe) using local ".rdp" configuration files. The rule monitors process creation logs for Mstsc.exe executions and looks for command-line arguments that indicate the usage of ".rdp" files. Specifically, it inspects the `CommandLine` for strings ending in '.rdp', signaling that a remote desktop session might be initiated with specified parameters. Optional filters, such as ignoring instances spawned by WSL (Windows Subsystem for Linux) via `wslhost.exe`, are applied to reduce false positives from legitimate use cases. The detection aims to highlight potentially unauthorized access attempts to systems, a common entry point for attackers seeking command-and-control capabilities.
+  ### Investigation Steps
+  - Review EDR logs to trace the execution of Mstsc.exe, focusing on the timeline and any associated user accounts to identify potentially unauthorized access.
+  - Examine command-line parameters associated with the Mstsc.exe execution to confirm the presence of a local ".rdp" file and evaluate its configured settings for potential anomalies.
+  - Analyze network logs from your NGFW or proxy to determine if any unusual RDP connections were made following the execution of Mstsc.exe.
+  - Conduct a review of authentication logs in your cloud or Windows environment to ascertain if there were any successful or failed login attempts that coincided with the detected RDP usage.

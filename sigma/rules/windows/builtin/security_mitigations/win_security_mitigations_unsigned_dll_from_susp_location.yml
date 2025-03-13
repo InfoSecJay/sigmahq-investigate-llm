@@ -1,0 +1,41 @@
+title: Unsigned Binary Loaded From Suspicious Location
+id: 8289bf8c-4aca-4f5a-9db3-dc3d7afe5c10
+status: test
+description: Detects Code Integrity (CI) engine blocking processes from loading unsigned
+  DLLs residing in suspicious locations
+references:
+- https://github.com/nasbench/EVTX-ETW-Resources/blob/45fd5be71a51aa518b1b36d4e1f36af498084e27/ETWEventsList/CSV/Windows11/21H2/W11_21H2_Pro_20220719_22000.795/Providers/Microsoft-Windows-Security-Mitigations.csv
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-03
+modified: 2022-09-28
+tags:
+- attack.defense-evasion
+- attack.t1574.002
+logsource:
+  product: windows
+  service: security-mitigations
+detection:
+  selection:
+    EventID:
+    - 11
+    - 12
+    ImageName|contains:
+    - '\Users\Public\'
+    - '\PerfLogs\'
+    - '\Desktop\'
+    - '\Downloads\'
+    - '\AppData\Local\Temp\'
+    - 'C:\Windows\TEMP\'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule focuses on detecting the loading of unsigned Dynamic Link Libraries (DLLs) from specific, potentially suspicious locations in a Windows environment. The rule operates by monitoring the Code Integrity (CI) engine's logs, specifically looking for Event IDs 11 and 12, which indicate attempts to load unsigned DLLs. The targeted file paths include commonly accessed directories such as `C:\Users\Public\`, `C:\PerfLogs\`, `C:\Desktop\`, `C:\Downloads\`, `C:\AppData\Local\Temp\`, and `C:\Windows\TEMP\`. By focusing on these identifiers, the rule aims to flag suspicious activity that may indicate an attempt to bypass security measures or execute malicious code.
+  When the CI engine blocks the loading of unsigned DLLs from these routes, it raises an alert. The presence of unsigned files in these locations is typically abnormal and warrants further investigation, particularly in a corporate setting where software installation is controlled and monitored. This functionality is crucial for detecting advanced threat techniques that involve evasion and circumvention of the security posture of the organization.
+  ### Investigation Steps
+  - Use the EDR solution to identify any active processes or recently executed commands that correspond to the detected Event IDs, focusing on file paths that were flagged in the alert.
+  - Check the logs of the Windows Security event viewer for detailed information regarding the blocking event and to trace back any related suspicious activities.
+  - Search through proxy logs for any outbound connections initiated by the flagged processes, which could indicate further malicious behavior or data exfiltration.
+  - Review the cloud logs (if applicable) from AWS, GCP, or Azure for any related activities or configurations that may have allowed unauthorized access or execution from the suspicious directories identified in the alert.

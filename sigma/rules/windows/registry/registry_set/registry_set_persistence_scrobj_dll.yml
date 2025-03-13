@@ -1,0 +1,33 @@
+title: Potential Persistence Via Scrobj.dll COM Hijacking
+id: fe20dda1-6f37-4379-bbe0-a98d400cae90
+status: test
+description: Detect use of scrobj.dll as this DLL looks for the ScriptletURL key to
+  get the location of the script to execute
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/40b77d63808dd4f4eafb83949805636735a1fd15/atomics/T1546.015/T1546.015.md
+author: frack113
+date: 2022-08-20
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.t1546.015
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: 'InprocServer32\(Default)'
+    Details: 'C:\WINDOWS\system32\scrobj.dll'
+  condition: selection
+falsepositives:
+- Legitimate use of the dll.
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Potential Persistence Via Scrobj.dll COM Hijacking" is designed to detect the unauthorized use of the `scrobj.dll` library in Windows environments as a mechanism for achieving persistence on a compromised system. The detection logic specifically looks for registry key modifications indicating that the malicious code is attempting to hijack the Component Object Model (COM) functionality by altering the InprocServer32 registry path to use `scrobj.dll`. This DLL is particularly concerning because it can fetch the ScriptletURL key, which specifies where the malicious script to execute resides. By monitoring changes to this registry setting, security teams can identify potentially malicious activities that exploit legitimate processes for persistence.
+  The rule relies on registry set logs, specifically targeting the modification of the InprocServer32 entry associated with `scrobj.dll`. If this modification is detected, it warrants further investigation as it may indicate an attempt to abuse this legitimate DLL for malicious purposes.
+  ### Investigation Steps
+  - Investigate the registry changes by querying the Windows Event Logs, focusing on the specific registry modification that involves `InprocServer32` and `scrobj.dll`.
+  - Use your EDR solution to track the process creation logs around the time of the detection to identify any associated executables or scripts that may have leveraged this COM hijacking technique.
+  - Cross-reference the source of the registry change by examining endpoint logs in your AV solution to find any alerts or suspicious behavior that corroborates the detection.
+  - Review network traffic logs from your NDR to check for any outbound connections initiated by the suspicious process, particularly to unusual or unknown external destinations.

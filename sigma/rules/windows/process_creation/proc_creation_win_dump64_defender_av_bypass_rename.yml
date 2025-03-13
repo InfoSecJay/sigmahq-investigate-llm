@@ -1,0 +1,41 @@
+title: Potential Windows Defender AV Bypass Via Dump64.EXE Rename
+id: 129966c9-de17-4334-a123-8b58172e664d
+status: test
+description: |
+  Detects when a user is potentially trying to bypass the Windows Defender AV by renaming a tool to dump64.exe and placing it in the Visual Studio folder.
+  Currently the rule is covering only usage of procdump but other utilities can be added in order to increase coverage.
+references:
+- https://twitter.com/mrd0x/status/1460597833917251595
+author: Austin Songer @austinsonger, Florian Roth (Nextron Systems), Nasreddine Bencherchali
+  (Nextron Systems)
+date: 2021-11-26
+modified: 2024-06-21
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_dump:
+    Image|startswith: ':\Program Files'
+    Image|contains: '\Microsoft Visual Studio\'
+    Image|endswith: '\dump64.exe'
+  selection_tools_procdump:
+  - OriginalFileName: 'procdump'
+  - CommandLine|contains:
+    - ' -ma '           # Full Dump
+    - ' -mp '           # Mini Plus
+  condition: selection_dump and 1 of selection_tools_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule aims to identify potential attempts to bypass Windows Defender Antivirus (AV) by monitoring specific instances where a utility named `dump64.exe` is created in the Visual Studio folder. Specifically, the rule looks for the execution of `dump64.exe` files located within the `C:\Program Files\Microsoft Visual Studio\` directory. The detection mechanism focuses on two key aspects: the file name and the command-line parameters associated with recognized dumping tools like `procdump`. If the `dump64.exe` is executed with certain command-line arguments indicative of memory dumping activities, it may suggest malicious intent to extract sensitive information or credentials.
+  By using process creation logs as the primary data source, the rule analyzes the attributes of the executing processes to determine if they meet the defined criteria, which points towards potential misuse. This approach helps in early detection of suspicious activities that may signify a threat to the organization.
+  ### Investigation Steps
+  - Review process creation logs in the EDR system to identify the execution of `dump64.exe`, noting the associated user accounts and timestamps.
+  - Validate the command-line parameters used during the execution of `dump64.exe` to confirm if they match known malicious usage patterns for memory dumping.
+  - Check the parent process of `dump64.exe` to establish context around its invocation and identify if it correlates with any legitimate activity or if it appears suspicious.
+  - Search for related network activity in the Proxy or VPN logs that may indicate exfiltration attempts following the execution of the dump command.

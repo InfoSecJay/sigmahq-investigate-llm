@@ -1,0 +1,47 @@
+title: Failed Logon From Public IP
+id: f88e112a-21aa-44bd-9b01-6ee2a2bbbed1
+status: test
+description: Detects a failed logon attempt from a public IP. A login from a public
+  IP can indicate a misconfigured firewall or network boundary.
+references:
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4625
+author: NVISO
+date: 2020-05-06
+modified: 2024-03-11
+tags:
+- attack.initial-access
+- attack.persistence
+- attack.t1078
+- attack.t1190
+- attack.t1133
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4625
+  filter_main_ip_unknown:
+    IpAddress|contains: '-'
+  filter_main_local_ranges:
+    IpAddress|cidr:
+    - '::1/128'          # IPv6 loopback
+    - '10.0.0.0/8'
+    - '127.0.0.0/8'
+    - '172.16.0.0/12'
+    - '192.168.0.0/16'
+    - '169.254.0.0/16'
+    - 'fc00::/7'          # IPv6 private addresses
+    - 'fe80::/10'          # IPv6 link-local addresses
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Legitimate logon attempts over the internet
+- IPv4-to-IPv6 mapped IPs
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies failed logon attempts (Event ID 4625) originating from public IP addresses on Windows systems. The significance of detecting failed logins from public IPs lies in the indication of potential security misconfigurations, such as improperly set firewalls or network boundaries that expose the system to external threats. The rule is designed to filter out common local IP ranges, such as those used within private networks (e.g., 10.0.0.0/8 and 192.168.0.0/16) as well as local IPv6 addresses, ensuring that alerts are generated for only external, potentially malicious login attempts. Responders should note that legitimate login attempts from the internet may still occur in some environments.
+  ### Investigation Steps
+  - Utilize the EDR tool to search for additional context surrounding the failed logon events, including any associated process creation or user behavior to determine if the attempt was likely malicious.
+  - Review firewall and VPN logs to identify any corresponding connections that may reveal patterns of unauthorized access attempts from the public IP in question.
+  - Cross-reference the failed logon attempts with user account activation and authentication logs to verify if the behavior correlates with known user activity or if it indicates a potential compromise.
+  - Investigate the public IP address through threat intelligence platforms to check for previous associations with malicious activities or known threat actors.

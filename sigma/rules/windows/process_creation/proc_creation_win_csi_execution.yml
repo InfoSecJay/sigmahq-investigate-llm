@@ -1,0 +1,50 @@
+title: Suspicious Csi.exe Usage
+id: 40b95d31-1afc-469e-8d34-9a3a667d058e
+status: test
+description: Csi.exe is a signed binary from Microsoft that comes with Visual Studio
+  and provides C# interactive capabilities. It can be used to run C# code from a file
+  passed as a parameter in command line. Early version of this utility provided with
+  Microsoft “Roslyn” Community Technology Preview was named 'rcsi.exe'
+references:
+- https://lolbas-project.github.io/lolbas/OtherMSBinaries/Csi/
+- https://lolbas-project.github.io/lolbas/OtherMSBinaries/Rcsi/
+- https://enigma0x3.net/2016/11/21/bypassing-application-whitelisting-by-using-rcsi-exe/
+- https://twitter.com/Z3Jpa29z/status/1317545798981324801
+author: Konstantin Grishchenko, oscd.community
+date: 2020-10-17
+modified: 2022-07-11
+tags:
+- attack.execution
+- attack.t1072
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\csi.exe'
+    - '\rcsi.exe'
+  - OriginalFileName:
+    - 'csi.exe'
+    - 'rcsi.exe'
+  selection_cli:
+    Company: 'Microsoft Corporation'
+  condition: all of selection*
+fields:
+- ComputerName
+- User
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Legitimate usage by software developers
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Suspicious Csi.exe Usage" is designed to detect anomalous usage of the Csi.exe and rcsi.exe binaries, which are legitimate components developed by Microsoft as part of the Visual Studio environment. These executables provide interactive C# capabilities, allowing users to run C# code directly from files through the command line. The detection looks for process creation events where the command line includes these specific binaries, focusing on the image name, original file name, and the company name associated with the binaries. Key data sources for this rule include process creation logs, which reveal the execution context of these binaries, complete with relevant parameters that could indicate misuse or malicious intent.
+  ### Investigation Steps
+  - Utilize EDR tools to examine the process creation logs for instances of Csi.exe or rcsi.exe, particularly focusing on their command line arguments to identify any suspicious patterns.
+  - Investigate the parent process of the identified Csi.exe or rcsi.exe executions to determine the originating application or script, which may provide insight into whether the usage was legitimate or potentially malicious.
+  - Check AV and threat intelligence platforms to ascertain if there are any known threats or exploits associated with Csi.exe or rcsi.exe that may relate to current alerts.
+  - Review network traffic logs via your NDR solution for any unusual outbound connections or command and control (C2) communications establishing after the execution of the binaries in question.

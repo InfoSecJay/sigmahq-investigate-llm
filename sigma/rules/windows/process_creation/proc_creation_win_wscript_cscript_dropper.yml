@@ -1,0 +1,54 @@
+title: Potential Dropper Script Execution Via WScript/CScript
+id: cea72823-df4d-4567-950c-0b579eaf0846
+related:
+- id: 1e33157c-53b1-41ad-bbcc-780b80b58288
+  type: similar
+status: test
+description: Detects wscript/cscript executions of scripts located in user directories
+references:
+- https://thedfirreport.com/2023/10/30/netsupport-intrusion-results-in-domain-compromise/
+- https://redcanary.com/blog/gootloader/
+author: Margaritis Dimitrios (idea), Florian Roth (Nextron Systems), oscd.community,
+  Nasreddine Bencherchali (Nextron Systems)
+date: 2019-01-16
+modified: 2024-01-30
+tags:
+- attack.execution
+- attack.t1059.005
+- attack.t1059.007
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_exec:
+    Image|endswith:
+    - '\wscript.exe'
+    - '\cscript.exe'
+  selection_paths:
+    CommandLine|contains:
+    - ':\Temp\'
+    - ':\Tmp\'
+    - ':\Users\Public\'
+    - ':\Windows\Temp\'
+    - '\AppData\Local\Temp\'
+  selection_ext:
+    CommandLine|contains:
+    - '.js'
+    - '.jse'
+    - '.vba'
+    - '.vbe'
+    - '.vbs'
+    - '.wsf'
+  condition: all of selection_*
+falsepositives:
+- Some installers might generate a similar behavior. An initial baseline is required
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule aims to identify the execution of potentially malicious scripts using WScript or CScript, two Windows-based scripting engines. The rule focuses on process creation events where these scripting engines are executed with command line parameters that indicate suspicious paths or file extensions commonly associated with dropper scripts. Specifically, it looks for executions originating from user directories, including temporary folders and the AppData directory, which are often targeted by malicious actors to execute payloads without raising suspicion. In essence, the rule captures any execution of WScript and CScript that employs a script file located in those sensitive directories, potentially indicating nefarious activity.
+  The primary data sources involved in this detection include process creation logs, which capture details such as the image name (e.g., WScript or CScript) and the corresponding command line arguments. By analyzing these logs, SOC analysts can identify execution patterns that align with malicious behavior, facilitating prompt responses to potential security incidents.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR platform to confirm the execution of WScript or CScript, and examine the command line parameters for the presence of suspicious file paths and extensions.
+  - Investigate the user's activity logs to determine the context in which the script was executed, including whether any downloads or recent changes to the user's environment coincide with the script execution time.
+  - Query Proxy and Network logs for any outbound traffic that aligns with the execution of the script, particularly looking for connections to known malicious domains or unusual data exfiltration patterns.
+  - Check Windows Event Logs for any related security events, such as file accesses or modifications in user directories, that occurred around the same time as the script execution, which could indicate lateral movement or further compromise.

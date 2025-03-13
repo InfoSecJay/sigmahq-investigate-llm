@@ -1,0 +1,39 @@
+title: Remote Thread Creation In Mstsc.Exe From Suspicious Location
+id: c0aac16a-b1e7-4330-bab0-3c27bb4987c7
+status: test
+description: |
+  Detects remote thread creation in the "mstsc.exe" process by a process located in a potentially suspicious location.
+  This technique is often used by attackers in order to hook some APIs used by DLLs loaded by "mstsc.exe" during RDP authentications in order to steal credentials.
+references:
+- https://github.com/S12cybersecurity/RDPCredentialStealer/blob/1b8947cdd065a06c1b62e80967d3c7af895fcfed/APIHookInjectorBin/APIHookInjectorBin/Inject.h#L25
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-07-28
+modified: 2024-01-22
+tags:
+- attack.credential-access
+logsource:
+  product: windows
+  category: create_remote_thread
+detection:
+  selection:
+    TargetImage|endswith: '\mstsc.exe'
+    SourceImage|contains:
+    - ':\Temp\'
+    - ':\Users\Public\'
+    - ':\Windows\PerfLogs\'
+    - ':\Windows\Tasks\'
+    - ':\Windows\Temp\'
+    - '\AppData\Local\Temp\'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule "Remote Thread Creation In Mstsc.Exe From Suspicious Location" is designed to detect potentially malicious activities involving the Windows Remote Desktop Connection client (`mstsc.exe`). This rule identifies instances where a process from a suspicious location initiates a remote thread in `mstsc.exe`. Processes located in directories such as `Temp`, `Public`, or `PerfLogs` are commonly exploited by attackers to inject malicious code into the Remote Desktop session, often deepening their foothold and stealing sensitive information like credentials. This detection leverages log data specifically regarding the creation of remote threads, analyzing the source and target images involved in this action.
+  By monitoring for these specific behaviors, security operations teams can promptly identify and investigate potential unauthorized access or credential theft activities, which are critical in safeguarding environments where RDP is enabled and utilized.
+  ### Investigation Steps
+  - Use the EDR tool to investigate the process tree of the detected `mstsc.exe` instance to identify the parent and child processes involved in the remote thread creation.
+  - Review antivirus logs for any alerts related to suspicious activities or files originating from the locations flagged by the rule, such as `\Temp\` or `\Public\`.
+  - Analyze the Windows Event Logs, specifically focusing on RDP login attempts around the time of the alert to ascertain any unusual or unauthorized access attempts.
+  - Check cloud logs from AWS, GCP, or Azure if applicable, for any remote access sessions or actions that coincide with the timing of the detected threat activity.

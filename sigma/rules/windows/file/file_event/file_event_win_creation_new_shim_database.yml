@@ -1,0 +1,37 @@
+title: New Custom Shim Database Created
+id: ee63c85c-6d51-4d12-ad09-04e25877a947
+status: test
+description: |
+  Adversaries may establish persistence and/or elevate privileges by executing malicious content triggered by application shims.
+  The Microsoft Windows Application Compatibility Infrastructure/Framework (Application Shim) was created to allow for backward compatibility of software as the operating system codebase changes over time.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1546.011/T1546.011.md#atomic-test-2---new-shim-database-files-created-in-the-default-shim-database-directory
+- https://www.mandiant.com/resources/blog/fin7-shim-databases-persistence
+- https://liberty-shell.com/sec/2020/02/25/shim-persistence/
+- https://andreafortuna.org/2018/11/12/process-injection-and-persistence-using-application-shimming/
+author: frack113, Nasreddine Bencherchali (Nextron Systems)
+date: 2021-12-29
+modified: 2023-12-06
+tags:
+- attack.persistence
+- attack.t1547.009
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|contains:
+    - ':\Windows\apppatch\Custom\'
+    - ':\Windows\apppatch\CustomSDB\'
+  condition: selection
+falsepositives:
+- Legitimate custom SHIM installations will also trigger this rule
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the creation of new custom shim databases on Windows systems, which can be a technique used by adversaries to establish persistence or escalate privileges. The rule looks for file creation events in specified directories typically associated with Microsoft Windows Application Compatibility Infrastructure, specifically targeting paths that indicate custom shim database files: `C:\Windows\apppatch\Custom\` and `C:\Windows\apppatch\CustomSDB\`. By analyzing file event logs, particularly those relating to file creation, the rule monitors for any suspicious activities that could indicate malicious objectives using application shims, as conventional applications rely on this framework for backward compatibility when interacting with the OS.
+  ### Investigation Steps
+  - Review recent file creation logs in the specified directories to identify any newly created custom shim database files and their attributes, including timestamps and file sizes.
+  - Utilize EDR tools to correlate the creation event with any process creation logs or command-line activities that might indicate malicious execution patterns.
+  - Check for related network activities through NDR or Proxy logs to identify any unusual outbound connections initiated shortly after the shim database creation.
+  - Conduct a broader investigation on the host to search for related artifacts or indicators of compromise, such as unexpected services or scheduled tasks that may leverage the created shim files for persistence.

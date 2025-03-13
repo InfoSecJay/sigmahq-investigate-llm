@@ -1,0 +1,37 @@
+title: Windows Defender Real-time Protection Disabled
+id: b28e58e4-2a72-4fae-bdee-0fbe904db642
+related:
+- id: fe34868f-6e0e-4882-81f6-c43aa8f15b62
+  type: obsolete
+status: stable
+description: |
+  Detects disabling of Windows Defender Real-time Protection. As this event doesn't contain a lot of information on who initiated this action you might want to reduce it to a "medium" level if this occurs too many times in your environment
+references:
+- https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus?view=o365-worldwide#event-id-5001
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1562.001/T1562.001.md
+- https://craigclouditpro.wordpress.com/2020/03/04/hunting-malicious-windows-defender-activity/
+author: Ján Trenčanský, frack113
+date: 2020-07-28
+modified: 2023-11-22
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  product: windows
+  service: windefend
+detection:
+  selection:
+    EventID: 5001     # Real-time protection is disabled.
+  condition: selection
+falsepositives:
+- Administrator actions (should be investigated)
+- Seen being triggered occasionally during Windows 8 Defender Updates
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where the Windows Defender Real-time Protection feature is disabled, as indicated by Event ID 5001. Disabling this protection can expose systems to various security threats, and this event typically lacks detailed information about the user or process that initiated the action. The rule monitors logs from the Windows Defender service, which are essential for detecting modifications to the antivirus settings. Given the potential for abuse, particularly in environments with high-value assets, the alert raised by this rule should be investigated promptly, especially if it occurs unexpectedly or excessively.
+  ### Investigation Steps
+  - Review EDR logs for any recent system changes and user activities around the time the real-time protection was disabled to identify potential unauthorized actions.
+  - Check Windows Defender logs for any other related events that may indicate additional changes in security settings or suspicious activities.
+  - Investigate the use of administrative tools or scripts that might have been employed to disable protection, including assessing command-line arguments if applicable.
+  - Analyze network traffic through the NGFW and proxy logs for connections to known malicious domains or unusual data exfiltration attempts that may coincide with this event.

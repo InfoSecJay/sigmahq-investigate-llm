@@ -1,0 +1,46 @@
+title: Potential Persistence Via Netsh Helper DLL
+id: 56321594-9087-49d9-bf10-524fe8479452
+related:
+- id: c90362e0-2df3-4e61-94fe-b37615814cb1
+  type: similar
+- id: e7b18879-676e-4a0e-ae18-27039185a8e7
+  type: similar
+status: test
+description: |
+  Detects the execution of netsh with "add helper" flag in order to add a custom helper DLL. This technique can be abused to add a malicious helper DLL that can be used as a persistence proxy that gets called when netsh.exe is executed.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1546.007/T1546.007.md
+- https://github.com/outflanknl/NetshHelperBeacon
+- https://web.archive.org/web/20160928212230/https://www.adaptforward.com/2016/09/using-netshell-to-execute-evil-dlls-and-persist-on-a-host/
+author: Victor Sergeev, oscd.community
+date: 2019-10-25
+modified: 2023-11-28
+tags:
+- attack.privilege-escalation
+- attack.persistence
+- attack.t1546.007
+- attack.s0108
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - OriginalFileName: 'netsh.exe'
+  - Image|endswith: '\netsh.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'add'
+    - 'helper'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious use of the `netsh` command-line utility on Windows systems. Specifically, it looks for instances where `netsh.exe` is executed with the "add helper" flag included in the command-line parameters. This technique can be exploited by attackers to register a custom helper DLL, which may serve as a persistence mechanism, allowing the malicious DLL to be called whenever `netsh.exe` is executed. The logs leveraged for this detection are primarily derived from process creation events, which provide detailed information about executed processes and their command-line arguments.
+  By focusing on both the presence of the `netsh.exe` binary and the specific command-line instruction, this rule aims to flag unusual behaviors that might signify a security risk. Such activities could indicate attempts at privilege escalation or establishing persistent backdoors on compromised hosts.
+  ### Investigation Steps
+  - Review the EDR logs for the process creation events related to `netsh.exe` around the time of the alert to determine additional context and user behavior.
+  - Analyze command-line parameters associated with the flagged `netsh.exe` processes to identify suspicious patterns or known harmful arguments.
+  - Check the history of executed commands through the Shell or PowerShell logs to ascertain if there are prior instances of the "add helper" flag being used.
+  - Investigate related network activity via the NDR logs to look for any outbound connections made shortly after the execution of the suspicious `netsh.exe` command.

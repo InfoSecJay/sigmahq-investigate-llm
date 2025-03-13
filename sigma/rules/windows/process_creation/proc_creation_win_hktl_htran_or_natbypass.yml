@@ -1,0 +1,40 @@
+title: HackTool - Htran/NATBypass Execution
+id: f5e3b62f-e577-4e59-931e-0a15b2b94e1e
+status: test
+description: Detects executable names or flags used by Htran or Htran-like tools (e.g.
+  NATBypass)
+references:
+- https://github.com/HiwinCN/HTran
+- https://github.com/cw1997/NATBypass
+author: Florian Roth (Nextron Systems)
+date: 2022-12-27
+modified: 2023-02-04
+tags:
+- attack.command-and-control
+- attack.t1090
+- attack.s0040
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+    Image|endswith:
+    - '\htran.exe'
+    - '\lcx.exe'
+  selection_cli:
+    CommandLine|contains:
+    - '.exe -tran '
+    - '.exe -slave '
+  condition: 1 of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the execution of Htran or Htran-like tools, specifically looking for known executable names (such as `htran.exe` and `lcx.exe`) or specific command-line parameters associated with these tools. Htran is known for its capability to facilitate covert network communications, often used in command-and-control activities to evade detection. The rule monitors process creation logs on Windows systems, focusing on the presence of specific image filenames or command-line arguments that indicate the use of these tools, thereby assisting in the identification of potential malicious activity that could compromise the integrity of the enterprise network.
+  By leveraging process creation logs as a primary data source, this rule enables security analysts to pinpoint potential threats prior to their exploitation. When suspicious activity is detected, the alert generated can initiate a thorough review and investigation to mitigate risk and strengthen overall security posture.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify instances of `htran.exe` or `lcx.exe`, including details about the execution time and the user account associated with the process.
+  - Analyze the command-line parameters of the flagged processes, specifically looking for the presence of `.exe -tran` or `.exe -slave`, as these can indicate potentially malicious intent.
+  - Conduct a network traffic analysis using the NDR tool to determine if there is any unusual outbound communication from the identified processes, especially towards known command-and-control destinations.
+  - Check historical logs from the SIEM for any correlation with other suspicious activities within the same timeframe, which may provide additional context on how the tool was deployed or used.

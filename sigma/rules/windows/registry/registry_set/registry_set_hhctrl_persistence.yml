@@ -1,0 +1,33 @@
+title: Persistence Via Hhctrl.ocx
+id: f10ed525-97fe-4fed-be7c-2feecca941b1
+status: test
+description: Detects when an attacker modifies the registry value of the "hhctrl"
+  to point to a custom binary
+references:
+- https://persistence-info.github.io/Data/hhctrl.html
+- https://www.hexacorn.com/blog/2018/04/23/beyond-good-ol-run-key-part-77/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-21
+modified: 2023-08-17
+tags:
+- attack.persistence
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\CLSID\{52A2AAAE-085D-4187-97EA-8C30DB990436}\InprocServer32\(Default)'
+  filter:
+    Details: 'C:\Windows\System32\hhctrl.ocx'
+  condition: selection and not filter
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect modifications to the Windows registry that indicate potential persistence mechanisms employed by attackers. Specifically, it focuses on changes made to the registry key for "hhctrl.ocx," a legitimate file associated with HTML Help, to redirect it to a malicious custom binary. By monitoring the registry for the presence of a specific CLSID and ensuring that the original path to `hhctrl.ocx` has been altered, the rule aims to uncover attempts at establishing persistence on a compromised system. Log sources involved typically include registry set logs from Windows, which capture alterations to registry entries, allowing security teams to identify suspicious changes that could be indicative of malware activity.
+  ### Investigation Steps
+  - Review the changes made to the registry entry for `hhctrl.ocx` using EDR tools to analyze any suspicious modifications or new values set.
+  - Investigate the binary pointed to by the modified `InprocServer32` entry to determine its legitimacy and whether it exhibits malicious characteristics using AV solutions.
+  - Check for additional indicators of compromise, such as unusual process creation events or network connections that correlate with the timing of the registry modification, via SIEM and NDR.
+  - Correlate user activity logs from Proxy, VPN, or cloud platforms to establish the context of the device's behavior leading up to and following the modification.

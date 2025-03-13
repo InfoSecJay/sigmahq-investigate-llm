@@ -1,0 +1,38 @@
+title: Application Removed Via Wmic.EXE
+id: b53317a0-8acf-4fd1-8de8-a5401e776b96
+related:
+- id: 847d5ff3-8a31-4737-a970-aeae8fe21765     # Uninstall Security Products
+  type: derived
+status: test
+description: Detects the removal or uninstallation of an application via "Wmic.EXE".
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1047/T1047.md#atomic-test-10---application-uninstall-using-wmic
+author: frack113
+date: 2022-01-28
+modified: 2024-07-02
+tags:
+- attack.execution
+- attack.t1047
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\WMIC.exe'
+  - OriginalFileName: 'wmic.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'call'
+    - 'uninstall'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the uninstallation of applications via the Windows Management Instrumentation Command-line (WMIC) tool, specifically when the process is initiated through "WMIC.EXE". The rule focuses on process creation logs to capture instances where WMIC is invoked with command-line parameters that indicate an uninstallation action, particularly looking for the presence of the keywords "call" and "uninstall". By monitoring these specific conditions, the rule helps identify potentially malicious activity that may involve the removal of security products or other critical applications. The primary data sources for this monitoring include Windows process creation logs, which provide insights into the execution of processes and their associated command-line parameters.
+  ### Investigation Steps
+  - Review EDR logs to identify the source and context of the WMIC.EXE process creation, including any related parent processes that may have initiated the command.
+  - Check the command-line arguments in the process creation logs to confirm the presence of the "call" and "uninstall" terms, ensuring that the action pertains to application removal.
+  - Correlate findings with alert data from security product logs to determine if any critical applications, particularly security-related ones, have been uninstalled.
+  - Assess proxy logs and VPN activity to identify any remote connections that may have coincided with the WMIC execution, potentially indicating unauthorized remote access.

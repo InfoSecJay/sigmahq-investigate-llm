@@ -1,0 +1,39 @@
+title: Invoke-Obfuscation RUNDLL LAUNCHER - System
+id: 11b52f18-aaec-4d60-9143-5dd8cc4706b9
+status: test
+description: Detects Obfuscated Powershell via RUNDLL LAUNCHER
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009     # (Task 23)
+author: Timur Zinniatullin, oscd.community
+date: 2020-10-18
+modified: 2022-11-29
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7045
+    ImagePath|contains|all:
+    - 'rundll32.exe'
+    - 'shell32.dll'
+    - 'shellexec_rundll'
+    - 'powershell'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect instances of PowerShell being invoked in an obfuscated manner via the RUNDLL launcher on Windows systems. The key signature of this activity is the logging of event ID 7045 from the Service Control Manager, which indicates the installation of a new service. The rule specifically looks for paths containing 'rundll32.exe' combined with essential components related to PowerShell like 'shell32.dll' and 'shellexec_rundll'. The obfuscation techniques often employed by attackers can effectively bypass standard detection mechanisms, thus making this detection crucial for identifying sophisticated threats that attempt to conceal malicious PowerShell execution within legitimate system processes.
+  By leveraging the data from Windows Event Logs, particularly focusing on process-related events, this rule aims to spot potentially malicious behavior indicative of circumvention strategies, thereby enhancing the security posture of an organization.
+  ### Investigation Steps
+  - Review the event logs in your EDR system to locate Event ID 7045 that match the specified criteria, paying particular attention to the ImagePath for any indicators of obfuscation.
+  - Collect and analyze the full command-line parameters associated with the detected process, looking for unusual strings or encoding techniques that may suggest malicious intent.
+  - Cross-reference the service and process information with Threat Intelligence and known malicious indicators to assess whether the activity aligns with previously identified threats.
+  - Utilize network logs from the NGFW or Proxy to determine if there was any suspicious outbound traffic corresponding with the execution of the PowerShell script, which may indicate data exfiltration or command and control communication.

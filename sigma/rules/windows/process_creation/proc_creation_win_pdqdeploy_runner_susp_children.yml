@@ -1,0 +1,67 @@
+title: Potentially Suspicious Execution Of PDQDeployRunner
+id: 12b8e9f5-96b2-41e1-9a42-8c6779a5c184
+related:
+- id: d679950c-abb7-43a6-80fb-2a480c4fc450
+  type: similar
+status: test
+description: Detects suspicious execution of "PDQDeployRunner" which is part of the
+  PDQDeploy service stack that is responsible for executing commands and packages
+  on a remote machines
+references:
+- https://twitter.com/malmoeb/status/1550483085472432128
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-22
+modified: 2024-05-02
+tags:
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|contains: '\PDQDeployRunner-'
+  selection_child:
+        # Improve this section by adding other suspicious processes, commandlines or paths
+  - Image|endswith:
+              # If you use any of the following processes legitimately comment them out
+    - '\bash.exe'
+    - '\certutil.exe'
+    - '\cmd.exe'
+    - '\csc.exe'
+    - '\cscript.exe'
+    - '\dllhost.exe'
+    - '\mshta.exe'
+    - '\msiexec.exe'
+    - '\regsvr32.exe'
+    - '\rundll32.exe'
+    - '\scriptrunner.exe'
+    - '\wmic.exe'
+    - '\wscript.exe'
+    - '\wsl.exe'
+  - Image|contains:
+    - ':\ProgramData\'
+    - ':\Users\Public\'
+    - ':\Windows\TEMP\'
+    - '\AppData\Local\Temp'
+  - CommandLine|contains:
+    - ' -decode '
+    - ' -enc '
+    - ' -encodedcommand '
+    - ' -w hidden'
+    - 'DownloadString'
+    - 'FromBase64String'
+    - 'http'
+    - 'iex '
+    - 'Invoke-'
+  condition: all of selection_*
+falsepositives:
+- Legitimate use of the PDQDeploy tool to execute these commands
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule targets potentially suspicious executions of the `PDQDeployRunner`, which is associated with the PDQ Deploy service used for managing and deploying applications on remote machines. The rule leverages process creation logs from Windows systems to identify executions initiated by or linked to `PDQDeployRunner`. It specifically looks for parent-child relationships where `PDQDeployRunner` is the parent process and monitors for certain suspicious child processes that may indicate malicious activity. Additionally, it inspects command-line parameters that may suggest obfuscation techniques, such as the presence of encoded commands or network requests to download potentially harmful files. The data sources involved include process creation events, command-line parameters, and various executable paths, highlighting a comprehensive approach to identifying misuse of the PDQ Deploy tool.
+  ### Investigation Steps
+  - Utilize EDR tools to review the execution history of the `PDQDeployRunner` on affected systems, focusing on the context of parent-child process relationships.
+  - Analyze command-line parameters associated with the `PDQDeployRunner` executions for any suspicious patterns or use of obfuscation techniques.
+  - Check relevant Windows event logs to identify additional processes spawned during the time of the alert, particularly those that match the specified software and paths.
+  - Cross-reference with Proxy and cloud logs to see if there were any outbound connections to known malicious URLs during the execution timeframe, pointing to potential data exfiltration or command-and-control activity.

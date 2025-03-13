@@ -1,0 +1,31 @@
+title: Windows Defender Firewall Has Been Reset To Its Default Configuration
+id: 04b60639-39c0-412a-9fbe-e82499c881a3
+status: test
+description: Detects activity when Windows Defender Firewall has been reset to its
+  default configuration
+references:
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-r2-and-2008/dd364427(v=ws.10)
+author: frack113
+date: 2022-02-19
+modified: 2023-04-21
+tags:
+- attack.defense-evasion
+- attack.t1562.004
+logsource:
+  product: windows
+  service: firewall-as
+detection:
+  selection:
+    EventID:
+    - 2032         # Windows Defender Firewall has been reset to its default configuration
+    - 2060         # Windows Defender Firewall has been reset to its default configuration. (Windows 11)
+  condition: selection
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where the Windows Defender Firewall has been reset to its default configuration, which can be a potential indicator of malicious activity, such as an attacker attempting to disable firewall protections or revert network security settings to an unprotected state. The rule focuses on monitoring specific Windows Event IDs—2032 and 2060—that signify this reset action. It leverages log data from the Windows Firewall service to detect these events, allowing SOC analysts to identify unauthorized or unexpected changes to firewall settings that could expose the system to various attacks.
+  ### Investigation Steps
+  - Review the context of the alert by examining the specific Event IDs (2032 and 2060) within the Windows Event Logs to identify when and how the firewall was reset.
+  - Utilize endpoint detection and response (EDR) tools to check for any abnormal process activity or changes made around the time of the firewall reset event, looking for indicators of potential compromise.
+  - Analyze any network traffic logs from the NGFW or NDR tools to identify unusual outbound connections that may indicate an active threat exploiting a weakened firewall.
+  - Check for recent user activity or administrative access logs that might reveal who initiated the firewall reset and whether they had legitimate reasons for doing so.

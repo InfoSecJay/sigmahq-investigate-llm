@@ -1,0 +1,43 @@
+title: Invoke-Obfuscation Via Use MSHTA - PowerShell Module
+id: 07ad2ea8-6a55-4ac6-bf3e-91b8e59676eb
+related:
+- id: e55a5195-4724-480e-a77e-3ebe64bd3759
+  type: derived
+status: test
+description: Detects Obfuscated Powershell via use MSHTA in Scripts
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009     # (Task31)
+author: Nikita Nazarov, oscd.community
+date: 2020-10-08
+modified: 2023-01-04
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_module
+  definition: 0ad03ef1-f21b-4a79-8ce8-e6900c54b65b
+detection:
+  selection:
+    Payload|contains|all:
+    - 'set'
+    - '&&'
+    - 'mshta'
+    - 'vbscript:createobject'
+    - '.run'
+    - '(window.close)'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect instances of obfuscated PowerShell scripts executed via the Microsoft HTML Application Host (MSHTA). The focus of the detection is on identifying specific payloads in PowerShell commands that contain keywords commonly associated with malicious activities, such as 'set', 'mshta', and 'vbscript:createobject'. When attackers utilize obfuscation techniques, they often rely on MSHTA to execute scripts in a way that bypasses traditional security measures. The rule specifically targets process creation logs where such PowerShell commands may be logged, enabling the identification of potential threats before they can cause harm.
+  To effectively detect these types of attacks, the rule analyzes PowerShell module logs for specific keywords within the payloads of execution commands. A match indicates a potentially malicious use of scripts intended to evade security controls. The presence of these keywords suggests that the command may have been crafted to obfuscate the intent of the operations being performed.
+  ### Investigation Steps
+  - Review recent PowerShell execution logs in the EDR to identify instances where MSHTA has been invoked with obfuscated commands.
+  - Investigate the command-line parameters of suspicious processes to assess for the presence of the flagged terms such as 'vbscript:createobject' or 'window.close'.
+  - Utilize the Antivirus (AV) logs to check for any detections or anomalies corresponding to the time of the identified execution events.
+  - Cross-reference with proxy and network traffic logs for any outgoing connections initiated by the processes associated with the detected suspicious PowerShell scripts.

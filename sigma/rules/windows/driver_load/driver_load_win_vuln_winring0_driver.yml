@@ -1,0 +1,38 @@
+title: Vulnerable WinRing0 Driver Load
+id: 1a42dfa6-6cb2-4df9-9b48-295be477e835
+status: test
+description: Detects the load of a signed WinRing0 driver often used by threat actors,
+  crypto miners (XMRIG) or malware for privilege escalation
+references:
+- https://github.com/xmrig/xmrig/tree/master/bin/WinRing0
+- https://www.rapid7.com/blog/post/2021/12/13/driver-based-attacks-past-and-present/
+author: Florian Roth (Nextron Systems)
+date: 2022-07-26
+modified: 2024-11-23
+tags:
+- attack.privilege-escalation
+- attack.t1543.003
+logsource:
+  product: windows
+  category: driver_load
+detection:
+  selection:
+  - Hashes|contains: 'IMPHASH=D41FA95D4642DC981F10DE36F4DC8CD7'
+  - ImageLoaded|endswith:
+    - '\WinRing0x64.sys'
+    - '\WinRing0.sys'
+    - '\WinRing0.dll'
+    - '\WinRing0x64.dll'
+    - '\winring00x64.sys'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the loading of the WinRing0 driver, a signed kernel-mode driver frequently exploited by threat actors for privilege escalation, particularly in the context of cryptocurrency mining (e.g., XMRIG) and other malicious activities. The rule works by examining the system's driver load events and looking for specific characteristics, such as the presence of a unique hash signature (`IMPHASH=D41FA95D4642DC981F10DE36F4DC8CD7`) associated with the WinRing0 driver and the filenames typically used for this driver (`WinRing0x64.sys`, `WinRing0.sys`, and their variants). Effective detection relies on monitoring Windows driver loading activities, which can be sourced through system logs that capture driver interactions and related process creation events.
+  ### Investigation Steps
+  - Review EDR logs for any recent driver load events associated with `WinRing0x64.sys` or similar filenames to confirm the occurrence of the event.
+  - Analyze process creation logs to identify any parent processes that loaded the WinRing0 driver, which may indicate the origin of the potentially malicious activity.
+  - Check for any associated network traffic through the NDR or proxy logs, especially looking for unusual connections that may correlate with known threat actor behavior.
+  - Investigate the system for any known indicators of compromise related to XMRIG or other malware leveraging the WinRing0 driver, using threat intelligence databases and AV solutions.

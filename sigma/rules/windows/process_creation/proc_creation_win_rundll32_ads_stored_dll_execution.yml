@@ -1,0 +1,37 @@
+title: Potential Rundll32 Execution With DLL Stored In ADS
+id: 9248c7e1-2bf3-4661-a22c-600a8040b446
+status: test
+description: Detects execution of rundll32 where the DLL being called is stored in
+  an Alternate Data Stream (ADS).
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Rundll32
+author: Harjot Singh, '@cyb3rjy0t'
+date: 2023-01-21
+modified: 2023-02-08
+tags:
+- attack.defense-evasion
+- attack.t1564.004
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\rundll32.exe'
+  - OriginalFileName: 'RUNDLL32.EXE'
+  selection_cli:
+        # Example:
+        #   rundll32 "C:\ads\file.txt:ADSDLL.dll",DllMain
+        # Note: This doesn't cover the use case where a full path for the DLL isn't used. As it requires a more expensive regex
+    CommandLine|re: '[Rr][Uu][Nn][Dd][Ll][Ll]32(\.[Ee][Xx][Ee])? \S+?\w:\S+?:'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies suspicious executions of the `rundll32.exe` utility in Microsoft Windows, specifically when the DLL being executed is sourced from an Alternate Data Stream (ADS). The rule focuses on the command-line parameters of the process creation logs to detect patterns indicative of such behavior. The `rundll32.exe` command is often leveraged by attackers to execute code from less scrutinized locations, like ADS, which can evade standard monitoring methods. By examining both the executable image name and the associated command line that includes a colon (":")—a characteristic of ADS—analysts can detect potentially malicious activities tied to the misuse of this legitimate system utility.
+  ### Investigation Steps
+  - Review process creation logs in the EDR to find instances of `rundll32.exe` execution that comply with the rule conditions, paying special attention to the command lines that reference an ADS.
+  - Investigate the specific file and its parent processes to determine the origin and legitimacy of the DLL being executed, focusing on the associated user account and its activity.
+  - Utilize antivirus logs to check if the identified DLL or its residing file in ADS has been flagged as malicious or unusual, which can provide additional context for the investigation.
+  - Conduct a search in proxy logs or cloud storage logs (if applicable) for any previous access to the ADS file to understand how it was introduced into the environment and whether any users interacted with it.

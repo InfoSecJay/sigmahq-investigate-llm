@@ -1,0 +1,36 @@
+title: Potential EACore.DLL Sideloading
+id: edd3ddc3-386f-4ba5-9ada-4376b2cfa7b5
+status: test
+description: Detects potential DLL sideloading of "EACore.dll"
+references:
+- https://research.checkpoint.com/2023/beyond-the-horizon-traveling-the-world-on-camaro-dragons-usb-flash-drives/
+author: X__Junior (Nextron Systems)
+date: 2023-08-03
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\EACore.dll'
+  filter_main_legit_path:
+    Image|contains|all:
+    - 'C:\Program Files\Electronic Arts\EA Desktop\'
+    - '\EACoreServer.exe'
+    ImageLoaded|startswith: 'C:\Program Files\Electronic Arts\EA Desktop\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential DLL sideloading activities involving the "EACore.dll" file, a tactic often associated with malware attempting to evade detection by leveraging legitimate software. The rule monitors image load events specifically targeting the Windows operating system and captures instances where the system loads "EACore.dll" without a legitimate context. It focuses on distinguishing between legitimate usage found within the standard installation path of the Electronic Arts (EA) Desktop application and suspicious activities that may indicate a compromise, where the DLL is loaded from a different, potentially malicious source. Data sources include Windows image load logs, which provide insights into the execution of DLLs and their associated processes.
+  ### Investigation Steps
+  - Review EDR logs for any suspicious process behavior involving "EACore.dll" and check for unauthorized execution paths.
+  - Analyze command-line arguments of parent processes to determine if there are any anomalies suggesting tampering or execution from untrusted locations.
+  - Cross-reference detected activities with firewall logs to identify any unusual outgoing connections that may correlate with the identified sideloading event.
+  - Inspect user and system account activity to see if there are any elevated permissions or logins that may have triggered the DLL loading, indicating potential privilege escalation.

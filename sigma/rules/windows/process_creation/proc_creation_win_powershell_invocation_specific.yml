@@ -1,0 +1,81 @@
+title: Suspicious PowerShell Invocations - Specific - ProcessCreation
+id: 536e2947-3729-478c-9903-745aaffe60d2
+related:
+- id: fce5f582-cc00-41e1-941a-c6fabf0fdb8c
+  type: obsolete
+- id: ae7fbf8e-f3cb-49fd-8db4-5f3bed522c71
+  type: similar
+- id: 8ff28fdd-e2fa-4dfa-aeda-ef3d61c62090
+  type: similar
+status: test
+description: Detects suspicious PowerShell invocation command parameters
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-05
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_convert_b64:
+    CommandLine|contains|all:
+    - '-nop'
+    - ' -w '
+    - 'hidden'
+    - ' -c '
+    - '[Convert]::FromBase64String'
+  selection_iex:
+    CommandLine|contains|all:
+    - ' -w '
+    - 'hidden'
+    - '-noni'
+    - '-nop'
+    - ' -c '
+    - 'iex'
+    - 'New-Object'
+  selection_enc:
+    CommandLine|contains|all:
+    - ' -w '
+    - 'hidden'
+    - '-ep'
+    - 'bypass'
+    - '-Enc'
+  selection_reg:
+    CommandLine|contains|all:
+    - 'powershell'
+    - 'reg'
+    - 'add'
+    - '\software\'
+  selection_webclient:
+    CommandLine|contains|all:
+    - 'bypass'
+    - '-noprofile'
+    - '-windowstyle'
+    - 'hidden'
+    - 'new-object'
+    - 'system.net.webclient'
+    - '.download'
+  selection_iex_webclient:
+    CommandLine|contains|all:
+    - 'iex'
+    - 'New-Object'
+    - 'Net.WebClient'
+    - '.Download'
+  filter_chocolatey:
+    CommandLine|contains:
+    - "(New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1"
+    - 'Write-ChocolateyWarning'
+  condition: 1 of selection_* and not 1 of filter_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify suspicious PowerShell invocations by analyzing the command-line parameters associated with process creation events in Windows environments. The rule focuses on common patterns used by attackers to obfuscate PowerShell commands, including parameters like `-nop` (no profile), `-w` (window style), `-c` (command), and usage of Base64 encoded strings with the `Convert` cmdlet. By monitoring process creation logs, the rule looks for specific command structures that may indicate malicious intent while filtering out benign executions, such as those related to Chocolatey installations. The key data sources involved in this detection include Windows process creation logs, which provide insight into executed commands and their parameters.
+  ### Investigation Steps
+  - Query the EDR for the timestamp and details of the PowerShell execution, including the User ID and any parent processes associated with the suspicious invocation.
+  - Review the command-line parameters and output associated with the detected PowerShell process to identify any actions taken that may indicate malicious behavior.
+  - Utilize the SIEM to correlate network activity and determine if any connections to known malicious domains or IPs were established by the user in the timeframe surrounding the alert.
+  - Check relevant cloud platform logs (AWS, GCP, Azure) to identify any related activities or resource changes that coincide with the alert, providing a broader context for the investigation.

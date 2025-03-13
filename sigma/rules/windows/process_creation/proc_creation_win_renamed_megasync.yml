@@ -1,0 +1,34 @@
+title: Renamed MegaSync Execution
+id: 643bdcac-8b82-49f4-9fd9-25a90b929f3b
+status: test
+description: Detects the execution of a renamed MegaSync.exe as seen used by ransomware
+  families like Nefilim, Sodinokibi, Pysa, and Conti.
+references:
+- https://redcanary.com/blog/rclone-mega-extortion/
+author: Sittikorn S
+date: 2021-06-22
+modified: 2023-02-03
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    OriginalFileName: 'megasync.exe'
+  filter:
+    Image|endswith: '\megasync.exe'
+  condition: selection and not filter
+falsepositives:
+- Software that illegally integrates MegaSync in a renamed form
+- Administrators that have renamed MegaSync
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect instances where the MegaSync application, commonly associated with cloud storage, is executed under an alternative name, typically indicative of malicious activity such as ransomware deployment. The rule specifically targets process creation logs within Windows environments, looking for the original file name of the application, 'megasync.exe', but filtering out legitimate executions that retain this naming convention. Renaming this application is a common technique leveraged by various ransomware families, such as Nefilim, Sodinokibi, Pysa, and Conti, to evade detection and operate silently. As such, this rule aims to alert security teams to potentially malicious instances where MegaSync is used inappropriately.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR to identify the execution context around the alert, including any parent processes that may provide insights into how the renamed MegaSync was launched.
+  - Investigate recent changes across user accounts to discern any unauthorized access or modifications, focusing on the timeline surrounding the alert generation.
+  - Utilize your NGFW to inspect network traffic and look for any outbound connections made by the detected process, particularly to unusual or suspicious domains.
+  - Check cloud logs (AWS, GCP, Azure) for any related activity that may align with the timeline of the alert, focusing on resource provisioning or access that may lend context to the event.

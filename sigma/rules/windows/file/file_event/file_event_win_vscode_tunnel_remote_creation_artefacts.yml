@@ -1,0 +1,31 @@
+title: Visual Studio Code Tunnel Remote File Creation
+id: 56e05d41-ce99-4ecd-912d-93f019ee0b71
+status: test
+description: |
+  Detects the creation of file by the "node.exe" process in the ".vscode-server" directory. Could be a sign of remote file creation via VsCode tunnel feature
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-10-25
+tags:
+- attack.command-and-control
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    Image|contains: '\servers\Stable-'
+    Image|endswith: '\server\node.exe'
+    TargetFilename|contains: '\.vscode-server\data\User\History\'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the creation of files by the "node.exe" process within the ".vscode-server" directory, which is associated with Visual Studio Code's remote development feature using the tunnel capability. Specifically, it focuses on file events involving the creation of files in the subdirectory for user history, which could indicate potentially unauthorized file manipulation via remote access. The rule leverages process creation and file event logs, specifically targeting instances where the image path contains indicators of the Visual Studio Code server's usual file structure, highlighting potential command-and-control activities where an attacker may be utilizing VS Code to interact with remote systems illicitly.
+  ### Investigation Steps
+  - Review the relevant file event logs for entries related to file creation within the ".vscode-server" directory, focusing on timestamps and user accounts associated with these actions.
+  - Utilize the EDR tool to analyze the process tree and activity for the "node.exe" process, gathering contextual information on its originating process and any child processes spawned during the event.
+  - Check for any network activity associated with the IP addresses or domain names accessed during the alert timeframe via NDR logs, determining if there were any external communications that seem suspicious.
+  - Assess user activity and authentication logs in the cloud platform (e.g., AWS, GCP) for signs of unusual access to the system that correspond with the times of the detected file creation events.

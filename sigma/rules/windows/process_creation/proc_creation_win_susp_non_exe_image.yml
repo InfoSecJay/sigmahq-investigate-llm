@@ -1,0 +1,89 @@
+title: Execution of Suspicious File Type Extension
+id: c09dad97-1c78-4f71-b127-7edb2b8e491a
+status: test
+description: |
+  Detects whether the image specified in a process creation event doesn't refer to an ".exe" (or other known executable extension) file. This can be caused by process ghosting or other unorthodox methods to start a process.
+  This rule might require some initial baselining to align with some third party tooling in the user environment.
+references:
+- https://pentestlaboratories.com/2021/12/08/process-ghosting/
+author: Max Altgelt (Nextron Systems)
+date: 2021-12-09
+modified: 2023-11-23
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  known_image_extension:
+    Image|endswith:
+    - '.bin'
+    - '.cgi'
+    - '.com'
+    - '.exe'
+    - '.scr'
+    - '.tmp'         # sadly many installers use this extension
+  filter_main_image:   # Windows utilities without extension
+    Image:
+    - 'System'
+    - 'Registry'
+    - 'MemCompression'
+    - 'vmmem'
+  filter_main_msi_installers:
+    Image|contains: ':\Windows\Installer\MSI'
+  filter_main_driver_store:
+    Image|contains: ':\Windows\System32\DriverStore\FileRepository\'
+  filter_main_msi_rollbackfiles:
+    Image|contains: ':\Config.Msi\'
+    Image|endswith:
+    - '.rbf'
+    - '.rbs'
+  filter_main_windows_temp:
+  - ParentImage|contains: ':\Windows\Temp\'
+  - Image|contains: ':\Windows\Temp\'
+  filter_main_deleted:
+    Image|contains: ':\$Extend\$Deleted\'
+  filter_main_empty:
+    Image:
+    - '-'
+    - ''
+  filter_main_null:
+    Image:
+  filter_optional_avira:
+    ParentImage|contains: ':\ProgramData\Avira\'
+  filter_optional_nvidia:
+    Image|contains: 'NVIDIA\NvBackend\'
+    Image|endswith: '.dat'
+  filter_optional_winpakpro:
+    Image|contains:
+    - ':\Program Files (x86)\WINPAKPRO\'
+    - ':\Program Files\WINPAKPRO\'
+    Image|endswith: '.ngn'
+  filter_optional_myq_server:
+    Image|endswith:
+    - ':\Program Files (x86)\MyQ\Server\pcltool.dll'
+    - ':\Program Files\MyQ\Server\pcltool.dll'
+  filter_optional_wsl:
+    Image|contains|all:
+    - '\AppData\Local\Packages\'
+    - '\LocalState\rootfs\'
+  filter_optional_lzma_exe:
+    Image|endswith: '\LZMA_EXE'
+  filter_optional_firefox:
+    Image|contains: ':\Program Files\Mozilla Firefox\'
+  filter_optional_docker:
+    ParentImage: 'C:\Windows\System32\services.exe'
+    Image|endswith: 'com.docker.service'
+  condition: not known_image_extension and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially suspicious process execution attempts where the images in process creation events do not correspond to recognized executable file types, such as `.exe` or other common extensions. The rule monitors for instances where a process might be initiated using unconventional or non-executable file types, which can indicate techniques like process ghosting—where malicious processes masquerade under benign names or are executed without proper extensions. 
+  The technical data sources involved in this detection include Windows process creation logs, which detail the execution events including the image file paths, command-line parameters, and the parent-child relationships of processes. By analyzing these attributes, the rule assesses whether the file type is within a set of known executables and filters out various known benign exceptions, allowing for a more targeted detection of potentially malicious activities.
+  ### Investigation Steps
+  - Utilize your EDR solution to investigate the specific process creation events that triggered the alert, reviewing the command-line arguments and parent processes associated with the suspicious image.
+  - Cross-reference the process image with the logs from your AV and NGFW to determine if the file has been flagged or if it has a history of previous detections.
+  - Examine network activity related to the affected host through NDR and Proxy logs to identify any outbound connections that may indicate data exfiltration or communication with known malicious IPs.
+  - Conduct a review of historical behavior on the affected endpoint, looking for similar process creation patterns or anomalies in user activities that may correlate with the alert.

@@ -1,0 +1,49 @@
+title: Exports Registry Key To a File
+id: f0e53e89-8d22-46ea-9db5-9d4796ee2f8a
+related:
+- id: 82880171-b475-4201-b811-e9c826cd5eaa
+  type: similar
+status: test
+description: Detects the export of the target Registry key to a file.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Regedit/
+- https://gist.github.com/api0cradle/cdd2d0d0ec9abb686f0e89306e277b8f
+author: Oddvar Moe, Sander Wiebing, oscd.community
+date: 2020-10-07
+modified: 2024-03-13
+tags:
+- attack.exfiltration
+- attack.t1012
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\regedit.exe'
+  - OriginalFileName: 'REGEDIT.EXE'
+  selection_cli:
+    CommandLine|contains|windash: ' -E '
+  filter_1:     # filters to avoid intersection with critical keys rule
+    CommandLine|contains:
+    - 'hklm'
+    - 'hkey_local_machine'
+  filter_2:
+    CommandLine|endswith:
+    - '\system'
+    - '\sam'
+    - '\security'
+  condition: all of selection_* and not all of filter_*
+fields:
+- ParentImage
+- CommandLine
+falsepositives:
+- Legitimate export of keys
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where the Windows Registry editor (`regedit.exe`) is used to export registry keys to a file, which can be a common tactic utilized by attackers to exfiltrate sensitive information. The rule focuses on specific command-line arguments that indicate an export operation while filtering out certain reserved or critical systems keys to reduce false positives. The key technical data sources involved are process creation logs, which detail the execution of processes, their command-line arguments, and related metadata like the parent process image name. By monitoring these elements, we can detect unauthorized or suspicious registry exports that may indicate malicious intent.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR to identify instances of `regedit.exe` being executed, noting the command-line parameters used for any exports.
+  - Investigate the parent process of the `regedit.exe` execution to determine if it originated from a legitimate application or potentially malicious activity.
+  - Examine the exported registry keys for sensitive information, such as user credentials or system configurations, that may suggest data exfiltration.
+  - Utilize your SIEM to correlate alerts from other sources (e.g., AV logs, NDR alerts) for additional context on potential malicious behavior associated with the detected registry exports.

@@ -1,0 +1,41 @@
+title: Potential AMSI Bypass Via .NET Reflection
+id: 30edb182-aa75-42c0-b0a9-e998bb29067c
+related:
+- id: 4f927692-68b5-4267-871b-073c45f4f6fe
+  type: obsolete
+status: test
+description: Detects Request to "amsiInitFailed" that can be used to disable AMSI
+  Scanning
+references:
+- https://s3cur3th1ssh1t.github.io/Bypass_AMSI_by_manual_modification/
+- https://www.mdsec.co.uk/2018/06/exploring-powershell-amsi-and-logging-evasion/
+author: Markus Neis, @Kostastsale
+date: 2018-08-17
+modified: 2023-02-03
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - CommandLine|contains|all:
+    - 'System.Management.Automation.AmsiUtils'
+    - 'amsiInitFailed'
+  - CommandLine|contains|all:
+    - '[Ref].Assembly.GetType'
+    - 'SetValue($null,$true)'
+    - 'NonPublic,Static'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects potential attempts to bypass the Anti-Malware Scan Interface (AMSI) on Windows systems, specifically focusing on the use of `.NET Reflection` in PowerShell scripts. By monitoring command-line parameters for the presence of `amsiInitFailed` or specific method invocations related to AMSI bypass techniques, the rule identifies malicious actions that aim to disable or circumvent AMSI, which is designed to help combat malware. The primary data source for this detection includes process creation logs, capturing command-line arguments executed by PowerShell and other relevant processes. The overall objective is to surface potentially malicious activities before they can fully execute and compromise the system.
+  ### Investigation Steps
+  - **Review Recent Process Creation Events**: Utilize your EDR solution to examine recent process creation events and identify any PowerShell activities that match the detected command-line patterns indicative of AMSI bypass attempts.
+  - **Correlate with Security Logs**: Check the SIEM for alerts related to the execution of scripts or commands from known malicious sources or any anomalous behavior that coincides with the time of the detected activity.
+  - **Analyze Network Traffic**: Use NDR tools to monitor outbound connections originating from the affected endpoints around the time of the alert, looking for unusual or unauthorized communication with external IPs.
+  - **Check for Malicious Artifacts**: Examine the file systems for any PowerShell scripts or executions that could leverage AMSI bypass techniques, ensuring to look for specific indicators mentioned in the detection rule and related references.

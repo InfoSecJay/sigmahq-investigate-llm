@@ -1,0 +1,48 @@
+title: Suspicious File Drop by Exchange
+id: 6b269392-9eba-40b5-acb6-55c882b20ba6
+related:
+- id: bd1212e5-78da-431e-95fa-c58e3237a8e6
+  type: similar
+status: test
+description: Detects suspicious file type dropped by an Exchange component in IIS
+references:
+- https://www.microsoft.com/security/blog/2022/09/30/analyzing-attacks-using-the-exchange-vulnerabilities-cve-2022-41040-and-cve-2022-41082/
+- https://www.gteltsc.vn/blog/canh-bao-chien-dich-tan-cong-su-dung-lo-hong-zero-day-tren-microsoft-exchange-server-12714.html
+- https://en.gteltsc.vn/blog/cap-nhat-nhe-ve-lo-hong-bao-mat-0day-microsoft-exchange-dang-duoc-su-dung-de-tan-cong-cac-to-chuc-tai-viet-nam-9685.html
+author: Florian Roth (Nextron Systems)
+date: 2022-10-04
+tags:
+- attack.persistence
+- attack.t1190
+- attack.initial-access
+- attack.t1505.003
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    Image|endswith: '\w3wp.exe'
+    CommandLine|contains: 'MSExchange'
+  selection_types:
+    TargetFilename|endswith:
+    - '.aspx'
+    - '.asp'
+    - '.ashx'
+    - '.ps1'
+    - '.bat'
+    - '.exe'
+    - '.dll'
+    - '.vbs'
+  condition: all of selection*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Suspicious File Drop by Exchange" detection rule targets potentially malicious file types that are dropped by the Microsoft Exchange component running in Internet Information Services (IIS). This rule examines logs for the process `w3wp.exe`, which is the IIS worker process, alongside command-line parameters that contain references to `MSExchange`. The rule looks specifically for files with extensions commonly associated with scripting or executable content, such as `.aspx`, `.ps1`, `.bat`, and others. By focusing on both the process and the specific file types, the rule aims to identify instances where potentially harmful files could be leveraged by an attacker to gain unauthorized access or control over Exchange servers.
+  It is crucial for incident responders to understand that this rule can signal potential exploitation of vulnerabilities in Microsoft Exchange, especially given the increasing prevalence of such attacks using techniques tied to vulnerabilities like CVE-2022-41040 and CVE-2022-41082. The documentation supports analysts in recognizing and investigating instances where suspicious behavior may indicate a compromise, allowing for timely remediation and securing of Exchange environments.
+  ### Investigation Steps
+  - Utilize EDR tools to review the process tree for `w3wp.exe` and identify any parent processes that initiated it. Look for unusual parent-child relationships that may indicate exploitation.
+  - Check command-line parameters associated with the detected instance of `w3wp.exe` for unusual arguments or malicious indicators, such as flags that may reference file drop actions.
+  - Examine file event logs to analyze any newly created files that match the suspicious extensions, checking their creation times and integrity against known baselines.
+  - Review network logs from the NGFW and Proxy to identify any outgoing connections initiated by the worker process, particularly those that may connect to known malicious IP addresses or domains.

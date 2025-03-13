@@ -1,0 +1,40 @@
+title: Addition of SID History to Active Directory Object
+id: 2632954e-db1c-49cb-9936-67d1ef1d17d2
+status: stable
+description: An attacker can use the SID history attribute to gain additional privileges.
+references:
+- https://adsecurity.org/?p=1772
+author: Thomas Patzke, @atc_project (improvements)
+date: 2017-02-19
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1134.005
+logsource:
+  product: windows
+  service: security
+detection:
+  selection1:
+    EventID:
+    - 4765
+    - 4766
+  selection2:
+    EventID: 4738
+  selection3:
+    SidHistory:
+    - '-'
+    - '%%1793'
+  filter_null:
+    SidHistory:
+  condition: selection1 or (selection2 and not selection3 and not filter_null)
+falsepositives:
+- Migration of an account into a new domain
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying suspicious modifications related to the Security Identifier (SID) history attribute within Active Directory objects. The rule is designed to detect potential privilege escalation attempts by tracking specific Windows security events, particularly Event IDs 4765, 4766, and 4738. Event IDs 4765 and 4766 are related to modifications to group memberships, while Event ID 4738 pertains to changes to user accounts. The detection logic looks for cases where the SID history attribute is altered, indicating that an account may be attempting to inherit permissions from another domain. If the SID history is changed while another attribute is modified, it raises concerns about unauthorized privilege escalation, since attackers might use this method to gain elevated privileges undetected.
+  ### Investigation Steps
+  - Review the security event logs in the SIEM for Event IDs 4765, 4766, and 4738 to identify any recent changes to accounts or group memberships. Focus on any modifications that coincide with changes to the SID history.
+  - Utilize EDR tools to analyze the activities of accounts that triggered the alerts, looking for unusual behavior or additional unauthorized changes that may indicate further compromise.
+  - Check for any related user activities in the Proxy and VPN logs to understand if the affected account has been used in unexpected or unauthorized access attempts.
+  - Investigate cloud logs on platforms like AWS, GCP, and Azure to determine if the affected identities have attempted access or modified resources in a suspicious manner that could indicate privilege escalation.

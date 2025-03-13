@@ -1,0 +1,33 @@
+title: Renamed BrowserCore.EXE Execution
+id: 8a4519e8-e64a-40b6-ae85-ba8ad2177559
+status: test
+description: Detects process creation with a renamed BrowserCore.exe (used to extract
+  Azure tokens)
+references:
+- https://twitter.com/mariuszbit/status/1531631015139102720
+author: Max Altgelt (Nextron Systems)
+date: 2022-06-02
+modified: 2023-02-03
+tags:
+- attack.t1528
+- attack.t1036.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    OriginalFileName: BrowserCore.exe
+  filter_realbrowsercore:
+    Image|endswith: '\BrowserCore.exe'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Renamed BrowserCore.EXE Execution" detection rule focuses on identifying instances where the legitimate Windows process, BrowserCore.exe—often used for extracting Azure tokens—has been maliciously renamed or misused. Attackers may rename this executable to evade detection while performing unauthorized actions, such as credential theft or other malicious activities. The rule analyzes process creation logs specifically for instances where the `OriginalFileName` attribute is "BrowserCore.exe" and checks if the executable path ends with `\BrowserCore.exe`, ensuring that it's not a legitimate instance of the browser core process running as expected. This allows security analysts to quickly flag anomalous behavior associated with potential credential harvesting or other nefarious operations.
+  ### Investigation Steps
+  - Review endpoint data through EDR tools to identify all recent instances of BrowserCore.exe execution, and verify the process origins and command-line parameters used.
+  - Utilize your SIEM to correlate alerts and logs across multiple sources, such as network traffic and user access patterns, to identify any unusual behavior associated with the detected process.
+  - Check firewall and proxy logs to analyze outbound connections made by the suspicious processes, observing for any attempts to communicate with known malicious IP addresses or domains.
+  - Search relevant cloud platform logs (e.g., Azure) to uncover any unusual authentication attempts or token usage patterns that may be tied to the actions of the renamed executable.

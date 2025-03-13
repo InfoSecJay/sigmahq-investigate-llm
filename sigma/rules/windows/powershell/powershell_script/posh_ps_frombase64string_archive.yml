@@ -1,0 +1,37 @@
+title: Suspicious FromBase64String Usage On Gzip Archive - Ps Script
+id: df69cb1d-b891-4cd9-90c7-d617d90100ce
+related:
+- id: d75d6b6b-adb9-48f7-824b-ac2e786efe1f
+  type: similar
+status: test
+description: Detects attempts of decoding a base64 Gzip archive in a PowerShell script.
+  This technique is often used as a method to load malicious content into memory afterward.
+references:
+- https://speakerdeck.com/heirhabarov/hunting-for-powershell-abuse?slide=43
+author: frack113
+date: 2022-12-23
+tags:
+- attack.command-and-control
+- attack.t1132.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'FromBase64String'
+    - 'MemoryStream'
+    - 'H4sI'
+  condition: selection
+falsepositives:
+- Legitimate administrative script
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activity in PowerShell scripts involving the use of the `FromBase64String` method, particularly in the context of decoding Gzip archives. The presence of specific keywords such as `FromBase64String`, `MemoryStream`, and the Gzip header indicator `H4sI` in the script block text is indicative of attempts to decode and execute potentially harmful content directly in memory. By leveraging Script Block Logging, which must be enabled for this rule to function correctly, the rule inspects the contents of PowerShell scripts executed in the Windows environment. Given that this technique can be associated with command-and-control activities or malicious payload delivery, it is crucial for analysts to investigate alerts raised by this detection efficiently.
+  ### Investigation Steps
+  - Review the script block logs for instances of PowerShell execution involving the `FromBase64String` and `MemoryStream` keywords to confirm any alert triggers.
+  - Analyze the command-line parameters and script execution history within your EDR tool to identify the source and context of the potentially malicious script execution.
+  - Cross-reference the executed scripts with your existing AV and endpoint protection solutions to determine if any known threats are associated with the decoded content.
+  - Check proxy logs for any outbound connections or data exfiltration attempts following the execution of the suspicious script, which may indicate a successful compromise or data breach.

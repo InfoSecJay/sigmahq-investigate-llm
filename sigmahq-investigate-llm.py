@@ -1,0 +1,117 @@
+import os
+import re
+import asyncio
+from io import StringIO
+from ruamel.yaml import YAML
+from ruamel.yaml.scalarstring import LiteralScalarString
+import openai
+from dotenv import load_dotenv
+
+# Load environment variables from the .env file
+load_dotenv()
+
+# Retrieve API key from environment variable "OPEN_API_KEY"
+api_key = os.getenv("OPEN_API_KEY")
+if not api_key:
+    raise EnvironmentError("OPEN_API_KEY environment variable not set.")
+openai.api_key = api_key
+
+# Initialize YAML handler
+yaml = YAML()
+yaml.preserve_quotes = True  # Preserve formatting in YAML
+
+# Define the ChatGPT prompt with explicit instructions for bullet formatting
+CHATGPT_PROMPT = """
+You are a detection engineer working for a large enterprise SOC with access to standard tools (SIEM, EDR, NDR, NGFW, AV, Proxy, VPN, and cloud platforms like AWS, GCP, and Azure). You need to create concise yet comprehensive detection rule documentation for a given SigmaHQ rule. The documentation will be consumed by incident responders and SOC analysts to initiate investigations on alerts.
+
+Documentation Requirements:
+
+- "Technical Context" (1-2 paragraphs, ~150-250 words): Provide a high-level explanation of how the rule works, including what it looks for and which technical data sources (e.g., process creation logs, command-line parameters) are involved. Write clearly enough for responders who are not subject matter experts.
+
+- "Investigation Steps" (Up to 4 bullet points): List specific, high-level investigative actions using enterprise tools such as EDR, AV, Proxy, and cloud logs. **Ensure that each bullet point starts on a new line and is preceded by a blank line.** Each bullet should be no more than 2 sentences.
+
+The output must be in markdown format using ### for headers.
+
+Ensure the documentation is consistent, clear, and not overly verbose.
+
+You are tasked with the following sigma rule:
+"""
+
+# Limit the number of concurrent API requests (adjust as needed)
+semaphore = asyncio.Semaphore(10)
+
+async def get_chatgpt_response(rule_content: str) -> str:
+    """Asynchronously sends the rule content to ChatGPT and returns the response."""
+    async with semaphore:
+        try:
+            response = await openai.ChatCompletion.acreate(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "user", "content": f"{CHATGPT_PROMPT}\n\n{rule_content}"}
+                ]
+            )
+            return response["choices"][0]["message"]["content"]
+        except Exception as e:
+            print("Error during OpenAI API call:", e)
+            return ""
+
+def yaml_to_string(yaml_obj):
+    """Converts YAML object to a string using ruamel.yaml."""
+    stream = StringIO()
+    yaml.dump(yaml_obj, stream)
+    return stream.getvalue()
+
+def clean_chatgpt_response(response: str) -> str:
+    """Removes unwanted Markdown formatting from ChatGPT responses."""
+    if response.startswith("```markdown"):
+        response = response[10:]  # Remove "```markdown\n"
+    if response.endswith("```"):
+        response = response[:-3]  # Remove trailing "```"
+    return response.strip()
+
+def normalize_newlines(response: str) -> str:
+    """Normalizes newlines to ensure consistent formatting for bullet points."""
+    response = re.sub(r'\n+', '\n', response)
+    response = re.sub(r'(?<!\n)(-\s)', r'\n\1', response)
+    return response.strip()
+
+async def process_yaml_file(file_path: str):
+    """Reads a YAML file, sends its content to ChatGPT asynchronously,
+    and appends the response as a 'notes' field."""
+    try:
+        with open(file_path, "r", encoding="utf-8") as file:
+            yaml_content = yaml.load(file)
+    except Exception as e:
+        print(f"Error reading {file_path}: {e}")
+        return
+
+    rule_text = yaml_to_string(yaml_content)
+    chatgpt_response = await get_chatgpt_response(rule_text)
+    if not chatgpt_response:
+        print(f"Skipping {file_path} due to API error.")
+        return
+
+    cleaned_response = clean_chatgpt_response(chatgpt_response)
+    normalized_response = normalize_newlines(cleaned_response)
+    yaml_content["notes"] = LiteralScalarString(normalized_response + "\n")
+
+    try:
+        with open(file_path, "w", encoding="utf-8") as file:
+            yaml.dump(yaml_content, file)
+    except Exception as e:
+        print(f"Error writing {file_path}: {e}")
+
+async def process_directory(directory: str):
+    """Recursively finds and processes all YAML files in the given directory concurrently."""
+    tasks = []
+    for root, _, files in os.walk(directory):
+        for file in files:
+            if file.endswith(".yml") or file.endswith(".yaml"):
+                file_path = os.path.join(root, file)
+                print(f"Processing: {file_path}")
+                tasks.append(asyncio.create_task(process_yaml_file(file_path)))
+    if tasks:
+        await asyncio.gather(*tasks)
+
+if __name__ == "__main__":
+    asyncio.run(process_directory("sigma/rules"))

@@ -1,0 +1,36 @@
+title: PowerShell WMI Win32_Product Install MSI
+id: 91109523-17f0-4248-a800-f81d9e7c081d
+status: test
+description: Detects the execution of an MSI file using PowerShell and the WMI Win32_Product
+  class
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1218.007/T1218.007.md
+author: frack113
+date: 2022-04-24
+tags:
+- attack.defense-evasion
+- attack.t1218.007
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'Invoke-CimMethod '
+    - '-ClassName '
+    - 'Win32_Product '
+    - '-MethodName '
+    - '.msi'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of an MSI (Microsoft Installer) file using PowerShell's `Invoke-CimMethod` function in conjunction with the WMI (Windows Management Instrumentation) `Win32_Product` class. The rule specifically looks for PowerShell script blocks that contain certain keywords associated with this technique, including `'Invoke-CimMethod '`, `'-ClassName '`, `'-MethodName '`, and `'.msi'`. By leveraging these keywords, the rule aims to identify potentially malicious or unauthorized software installation activities, as attackers may use this method to install software without arousing suspicion. It is important to note that for this detection to function, Script Block Logging must be enabled, which allows for the capture of detailed PowerShell execution logs.
+  ### Investigation Steps
+  - Utilize the EDR tool to correlate alerts with the logs of the host system where the event was detected, focusing on the associated PowerShell process and its command-line parameters.
+  - Review Windows event logs, specifically those related to software installations, for any recent entries that correspond to the detected PowerShell activity, which may provide additional context.
+  - Check for any network activity using the Proxy or NDR tools that might indicate communications to a potentially malicious domain or IP address during the time the MSI was executed.
+  - Analyze the cloud logs in AWS, GCP, or Azure for any related events that could suggest a broader attack vector, particularly if the system in question has connections to cloud resources.

@@ -1,0 +1,37 @@
+title: DPAPI Domain Master Key Backup Attempt
+id: 39a94fd1-8c9a-4ff6-bf22-c058762f8014
+status: test
+description: Detects anyone attempting a backup for the DPAPI Master Key. This events
+  gets generated at the source and not the Domain Controller.
+references:
+- https://threathunterplaybook.com/hunts/windows/190620-DomainDPAPIBackupKeyExtraction/notebook.html
+author: Roberto Rodriguez @Cyb3rWard0g
+date: 2019-08-10
+modified: 2023-03-15
+tags:
+- attack.credential-access
+- attack.t1003.004
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4692
+  condition: selection
+fields:
+- ComputerName
+- SubjectDomainName
+- SubjectUserName
+falsepositives:
+- If a computer is a member of a domain, DPAPI has a backup mechanism to allow unprotection
+  of the data. Which will trigger this event.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying unauthorized attempts to create backups of the Data Protection API (DPAPI) Master Key, a sensitive operation related to credential access. The rule triggers when an event with EventID 4692 is logged, indicating a backup operation has occurred. The data source for this detection is the Windows Security log, specifically monitoring for user actions that involve the backup of sensitive cryptographic material. Since DPAPI is used for the protection of sensitive data, monitoring for such operations helps to identify potential credential theft or misuse by adversaries. 
+  The rule helps incident responders understand when a backup operation is initiated, allowing them to assess the legitimacy of the request and determine whether any unauthorized access to critical data has occurred.
+  ### Investigation Steps
+  - Use the EDR platform to review the user activities associated with the EventID 4692 logs, focusing on the user account and the time of the backup attempt.
+  - Cross-reference the affected computer name with your asset management system to validate its domain membership and assess whether the action is expected for that environment.
+  - Check for any suspicious processes or command-line arguments used during the time of the backup attempt by reviewing process creation logs in your EDR.
+  - Examine network logs, specifically looking for unusual outbound connections from the system where the backup was attempted, which may indicate data exfiltration or remote access.

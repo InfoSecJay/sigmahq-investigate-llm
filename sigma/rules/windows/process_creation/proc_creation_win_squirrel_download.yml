@@ -1,0 +1,51 @@
+title: Arbitrary File Download Via Squirrel.EXE
+id: 1e75c1cc-c5d4-42aa-ac3d-91b0b68b3b4c
+related:
+- id: 45239e6a-b035-4aaf-b339-8ad379fcb67e
+  type: similar
+- id: fa4b21c9-0057-4493-b289-2556416ae4d7
+  type: obsolete
+status: test
+description: |
+  Detects the usage of the "Squirrel.exe" to download arbitrary files. This binary is part of multiple Electron based software installations (Slack, Teams, Discord, etc.)
+references:
+- https://lolbas-project.github.io/lolbas/OtherMSBinaries/Squirrel/
+- http://www.hexacorn.com/blog/2019/03/30/sqirrel-packages-manager-as-a-lolbin-a-k-a-many-electron-apps-are-lolbins-by-default/
+- http://www.hexacorn.com/blog/2018/08/16/squirrel-as-a-lolbin/
+author: Nasreddine Bencherchali (Nextron Systems), Karneades / Markus Neis, Jonhnathan
+  Ribeiro, oscd.community
+date: 2022-06-09
+modified: 2023-11-09
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+    Image|endswith:
+    - '\squirrel.exe'
+    - '\update.exe'
+  selection_download_cli:
+    CommandLine|contains:
+    - ' --download '
+    - ' --update '
+    - ' --updateRollback='
+  selection_download_http_keyword:
+    CommandLine|contains: 'http'
+  condition: all of selection_*
+falsepositives:
+- Expected FP with some Electron based applications such as (1Clipboard, Beaker Browser,
+  Caret, Discord, GitHub Desktop, etc.)
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential misuse of the "Squirrel.exe" executable, commonly used by various Electron applications such as Slack, Teams, and Discord, to download arbitrary files. The rule specifically looks for process creation logs where "Squirrel.exe" or "update.exe" is invoked with command-line arguments that suggest downloading or updating operations, indicated by parameters like `--download`, `--update`, or `--updateRollback=`. Additionally, the rule checks for the presence of the HTTP keyword in the command line, which could signify an external file download attempt.
+  By aggregating these indicators, the detection rule aims to uncover instances where these binaries are being exploited to execute unauthorized downloads that may lead to adverse security implications such as malware installation or data exfiltration. The relevant technical data sources used for this detection include process creation logs from Windows systems, focusing on command-line parameters to assess context and intent.
+  ### Investigation Steps
+  - Utilize EDR tools to examine process execution logs for any instances of "squirrel.exe" or "update.exe" and review command-line parameters utilized during execution.
+  - Cross-check with network logs to identify any outbound connections made during the detected process activities to verify the legitimacy of the download requests.
+  - Review application logs for the Electron applications associated with "Squirrel.exe" to determine if these downloads align with expected software behavior or user actions.
+  - Leverage threat intelligence platforms to check if the associated URLs or files represent known threats or malicious characteristics to assess potential risks related to the alert.

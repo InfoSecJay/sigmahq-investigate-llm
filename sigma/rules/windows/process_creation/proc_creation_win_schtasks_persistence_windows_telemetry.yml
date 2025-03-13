@@ -1,0 +1,40 @@
+title: Potential Persistence Via Microsoft Compatibility Appraiser
+id: f548a603-c9f2-4c89-b511-b089f7e94549
+related:
+- id: 73a883d0-0348-4be4-a8d8-51031c2564f8
+  type: derived
+status: test
+description: |
+  Detects manual execution of the "Microsoft Compatibility Appraiser" task via schtasks.
+  In order to trigger persistence stored in the "\AppCompatFlags\TelemetryController" registry key.
+references:
+- https://www.trustedsec.com/blog/abusing-windows-telemetry-for-persistence/
+author: Sreeman
+date: 2020-09-29
+modified: 2023-02-10
+tags:
+- attack.persistence
+- attack.t1053.005
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith: '\schtasks.exe'
+  - OriginalFileName: 'schtasks.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'run '
+    - '\Application Experience\Microsoft Compatibility Appraiser'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects potential persistence mechanisms used by threat actors through the manual execution of the "Microsoft Compatibility Appraiser" task via the Windows task scheduling utility, `schtasks.exe`. The rule monitors for specific indicators within Windows process creation logs, particularly focusing on the command-line parameters used when invoking `schtasks.exe`. It looks for instances where the command line contains arguments related to running the Compatibility Appraiser, which may indicate an attempt to modify the registry key `\AppCompatFlags\TelemetryController` for persistence purposes. Investigating this activity is critical, as it may signify an ongoing attack or a post-exploitation tactic to maintain unauthorized access to the system.
+  ### Investigation Steps
+  - Review recent `process_creation` logs in your EDR solution to identify instances of `schtasks.exe` being executed with suspicious command-line parameters that include "run" and the path to the Microsoft Compatibility Appraiser.
+  - Examine the corresponding registry key `\AppCompatFlags\TelemetryController` on affected systems to determine if any unauthorized modifications or anomalies exist.
+  - Utilize AV logs to check for detections related to the execution of the Microsoft Compatibility Appraiser or any related processes that could indicate malicious activity.
+  - Analyze network traffic via your NDR tools for any unusual outbound connections made shortly after the execution of `schtasks.exe`, particularly focusing on indicators that may suggest data exfiltration or communication with command and control (C2) servers.

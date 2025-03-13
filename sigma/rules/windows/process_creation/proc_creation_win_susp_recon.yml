@@ -1,0 +1,46 @@
+title: Recon Information for Export with Command Prompt
+id: aa2efee7-34dd-446e-8a37-40790a66efd7
+related:
+- id: 8e0bb260-d4b2-4fff-bb8d-3f82118e6892
+  type: similar
+status: test
+description: Once established within a system or network, an adversary may use automated
+  techniques for collecting internal data.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1119/T1119.md
+author: frack113
+date: 2021-07-30
+modified: 2022-09-13
+tags:
+- attack.collection
+- attack.t1119
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_image:
+  - Image|endswith:
+    - '\tree.com'
+    - '\WMIC.exe'
+    - '\doskey.exe'
+    - '\sc.exe'
+  - OriginalFileName:
+    - 'wmic.exe'
+    - 'DOSKEY.EXE'
+    - 'sc.exe'
+  selection_redirect:
+    ParentCommandLine|contains:
+    - ' > %TEMP%\'
+    - ' > %TMP%\'
+  condition: all of selection*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential reconnaissance activities by adversaries who have gained access to a system. It focuses on detecting the use of specific command-line utilities commonly exploited for gathering internal data, such as `tree.com`, `WMIC.exe`, `doskey.exe`, and `sc.exe`. The rule looks for instances where these commands are spawned in a process creation context, particularly when their parent command line indicates that output is being redirected to temporary files (e.g., with the symbols `>` followed by paths like `%TEMP%\` or `%TMP%\`). By monitoring these indicators, security teams can identify suspicious behavior that may be part of an adversary's data collection efforts.
+  ### Investigation Steps
+  - Check process creation logs in your EDR for any instances of `tree.com`, `WMIC.exe`, `doskey.exe`, or `sc.exe` being executed from unusual parent processes or by unknown users. 
+  - Review the command-line parameters associated with each detected process to identify any unusual file redirections to temporary directories, which could signify data harvesting activities.
+  - Utilize your SIEM to correlate these events with network traffic patterns or access logs that may provide context about lateral movement or exfiltration attempts.
+  - Examine endpoint and server logs in cloud platforms (AWS, GCP, Azure) for any related actions that might further illuminate the scope of the reconnaissance activities, such as unusual API calls or VM provisioning events.

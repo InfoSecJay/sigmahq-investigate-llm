@@ -1,0 +1,38 @@
+title: PowerShell Web Access Feature Enabled Via DISM
+id: 7e8f2d3b-9c1a-4f67-b9e8-8d9006e0e51f
+status: test
+description: Detects the use of DISM to enable the PowerShell Web Access feature,
+  which could be used for remote access and potential abuse
+references:
+- https://docs.microsoft.com/en-us/powershell/module/dism/enable-windowsoptionalfeature
+- https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-241a
+- https://gist.github.com/MHaggis/7e67b659af9148fa593cf2402edebb41
+author: Michael Haag
+date: 2024-09-03
+tags:
+- attack.persistence
+- attack.t1548.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\dism.exe'
+  - OriginalFileName: 'DISM.EXE'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'WindowsPowerShellWebAccess'
+    - '/online'
+    - '/enable-feature'
+  condition: all of selection_*
+falsepositives:
+- Legitimate PowerShell Web Access installations by administrators
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the usage of the Deployment Image Servicing and Management (DISM) tool to enable the PowerShell Web Access feature on Windows systems. The activation of this feature can be utilized for unauthorized remote access, presenting a significant security risk. The rule specifically looks for the execution of `dism.exe` with a command line that includes parameters indicating the enabling of the PowerShell Web Access capability, such as `/enable-feature` and `WindowsPowerShellWebAccess`. The key data sources include process creation logs to capture the initiation of the DISM tool, as well as the command line used during its execution, allowing for the correlation of legitimate administrative actions versus potential malicious activity.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR to identify the origin and context of the `dism.exe` execution, noting the user who initiated the command.
+  - Cross-reference the command line parameters against known legitimate administrative actions within the organization to determine the legitimacy of the request.
+  - Check for any other related events in the SIEM or logs from Windows Security that may indicate unauthorized access attempts following the enabling of PowerShell Web Access.
+  - Conduct a network traffic analysis using NDR tools to identify any unusual outbound connections that may be initiated through PowerShell Web Access after it has been enabled.

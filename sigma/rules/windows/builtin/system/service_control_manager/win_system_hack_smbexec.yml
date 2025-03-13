@@ -1,0 +1,42 @@
+title: smbexec.py Service Installation
+id: 52a85084-6989-40c3-8f32-091e12e13f09
+status: test
+description: Detects the use of smbexec.py tool by detecting a specific service installation
+references:
+- https://blog.ropnop.com/using-credentials-to-own-windows-boxes-part-2-psexec-and-services/
+- https://github.com/fortra/impacket/blob/33058eb2fde6976ea62e04bc7d6b629d64d44712/examples/smbexec.py#L286-L296
+- https://github.com/fortra/impacket/blob/edef71f17bc1240f9f8c957bbda98662951ac3ec/examples/smbexec.py#L60     # Old service name
+author: Omer Faruk Celik
+date: 2018-03-20
+modified: 2023-11-09
+tags:
+- attack.lateral-movement
+- attack.execution
+- attack.t1021.002
+- attack.t1569.002
+logsource:
+  product: windows
+  service: system
+detection:
+  selection_eid:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7045
+  selection_service_name:
+    ServiceName: 'BTOBTO'
+  selection_service_image:
+    ImagePath|contains:
+    - '.bat & del '
+    - '__output 2^>^&1 >'
+  condition: selection_eid and 1 of selection_service_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "smbexec.py Service Installation" is designed to identify potential malicious activity related to the use of the `smbexec.py` script, which is commonly employed for lateral movement and executing commands on remote Windows systems. This rule specifically looks for abnormal service installations as indicated by Windows Event ID 7045, which logs new service creations via the Service Control Manager. Upon detection, the rule checks for a specific service name 'BTOBTO' associated with unusual command execution patterns, such as commands that include the deletion of files or redirecting output, typically indicative of an attacker manipulating system services to maintain persistence or operational stealth.
+  The key data sources leveraged in this detection include Windows event logs that capture service management activities, particularly focusing on service creation events. By analyzing these logs, SOC analysts can identify potentially unauthorized service installations that may be part of a larger attack narrative.
+  ### Investigation Steps
+  - Review Windows Event Logs for Event ID 7045 to identify service installations that match the specified criteria related to `smbexec.py`.
+  - Use EDR tools to analyze the process tree around the time of the event, focusing on identifying any suspicious parent-child process relationships that may highlight malicious execution sequences.
+  - Examine command-line parameters associated with the service installation, specifically looking for suspicious commands or obfuscation techniques in execution.
+  - Check for outbound connections or network activity originating from the affected system, using NDR or Proxy logs, to correlate with potential lateral movement attempts that could indicate malicious intent.

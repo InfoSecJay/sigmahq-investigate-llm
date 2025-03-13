@@ -1,0 +1,48 @@
+title: Suspicious Reg Add Open Command
+id: dd3ee8cc-f751-41c9-ba53-5a32ed47e563
+status: test
+description: Threat actors performed dumping of SAM, SECURITY and SYSTEM registry
+  hives using DelegateExecute key
+references:
+- https://thedfirreport.com/2021/12/13/diavol-ransomware/
+author: frack113
+date: 2021-12-20
+modified: 2022-12-25
+tags:
+- attack.credential-access
+- attack.t1003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_1:
+    CommandLine|contains|all:
+    - 'reg'
+    - 'add'
+    - 'hkcu\software\classes\ms-settings\shell\open\command'
+    - '/ve '
+    - '/d'
+  selection_2:
+    CommandLine|contains|all:
+    - 'reg'
+    - 'add'
+    - 'hkcu\software\classes\ms-settings\shell\open\command'
+    - '/v'
+    - 'DelegateExecute'
+  selection_3:
+    CommandLine|contains|all:
+    - 'reg'
+    - 'delete'
+    - 'hkcu\software\classes\ms-settings'
+  condition: 1 of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Suspicious Reg Add Open Command" Sigma rule is designed to detect potentially malicious activities that involve modifying the Windows registry, specifically targeting the keys associated with DelegateExecute. This operation can be indicative of attempts by threat actors to manipulate the registry to enable persistence or facilitate privilege escalation. The rule leverages process creation logs to identify when commands related to the `reg add` and `reg delete` utilities, particularly under the path `hkcu\software\classes\ms-settings\shell\open\command`, are executed with specific parameters. If a command includes keywords such as `/ve`, `/d`, or sets the `DelegateExecute` value, it raises suspicion of credential access attempts, linking it to techniques documented (such as ATT&CK ID T1003) that involve dumping system registry hives.
+  ### Investigation Steps
+  - Review the EDR logs to identify the process execution details associated with the command logged, focusing on the parent-child process relationships to uncover the context of the execution.
+  - Analyze the command-line parameters for any patterns indicative of malicious intent, particularly focusing on the use of `DelegateExecute`, which may suggest attempts to escalate privileges.
+  - Check the Windows registry for any recent changes to the specified path to verify if unauthorized modifications have occurred.
+  - Use the SIEM to correlate this alert with other security events in the environment, such as unusual user logins or external access, to assess if there's a broader attack pattern.

@@ -1,0 +1,41 @@
+title: Disabled IE Security Features
+id: fb50eb7a-5ab1-43ae-bcc9-091818cb8424
+status: test
+description: Detects command lines that indicate unwanted modifications to registry
+  keys that disable important Internet Explorer security features
+references:
+- https://unit42.paloaltonetworks.com/operation-ke3chang-resurfaces-with-new-tidepool-malware/
+author: Florian Roth (Nextron Systems)
+date: 2020-06-19
+modified: 2021-11-27
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection1:
+    CommandLine|contains|all:
+    - ' -name IEHarden '
+    - ' -value 0 '
+  selection2:
+    CommandLine|contains|all:
+    - ' -name DEPOff '
+    - ' -value 1 '
+  selection3:
+    CommandLine|contains|all:
+    - ' -name DisableFirstRunCustomize '
+    - ' -value 2 '
+  condition: 1 of selection*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious attempts to disable important security features within Internet Explorer by monitoring command-line inputs that modify specific Windows registry keys. The rule looks for command lines that include concatenated phrases associated with critical registry modifications: for instance, disabling the "IEHarden," enabling "DEPOff," or altering "DisableFirstRunCustomize" settings. Each of these configurations is designed to undermine the default security settings of Internet Explorer, potentially exposing the system to vulnerabilities. The primary data sources involved are process creation logs from Windows environments, which record command-line executions linked to various applications, enabling analysts to spot abnormal behavior indicative of an ongoing attack or post-compromise activity.
+  ### Investigation Steps
+  - Utilize EDR tools to review the timeline of process executions and identify the processes that triggered alerts, focusing on the command lines for specific patterns.
+  - Investigate the associated user accounts for any recently executed commands or changes that may reveal malicious intent or unauthorized access.
+  - Check the Windows registry on affected endpoints to confirm any changes made to the relevant security settings, noting the timing and context of these modifications.
+  - Review network activity logs and any connections to external hosts from the affected systems via NGFW or proxy logs, which could indicate command-and-control communications or data exfiltration attempts.

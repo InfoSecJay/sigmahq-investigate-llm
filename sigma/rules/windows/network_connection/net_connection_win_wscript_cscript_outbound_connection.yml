@@ -1,0 +1,50 @@
+title: Outbound Network Connection Initiated By Script Interpreter
+id: 992a6cae-db6a-43c8-9cec-76d7195c96fc
+related:
+- id: 08249dc0-a28d-4555-8ba5-9255a198e08c
+  type: derived
+status: test
+description: Detects a script interpreter wscript/cscript opening a network connection
+  to a non-local network. Adversaries may use script to download malicious payloads.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/28d190330fe44de6ff4767fc400cc10fa7cd6540/atomics/T1105/T1105.md
+author: frack113, Florian Roth (Nextron Systems)
+date: 2022-08-28
+modified: 2024-03-13
+tags:
+- attack.command-and-control
+- attack.t1105
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Initiated: 'true'
+    Image|endswith:
+    - '\wscript.exe'
+    - '\cscript.exe'
+  filter_main_local_ranges:
+    DestinationIp|cidr:
+    - '127.0.0.0/8'
+    - '10.0.0.0/8'
+    - '172.16.0.0/12'
+    - '192.168.0.0/16'
+    - '169.254.0.0/16'
+    - '::1/128'          # IPv6 loopback
+    - 'fe80::/10'          # IPv6 link-local addresses
+    - 'fc00::/7'          # IPv6 private addresses
+  filter_main_ms_ranges:
+    DestinationIp|cidr: '20.0.0.0/11'     # Microsoft range, caused some FPs
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Legitimate scripts
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potentially malicious activity involving script interpreters, specifically `wscript.exe` and `cscript.exe`, on Windows-based systems. The rule monitors for outbound network connections initiated by these interpreters that target non-local IP addresses. Such behavior can indicate that an adversary is using scripts to download malicious payloads or communicate with command-and-control (C2) servers. The rule filters out local and specific Microsoft IP ranges to minimize false positives related to legitimate script execution while flagging suspicious external traffic attempts.
+  The primary data sources leveraged by this detection rule include network connection logs, focusing on the attributes indicating the initiation of a connection and the executable's image path responsible for that connection. By correlating this data, security operations can effectively identify unauthorized script activity that may compromise network integrity.
+  ### Investigation Steps
+  - Utilize EDR tools to examine the execution context of `wscript.exe` or `cscript.exe`, including command-line arguments, parent process information, and any associated user activity.
+  - Review network connection logs to map the IP addresses connected to from the detected scripts. This will help determine if the connections were made to known malicious domains or IPs.
+  - Query your AV solutions for any detections associated with the identified script executables during the time frame of the alert to check for any known malware signatures.
+  - Analyze proxy logs to identify any web requests made by these scripts, noting URLs or downloads initiated at the time of the alert, to understand the nature of the traffic involved.

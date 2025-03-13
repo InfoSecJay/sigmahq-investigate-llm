@@ -1,0 +1,44 @@
+title: Potential Powershell ReverseShell Connection
+id: edc2f8ae-2412-4dfd-b9d5-0c57727e70be
+status: stable
+description: Detects usage of the "TcpClient" class. Which can be abused to establish
+  remote connections and reverse-shells. As seen used by the Nishang "Invoke-PowerShellTcpOneLine"
+  reverse shell and other.
+references:
+- https://www.volexity.com/blog/2021/03/02/active-exploitation-of-microsoft-exchange-zero-day-vulnerabilities/
+- https://www.microsoft.com/security/blog/2021/03/02/hafnium-targeting-exchange-servers/
+- https://github.com/samratashok/nishang/blob/414ee1104526d7057f9adaeee196d91ae447283e/Shells/Invoke-PowerShellTcpOneLine.ps1
+author: FPT.EagleEye, wagga, Nasreddine Bencherchali (Nextron Systems)
+date: 2021-03-03
+modified: 2023-04-05
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - OriginalFileName:
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+  - Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - ' Net.Sockets.TCPClient'
+    - '.GetStream('
+    - '.Write('
+  condition: all of selection_*
+falsepositives:
+- In rare administrative cases, this function might be used to check network connectivity
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects the potential exploitation of PowerShell to establish reverse shell connections using the "TcpClient" class. It looks specifically for instances where PowerShell or its Core variant (pwsh) is invoked with command-line arguments that contain elements indicative of remote connection attempts, such as "Net.Sockets.TCPClient", ".GetStream(", and ".Write(". These command-line parameters suggest that an external connection is being initiated, which is characteristic of malicious activities like reverse shells. The data sources leveraged in this detection include process creation logs that capture how executables like PowerShell are invoked, allowing for monitoring of potentially unauthorized or harmful scripting activities in a Windows environment.
+  ### Investigation Steps
+  - Review the EDR logs for the identified process creation events to determine the context and legitimacy of the PowerShell execution, focusing on the user and time of execution.
+  - Use the command-line logs to analyze the specific parameters passed to PowerShell, identifying any suspicious or unexpected usage of the TcpClient class.
+  - Check the proxy and firewall logs for any outgoing connections corresponding to the identified reverse shell command, validating whether the connection attempts were successful.
+  - Conduct a search across cloud logs (AWS, GCP, or Azure) for any anomalous or unauthorized access attempts that may correlate with this PowerShell execution.

@@ -1,0 +1,35 @@
+title: Query Tor Onion Address - DNS Client
+id: 8384bd26-bde6-4da9-8e5d-4174a7a47ca2
+related:
+- id: b55ca2a3-7cff-4dda-8bdd-c7bfa63bf544
+  type: similar
+status: test
+description: Detects DNS resolution of an .onion address related to Tor routing networks
+references:
+- https://www.logpoint.com/en/blog/detecting-tor-use-with-logpoint/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-02-20
+tags:
+- attack.command-and-control
+- attack.t1090.003
+logsource:
+  product: windows
+  service: dns-client
+  definition: 'Requirements: Microsoft-Windows-DNS Client Events/Operational Event
+    Log must be enabled/collected in order to receive the events.'
+detection:
+  selection:
+    EventID: 3008
+    QueryName|contains: '.onion'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where a DNS client resolves an `.onion` address, often associated with the Tor network, which can indicate potential use of anonymous communication channels by malicious actors. The rule leverages Windows DNS client event logs, specifically focusing on Event ID 3008, which captures DNS query resolution activities. It looks for any queries that contain the string `.onion`, which is unique to Tor services and often used to anonymize user identities and actions on the internet. By monitoring these DNS queries, the rule helps security teams identify users or processes that may be attempting to access hidden services or engage in covert communications, possibly linked to command-and-control (C2) activities.
+  ### Investigation Steps
+  - Investigate the source of the DNS query by reviewing the Windows DNS client logs in the EDR to identify the user or process associated with the `.onion` request. 
+  - Query additional endpoint details, such as process creation events in the EDR, to determine if any unusual or unauthorized applications were initiated around the time of the DNS resolution.
+  - Analyze network traffic through the NDR or firewall logs to detect any outgoing connections to known Tor gateways or associated IP addresses that may correspond with the `.onion` resolution.
+  - Review proxy logs for any web requests related to the `.onion` address to assess whether further illicit activity occurred post-resolution and to gather additional context for the investigation.

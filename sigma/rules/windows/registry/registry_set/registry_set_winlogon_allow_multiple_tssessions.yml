@@ -1,0 +1,35 @@
+title: Winlogon AllowMultipleTSSessions Enable
+id: f7997770-92c3-4ec9-b112-774c4ef96f96
+status: test
+description: |
+  Detects when the 'AllowMultipleTSSessions' value is enabled.
+  Which allows for multiple Remote Desktop connection sessions to be opened at once.
+  This is often used by attacker as a way to connect to an RDP session without disconnecting the other users
+references:
+- http://blog.talosintelligence.com/2022/09/lazarus-three-rats.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-09
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: '\Microsoft\Windows NT\CurrentVersion\Winlogon\AllowMultipleTSSessions'
+    Details|endswith: DWORD (0x00000001)
+  condition: selection
+falsepositives:
+- Legitimate use of the multi session functionality
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies when the registry value `AllowMultipleTSSessions` is enabled on Windows systems, allowing multiple Remote Desktop Protocol (RDP) sessions concurrently. Attackers may exploit this setting to connect to an active session without disrupting other users, which can facilitate unauthorized access and persistence on targeted systems. The rule queries Windows registry settings, specifically monitoring for changes in the registry path `Microsoft\Windows NT\CurrentVersion\Winlogon`, checking for a DWORD value of `1`, indicating that the multiple session feature is active. By leveraging registry set logs, the detection aims to alert SOC analysts of potential misuse.
+  ### Investigation Steps
+  - Query EDR logs for any recent registry changes, specifically checking the timestamp of the `AllowMultipleTSSessions` value modification to correlate with other suspicious activity.
+  - Review RDP connection logs to identify unusual access patterns or a high frequency of simultaneous RDP connections from the same IP address or user account.
+  - Analyze the user account associated with the registry change to determine if it belongs to an authorized administrator or if it appears to be an unauthorized change made by an attacker.
+  - Check firewall and network logs for any signs of lateral movement or unexpected RDP session initiations, particularly from external sources or unusual internal users.

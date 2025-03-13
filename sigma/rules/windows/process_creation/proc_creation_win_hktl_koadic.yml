@@ -1,0 +1,43 @@
+title: HackTool - Koadic Execution
+id: 5cddf373-ef00-4112-ad72-960ac29bac34
+status: test
+description: Detects command line parameters used by Koadic hack tool
+references:
+- https://unit42.paloaltonetworks.com/unit42-sofacy-groups-parallel-attacks/
+- https://github.com/offsecginger/koadic/blob/457f9a3ff394c989cdb4c599ab90eb34fb2c762c/data/stager/js/stdlib.js
+- https://blog.f-secure.com/hunting-for-koadic-a-com-based-rootkit/
+author: wagga, Jonhnathan Ribeiro, oscd.community
+date: 2020-01-12
+modified: 2023-02-11
+tags:
+- attack.execution
+- attack.t1059.003
+- attack.t1059.005
+- attack.t1059.007
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\cmd.exe'
+  - OriginalFileName: 'Cmd.Exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - '/q'
+    - '/c'
+    - 'chcp'
+  condition: all of selection_*
+fields:
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the execution of the Koadic hacking tool by monitoring specific command line parameters associated with its use. Koadic, often leveraged for post-exploitation tasks, invokes `cmd.exe` with particular arguments that indicate malicious activity. This rule focuses on detecting process creation events from Windows systems where `cmd.exe` is executed with the command line options `/q`, `/c`, and `chcp`, and the original file name is determined to be 'Cmd.Exe'. By analyzing these parameters, the rule aims to flag potentially unauthorized use of the command line that may be indicative of Koadic's presence. The primary data sources for this detection include process creation logs, which capture detailed information about newly executed processes and their command line arguments.
+  ### Investigation Steps
+  - Examine the process creation logs in your EDR solution to identify the execution of `cmd.exe` along with the specified command line arguments. This will reveal any suspicious instances that may need further analysis.
+  - Utilize the SIEM to correlate alerts related to Koadic execution with other security events in the environment. Look for patterns that could indicate a larger compromise.
+  - Query the VPN logs to determine if there are any unusual remote connections that coincide with the times when Koadic commands were executed. This may provide insights into the source of the attack.
+  - Review network traffic logs in your NDR tool for any unusual communication patterns associated with the identified `cmd.exe` executions. Pay particular attention to outbound connections that may suggest data exfiltration or command and control activity.

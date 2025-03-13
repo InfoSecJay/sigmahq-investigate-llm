@@ -1,0 +1,38 @@
+title: Potential Credential Dumping Attempt Via PowerShell Remote Thread
+id: fb656378-f909-47c1-8747-278bf09f4f4f
+related:
+- id: 3f07b9d1-2082-4c56-9277-613a621983cc
+  type: obsolete
+- id: 0f920ebe-7aea-4c54-b202-9aa0c609cfe5
+  type: similar
+status: test
+description: Detects remote thread creation by PowerShell processes into "lsass.exe"
+references:
+- https://speakerdeck.com/heirhabarov/hunting-for-powershell-abuse
+author: oscd.community, Natalia Shornikova
+date: 2020-10-06
+modified: 2022-12-18
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  product: windows
+  category: create_remote_thread
+detection:
+  selection:
+    SourceImage|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    TargetImage|endswith: '\lsass.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potential credential dumping attempts using PowerShell by monitoring for the creation of remote threads specifically targeting the Local Security Authority Subsystem Service (lsass.exe). Credential dumping is a significant threat where attackers extract sensitive information, such as user credentials, from memory. By observing PowerShell processes (such as powershell.exe or pwsh.exe) that create remote threads within the context of lsass.exe, security teams can detect potentially malicious activity indicative of attempts to harvest credentials. The primary data sources utilized for this detection include event logs that capture process creation events and remote thread activity within a Windows environment.
+  ### Investigation Steps
+  - Correlate the alert with EDR logs to identify the PowerShell command or script executed at the time of the event, focusing on unusual command-line parameters or scripts.
+  - Review any associated logs from the SIEM that show user activity leading up to the alert, particularly focusing on access to elevated permissions or privilege escalation attempts.
+  - Investigate the parent process of the suspicious PowerShell instance to determine if it originated from a known malicious process or user activity that may suggest compromise.
+  - Validate if there were any other concurrent alerts from firewalls, proxies, or other security tools that indicate a broader attack pattern or related malicious behavior.

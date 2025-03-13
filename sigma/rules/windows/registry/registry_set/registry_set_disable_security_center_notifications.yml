@@ -1,0 +1,32 @@
+title: Disable Windows Security Center Notifications
+id: 3ae1a046-f7db-439d-b7ce-b8b366b81fa6
+status: test
+description: Detect set UseActionCenterExperience to 0 to disable the Windows security
+  center notification
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/40b77d63808dd4f4eafb83949805636735a1fd15/atomics/T1112/T1112.md
+author: frack113
+date: 2022-08-19
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: 'Windows\CurrentVersion\ImmersiveShell\UseActionCenterExperience'
+    Details: 'DWORD (0x00000000)'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect when a modification is made to the Windows registry that disables security notifications from the Windows Security Center. Specifically, it looks for the setting found at the registry key `Windows\CurrentVersion\ImmersiveShell\UseActionCenterExperience`, which if set to `0`, indicates that notifications related to security center functions have been turned off. The rule pulls data from registry set logs, which are crucial for observing changes to system configurations and are commonly monitored in corporate environments. Identifying such changes can help in uncovering potential attempts at defense evasion by malicious actors seeking to reduce visibility into their activities on a Windows host.
+  ### Investigation Steps
+  - Investigate the specific endpoint where the registry change was detected using EDR solutions to assess the full context of activity, including recent process executions and user actions.
+  - Review the timeline of changes in the registry, correlating with any other significant events or alerts captured in the SIEM, to determine if there was a broader attack pattern.
+  - Query the antivirus (AV) logs for any additional indicators of compromise that may align with the registry change, such as known malware signatures or unusual processes.
+  - Check network activity logs from NGFW or proxy services to identify any outbound connections from the affected machine that may indicate data exfiltration or command and control communications.

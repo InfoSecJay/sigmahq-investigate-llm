@@ -1,0 +1,38 @@
+title: Potential Arbitrary Command Execution Via FTP.EXE
+id: 06b401f4-107c-4ff9-947f-9ec1e7649f1e
+status: test
+description: Detects execution of "ftp.exe" script with the "-s" or "/s" flag and
+  any child processes ran by "ftp.exe".
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Ftp/
+author: Victor Sergeev, oscd.community
+date: 2020-10-09
+modified: 2024-04-23
+tags:
+- attack.execution
+- attack.t1059
+- attack.defense-evasion
+- attack.t1202
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|endswith: '\ftp.exe'
+  selection_child_img:
+  - Image|endswith: '\ftp.exe'
+  - OriginalFileName: 'ftp.exe'
+  selection_child_cli:
+    CommandLine|contains|windash: '-s:'
+  condition: selection_parent or all of selection_child_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential instances of arbitrary command execution via the Windows FTP client (`ftp.exe`). Specifically, it looks for scenarios where `ftp.exe` is executed with the `-s` or `/s` command-line flags, which allow users to run scripts containing FTP commands. In such operations, `ftp.exe` may also spawn child processes that could be of interest. The data sources involved primarily include process creation logs, which provide information about what processes were launched and their associated command-line arguments. By monitoring both parent processes (instances of `ftp.exe`) and any child processes initiated by it, the rule aims to catch potentially malicious activities that could exploit this dual command execution feature, aligning with attack patterns outlined in MITRE ATT&CK.
+  ### Investigation Steps
+  - Utilize your EDR tool to inspect the process creation logs for any instances of `ftp.exe` executed with the `-s` or `/s` flag, noting any parent-child process relationships. 
+  - Review the command-line parameters of the identified `ftp.exe` executions to understand the intended operations and check for any scripts that may have been executed.
+  - Correlate findings with your network traffic analysis tools to determine if any suspicious FTP connections were made during the time frame of the execution.
+  - Investigate host and firewall logs for any anomalous outbound traffic, particularly connections to unknown or uncommon destinations that may align with the timeline of the `ftp.exe` executions.

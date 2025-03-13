@@ -1,0 +1,39 @@
+title: UAC Secure Desktop Prompt Disabled
+id: 0d7ceeef-3539-4392-8953-3dc664912714
+related:
+- id: c5f6a85d-b647-40f7-bbad-c10b66bab038
+  type: similar
+- id: 48437c39-9e5f-47fb-af95-3d663c3f2919
+  type: similar
+status: experimental
+description: |
+  Detects when an attacker tries to change User Account Control (UAC) elevation request destination via the "PromptOnSecureDesktop" value.
+  The "PromptOnSecureDesktop" setting specifically determines whether UAC prompts are displayed on the secure desktop. The secure desktop is a separate desktop environment that's isolated from other processes running on the system. It's designed to prevent malicious software from intercepting or tampering with UAC prompts.
+  When "PromptOnSecureDesktop" is set to 0, UAC prompts are displayed on the user's current desktop instead of the secure desktop. This reduces the level of security because it potentially exposes the prompts to manipulation by malicious software.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/7e11e9b79583545f208a6dc3fa062f2ed443d999/atomics/T1548.002/T1548.002.md
+author: frack113
+date: 2024-05-10
+tags:
+- attack.privilege-escalation
+- attack.defense-evasion
+- attack.t1548.002
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\Microsoft\Windows\CurrentVersion\Policies\System\PromptOnSecureDesktop'
+    Details: 'DWORD (0x00000000)'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The UAC Secure Desktop Prompt Disabled rule aims to detect unauthorized changes to the Windows User Account Control (UAC) settings. Specifically, it focuses on the `PromptOnSecureDesktop` registry value located at `\Microsoft\Windows\CurrentVersion\Policies\System`. When set to '0', UAC prompts are displayed on the insecure desktop instead of the secure desktop, which can expose users to malicious manipulation. This rule leverages data from Windows registry set logs, enabling detection of privilege escalation attempts that may bypass system security controls. An attacker changing this setting can compromise the integrity of UAC prompts and facilitate further malicious actions on the system.
+  ### Investigation Steps
+  - Review recent registry changes in the EDR to identify any alterations to the `PromptOnSecureDesktop` value and correlate with user behavior during the timeframe.
+  - Analyze process creation logs to check for any processes that may have been initiated by unauthorized users, particularly around the time the registry setting was changed.
+  - Utilize the SIEM to correlate alerts related to privilege escalation or UAC manipulation with this specific registry change to identify potential attack patterns.
+  - Examine event logs from Windows Security and Application logs for any abnormal login activity or elevated process execution that coincides with the detected change.

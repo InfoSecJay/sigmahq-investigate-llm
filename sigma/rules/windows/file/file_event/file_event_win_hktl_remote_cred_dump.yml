@@ -1,0 +1,35 @@
+title: HackTool - Potential Remote Credential Dumping Activity Via CrackMapExec Or
+  Impacket-Secretsdump
+id: 6e2a900a-ced9-4e4a-a9c2-13e706f9518a
+status: test
+description: Detects default filenames output from the execution of CrackMapExec and
+  Impacket-secretsdump against an endpoint.
+references:
+- https://github.com/Porchetta-Industries/CrackMapExec
+- https://github.com/SecureAuthCorp/impacket/blob/master/examples/secretsdump.py
+author: SecurityAura
+date: 2022-11-16
+modified: 2024-06-27
+tags:
+- attack.credential-access
+- attack.t1003
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    Image|endswith: '\svchost.exe'
+        # CommandLine|contains: 'RemoteRegistry' # Uncomment this line if you collect CommandLine data for files events from more accuracy
+    TargetFilename|re: '\\Windows\\System32\\[a-zA-Z0-9]{8}\.tmp$'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential credential dumping activities on Windows systems that may involve the use of tools like CrackMapExec or Impacket's secretsdump. It specifically looks for file creation events where the target filename matches a certain pattern indicative of temporary files generated during these credential harvesting processes. The rule leverages file event logs, focusing on the executable `svchost.exe`, which is commonly used by various tools during malicious activity. If a file is created in the `C:\Windows\System32` directory with a default temporary filename format (an eight-character string followed by the `.tmp` extension), it raises an alert for further investigation.
+  ### Investigation Steps
+  - Review the process tree in your EDR solution for any unusual activity surrounding `svchost.exe`, looking for any parent processes that may indicate how it was initiated.
+  - Check the command-line arguments used by `svchost.exe`, if available, to identify any additional context about the execution that may reveal whether credential dumping tools were used.
+  - Examine Windows Event Logs, particularly for file creation events, to correlate the timestamp of the alert with other potentially suspicious activities on the system.
+  - Utilize threat intelligence platforms to analyze the alert further and determine if the detected activity aligns with known malicious behavior associated with CrackMapExec or Impacket.

@@ -1,0 +1,33 @@
+title: Renamed BOINC Client Execution
+id: 30d07da2-83ab-45d8-ae75-ec7c0edcaffc
+status: experimental
+description: Detects the execution of a renamed BOINC binary.
+references:
+- https://boinc.berkeley.edu/
+- https://www.virustotal.com/gui/file/91e405e8a527023fb8696624e70498ae83660fe6757cef4871ce9bcc659264d3/details
+- https://www.huntress.com/blog/fake-browser-updates-lead-to-boinc-volunteer-computing-software
+author: Matt Anderson (Huntress)
+date: 2024-07-23
+tags:
+- attack.defense-evasion
+- attack.t1553
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    OriginalFileName: 'BOINC.exe'
+  filter_main_legit_name:
+    Image|endswith: '\BOINC.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule, titled "Renamed BOINC Client Execution," is designed to detect potentially malicious activity associated with the execution of the BOINC (Berkeley Open Infrastructure for Network Computing) client when it has been renamed. The rule specifically targets the original file name "BOINC.exe" while checking for instances where the image path ends with the legitimate executable name. The underlying premise is that threat actors may disguise their malicious intent by renaming BOINC to evade detection. By monitoring process creation logs on Windows systems, this rule leverages data sources such as OriginalFileName and image path attributes to identify abnormal or unexpected executions, facilitating early detection of potential misuse of legitimate software.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR solution to identify instances where the BOINC client was executed under a different name.
+  - Cross-reference the detected process with the original file name "BOINC.exe" to confirm whether it has been altered or relocated.
+  - Utilize the AV solution to scan the identified binary for known malware signatures or any unusual behavior that may indicate malicious activity.
+  - Check proxy and network traffic logs for any suspicious outbound connections that might be associated with the execution of the renamed BOINC client.

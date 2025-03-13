@@ -1,0 +1,42 @@
+title: Veeam Backup Database Suspicious Query
+id: 696bfb54-227e-4602-ac5b-30d9d2053312
+status: test
+description: Detects potentially suspicious SQL queries using SQLCmd targeting the
+  Veeam backup databases in order to steal information.
+references:
+- https://labs.withsecure.com/publications/fin7-target-veeam-servers
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-04
+tags:
+- attack.collection
+- attack.t1005
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_sql:
+    Image|endswith: '\sqlcmd.exe'
+    CommandLine|contains|all:
+    - 'VeeamBackup'
+    - 'From '
+  selection_db:
+    CommandLine|contains:
+    - 'BackupRepositories'
+    - 'Backups'
+    - 'Credentials'
+    - 'HostCreds'
+    - 'SmbFileShares'
+    - 'Ssh_creds'
+    - 'VSphereInfo'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potentially malicious SQL queries executed via `sqlcmd.exe`, specifically targeting Veeam backup databases. It looks for command-line parameters that indicate attempts to extract sensitive information from backup repositories. The rule checks the process creation logs for instances of `sqlcmd.exe` that include keywords associated with Veeam backup operations, such as "VeeamBackup," "BackupRepositories," and various credential references. By combining these checks, the rule aims to detect behavior that may indicate data theft or unauthorized access to sensitive backup information.
+  ### Investigation Steps
+  - Examine the EDR logs to identify the process creation events for `sqlcmd.exe` and review the associated command-line arguments for any suspicious entries.
+  - Check the timestamps of the detected processes against user activity logs to determine if the actions were performed during normal operational hours or indicate possible unauthorized access.
+  - Query the network traffic logs to identify any outbound connections made by the machine running `sqlcmd.exe`, especially to external IP addresses, which could signify data exfiltration attempts.
+  - Review the Veeam backup logs and settings to confirm if there were any legitimate backup operations scheduled during the same timeframe as the identified suspicious queries.

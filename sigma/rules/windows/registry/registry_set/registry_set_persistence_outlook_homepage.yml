@@ -1,0 +1,41 @@
+title: Potential Persistence Via Outlook Home Page
+id: ddd171b5-2cc6-4975-9e78-f0eccd08cc76
+related:
+- id: 487bb375-12ef-41f6-baae-c6a1572b4dd1
+  type: similar
+status: test
+description: |
+  Detects potential persistence activity via outlook home page.
+  An attacker can set a home page to achieve code execution and persistence by editing the WebView registry keys.
+references:
+- https://speakerdeck.com/heirhabarov/hunting-for-persistence-via-microsoft-exchange-server-or-outlook?slide=70
+- https://support.microsoft.com/en-us/topic/outlook-home-page-feature-is-missing-in-folder-properties-d207edb7-aa02-46c5-b608-5d9dbed9bd04?ui=en-us&rs=en-us&ad=us
+- https://trustedsec.com/blog/specula-turning-outlook-into-a-c2-with-one-registry-change
+author: Tobias Michalski (Nextron Systems), David Bertho (@dbertho) & Eirik Sveen
+  (@0xSV1), Storebrand
+date: 2021-06-09
+modified: 2024-08-07
+tags:
+- attack.persistence
+- attack.t1112
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject|contains|all:
+    - '\Software\Microsoft\Office\'
+    - '\Outlook\WebView\'
+    TargetObject|endswith: '\URL'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potential persistence mechanisms related to Microsoft Outlook by monitoring changes to specific registry keys. Attackers may manipulate the WebView settings in Outlook to establish a malicious home page that can facilitate remote code execution and ensure continued presence in a compromised environment. By examining the Windows registry, specifically targeting modifications under `\Software\Microsoft\Office\Outlook\WebView\`, particularly keys that end with `\URL`, this rule helps highlight unusual activities that may indicate risk. The data sources relevant to this detection include registry set logs, which capture changes to the Windows registry structure.
+  ### Investigation Steps
+  - Utilize EDR tools to investigate the endpoints associated with the alert and review the registry changes for unusual modifications, particularly focusing on the URLs set in the WebView keys.
+  - Check for suspicious processes that may have triggered the registry changes by examining the process creation logs nearby the time of the modification, filtering specifically for processes that interact with Outlook.
+  - Review proxy logs to identify any web traffic to the suspected URL set in Outlook, validating whether the traffic could be associated with command-and-control activities or malicious payloads.
+  - Conduct a search across cloud platforms using management logs to check for associated user sessions or actions that may corroborate the persistence method detected in the registry.

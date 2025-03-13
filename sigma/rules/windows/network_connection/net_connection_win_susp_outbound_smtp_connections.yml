@@ -1,0 +1,47 @@
+title: Suspicious Outbound SMTP Connections
+id: 9976fa64-2804-423c-8a5b-646ade840773
+status: test
+description: |
+  Adversaries may steal data by exfiltrating it over an un-encrypted network protocol other than that of the existing command and control channel.
+  The data may also be sent to an alternate network location from the main command and control server.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1048.003/T1048.003.md#atomic-test-5---exfiltration-over-alternative-protocol---smtp
+- https://www.ietf.org/rfc/rfc2821.txt
+author: frack113
+date: 2022-01-07
+modified: 2022-09-21
+tags:
+- attack.exfiltration
+- attack.t1048.003
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    DestinationPort:
+    - 25
+    - 587
+    - 465
+    - 2525
+    Initiated: 'true'
+  filter_clients:
+    Image|endswith:
+    - \thunderbird.exe
+    - \outlook.exe
+  filter_mailserver:
+    Image|startswith: 'C:\Program Files\Microsoft\Exchange Server\'
+  filter_outlook:
+    Image|startswith: 'C:\Program Files\WindowsApps\microsoft.windowscommunicationsapps_'
+    Image|endswith: '\HxTsr.exe'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Other SMTP tools
+level: medium
+notes: |
+  ### Technical Context
+  The "Suspicious Outbound SMTP Connections" detection rule is designed to identify potentially malicious SMTP traffic originating from a Windows environment, specifically data exfiltration attempts using common email client applications. When adversaries compromise a system, they may attempt to send sensitive data to an alternative external server via SMTP ports (25, 587, 465, or 2525) instead of using the established command and control channels. The rule specifically monitors processes associated with email clients like Thunderbird and Outlook, filtering out legitimate enterprise use, particularly from Exchange Server and Windows communication applications. By alerting on outbound connections initiated by these processes to suspicious ports, the rule helps uncover potential data breaches.
+  ### Investigation Steps
+  - Review the logs from your EDR to identify the specific email client process initiating the outbound SMTP connection and capture related command-line arguments for context.
+  - Check the network connection logs to determine the external destination IP address and assess whether it's associated with a known malicious entity or is otherwise suspicious.
+  - Evaluate historical email traffic through your email gateway (such as your NGFW or proxy) to identify any unusual patterns in messages sent during the timeframe of the alert.
+  - Conduct a threat intelligence lookup on the destination IP address to further ascertain whether the communication aligns with known exfiltration tactics or threat actor profiles.

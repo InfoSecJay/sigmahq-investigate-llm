@@ -1,0 +1,38 @@
+title: CMSTP Execution Registry Event
+id: b6d235fc-1d38-4b12-adbe-325f06728f37
+status: stable
+description: Detects various indicators of Microsoft Connection Manager Profile Installer
+  execution
+references:
+- https://web.archive.org/web/20190720093911/http://www.endurant.io/cmstp/detecting-cmstp-enabled-code-execution-and-uac-bypass-with-sysmon/
+author: Nik Seetharaman
+date: 2018-07-16
+modified: 2020-12-23
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1218.003
+- attack.g0069
+- car.2019-04-001
+logsource:
+  category: registry_event
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\cmmgr32.exe'
+  condition: selection
+fields:
+- CommandLine
+- ParentCommandLine
+- Details
+falsepositives:
+- Legitimate CMSTP use (unlikely in modern enterprise environments)
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of the Microsoft Connection Manager Profile Installer (CMSTP) tool, specifically looking for registry events indicating that the `cmmgr32.exe` executable is being utilized. CMSTP is often used in Windows environments for configuring and managing network connection profiles; however, it can also be exploited by attackers to bypass User Account Control (UAC) and execute malicious payloads. The rule monitors Windows registry events, focusing on instances where the target object contains references to `cmmgr32.exe`. By analyzing the associated CommandLine and ParentCommandLine fields, the detection aims to identify suspicious behavior indicative of potential malicious activity.
+  ### Investigation Steps
+  - Review the associated EDR alerts to identify the user or system context in which the CMSTP execution occurred, including any unusual patterns of access or execution.
+  - Correlate the detected registry event with process creation logs to understand the sequence of events leading to the invocation of `cmmgr32.exe`.
+  - Inspect the command line parameters used with `cmmgr32.exe` to determine if they exhibit any suspicious characteristics or commonly seen strings associated with exploitation.
+  - Check the reputation of the files involved and the devices that executed the CMSTP command using your AV solution and threat intelligence feeds to assess the risk further.

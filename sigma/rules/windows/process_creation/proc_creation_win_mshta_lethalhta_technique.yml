@@ -1,0 +1,33 @@
+title: Potential LethalHTA Technique Execution
+id: ed5d72a6-f8f4-479d-ba79-02f6a80d7471
+status: test
+description: Detects potential LethalHTA technique where the "mshta.exe" is spawned
+  by an "svchost.exe" process
+references:
+- https://codewhitesec.blogspot.com/2018/07/lethalhta.html
+author: Markus Neis
+date: 2018-06-07
+modified: 2023-02-07
+tags:
+- attack.defense-evasion
+- attack.t1218.005
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\svchost.exe'
+    Image|endswith: '\mshta.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Potential LethalHTA Technique Execution" is designed to detect potentially malicious usage of the mshta.exe executable, which can be used in exploit techniques to run hidden scripts and execute payloads. This rule specifically identifies instances where mshta.exe is spawned by svchost.exe, a common Windows service host process that can be exploited for defense evasion. By monitoring process creation logs, the rule looks for the parent-child relationship between these processes, highlighting a tactic that attackers may use to bypass security measures and execute harmful scripts on compromised systems.
+  The rule operates on process creation logs from Windows environments. When a new process is initiated, these logs record critical information such as the parent process and command-line parameters involved, which are essential for identifying unauthorized or suspicious activity. Due to the stealthy nature of LethalHTA attacks, early detection is crucial for incident response and remediation efforts.
+  ### Investigation Steps
+  - Analyze the EDR logs to confirm the process chain, specifically checking for instances where mshta.exe is launched by svchost.exe. Investigate the timestamps and execution context.
+  - Review command-line parameters used in the mshta.exe execution to determine if any unusual or malicious scripts were loaded. Pay attention to any obfuscation or unexpected URLs.
+  - Check the Windows Event Logs for any additional events related to process creation and user logins that correlate with the detected activity. This can help establish the timeline and potential intent.
+  - Search through recent activity in the firewall, proxy, or AV logs for unusual outbound connections initiated by mshta.exe that could indicate data exfiltration or communication with command and control servers.

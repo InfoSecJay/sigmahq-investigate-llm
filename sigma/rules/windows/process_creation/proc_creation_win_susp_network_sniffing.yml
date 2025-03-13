@@ -1,0 +1,37 @@
+title: Potential Network Sniffing Activity Using Network Tools
+id: ba1f7802-adc7-48b4-9ecb-81e227fddfd5
+status: test
+description: |
+  Detects potential network sniffing via use of network tools such as "tshark", "windump".
+  Network sniffing refers to using the network interface on a system to monitor or capture information sent over a wired or wireless connection.
+  An adversary may place a network interface into promiscuous mode to passively access data in transit over the network, or use span ports to capture a larger amount of data.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1040/T1040.md
+author: Timur Zinniatullin, oscd.community, Nasreddine Bencherchali (Nextron Systems)
+date: 2019-10-21
+modified: 2023-02-20
+tags:
+- attack.credential-access
+- attack.discovery
+- attack.t1040
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_tshark:
+    Image|endswith: '\tshark.exe'
+    CommandLine|contains: '-i'
+  selection_windump:
+    Image|endswith: '\windump.exe'
+  condition: 1 of selection_*
+falsepositives:
+- Legitimate administration activity to troubleshoot network issues
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential network sniffing activities by monitoring for the use of specific network analysis tools, such as "tshark" and "windump," on Windows systems. Network sniffing can involve configuring a network interface to monitor or capture data traffic over a network, which can be used for legitimate troubleshooting, but may also indicate malicious behavior if performed by an unauthorized entity. The rule specifically looks for process creation events that involve the execution of these tools, particularly with specific command-line parameters like '-i' for tshark, which suggests promiscuous mode usage. Data sources involved in this detection include process creation logs that record details about newly spawned processes along with their command-line arguments.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify instances of "tshark.exe" or "windump.exe" being executed, focusing on the time and user context.
+  - Examine the command-line parameters associated with these processes to determine if they indicate network interface configuration for sniffing, such as the presence of '-i' in the command.
+  - Cross-reference the user accounts involved in the activity against your list of known administrators and incident responders to assess whether the usage aligns with legitimate administrative tasks.
+  - Investigate network traffic logs from your NDR or firewall to determine if there is any unusual or suspicious network activity coinciding with the identified process execution times.

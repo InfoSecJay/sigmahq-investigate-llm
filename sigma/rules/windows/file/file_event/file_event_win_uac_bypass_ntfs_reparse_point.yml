@@ -1,0 +1,33 @@
+title: UAC Bypass Using NTFS Reparse Point - File
+id: 7fff6773-2baa-46de-a24a-b6eec1aba2d1
+status: test
+description: Detects the pattern of UAC Bypass using NTFS reparse point and wusa.exe
+  DLL hijacking (UACMe 36)
+references:
+- https://github.com/hfiref0x/UACME
+author: Christian Burkard (Nextron Systems)
+date: 2021-08-30
+modified: 2022-10-09
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|startswith: 'C:\Users\'
+    TargetFilename|endswith: '\AppData\Local\Temp\api-ms-win-core-kernel32-legacy-l1.DLL'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential attempts to bypass User Account Control (UAC) by exploiting NTFS reparse points, specifically focusing on DLL hijacking via the `wusa.exe` process. The rule looks for file events that indicate a DLL file ending with `api-ms-win-core-kernel32-legacy-l1.DLL` being created or modified in the `C:\Users\<username>\AppData\Local\Temp` directory. An attacker may utilize this technique to elevate privileges and execute malicious code while attempting to evade detection mechanisms. The primary data sources utilized here are Windows file event logs, which record changes in the file system, including the creation and modification of files that can indicate malicious activity.
+  ### Investigation Steps
+  - Review the EDR logs for any suspicious activity related to `wusa.exe` execution, particularly around the time the alert was triggered, to establish the context of the file event.
+  - Cross-reference the file creation or modification events with the system’s process logs to identify any anomalous processes that may have interacted with the DLL file in question.
+  - Utilize Microsoft Defender Antivirus or other AV solution logs to assess whether the flagged DLL has been previously identified as malicious or suspicious.
+  - Inspect user activity logs and recent command histories in the proxy and VPN logs to determine if there were any unauthorized or unusual access patterns leading up to the UAC bypass attempt.

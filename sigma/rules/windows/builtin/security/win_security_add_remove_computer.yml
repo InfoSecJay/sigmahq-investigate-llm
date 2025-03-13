@@ -1,0 +1,35 @@
+title: Add or Remove Computer from DC
+id: 20d96d95-5a20-4cf1-a483-f3bda8a7c037
+status: test
+description: Detects the creation or removal of a computer. Can be used to detect
+  attacks such as DCShadow via the creation of a new SPN.
+references:
+- https://github.com/Yamato-Security/EnableWindowsLogSettings/blob/7f6d755d45ac7cc9fc35b0cbf498e6aa4ef19def/ConfiguringSecurityLogAuditPolicies.md
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4741
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4743
+author: frack113
+date: 2022-10-14
+tags:
+- attack.defense-evasion
+- attack.t1207
+logsource:
+  service: security
+  product: windows
+detection:
+  selection:
+    EventID:
+    - 4741
+    - 4743
+  condition: selection
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule monitors for critical events related to the addition or removal of computer accounts within Active Directory, specifically focusing on Windows Event IDs 4741 (Computer account creation) and 4743 (Computer account deletion). These operations, when executed by an unauthorized user or attacker, can indicate malicious activities such as the exploitation of the DCShadow technique, which allows an adversary to impersonate legitimate domain controller actions. By analyzing the relevant security logs, the rule aims to identify any unexpected changes to these computer accounts, thereby aiding in the detection of potentially harmful configurations and ensuring the integrity of the domain environment.
+  The rule's detections are based on standard Windows security event logs, which capture both administrative actions and potential security violations, making them essential for a thorough investigation of any alerts triggered by this rule.
+  ### Investigation Steps
+  - Review the context of the alert in the EDR console to determine if the changes were made by a legitimate administrator or a potentially malicious actor. Check the timestamps and user accounts involved.
+  - Correlate the Event IDs 4741 and 4743 with other logs in the SIEM to identify any abnormal patterns or related activities, such as unusual logins or privilege escalations that may indicate a larger attack vector.
+  - Examine system access logs from the NGFW and proxy to check for any suspicious network communications that coincide with the timing of the computer account changes.
+  - Conduct a review of recent changes in cloud logs (if applicable) to verify if these modifications align with documented administrative actions and to ensure no unauthorized access has occurred across cloud resources.

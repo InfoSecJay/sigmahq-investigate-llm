@@ -1,0 +1,32 @@
+title: Powershell Install a DLL in System Directory
+id: 63bf8794-9917-45bc-88dd-e1b5abc0ecfd
+status: test
+description: Uses PowerShell to install/copy a file into a system directory such as
+  "System32" or "SysWOW64"
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1556.002/T1556.002.md#atomic-test-1---install-and-register-password-filter-dll
+author: frack113, Nasreddine Bencherchali (Nextron Systems)
+date: 2021-12-27
+modified: 2024-01-22
+tags:
+- attack.credential-access
+- attack.t1556.002
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|re: '(Copy-Item|cpi) .{2,128} -Destination .{1,32}\\Windows\\(System32|SysWOW64)'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activity where PowerShell is used to copy a file into system directories, specifically "System32" or "SysWOW64". The rule leverages logging from PowerShell script execution, particularly focusing on Script Block Logging, which captures the contents of any PowerShell commands executed on Windows endpoints. By searching for specific command patterns, such as `Copy-Item` or its alias `cpi`, the rule alerts on attempts to transfer files into these critical system folders—an action commonly associated with credential theft or the installation of malicious software. Detecting such behavior is vital as it could indicate an attacker's attempt to compromise system integrity or gain elevated access.
+  ### Investigation Steps
+  - Review Windows PowerShell logs to identify any instances where the `Copy-Item` command is executed, particularly targeting the "System32" or "SysWOW64" directories.
+  - Use EDR tools to analyze the process tree associated with the PowerShell execution, looking for unusual parent-child relationships or other suspicious activities.
+  - Check for any alerts from antivirus solutions that might indicate the presence of suspicious or known malicious files in the system directories.
+  - Investigate network traffic logs via the Proxy or NDR solutions to determine if any command and control communications occurred during or shortly after the PowerShell execution event.

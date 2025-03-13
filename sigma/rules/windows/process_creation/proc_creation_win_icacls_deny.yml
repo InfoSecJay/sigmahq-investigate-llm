@@ -1,0 +1,36 @@
+title: Use Icacls to Hide File to Everyone
+id: 4ae81040-fc1c-4249-bfa3-938d260214d9
+status: test
+description: Detect use of icacls to deny access for everyone in Users folder sometimes
+  used to hide malicious files
+references:
+- https://app.any.run/tasks/1df999e6-1cb8-45e3-8b61-499d1b7d5a9b/
+author: frack113
+date: 2022-07-18
+modified: 2024-04-29
+tags:
+- attack.defense-evasion
+- attack.t1564.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_icacls:
+  - OriginalFileName: 'iCACLS.EXE'
+  - Image|endswith: '\icacls.exe'
+  selection_cmd:   # icacls "C:\Users\admin\AppData\Local\37f92fe8-bcf0-4ee0-b8ba-561f797f5696" /deny *S-1-1-0:(OI)(CI)(DE,DC)
+    CommandLine|contains|all:
+    - '/deny'
+    - '*S-1-1-0:'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule monitors the use of the `icacls` command, specifically looking for instances where access permissions are altered to deny all users access to files within the Windows Users folder. The command `icacls` is commonly used to manage file and folder security settings in Windows, and using it with the `/deny` flag allows an attacker to hide malicious files by preventing all user access (`*S-1-1-0:` represents the Everyone group). Data sources involved in this detection include process creation logs that capture the execution of commands, along with associated command-line parameters. The rule aims to identify potential abuse of this command pattern as part of an evasion tactic in a security breach.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR to identify instances of `icacls.exe` execution from suspicious or unauthorized sources.
+  - Correlate the timestamps of `icacls` command usage with other security events to check for unusual activity patterns in the Users folder.
+  - Analyze the command-line parameters to confirm if `/deny` is used with `*S-1-1-0:` and investigate associated file paths for any unauthorized file modifications.
+  - Check the security event logs to identify any permission changes to affected files and assess if there were any subsequent access attempts by users that were denied.

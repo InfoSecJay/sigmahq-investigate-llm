@@ -1,0 +1,45 @@
+title: Uncommon Svchost Parent Process
+id: 01d2e2a1-5f09-44f7-9fc1-24faa7479b6d
+status: test
+description: Detects an uncommon svchost parent process
+references:
+- Internal Research
+author: Florian Roth (Nextron Systems)
+date: 2017-08-15
+modified: 2022-06-28
+tags:
+- attack.defense-evasion
+- attack.t1036.005
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\svchost.exe'
+  filter_main_generic:
+    ParentImage|endswith:
+    - '\Mrt.exe'
+    - '\MsMpEng.exe'
+    - '\ngen.exe'
+    - '\rpcnet.exe'
+    - '\services.exe'
+    - '\TiWorker.exe'
+  filter_main_parent_null:
+    ParentImage:
+  filter_main_parent_empty:
+    ParentImage:
+    - '-'
+    - ''
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Uncommon Svchost Parent Process" detection rule is designed to identify potentially suspicious instances of the `svchost.exe` process running on Windows systems. This rule specifically looks for occurrences of `svchost.exe` that are initiated by unusual parent processes. The rule analyzes process creation logs to determine the parent processes responsible for launching `svchost.exe`, particularly targeting those that are not commonly associated, such as `Mrt.exe`, `MsMpEng.exe`, `ngen.exe`, `rpcnet.exe`, `services.exe`, or `TiWorker.exe`. By focusing on these less typical parent processes, the rule aims to detect potential evasion techniques or malicious activities, as legitimate instances of `svchost.exe` are typically spawned by recognized and expected parent processes.
+  To effectively apply this detection, the rule leverages process creation logs collected from endpoints using EDR solutions. Analysts are alerted to these occurrences, allowing for further investigation into the context and actions of the `svchost.exe` process itself.
+  ### Investigation Steps
+  - Review the specific instance of `svchost.exe` in the EDR for its command-line arguments and process tree to identify the nature of its execution.
+  - Examine the parent processes logged in the process creation records to confirm if they are indeed on the uncommon list specified by the detection rule.
+  - Check related logs, such as network connections or file modifications, from the EDR or relevant systems to establish any unusual behavior associated with the `svchost.exe` execution.
+  - Consult relevant security tools like AV or NGFW to see if any alerts or blocks were triggered in conjunction with this `svchost.exe` instance, providing further clues on potential malicious intents.

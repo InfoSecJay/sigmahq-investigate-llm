@@ -1,0 +1,40 @@
+title: New DLL Added to AppInit_DLLs Registry Key
+id: 4f84b697-c9ed-4420-8ab5-e09af5b2345d
+status: test
+description: DLLs that are specified in the AppInit_DLLs value in the Registry key
+  HKLM\Software\Microsoft\Windows NT\CurrentVersion\Windows are loaded by user32.dll
+  into every process that loads user32.dll
+references:
+- https://eqllib.readthedocs.io/en/latest/analytics/822dc4c5-b355-4df8-bd37-29c458997b8f.html
+author: Ilyas Ochkov, oscd.community, Tim Shelton
+date: 2019-10-25
+modified: 2022-12-25
+tags:
+- attack.persistence
+- attack.t1546.010
+logsource:
+  category: registry_event
+  product: windows
+detection:
+  selection:
+  - TargetObject|endswith:
+    - '\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows\AppInit_Dlls'
+    - '\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Windows\AppInit_Dlls'
+        # Key Rename
+  - NewName|endswith:
+    - '\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows\AppInit_Dlls'
+    - '\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Windows\AppInit_Dlls'
+  filter:
+    Details: '(Empty)'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule monitors changes to the AppInit_Dlls registry key, located at `HKLM\Software\Microsoft\Windows NT\CurrentVersion\Windows` and its Wow6432Node counterpart. The significance of this registry key lies in its ability to load specified Dynamic Link Libraries (DLLs) into every process that utilizes `user32.dll`. This characteristic can be exploited by malicious actors for persistence, as it allows an attacker to inject their code into multiple processes upon their initiation. The rule focuses on detecting new entries to this key and any renames, capturing data from Windows registry event logs to identify potential threats based on the established behavior. By detecting unauthorized modifications to the AppInit_Dlls, security analysts can identify potential persistence mechanisms employed by malware or attackers.
+  ### Investigation Steps
+  - Examine the registry event logs for entries related to the AppInit_Dlls key to identify any unauthorized additions or modifications.
+  - Utilize EDR tools to assess the processes that are currently utilizing user32.dll and cross-reference them with the DLLs listed in the AppInit_Dlls key.
+  - Check for any associated network activity or outbound connections from the processes loaded with these DLLs using NDR or firewall logs.
+  - Review endpoint antivirus logs to monitor for any alerts related to suspicious DLLs that may have been loaded or executed within the environment.

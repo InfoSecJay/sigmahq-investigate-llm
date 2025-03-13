@@ -1,0 +1,34 @@
+title: Writing Local Admin Share
+id: 4aafb0fa-bff5-4b9d-b99e-8093e659c65f
+status: test
+description: |
+  Aversaries may use to interact with a remote network share using Server Message Block (SMB).
+  This technique is used by post-exploitation frameworks.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1021.002/T1021.002.md#atomic-test-4---execute-command-writing-output-to-local-admin-share
+author: frack113
+date: 2022-01-01
+modified: 2022-08-13
+tags:
+- attack.lateral-movement
+- attack.t1546.002
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|contains|all:
+    - '\\\\127.0.0'
+    - '\ADMIN$\'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential lateral movement within a Windows environment by monitoring file events related to writing to local admin shares. Specifically, it targets interactions with the `ADMIN$` share, which is a administrative file share on Windows systems. When an adversary exploits this share, they often use the Server Message Block (SMB) protocol to remotely execute commands and transfer files between machines. The rule tracks instances where the target filename includes `\\127.0.0` or `\ADMIN$`, indicating that a process is attempting to write files to a local admin share. This behavior is frequently associated with post-exploitation frameworks used by attackers to maintain persistence or exfiltrate data.
+  ### Investigation Steps
+  - Review file event logs in your EDR for any recent write attempts to local admin shares, specifically to `\\127.0.0\ADMIN$`.
+  - Correlate the detected write events with process creation logs to identify the parent processes that initiated these file interactions.
+  - Check the user accounts associated with the detected events to determine if they have legitimate administrative access or if their usage appears anomalous.
+  - Analyze network traffic for SMB activity from the source IP to detect any other unusual file share interactions or lateral movement patterns.

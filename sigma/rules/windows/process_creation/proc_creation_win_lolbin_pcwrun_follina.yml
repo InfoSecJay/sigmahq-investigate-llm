@@ -1,0 +1,33 @@
+title: Execute Pcwrun.EXE To Leverage Follina
+id: 6004abd0-afa4-4557-ba90-49d172e0a299
+status: test
+description: Detects indirect command execution via Program Compatibility Assistant
+  "pcwrun.exe" leveraging the follina (CVE-2022-30190) vulnerability
+references:
+- https://twitter.com/nas_bench/status/1535663791362519040
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-13
+tags:
+- attack.defense-evasion
+- attack.t1218
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\pcwrun.exe'
+    CommandLine|contains: '../'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of `pcwrun.exe`, a component of the Windows Program Compatibility Assistant, which can be exploited to indirectly execute commands through the Follina vulnerability (CVE-2022-30190). The rule specifically looks for instances of `pcwrun.exe` being invoked when the command line includes the string `../`, which is often indicative of an attempt to navigate directories and execute unwanted or malicious payloads. The primary data source for this detection is Windows process creation logs, which capture detailed information about newly spawned processes, including their command-line parameters and executable paths.
+  By focusing on the usage pattern of `pcwrun.exe`, the rule helps analysts detect potential command execution in a malicious context, enabling timely incident investigations and responses.
+  ### Investigation Steps
+  - Examine the process creation logs in your EDR tool to identify any instances of `pcwrun.exe` executing with suspicious command-line parameters containing `../`.
+  - Review the associated parent process in the EDR to determine the context in which `pcwrun.exe` was launched, including the original file or application that initiated it.
+  - Check the network traffic logs for any unusual outbound connections made shortly after the execution of `pcwrun.exe`, which could indicate further malicious activity.
+  - Investigate any related user activity logs from the proxy or VPN to see if there are patterns of suspicious behavior or access to potentially malicious content prior to the execution event.

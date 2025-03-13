@@ -1,0 +1,37 @@
+title: LSASS Process Memory Dump Creation Via Taskmgr.EXE
+id: 69ca12af-119d-44ed-b50f-a47af0ebc364
+status: test
+description: Detects the creation of an "lsass.dmp" file by the taskmgr process. This
+  indicates a manual dumping of the LSASS.exe process memory using Windows Task Manager.
+author: Swachchhanda Shrawan Poudel
+date: 2023-10-19
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/987e3ca988ae3cff4b9f6e388c139c05bf44bbb8/atomics/T1003.001/T1003.001.md#L1
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - ':\Windows\system32\taskmgr.exe'
+    - ':\Windows\SysWOW64\taskmgr.exe'
+    TargetFilename|contains|all:
+    - '\AppData\Local\Temp\'
+    - '\lsass'
+    - '.DMP'
+  condition: selection
+falsepositives:
+- Rare case of troubleshooting by an administrator or support that has to be investigated
+  regardless
+level: high
+notes: |
+  ### Technical Context
+  This detection rule monitors for the creation of a memory dump file (`lsass.dmp`) by the Windows Task Manager process (`taskmgr.exe`). When an attacker compromises a system, they may manually dump the memory of the LSASS (Local Security Authority Subsystem Service) process to access sensitive credentials or security tokens. This rule looks for instances where the Task Manager is executed in either the `C:\Windows\system32\` or `C:\Windows\SysWOW64\` directories and subsequently generates a file named `lsass.dmp` located in the user's local temporary directory. This behavior is indicative of unauthorized credential extraction and requires prompt investigation due to its potential association with malicious activity.
+  ### Investigation Steps
+  - **Review EDR Alerts:** Check endpoint detection and response (EDR) alerts for any suspicious `taskmgr.exe` activity around the time the `lsass.dmp` file was created, noting any unusual process trees or parent-child relationships.
+  - **Analyze File Creation Events:** Utilize log data from file system events to examine the creation of the `lsass.dmp` file, confirming the user account and process that initiated the dump. 
+  - **Investigate User Actions:** Query audit logs or user activity logs to assess the legitimacy of the user performing this action. Look for prior access patterns or indications of user account compromise.
+  - **Correlate with Network Traffic:** Check proxy and network traffic logs for any outbound connections or unusual communications from the host that coincide with the creation of the memory dump, which could indicate extraction of credentials or data exfiltration attempts.

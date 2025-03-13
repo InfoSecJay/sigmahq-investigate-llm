@@ -1,0 +1,38 @@
+title: Remote PowerShell Session Host Process (WinRM)
+id: 734f8d9b-42b8-41b2-bcf5-abaf49d5a3c8
+status: test
+description: Detects remote PowerShell sections by monitoring for wsmprovhost (WinRM
+  host process) as a parent or child process (sign of an active PowerShell remote
+  session).
+references:
+- https://threathunterplaybook.com/hunts/windows/190511-RemotePwshExecution/notebook.html
+author: Roberto Rodriguez @Cyb3rWard0g
+date: 2019-09-12
+modified: 2022-10-09
+tags:
+- attack.execution
+- attack.t1059.001
+- attack.t1021.006
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\wsmprovhost.exe'
+  - ParentImage|endswith: '\wsmprovhost.exe'
+  condition: selection
+fields:
+- ComputerName
+- User
+- CommandLine
+falsepositives:
+- Legitimate usage of remote Powershell, e.g. for monitoring purposes.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies instances of remote PowerShell sessions by monitoring the Windows process creation logs for the `wsmprovhost.exe` process, which acts as the host process for Windows Remote Management (WinRM). The rule looks for instances where `wsmprovhost.exe` is either the main process (Image) or is the parent of another process. The primary data sources involved in this rule include process creation logs, which record when new processes are created and provide essential details such as the command-line arguments and user context. By detecting these patterns, the rule helps identify potential unauthorized remote management activities, which may indicate malicious intent or compromise.
+  ### Investigation Steps
+  - Utilize your EDR tool to review process creation logs for the detected instances of `wsmprovhost.exe` and any associated child processes. Focus on the command-line parameters and the user context to gauge the legitimacy of the session.
+  - Cross-reference the user accounts involved in the remote sessions against your directory services (e.g., Active Directory) to identify any anomalous or unauthorized access patterns.
+  - Check firewall and network logs to see if there has been any unusual outbound traffic patterns to remote management endpoints during the time of the alert.
+  - Review the organization's PowerShell execution policies and any legitimate scheduling or automation tasks that may utilize remote PowerShell for authorized activities to rule out false positives.

@@ -1,0 +1,33 @@
+title: KrbRelayUp Service Installation
+id: e97d9903-53b2-41fc-8cb9-889ed4093e80
+status: test
+description: Detects service creation from KrbRelayUp tool used for privilege escalation
+  in Windows domain environments where LDAP signing is not enforced (the default settings)
+references:
+- https://github.com/Dec0ne/KrbRelayUp
+author: Sittikorn S, Tim Shelton
+date: 2022-05-11
+modified: 2022-10-05
+tags:
+- attack.privilege-escalation
+- attack.t1543
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    EventID: 7045
+    ServiceName: 'KrbSCM'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "KrbRelayUp Service Installation" detection rule focuses on identifying the creation of a malicious service associated with the KrbRelayUp tool, which is known to facilitate privilege escalation in Windows domain environments. This rule specifically looks for the event with ID 7045, indicating that a new service has been installed on the system, with the service name 'KrbSCM', a trademark of the KrbRelayUp tool's operations. The detection relies on Windows system event logs, pinpointing anomalies in service creation that may indicate an ill-intended attempt to escalate privileges in environments that lack enforced LDAP signing.
+  This rule is particularly important in environments where security configurations might be lax, allowing unauthorized tools like KrbRelayUp to operate undetected. By monitoring for these specific indicators, the rule helps to proactively identify potential misuse of legitimate Windows service mechanisms by attackers seeking to compromise sensitive resources.
+  ### Investigation Steps
+  - Review the EDR logs for any recent occurrences of EventID 7045, focusing specifically on the creation of the 'KrbSCM' service to confirm the alert's validity.
+  - Cross-examine command-line parameters and parent processes associated with the service creation to understand the context and potential source of the threat.
+  - Analyze user account activity and permissions, checking for unusual access patterns or relationships with privileged accounts that may indicate compromise.
+  - Investigate Windows security event logs surrounding the time of the service installation for any preceding logins or authentication attempts that could indicate an attack vector prior to the installation.

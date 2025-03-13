@@ -1,0 +1,39 @@
+title: Use of W32tm as Timer
+id: 6da2c9f5-7c53-401b-aacb-92c040ce1215
+status: test
+description: When configured with suitable command line arguments, w32tm can act as
+  a delay mechanism
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/d0dad62dbcae9c60c519368e82c196a3db577055/atomics/T1124/T1124.md
+- https://blogs.blackberry.com/en/2022/05/dirty-deeds-done-dirt-cheap-russian-rat-offers-backdoor-bargains
+author: frack113
+date: 2022-09-25
+tags:
+- attack.discovery
+- attack.t1124
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_w32tm:
+  - Image|endswith: '\w32tm.exe'
+  - OriginalFileName: 'w32time.dll'
+  selection_cmd:
+    CommandLine|contains|all:
+    - '/stripchart'
+    - '/computer:'
+    - '/period:'
+    - '/dataonly'
+    - '/samples:'
+  condition: all of selection_*
+falsepositives:
+- Legitimate use
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Use of W32tm as Timer" identifies potentially malicious behavior utilizing the Windows Time Service tool, `w32tm.exe`. When executed with specific command-line arguments, `w32tm` can be repurposed as a delay mechanism by attackers, allowing them to manipulate the execution timings of commands or scripts. This rule specifically targets instances where the tool is invoked with command-line parameters like `/stripchart`, `/computer:`, `/period:`, `/dataonly`, and `/samples:` while verifying that the instance originates from the legitimate `w32time.dll` file. Its main focus is on process creation logs, ensuring that any suspicious usages of `w32tm` are captured for further investigation.
+  ### Investigation Steps
+  - Verify the process creation logs for instances of `w32tm.exe` to confirm the legitimacy of the process and the command-line parameters used.
+  - Use EDR tools to review the parent processes and child process relationships to identify any suspicious activities surrounding the execution of `w32tm`.
+  - Check network traffic logs in the NDR for any connections made by `w32tm.exe`, specifically looking for unusual communication patterns that may indicate malicious actions.
+  - Review any relevant system and event logs for additional context surrounding the usage of `w32tm.exe`, focusing on timestamps and user activity during its execution.

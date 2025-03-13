@@ -1,0 +1,35 @@
+title: Remote Thread Created In Shell Application
+id: a9d4d3fa-8fc0-41bc-80b1-30b9fda79d6f
+status: experimental
+description: |
+  Detects remote thread creation in command shell applications, such as "Cmd.EXE" and "PowerShell.EXE".
+  It is a common technique used by malware, such as IcedID, to inject malicious code and execute it within legitimate processes.
+references:
+- https://research.splunk.com/endpoint/10399c1e-f51e-11eb-b920-acde48001122/
+- https://www.binarydefense.com/resources/blog/icedid-gziploader-analysis/
+author: Splunk Research Team
+date: 2024-07-29
+tags:
+- attack.defense-evasion
+- attack.t1055
+logsource:
+  product: windows
+  category: create_remote_thread
+detection:
+  selection:
+    TargetImage|endswith:
+    - '\cmd.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies instances of remote thread creation within command shell applications like `Cmd.EXE`, `PowerShell.EXE`, and `pwsh.EXE`. Remote thread creation is a method often exploited by malware, such as IcedID, to inject malicious code into trusted processes, allowing the malware to execute in a controlled environment without raising immediate alarms. The rule looks for specific indicators in Windows log sources, particularly focusing on events related to the creation of remote threads. Analysts can leverage data from various sources, including process creation logs and application events, to detect these potentially harmful actions.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR tool to identify the context around the creation of threads within `Cmd.EXE` or `PowerShell.EXE`. Check for unusual parent-child process relationships that may indicate malicious behavior.
+  - Analyze command-line parameters associated with the detected shell instances. Malicious scripts often use obfuscation or unusual arguments, making them a pivotal indicator of compromise.
+  - Cross-reference any identified processes with your AV and threat intelligence resources to find known indicators of compromise or malware signatures related to IcedID or other threats.
+  - Examine network traffic logs in your NDR and Proxy systems for any suspicious outbound connections made by the detected shell applications. Look for anomalies that deviate from standard organizational patterns.

@@ -1,0 +1,68 @@
+title: Suspicious Group And Account Reconnaissance Activity Using Net.EXE
+id: d95de845-b83c-4a9a-8a6a-4fc802ebf6c0
+status: test
+description: |
+  Detects suspicious reconnaissance command line activity on Windows systems using Net.EXE
+  Check if the user that executed the commands is suspicious (e.g. service accounts, LOCAL_SYSTEM)
+references:
+- https://redcanary.com/blog/how-one-hospital-thwarted-a-ryuk-ransomware-outbreak/
+- https://thedfirreport.com/2020/10/18/ryuk-in-5-hours/
+- https://research.nccgroup.com/2022/08/19/back-in-black-unlocking-a-lockbit-3-0-ransomware-attack/
+author: Florian Roth (Nextron Systems), omkar72, @svch0st, Nasreddine Bencherchali
+  (Nextron Systems)
+date: 2019-01-16
+modified: 2023-03-02
+tags:
+- attack.discovery
+- attack.t1087.001
+- attack.t1087.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\net.exe'
+    - '\net1.exe'
+  - OriginalFileName:
+    - 'net.exe'
+    - 'net1.exe'
+    # Covers group and localgroup flags
+  selection_group_root:
+    CommandLine|contains:
+    - ' group '
+    - ' localgroup '
+  selection_group_flags:
+    CommandLine|contains:
+            # Add more groups for other languages
+    - 'domain admins'
+    - ' administrator'         # Typo without an 'S' so we catch both
+    - ' administrateur'         # Typo without an 'S' so we catch both
+    - 'enterprise admins'
+    - 'Exchange Trusted Subsystem'
+    - 'Remote Desktop Users'
+    - 'Utilisateurs du Bureau à distance'         # French for "Remote Desktop Users"
+    - 'Usuarios de escritorio remoto'         # Spanish for "Remote Desktop Users"
+    - ' /do'         # short for domain
+  filter_group_add:
+        # This filter is added to avoid the potential case where the point is not recon but addition
+    CommandLine|contains: ' /add'
+    # Covers 'accounts' flag
+  selection_accounts_root:
+    CommandLine|contains: ' accounts '
+  selection_accounts_flags:
+    CommandLine|contains: ' /do'     # short for domain
+  condition: selection_img and ((all of selection_group_* and not filter_group_add)
+    or all of selection_accounts_*)
+falsepositives:
+- Inventory tool runs
+- Administrative activity
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule targets potential reconnaissance activities on Windows systems using the `Net.EXE` tool. Net.EXE is a command-line utility that can perform various network-related tasks, including user and group management. The rule specifically looks for command-line invocations of Net.EXE that contain suspicious keywords indicative of reconnaissance, such as 'group' and 'accounts', as well as specific high-privilege group names like 'domain admins' and 'Remote Desktop Users'. The logic behind this rule also facilitates filtering out benign administrative activity by excluding commands that include the '/add' flag, which suggests account addition rather than reconnaissance. The primary data sources for this detection are process creation logs that detail the commands executed, their parameters, and the user accounts involved in running these commands.
+  ### Investigation Steps
+  - Use EDR tools to examine the process creation logs for instances where `Net.EXE` or `Net1.EXE` was executed by service accounts or SYSTEM-level users.
+  - Investigate the context of the user accounts involved in these executions by cross-referencing with known service accounts or suspicious accounts flagged in your identity management system.
+  - Review network logs and proxy records to assess any unusual outbound connections or communications that may relate to the time of the reconnaissance activity.
+  - Look into cloud platform logs (if applicable) for any API calls or management commands initiated by the suspicious accounts that align with the times of the detected Net.EXE activity.

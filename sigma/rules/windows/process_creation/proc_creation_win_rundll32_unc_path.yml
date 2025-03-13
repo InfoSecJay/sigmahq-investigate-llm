@@ -1,0 +1,36 @@
+title: Rundll32 UNC Path Execution
+id: 5cdb711b-5740-4fb2-ba88-f7945027afac
+status: test
+description: Detects rundll32 execution where the DLL is located on a remote location
+  (share)
+references:
+- https://www.cybereason.com/blog/rundll32-the-infamous-proxy-for-executing-malicious-code
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-10
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1021.002
+- attack.t1218.011
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\rundll32.exe'
+  - OriginalFileName: 'RUNDLL32.EXE'
+  - CommandLine|contains: 'rundll32'
+  selection_cli:
+    CommandLine|contains: ' \\\\'
+  condition: all of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect instances of the `rundll32.exe` process being executed with a DLL located on a remote share, which can indicate potential malicious activity. `rundll32.exe` is a legitimate Windows utility that allows for the execution of functions stored in DLLs, but it is frequently exploited by attackers to run malicious code from remote locations. The rule looks for process creation logs where the command line includes "rundll32" and contains a UNC path (Universal Naming Convention) that starts with `\\`, indicating the execution of a remote DLL. The data sources involved are primarily Windows process creation logs that provide insights into command-line parameters and the images executed.
+  ### Investigation Steps
+  - Review recent process creation logs in the EDR for any instances of `rundll32.exe` execution, focusing on entries that contain UNC paths in the command line.
+  - Check the command line arguments for associated file paths to identify the specific DLL being executed, and investigate its reputation using threat intelligence sources.
+  - Cross-reference the endpoint activity with logs from the AV and NDR tools to identify any alerts or traffic associated with the remote share.
+  - Conduct a network analysis to identify the source and behavior of the machine hosting the UNC path, including examining firewall and proxy logs for suspicious activity.

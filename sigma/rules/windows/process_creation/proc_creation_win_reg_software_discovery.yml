@@ -1,0 +1,41 @@
+title: Detected Windows Software Discovery
+id: e13f668e-7f95-443d-98d2-1816a7648a7b
+related:
+- id: 2650dd1a-eb2a-412d-ac36-83f06c4f2282
+  type: derived
+status: test
+description: Adversaries may attempt to enumerate software for a variety of reasons,
+  such as figuring out what security measures are present or if the compromised system
+  has a version of software that is vulnerable.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1518/T1518.md
+- https://github.com/harleyQu1nn/AggressorScripts     # AVQuery.cna
+author: Nikita Nazarov, oscd.community
+date: 2020-10-16
+modified: 2022-10-09
+tags:
+- attack.discovery
+- attack.t1518
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\reg.exe'        # Example: reg query "HKEY_LOCAL_MACHINE\Software\Microsoft\Internet Explorer" /v svcVersion
+    CommandLine|contains|all:
+    - 'query'
+    - '\software\'
+    - '/v'
+    - 'svcversion'
+  condition: selection
+falsepositives:
+- Legitimate administration activities
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule aims to detect potential software discovery activities executed by adversaries on Windows systems. Specifically, it focuses on processes invoking the `reg.exe` command to query Windows Registry values that may reveal the presence of vulnerable software or security measures in place. The detection leverages process creation logs, specifically looking for instances where the command line of a process contains distinct keywords associated with registry queries for software version information. By identifying these behaviors, the rule helps to uncover unauthorized attempts to enumerate software, which can indicate malicious reconnaissance efforts within an environment.
+  ### Investigation Steps
+  - Use EDR tools to review process creation logs and identify instances where `reg.exe` was run with command-line arguments that indicate suspicious software discovery.
+  - Analyze the timeline of the detected activity to correlate it with other events, such as original compromise indicators or lateral movement attempts.
+  - Investigate network traffic logs using your NDR solution to check if there were any unusual outbound connections that may indicate data exfiltration following the software discovery attempt.
+  - Examine any recent changes or access to critical software components, utilizing application logs and AV console alerts, to ensure no unauthorized access or alterations were made.

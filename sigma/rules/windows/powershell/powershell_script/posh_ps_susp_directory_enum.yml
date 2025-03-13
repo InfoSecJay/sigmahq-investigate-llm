@@ -1,0 +1,41 @@
+title: Powershell Directory Enumeration
+id: 162e69a7-7981-4344-84a9-0f1c9a217a52
+status: test
+description: Detects technique used by MAZE ransomware to enumerate directories using
+  Powershell
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1083/T1083.md
+- https://www.mandiant.com/resources/tactics-techniques-procedures-associated-with-maze-ransomware-incidents
+author: frack113
+date: 2022-03-17
+tags:
+- attack.discovery
+- attack.t1083
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - foreach
+    - Get-ChildItem
+    - '-Path '
+    - '-ErrorAction '
+    - SilentlyContinue
+    - 'Out-File '
+    - '-append'
+  condition: selection
+falsepositives:
+- Legitimate PowerShell scripts
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the enumeration of directories via PowerShell, which is a technique commonly associated with MAZE ransomware. It specifically looks for the use of certain commands and parameters indicative of directory enumeration scripts, including `foreach` combined with `Get-ChildItem` and error handling flags like `-ErrorAction SilentlyContinue`. For this detection to work, Script Block Logging must be enabled on Windows systems, ensuring that all PowerShell script execution is logged. The rule identifies potentially malicious actions that, when executed by an attacker, can lead to data reconnaissance before further exploitation.
+  The primary data sources utilized by this rule include PowerShell script logs, which capture the execution of commands and their arguments. By focusing on specific command patterns often used in directory enumeration, the rule helps analysts identify unusual or suspicious activity that may indicate a larger compromise or ransomware operation.
+  ### Investigation Steps
+  - Check the EDR for recent PowerShell processes that matched the rule's signature. Review the process tree for any parent processes that may indicate suspicious activity.
+  - Analyze the command line parameters and script content associated with the PowerShell execution. Look for additional patterns or flags that might suggest malicious intent beyond simple directory enumeration.
+  - Query the AV logs to find any detections or alerts triggered during the timeframe of the PowerShell execution. Pay attention to any security incidents that correlate with this activity.
+  - Investigate any recent changes to user permissions or access logs within the affected systems. Suspicious changes in directory permissions may indicate pre
+  - or post-compromise actions taken by an attacker.

@@ -1,0 +1,42 @@
+title: AspNetCompiler Execution
+id: a01b8329-5953-4f73-ae2d-aa01e1f35f00 # Exec
+related:
+- id: 9ccba514-7cb6-4c5c-b377-700758f2f120     # SuspChild
+  type: similar
+- id: 4c7f49ee-2638-43bb-b85b-ce676c30b260     # TMP File
+  type: similar
+- id: 9f50fe98-fe5c-4a2d-86c7-fad7f63ed622     # Susp Paths
+  type: similar
+status: test
+description: Detects execution of "aspnet_compiler.exe" which can be abused to compile
+  and execute C# code.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Aspnet_Compiler/
+- https://ijustwannared.team/2020/08/01/the-curious-case-of-aspnet_compiler-exe/
+author: frack113
+date: 2021-11-24
+modified: 2023-08-14
+tags:
+- attack.defense-evasion
+- attack.t1127
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|contains:
+    - 'C:\Windows\Microsoft.NET\Framework\'
+    - 'C:\Windows\Microsoft.NET\Framework64\'
+    Image|endswith: '\aspnet_compiler.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "AspNetCompiler Execution" rule detects the execution of `aspnet_compiler.exe`, a Windows utility typically used for compiling ASP.NET applications. While this tool serves a legitimate purpose in web application deployment, its execution can be abused by malicious actors to compile and run arbitrary C# code, potentially leading to further exploitation of an environment. The rule focuses on Windows process creation events, specifically monitoring for processes initiated from paths associated with the .NET Framework that include `aspnet_compiler.exe`. This allows for the identification of suspicious executions that might indicate a compromise or unauthorized activity.
+  ### Investigation Steps
+  - Analyze the process creation logs within your EDR to identify the context in which `aspnet_compiler.exe` was executed, including parent processes and associated user accounts.
+  - Check command-line arguments provided to `aspnet_compiler.exe` for any unusual or suspicious patterns that may suggest malicious intent.
+  - Utilize your SIEM to correlate this alert with other indicators of compromise, such as failed login attempts or unusual network traffic events around the same time.
+  - Review application and web server logs in cloud platforms like AWS or Azure to identify any unauthorized changes or access attempts that coincide with the execution of the `aspnet_compiler.exe`.

@@ -1,0 +1,33 @@
+title: Tor Client/Browser Execution
+id: 62f7c9bf-9135-49b2-8aeb-1e54a6ecc13c
+status: test
+description: Detects the use of Tor or Tor-Browser to connect to onion routing networks
+references:
+- https://www.logpoint.com/en/blog/detecting-tor-use-with-logpoint/
+author: frack113
+date: 2022-02-20
+modified: 2023-02-13
+tags:
+- attack.command-and-control
+- attack.t1090.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\tor.exe'
+    - '\Tor Browser\Browser\firefox.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Tor Client/Browser Execution" detection rule aims to identify instances where the Tor software or the Tor Browser is executed on Windows-based systems. Tor, or The Onion Router, allows users to access the internet anonymously and communicate securely without revealing their identity or location. The rule focuses on process creation logs to detect specific executable names associated with Tor, such as `tor.exe` and `firefox.exe` (when used as part of the Tor Browser). By monitoring for these processes, security teams can proactively identify potential misuse of the Tor network for illicit activities, such as command and control communications or data exfiltration. 
+  This detection logic is based on the principle that unauthorized Tor usage within an enterprise environment is often a sign of suspicious behavior that warrants further investigation. The rule’s effectiveness relies on capturing and analyzing relevant process creation events, which provide insights into system-level activities and user behaviors.
+  ### Investigation Steps
+  - Review process creation logs in your EDR solution to confirm the execution of `tor.exe` or `firefox.exe` related to Tor Browser activity.
+  - Analyze command-line parameters associated with the detected processes for any signs of unusual or non-standard use that may indicate malicious intent.
+  - Correlate the detection with network logs from your NGFW or NDR to assess traffic patterns and identify any communications to known Tor exit nodes.
+  - Investigate user activity logs within your Proxy or VPN solutions to determine whether the user was connecting to non-standard or unauthorized external addresses.

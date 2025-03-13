@@ -1,0 +1,48 @@
+title: PUA - Chisel Tunneling Tool Execution
+id: 8b0e12da-d3c3-49db-bb4f-256703f380e5
+related:
+- id: cf93e05e-d798-4d9e-b522-b0248dc61eaf
+  type: similar
+status: test
+description: Detects usage of the Chisel tunneling tool via the commandline arguments
+references:
+- https://github.com/jpillora/chisel/
+- https://arcticwolf.com/resources/blog/lorenz-ransomware-chiseling-in/
+- https://blog.sekoia.io/lucky-mouse-incident-response-to-detection-engineering/
+author: Florian Roth (Nextron Systems)
+date: 2022-09-13
+modified: 2023-02-13
+tags:
+- attack.command-and-control
+- attack.t1090.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+    Image|endswith: '\chisel.exe'
+  selection_param1:
+    CommandLine|contains:
+    - 'exe client '
+    - 'exe server '
+  selection_param2:
+    CommandLine|contains:
+    - '-socks5'
+    - '-reverse'
+    - ' r:'
+    - ':127.0.0.1:'
+    - '-tls-skip-verify '
+    - ':socks'
+  condition: selection_img or all of selection_param*
+falsepositives:
+- Some false positives may occur with other tools with similar commandlines
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of the Chisel tunneling tool on Windows systems by monitoring process creation events and analyzing command-line arguments. Chisel is a fast TCP/UDP tunnel, often used for command and control (C2) communications in malicious activities. The rule looks for the presence of `chisel.exe` in the process image and specific command-line parameters that indicate its use, such as `-socks5`, `-reverse`, and remote port specifications. The exploitation of tools like Chisel can facilitate unauthorized remote access and data exfiltration, so promptly identifying such activity is critical in maintaining security posture. 
+  To effectively apply this detection rule, it leverages data sources like process creation logs, capturing details about new processes initiated on the enterprise's endpoints, and correlating these findings with known malicious behaviors associated with tunneling tools.
+  ### Investigation Steps
+  - Verify the alert by investigating the process creation logs in your EDR solution to confirm the execution of `chisel.exe` along with the relevant command-line arguments.
+  - Analyze network connections through your firewall or network detection tools to check for any unusual outbound traffic to external IPs associated with the command-and-control communication.
+  - Review user account activity in the proxy and VPN logs to ascertain if there have been any anomalous login attempts or behavior that trends towards unauthorized access.
+  - Correlate findings with threat intelligence and existing incident records to determine if the detected behavior ties to previous known incidents or malware campaigns involving Chisel.

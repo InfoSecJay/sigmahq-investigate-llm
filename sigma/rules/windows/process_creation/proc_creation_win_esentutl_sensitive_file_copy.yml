@@ -1,0 +1,56 @@
+title: Copying Sensitive Files with Credential Data
+id: e7be6119-fc37-43f0-ad4f-1f3f99be2f9f
+status: test
+description: Files with well-known filenames (sensitive files with credential data)
+  copying
+references:
+- https://room362.com/post/2013/2013-06-10-volume-shadow-copy-ntdsdit-domain-hashes-remotely-part-1/
+- https://www.slideshare.net/heirhabarov/hunting-for-credentials-dumping-in-windows-environment
+- https://dfironthemountain.wordpress.com/2018/12/06/locked-file-access-using-esentutl-exe/
+- https://github.com/LOLBAS-Project/LOLBAS/blob/2cc01b01132b5c304027a658c698ae09dd6a92bf/yml/OSBinaries/Esentutl.yml
+author: Teymur Kheirkhabarov, Daniil Yugoslavskiy, oscd.community
+date: 2019-10-22
+modified: 2024-06-04
+tags:
+- attack.credential-access
+- attack.t1003.002
+- attack.t1003.003
+- car.2013-07-001
+- attack.s0404
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_esent_img:
+  - Image|endswith: '\esentutl.exe'
+  - OriginalFileName: '\esentutl.exe'
+  selection_esent_cli:
+    CommandLine|contains|windash:
+    - 'vss'
+    - ' /m '
+    - ' /y '
+  selection_susp_paths:
+    CommandLine|contains:
+    - '\config\RegBack\sam'
+    - '\config\RegBack\security'
+    - '\config\RegBack\system'
+    - '\config\sam'
+    - '\config\security'
+    - '\config\system '                # space needed to avoid false positives with \config\systemprofile\
+    - '\repair\sam'
+    - '\repair\security'
+    - '\repair\system'
+    - '\windows\ntds\ntds.dit'
+  condition: all of selection_esent_* or selection_susp_paths
+falsepositives:
+- Copying sensitive files for legitimate use (eg. backup) or forensic investigation
+  by legitimate incident responder or forensic investigator.
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets the unauthorized copying of sensitive files that may contain credential data, such as Windows Security Accounts Manager (SAM) files and Active Directory database files (NTDS.dit). It monitors the execution of the 'esentutl.exe' utility, a Windows command-line tool commonly used for managing Extensible Storage Engine (ESE) databases. The rule looks for specific command-line parameters that indicate potential misuse, including keywords like 'vss', '/m', and '/y', which can signal attempts to create backups of sensitive files. It also examines command-line arguments for common file path patterns associated with sensitive data, indicating a risk of credential theft. By employing process creation logs as a primary data source, the rule helps identify malicious activities that may impact the integrity of the organization's credential management.
+  ### Investigation Steps
+  - Review EDR logs to identify the processes associated with 'esentutl.exe' to determine the context and legitimacy of its execution.
+  - Analyze command-line parameters logged for instances of 'esentutl.exe' to identify any unusual or unauthorized arguments that may indicate malicious intent.
+  - Inspect file access logs, focusing on the paths flagged in the rule (e.g., SAM, NTDS.dit) to verify if sensitive files were copied or accessed without appropriate authorization.
+  - Check network traffic logs for any suspicious outbound connections that may correlate with unauthorized access or data exfiltration following the identified process.

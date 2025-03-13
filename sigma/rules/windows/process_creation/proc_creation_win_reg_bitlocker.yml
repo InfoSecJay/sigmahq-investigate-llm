@@ -1,0 +1,45 @@
+title: Suspicious Reg Add BitLocker
+id: 0e0255bf-2548-47b8-9582-c0955c9283f5
+status: test
+description: Detects suspicious addition to BitLocker related registry keys via the
+  reg.exe utility
+references:
+- https://thedfirreport.com/2021/11/15/exchange-exploit-leads-to-domain-wide-ransomware/
+author: frack113
+date: 2021-11-15
+modified: 2022-09-09
+tags:
+- attack.impact
+- attack.t1486
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - 'REG'
+    - 'ADD'
+    - '\SOFTWARE\Policies\Microsoft\FVE'
+    - '/v'
+    - '/f'
+    CommandLine|contains:
+    - 'EnableBDEWithNoTPM'
+    - 'UseAdvancedStartup'
+    - 'UseTPM'
+    - 'UseTPMKey'
+    - 'UseTPMKeyPIN'
+    - 'RecoveryKeyMessageSource'
+    - 'UseTPMPIN'
+    - 'RecoveryKeyMessage'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The "Suspicious Reg Add BitLocker" detection rule is designed to identify potentially malicious modifications to BitLocker-related registry keys using the Windows `reg.exe` utility. The rule specifically monitors process creation events for command lines that include certain keywords indicating registry additions to the path `\SOFTWARE\Policies\Microsoft\FVE`. This path is crucial for BitLocker configurations, and the specific parameters such as `EnableBDEWithNoTPM`, `UseAdvancedStartup`, and others are commonly manipulated by attackers to disable security features or alter encryption settings. By capturing process creation logs through the EDR, the rule aids in raising alerts when potentially unauthorized changes occur, signaling a risk of compromise.
+  ### Investigation Steps
+  - Review recent process creation logs in the EDR for the `reg.exe` utility, focusing on the timestamps matching the alert and examining the full command line used.
+  - Check for the presence of any unusual modification to the BitLocker registry keys by querying the associated registry paths on affected endpoints.
+  - Analyze network traffic through the NDR for any suspicious outbound connections following the registry changes, which could indicate data exfiltration or command-and-control activity.
+  - Cross-reference the event with user activity logs from the SIEM to determine if the registry changes align with legitimate administrative tasks or if they were performed by an unauthorized user.

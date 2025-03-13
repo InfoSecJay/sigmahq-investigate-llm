@@ -1,0 +1,53 @@
+title: Potential DLL Sideloading Of KeyScramblerIE.DLL Via KeyScrambler.EXE
+id: d2451be2-b582-4e15-8701-4196ac180260
+related:
+- id: ca5583e9-8f80-46ac-ab91-7f314d13b984
+  type: similar
+status: test
+description: |
+  Detects potential DLL side loading of "KeyScramblerIE.dll" by "KeyScrambler.exe".
+  Various threat actors and malware have been found side loading a masqueraded "KeyScramblerIE.dll" through "KeyScrambler.exe".
+references:
+- https://thehackernews.com/2024/03/two-chinese-apt-groups-ramp-up-cyber.html
+- https://csirt-cti.net/2024/02/01/stately-taurus-continued-new-information-on-cyberespionage-attacks-against-myanmar-military-junta/
+- https://bazaar.abuse.ch/sample/5cb9876681f78d3ee8a01a5aaa5d38b05ec81edc48b09e3865b75c49a2187831/
+- https://twitter.com/Max_Mal_/status/1775222576639291859
+- https://twitter.com/DTCERT/status/1712785426895839339
+author: Swachchhanda Shrawan Poudel
+date: 2024-04-15
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\KeyScrambler.exe'
+    - '\KeyScramblerLogon.exe'
+    ImageLoaded|endswith: '\KeyScramblerIE.dll'
+  filter_main_legitimate_path:
+    Image|contains:
+    - 'C:\Program Files (x86)\KeyScrambler\'
+    - 'C:\Program Files\KeyScrambler\'
+    ImageLoaded|contains:
+    - 'C:\Program Files (x86)\KeyScrambler\'
+    - 'C:\Program Files\KeyScrambler\'
+  filter_main_signature:
+    Signature: 'QFX Software Corporation'
+    SignatureStatus: 'Valid'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential malicious activity involving DLL sideloading, specifically targeting the `KeyScramblerIE.dll` loaded by the executable `KeyScrambler.exe`. DLL sideloading is a technique used by attackers to load a malicious DLL masquerading as a legitimate one, often resulting in privilege escalation and evasion of security measures. The rule monitors for the loading of `KeyScramblerIE.dll` when initiated by either `KeyScrambler.exe` or `KeyScramblerLogon.exe`. It assesses the legitimacy of the executable's file path, ensuring it originates from recognized installation directories associated with KeyScrambler (i.e., "C:\Program Files (x86)\KeyScrambler\" or "C:\Program Files\KeyScrambler\"). Additionally, it requires that the digital signature of the executable is valid and issued by QFX Software Corporation, thus filtering out benign instances.
+  ### Investigation Steps
+  - Review the EDR logs for any instances of `KeyScrambler.exe` or `KeyScramblerLogon.exe` running in the context of the user involved in the alert.
+  - Investigate the process creation logs to track the parent process that initiated `KeyScrambler.exe`, checking for any unusual activity leading up to its execution.
+  - Analyze network traffic logs (NDR) to identify any external communications initiated by these executables, which could indicate malicious intent.
+  - Check the file integrity and signature status of `KeyScramblerIE.dll` to confirm whether it has been tampered with or replaced by a non-legitimate version.

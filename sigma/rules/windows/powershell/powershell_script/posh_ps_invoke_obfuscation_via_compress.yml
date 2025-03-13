@@ -1,0 +1,39 @@
+title: Invoke-Obfuscation COMPRESS OBFUSCATION - PowerShell
+id: 20e5497e-331c-4cd5-8d36-935f6e2a9a07
+status: test
+description: Detects Obfuscated Powershell via COMPRESS OBFUSCATION
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009     # (Task 19)
+author: Timur Zinniatullin, oscd.community
+date: 2020-10-18
+modified: 2022-11-29
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_4104:
+    ScriptBlockText|contains|all:
+    - 'new-object'
+    - 'text.encoding]::ascii'
+    ScriptBlockText|contains:
+    - 'system.io.compression.deflatestream'
+    - 'system.io.streamreader'
+    ScriptBlockText|endswith: 'readtoend'
+  condition: selection_4104
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule "Invoke-Obfuscation COMPRESS OBFUSCATION" is designed to detect obfuscated PowerShell scripts that utilize compression techniques to evade detection. This rule focuses specifically on identifying script blocks that include specific PowerShell commands associated with the use of `System.IO.Compression.DeflateStream` for data compression, as well as critical methods like `New-Object`, `Text.Encoding]::ASCII`, and `ReadToEnd`. The primary data source for this rule is the PowerShell Script Block Logging feature, which must be enabled on monitored systems to capture the contents of executed scripts and detect patterns of obfuscation that may indicate malicious intent.
+  ### Investigation Steps
+  - Review recent PowerShell execution logs within the EDR to identify the source and execution context of the detected obfuscated scripts. 
+  - Analyze any associated command-line parameters and arguments in the logs to assess the exact payload being executed and its intent.
+  - Check the user account associated with the execution for unusual behavior or patterns of activity, using the SIEM to correlate with other events.
+  - Utilize network logs from the NGFW or Proxy to identify any outbound connections attempted by the PowerShell script, indicating potential data exfiltration or contact with known malicious domains.

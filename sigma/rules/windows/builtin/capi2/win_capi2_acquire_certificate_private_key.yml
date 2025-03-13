@@ -1,0 +1,31 @@
+title: Certificate Private Key Acquired
+id: e2b5163d-7deb-4566-9af3-40afea6858c3
+status: test
+description: Detects when an application acquires a certificate private key
+references:
+- https://www.splunk.com/en_us/blog/security/breaking-the-chain-defending-against-certificate-services-abuse.html
+author: Zach Mathis
+date: 2023-05-13
+tags:
+- attack.credential-access
+- attack.t1649
+logsource:
+  product: windows
+  service: capi2
+  definition: 'Requirements: The CAPI2 Operational log needs to be enabled'
+detection:
+  selection:
+    EventID: 70     # Acquire Certificate Private Key
+  condition: selection
+falsepositives:
+- Legitimate application requesting certificate exports will trigger this. Apply additional
+  filters as needed
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect events where an application acquires a certificate private key, indicated by Event ID 70 in the Windows CAPI2 Operational log. The rule focuses on identifying potential credential theft, which can be a precursor to more serious attacks such as impersonation or data breaches. When an application requests access to a private key, it may signify malicious activity, especially if this request is made by an unexpected application. To utilize this rule effectively, it's crucial to ensure that the CAPI2 Operational log is enabled, as it contains the relevant details for certificate-related activities. Analysts should monitor this log to understand the context of the key acquisition and assess whether it is part of legitimate application behavior or a sign of an attack.
+  ### Investigation Steps
+  - Review the CAPI2 Operational log for Event ID 70 to identify the application requesting the private key and the timing of access.
+  - Correlate the request with EDR alerts to determine if the application is known and legitimate, or if it has been associated with previous security incidents.
+  - Check for any unusual command-line parameters associated with the process making the request, as these may indicate malicious intent.
+  - Investigate the context of the event in Proxy or network logs to determine if there were any unusual outbound connections made shortly after the private key was acquired.

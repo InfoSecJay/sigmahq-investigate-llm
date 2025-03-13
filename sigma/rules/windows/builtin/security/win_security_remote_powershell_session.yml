@@ -1,0 +1,35 @@
+title: Remote PowerShell Sessions Network Connections (WinRM)
+id: 13acf386-b8c6-4fe0-9a6e-c4756b974698
+status: test
+description: Detects basic PowerShell Remoting (WinRM) by monitoring for network inbound
+  connections to ports 5985 OR 5986
+references:
+- https://threathunterplaybook.com/hunts/windows/190511-RemotePwshExecution/notebook.html
+author: Roberto Rodriguez @Cyb3rWard0g
+date: 2019-09-12
+modified: 2022-10-09
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 5156
+    DestPort:
+    - 5985
+    - 5986
+    LayerRTID: 44
+  condition: selection
+falsepositives:
+- Legitimate use of remote PowerShell execution
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect inbound network connections made through Windows Remote Management (WinRM), specifically targeting ports 5985 (HTTP) and 5986 (HTTPS). The focus is on monitoring the generation of event ID 5156 in Windows Security logs, which indicates that a network connection has been allowed. By identifying these connections, the rule helps in recognizing basic PowerShell remoting activity that could potentially be used for malicious purposes, such as remote command execution by threat actors. This detection is crucial for situational awareness, as legitimate administrative tasks often utilize these ports; therefore, any alerts warrant careful analysis to discern between benign usage and a potential security incident.
+  ### Investigation Steps
+  - Analyze the Security Event logs in the EDR for Event ID 5156 to confirm the network connection details, including timestamps and originating IP addresses.
+  - Cross-reference the remote IP addresses with known threat intelligence feeds to determine if they are associated with malicious activity.
+  - Review recent PowerShell command executions on affected systems using EDR logs to identify any suspicious commands executed during the same timeframe.
+  - Check network traffic patterns on the NGFW and Proxy logs to identify any anomalies or unauthorized access attempts related to the PowerShell remoting connections.

@@ -1,0 +1,47 @@
+title: DotNet CLR DLL Loaded By Scripting Applications
+id: 4508a70e-97ef-4300-b62b-ff27992990ea
+status: test
+description: Detects .NET CLR DLLs being loaded by scripting applications such as
+  wscript or cscript. This could be an indication of potential suspicious execution.
+references:
+- https://github.com/tyranid/DotNetToJScript
+- https://thewover.github.io/Introducing-Donut/
+- https://web.archive.org/web/20230329154538/https://blog.menasec.net/2019/07/interesting-difr-traces-of-net-clr.html
+- https://web.archive.org/web/20221026202428/https://gist.github.com/code-scrap/d7f152ffcdb3e0b02f7f394f5187f008
+author: omkar72, oscd.community
+date: 2020-10-14
+modified: 2023-02-23
+tags:
+- attack.execution
+- attack.privilege-escalation
+- attack.t1055
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\cmstp.exe'
+    - '\cscript.exe'
+    - '\mshta.exe'
+    - '\msxsl.exe'
+    - '\regsvr32.exe'
+            # - '\svchost.exe'
+    - '\wmic.exe'
+    - '\wscript.exe'
+    ImageLoaded|endswith:
+    - '\clr.dll'
+    - '\mscoree.dll'
+    - '\mscorlib.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The detection rule "DotNet CLR DLL Loaded By Scripting Applications" identifies potential suspicious activity involving the .NET Common Language Runtime (CLR) when it is loaded by various scripting executables, such as `cscript.exe` and `wscript.exe`. This kind of execution may indicate attempts to execute malicious scripts or perform unauthorized actions within the Windows environment. The rule analyzes logs from image loads, focusing specifically on events where the process image matches known scripting applications and the DLL being loaded corresponds to .NET CLR libraries. By monitoring these interactions, the rule helps in detecting unusual patterns that could signify nefarious activities aimed at privilege escalation or other forms of exploitation.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR for instances where the detected scripting applications (e.g., `cscript.exe`, `wscript.exe`) were executed, noting unusual command-line arguments.
+  - Analyze the corresponding image load logs to confirm the loading of .NET CLR DLLs, checking for abnormal behavior or additional processes spun off by these scripts.
+  - Utilize the SIEM to correlate this activity with any other alerts or anomalies that occurred around the same timeframe, providing context to the investigation.
+  - Search through endpoint AV logs for any flagged activity or known indicators of compromise (IOCs) linked to the detected processes or loaded DLLs.

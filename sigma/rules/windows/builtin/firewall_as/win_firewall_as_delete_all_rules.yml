@@ -1,0 +1,37 @@
+title: All Rules Have Been Deleted From The Windows Firewall Configuration
+id: 79609c82-a488-426e-abcf-9f341a39365d
+status: test
+description: Detects when a all the rules have been deleted from the Windows Defender
+  Firewall configuration
+references:
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-r2-and-2008/dd364427(v=ws.10)
+author: frack113, Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-17
+modified: 2024-01-22
+tags:
+- attack.defense-evasion
+- attack.t1562.004
+logsource:
+  product: windows
+  service: firewall-as
+detection:
+  selection:
+    EventID:
+    - 2033         # All rules have been deleted from the Windows Defender Firewall configuration on this computer
+    - 2059         # All rules have been deleted from the Windows Defender Firewall configuration on this computer. (Windows 11)
+  filter_main_svchost:
+    ModifyingApplication|endswith: ':\Windows\System32\svchost.exe'
+  filter_optional_msmpeng:
+    ModifyingApplication|contains|all:
+    - ':\ProgramData\Microsoft\Windows Defender\Platform\'
+    - '\MsMpEng.exe'
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule monitors events related to the deletion of all firewall rules in the Windows Defender Firewall configuration. Specifically, it looks for Event IDs 2033 and 2059, which indicate that all rules have been deleted, signifying a significant change in the firewall's security posture. The detection focuses on modifications made by specific Windows processes, particularly excluding actions by legitimate Windows processes such as `svchost.exe` and the Windows Defender executable `MsMpEng.exe`. When this rule is triggered, it is crucial for incident responders to assess the context of the change, as it may indicate potential evasion tactics or malicious activity aimed at disabling network protections.
+  ### Investigation Steps
+  - Review the EDR logs for any processes that modified firewall settings around the time of the incident. This can help identify unauthorized applications that may have made the changes.
+  - Correlate the time of the firewall configuration change with other security event logs, such as Windows Security Event Logs, to check for any suspicious or unusual activity.
+  - Check for the presence of known malicious IP addresses or domains in proxy logs around the time of the event. This can help determine if there was an active threat trying to bypass defenses.
+  - Analyze network traffic using NDR tools to identify any anomalous outbound connections post-deletion of firewall rules, which may indicate exploitation attempts or data exfiltration.

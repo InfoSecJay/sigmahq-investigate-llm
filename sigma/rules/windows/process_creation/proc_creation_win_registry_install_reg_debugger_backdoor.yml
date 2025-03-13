@@ -1,0 +1,43 @@
+title: Suspicious Debugger Registration Cmdline
+id: ae215552-081e-44c7-805f-be16f975c8a2
+status: test
+description: Detects the registration of a debugger for a program that is available
+  in the logon screen (sticky key backdoor).
+references:
+- https://blogs.technet.microsoft.com/jonathantrull/2016/10/03/detecting-sticky-key-backdoors/
+- https://bazaar.abuse.ch/sample/6f3aa9362d72e806490a8abce245331030d1ab5ac77e400dd475748236a6cc81/
+author: Florian Roth (Nextron Systems), oscd.community, Jonhnathan Ribeiro
+date: 2019-09-06
+modified: 2022-08-06
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1546.008
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection1:
+    CommandLine|contains: '\CurrentVersion\Image File Execution Options\'
+  selection2:
+    CommandLine|contains:
+    - 'sethc.exe'
+    - 'utilman.exe'
+    - 'osk.exe'
+    - 'magnify.exe'
+    - 'narrator.exe'
+    - 'displayswitch.exe'
+    - 'atbroker.exe'
+    - 'HelpPane.exe'
+  condition: all of selection*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activity associated with the registration of debuggers for certain Windows accessibility applications commonly found on the logon screen, such as Sticky Keys (sethc.exe). Attackers often leverage these accessibility features to maintain persistence and facilitate unauthorized access to a system, commonly referred to as a "sticky key backdoor." The rule works by monitoring process creation logs specifically looking for command-line arguments that indicate debugger registrations through the registry path "\CurrentVersion\Image File Execution Options\" along with the names of the targeted executables, including sethc.exe and others. By detecting these registrations, security teams can initiate a swift response to potential compromise.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR to identify all instances of command-line execution that match the rule's criteria.
+  - Investigate system and user activities around the time of the suspicious debugger registration, focusing on any abnormal login patterns or system events.
+  - Cross-reference any identified executables with known threat intelligence databases to ascertain if they are associated with malicious activities.
+  - Analyze network traffic through the NDR or Proxy logs to identify any outbound connections initiated by the related processes for data exfiltration or command-and-control communications.

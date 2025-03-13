@@ -1,0 +1,41 @@
+title: HackTool - Typical HiveNightmare SAM File Export
+id: 6ea858a8-ba71-4a12-b2cc-5d83312404c7
+status: test
+description: Detects files written by the different tools that exploit HiveNightmare
+references:
+- https://github.com/GossiTheDog/HiveNightmare
+- https://github.com/FireFart/hivenightmare/
+- https://github.com/WiredPulse/Invoke-HiveNightmare
+- https://twitter.com/cube0x0/status/1418920190759378944
+author: Florian Roth (Nextron Systems)
+date: 2021-07-23
+modified: 2024-06-27
+tags:
+- attack.credential-access
+- attack.t1552.001
+- cve.2021-36934
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+  - TargetFilename|contains:
+    - '\hive_sam_'            # Go version
+    - '\SAM-2021-'            # C++ version
+    - '\SAM-2022-'            # C++ version
+    - '\SAM-2023-'            # C++ version
+    - '\SAM-haxx'             # Early C++ versions
+    - '\Sam.save'             # PowerShell version
+  - TargetFilename: 'C:\windows\temp\sam'        # C# version of HiveNightmare
+  condition: selection
+falsepositives:
+- Files that accidentally contain these strings
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects the unauthorized export of sensitive SAM (Security Accounts Manager) files, which is a common tactic employed by malicious tools exploiting the HiveNightmare vulnerability (CVE-2021-36934). The rule specifically identifies file events involving filenames that contain known patterns associated with various HiveNightmare tools, such as `\hive_sam_`, `\SAM-2021-`, and `\Sam.save`. The data sources utilized for this detection include Windows file event logs, which capture file creation and modification activities on the system. By analyzing these logs, the rule helps to flag potential credential access events that could indicate misuse of the HiveNightmare exploit.
+  ### Investigation Steps
+  - Review the event logs in the EDR to identify the specific file creation or modification events that triggered this alert, focusing on the timestamp and source process details.
+  - Conduct a search in file system logs for additional instances of files with the targeted filename patterns across relevant endpoints.
+  - Check for any associated process command-line arguments that may indicate malicious execution, using EDR or command-line logs.
+  - Examine network traffic logs to determine if there were any outbound connections made by the processes related to these file activities, which may indicate exfiltration attempts.

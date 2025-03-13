@@ -1,0 +1,51 @@
+title: HackTool - Evil-WinRm Execution - PowerShell Module
+id: 9fe55ea2-4cd6-4491-8a54-dd6871651b51
+status: test
+description: |
+  Detects the execution of Evil-WinRM via PowerShell Module logs by leveraging the hardcoded strings inside the utility.
+references:
+- https://github.com/Hackplayers/evil-winrm/blob/7514b055d67ec19836e95c05bd63e7cc47c4c2aa/evil-winrm.rb
+- https://github.com/search?q=repo%3AHackplayers%2Fevil-winrm++shell.run%28&type=code
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2024-02-25
+tags:
+- attack.lateral-movement
+logsource:
+  product: windows
+  category: ps_module
+detection:
+  selection_wsm:
+    ContextInfo|contains:
+    - ':\Windows\System32\wsmprovhost.exe'
+    - ':\Windows\SysWOW64\wsmprovhost.exe'
+  selection_payload_1:
+    Payload|contains:
+    - value="(get-location).path         # https://github.com/Hackplayers/evil-winrm/blob/7514b055d67ec19836e95c05bd63e7cc47c4c2aa/evil-winrm.rb#L592
+    - value="(get-item*).length         # https://github.com/Hackplayers/evil-winrm/blob/7514b055d67ec19836e95c05bd63e7cc47c4c2aa/evil-winrm.rb#L490
+    - 'Invoke-Binary '         # https://github.com/Hackplayers/evil-winrm/blob/7514b055d67ec19836e95c05bd63e7cc47c4c2aa/evil-winrm.rb#L740
+    - Donut-Loader -process_id*-donutfile         # https://github.com/Hackplayers/evil-winrm/blob/7514b055d67ec19836e95c05bd63e7cc47c4c2aa/evil-winrm.rb#L761
+    - Bypass-4MSI
+    - IEX 
+      ([System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String($a))).replace('???','')
+  selection_payload_2:
+    Payload|contains|all:
+    - $servicios = Get-ItemProperty "registry::HKLM\System\CurrentControlSet\Services\"
+    - Where-Object {$_.imagepath -notmatch "system" -and $_.imagepath -ne $null }
+      | Select-Object pschildname,imagepath
+  selection_payload_3:
+    Payload|contains|all:
+    - $a +=  \"$($_.FullName.Replace('\\','/'))/\"}else{  $a += \"$($_.FullName.Replace('\\',
+      '/'))\" }                                                                                                 # https://github.com/Hackplayers/evil-winrm/blob/7514b055d67ec19836e95c05bd63e7cc47c4c2aa/evil-winrm.rb#L1001
+    - $a=@();$
+  condition: selection_wsm and 1 of selection_payload_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of the Evil-WinRM PowerShell module, which is commonly used for lateral movement within networks. The rule analyzes PowerShell logs to detect specific strings that are hardcoded within the Evil-WinRM utility, leveraging well-known commands and patterns indicative of its execution. Technical data sources included in this rule are PowerShell module logs, particularly looking for context information related to `wsmprovhost.exe` in system directories and specific payload patterns that are associated with the functionality of Evil-WinRM. Recognizing these strings allows analysts to flag potential compromises and lateral movement attempts that utilize this tool.
+  ### Investigation Steps
+  - Review PowerShell logs in the EDR platform to identify the specific instances of the identified commands and payload patterns related to Evil-WinRM execution.  
+  - Investigate the system processes on the affected machine, looking for any unusual activity or unexpected parent-child process relationships involving `wsmprovhost.exe`.  
+  - Check for remote connection attempts in the network logs via the NGFW and NDR to determine if there are any inbound or outbound connections linked to the IP addresses associated with the alert.  
+  - Analyze authentication logs in the cloud platforms like AWS or Azure to assess for any unauthorized access attempts or anomalous user behavior that may correlate with the execution of Evil-WinRM.

@@ -1,0 +1,34 @@
+title: Suspicious JavaScript Execution Via Mshta.EXE
+id: 67f113fa-e23d-4271-befa-30113b3e08b1
+status: test
+description: Detects execution of javascript code using "mshta.exe".
+references:
+- https://eqllib.readthedocs.io/en/latest/analytics/6bc283c4-21f2-4aed-a05c-a9a3ffa95dd4.html
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1218.005/T1218.005.md
+author: E.M. Anhaus (originally from Atomic Blue Detections, Endgame), oscd.community
+date: 2019-10-24
+modified: 2023-02-07
+tags:
+- attack.defense-evasion
+- attack.t1218.005
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\mshta.exe'
+  - OriginalFileName: 'MSHTA.EXE'
+  selection_cli:
+    CommandLine|contains: 'javascript'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies suspicious executions of JavaScript code via the `mshta.exe` application, a legitimate Windows utility that can execute HTML applications. Attackers often exploit this functionality to run malicious scripts subtly, bypassing traditional security measures. The SIEM rule looks for process creation events where the `Image` field indicates that `mshta.exe` has been executed, while also checking the command line for the presence of the keyword 'javascript'. By focusing on the command line parameters alongside the process name, this rule helps to pinpoint potentially harmful activity that might not trigger alerts through conventional means, making it essential for identifying evasive tactics often employed in cyber attacks.
+  ### Investigation Steps
+  - Review the process creation logs within the EDR solution to confirm the execution of `mshta.exe` and correlate this with timestamps of other activity that may indicate malicious behavior.
+  - Examine the command line parameters associated with the `mshta.exe` execution to identify any JavaScript code being run, which could provide insights into the nature and intent of the operation.
+  - Check for any related network activity in the NDR logs to determine if there is any suspicious external communication initiated by the affected host during or after the execution.
+  - Utilize the AV logs to ensure that no alerts or detections were triggered in conjunction with this suspicious activity, as this may indicate the presence of known threats or malicious patterns.

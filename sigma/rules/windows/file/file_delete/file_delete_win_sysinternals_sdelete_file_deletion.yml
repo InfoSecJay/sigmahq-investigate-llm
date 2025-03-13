@@ -1,0 +1,36 @@
+title: File Deleted Via Sysinternals SDelete
+id: 6ddab845-b1b8-49c2-bbf7-1a11967f64bc
+status: test
+description: Detects the deletion of files by the Sysinternals SDelete utility. It
+  looks for the common name pattern used to rename files.
+references:
+- https://github.com/OTRF/detection-hackathon-apt29/issues/9
+- https://github.com/OTRF/ThreatHunter-Playbook/blob/2d4257f630f4c9770f78d0c1df059f891ffc3fec/docs/evals/apt29/detections/4.B.4_83D62033-105A-4A02-8B75-DAB52D8D51EC.md
+author: Roberto Rodriguez (Cyb3rWard0g), OTR (Open Threat Research)
+date: 2020-05-02
+modified: 2023-02-15
+tags:
+- attack.defense-evasion
+- attack.t1070.004
+logsource:
+  product: windows
+  category: file_delete
+detection:
+  selection:
+    TargetFilename|endswith:
+    - '.AAA'
+    - '.ZZZ'
+  filter_wireshark:
+    TargetFilename|endswith: '\Wireshark\radius\dictionary.alcatel-lucent.aaa'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Legitimate usage
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the deletion of files via the Sysinternals SDelete tool, which is often used for secure file removal. By monitoring file deletion logs specifically for file names ending in the patterns '.AAA' and '.ZZZ', the rule aims to highlight potentially suspicious activities, especially when those patterns do not correspond to expected legitimate usage. The rule also incorporates a filter that excludes deletions of a specific Wireshark-related file, helping to reduce false positives. The technical data sources involved in this detection primarily include Windows file deletion logs, which capture actions taken on file system objects, including deletions performed by various utilities, such as SDelete.
+  ### Investigation Steps
+  - Review EDR logs to determine the context of the SDelete executions, including the user account associated with the deletion and the specific files targeted.
+  - Access file system audit logs to correlate the file deletions with other activities on the affected workstation around the same timeframe.
+  - Investigate network traffic logs in the SIEM to identify any connections that might indicate data exfiltration or anomalous activities preceding the file deletion events.
+  - Check user activity logs for the account that executed the deletion to understand the legitimacy of their actions and whether this aligns with their role in the organization.

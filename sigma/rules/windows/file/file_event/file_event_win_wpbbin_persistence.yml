@@ -1,0 +1,33 @@
+title: UEFI Persistence Via Wpbbin - FileCreation
+id: e94b9ddc-eec5-4bb8-8a58-b9dc5f4e185f
+status: test
+description: Detects creation of a file named "wpbbin" in the "%systemroot%\system32\"
+  directory. Which could be indicative of UEFI based persistence method
+references:
+- https://grzegorztworek.medium.com/using-uefi-to-inject-executable-files-into-bitlocker-protected-drives-8ff4ca59c94c
+- https://persistence-info.github.io/Data/wpbbin.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-18
+tags:
+- attack.persistence
+- attack.defense-evasion
+- attack.t1542.001
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename: 'C:\Windows\System32\wpbbin.exe'
+  condition: selection
+falsepositives:
+- Legitimate usage of the file by hardware manufacturer such as lenovo (Thanks @0gtweet
+  for the tip)
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets potential UEFI persistence mechanisms by monitoring for the creation of a specific executable file named "wpbbin.exe" in the Windows System32 directory. UEFI (Unified Extensible Firmware Interface) is utilized by attackers to maintain persistence even after a full operating system reinstall, and malicious files placed in this directory can facilitate unauthorized access and control over the system. The rule analyzes file creation events in the Windows environment, specifically looking for the presence of this executable, which is not a typical file name associated with legitimate system processes. Investigators should consider the potential implications of such a file, especially if found on systems that do not have known legitimate use cases for it.
+  ### Investigation Steps
+  - Check the EDR for recent file creation activities related to "wpbbin.exe" to establish the time frame and user account involved in the action.
+  - Review the process execution history to determine if "wpbbin.exe" was executed shortly after its creation, which could indicate an attempt to establish persistence.
+  - Investigate network traffic logs (NDR) for any unusual outbound connections or patterns associated with the system that created the file, as malware could be trying to exfiltrate data or communicate with a command-and-control server.
+  - Examine system and application logs, especially focusing on any anomalies or errors directly before or after the file creation event to uncover additional context or related suspicious activities.

@@ -1,0 +1,43 @@
+title: WMIC Remote Command Execution
+id: 7773b877-5abb-4a3e-b9c9-fd0369b59b00
+related:
+- id: e42af9df-d90b-4306-b7fb-05c863847ebd
+  type: obsolete
+- id: 09af397b-c5eb-4811-b2bb-08b3de464ebf
+  type: obsolete
+status: test
+description: Detects the execution of WMIC to query information on a remote system
+references:
+- https://securelist.com/moonbounce-the-dark-side-of-uefi-firmware/105468/
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/wmic
+author: frack113, Nasreddine Bencherchali (Nextron Systems)
+date: 2023-02-14
+tags:
+- attack.execution
+- attack.t1047
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\WMIC.exe'
+  - OriginalFileName: 'wmic.exe'
+  selection_cli:
+    CommandLine|contains: '/node:'
+  filter_localhost:
+    CommandLine|contains:
+    - '/node:127.0.0.1 '
+    - '/node:localhost '
+  condition: all of selection_* and not 1 of filter_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The rule "WMIC Remote Command Execution" is designed to identify potential misuse of the Windows Management Instrumentation Command-line (WMIC) utility, specifically focusing on the execution of WMIC commands intended for remote system interactions. The detection works by analyzing process creation logs for any instances where WMIC.exe is called with a command-line argument indicating a remote target, specified through the '/node:' parameter, indicating an attempt to interact with a system other than the local machine. If WMIC is invoked while attempting to connect to '127.0.0.1' or 'localhost', this is filtered out to minimize false positives, as such commands are often benign.  
+  The key data sources involved in this detection are the process creation logs that record the execution of processes, along with their command-line parameters. By leveraging these logs, the rule can discern between legitimate administrative tasks and potentially malicious activities that could indicate lateral movement or data exfiltration tactics commonly used by attackers.
+  ### Investigation Steps
+  - Review the EDR logs to trace the source of the WMIC execution, including the user account that triggered the command and any related processes that were running at the time.
+  - Check command-line parameters in the logs for indications of specific remote targets or unusual commands, particularly those that deviate from expected administrative use cases.
+  - Utilize firewall logs to identify any communication patterns with the remote systems specified, monitoring for unauthorized access attempts or unusual connections.
+  - Conduct a review of user activity and system logs on the potentially targeted remote system to determine if there were any corresponding indicators of compromise or anomalous behavior.

@@ -1,0 +1,35 @@
+title: RDP Login from Localhost
+id: 51e33403-2a37-4d66-a574-1fda1782cc31
+status: test
+description: RDP login with localhost source address may be a tunnelled login
+references:
+- https://www.fireeye.com/blog/threat-research/2019/01/bypassing-network-restrictions-through-rdp-tunneling.html
+author: Thomas Patzke
+date: 2019-01-28
+modified: 2022-10-09
+tags:
+- attack.lateral-movement
+- car.2013-07-002
+- attack.t1021.001
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4624
+    LogonType: 10
+    IpAddress:
+    - '::1'
+    - '127.0.0.1'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies Remote Desktop Protocol (RDP) login attempts originating from localhost addresses, specifically '127.0.0.1' and '::1', which are loopback addresses for IPv4 and IPv6, respectively. The rule specifically looks for Windows Security Event ID 4624, which logs successful login attempts, with the LogonType set to 10, indicating a remote interactive logon. The rationale behind monitoring such logins is that they may suggest tunneled access, which is often leveraged by attackers to bypass network restrictions or to move laterally within an environment without alerting security controls. By focusing on these specific characteristics within the security logs, the rule helps in identifying potentially illicit access attempts that warrant further investigation.
+  ### Investigation Steps
+  - Review the security logs within your EDR tool to confirm the Event ID 4624 and the associated LogonType 10 for the user account involved in the RDP login attempt.
+  - Cross-reference the timestamps of these login events with network traffic logs from the NDR to investigate any unusual outbound connections or patterns that might indicate tunneling.
+  - Utilize the firewall logs from the NGFW to check for corresponding traffic that may suggest attempts to reach external IP addresses through RDP, which could indicate tunneling activity.
+  - Analyze session logs from the VPN and other remote access tools to determine if there’s a corresponding legitimate session that would explain the localhost login, mitigating potential false positives.

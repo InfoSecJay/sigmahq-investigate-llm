@@ -1,0 +1,32 @@
+title: Periodic Backup For System Registry Hives Enabled
+id: 973ef012-8f1a-4c40-93b4-7e659a5cd17f
+status: experimental
+description: |
+  Detects the enabling of the "EnablePeriodicBackup" registry value. Once enabled, The OS will backup System registry hives on restarts to the "C:\Windows\System32\config\RegBack" folder. Windows creates a "RegIdleBackup" task to manage subsequent backups.
+  Registry backup was a default behavior on Windows and was disabled as of "Windows 10, version 1803".
+references:
+- https://learn.microsoft.com/en-us/troubleshoot/windows-client/installing-updates-features-roles/system-registry-no-backed-up-regback-folder
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2024-07-01
+tags:
+- attack.collection
+- attack.t1113
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: '\Control\Session Manager\Configuration Manager\EnablePeriodicBackup'
+    Details: 'DWORD (0x00000001)'
+  condition: selection
+falsepositives:
+- Legitimate need for RegBack feature by administrators.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule monitors changes to the Windows registry, specifically targeting the "EnablePeriodicBackup" value under the session manager configuration. When this value is set to '1' (DWORD format), it instructs the operating system to maintain periodic backups of the system’s registry hives, which are stored in the "C:\Windows\System32\config\RegBack" directory. This behavior is significant as the default configuration starting from Windows 10 version 1803 disables this feature, reflecting a shift in handling registry backups. The rule examines registry set logs, focusing on the modifications indicating a deliberate or unauthorized attempt to enable this feature, which can be indicative of malicious activity or system misconfiguration.
+  ### Investigation Steps
+  - Utilize your EDR solution to correlate the timestamp of the registry modification with process execution logs to identify any associated processes that might have made these changes.
+  - Check the command-line parameters of processes that modified registry settings to discern if the changes originated from a legitimate administrative action or a potentially malicious script.
+  - Review authentication logs and user activity logs to determine if unauthorized users or accounts are responsible for enabling the backup feature.
+  - Access the system event logs to verify if the "RegIdleBackup" task was created or modified around the same time as the registry change, indicating potential automated backup processes.

@@ -1,0 +1,37 @@
+title: HackTool - XORDump Execution
+id: 66e563f9-1cbd-4a22-a957-d8b7c0f44372
+status: test
+description: Detects suspicious use of XORDump process memory dumping utility
+references:
+- https://github.com/audibleblink/xordump
+author: Florian Roth (Nextron Systems)
+date: 2022-01-28
+modified: 2023-02-08
+tags:
+- attack.defense-evasion
+- attack.t1036
+- attack.t1003.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\xordump.exe'
+  - CommandLine|contains:
+    - ' -process lsass.exe '
+    - ' -m comsvcs '
+    - ' -m dbghelp '
+    - ' -m dbgcore '
+  condition: selection
+falsepositives:
+- Another tool that uses the command line switches of XORdump
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule "HackTool 
+  - XORDump Execution" is designed to detect suspicious activities related to the execution of the XORDump memory dumping utility on Windows systems. Specifically, it identifies instances where the tool is invoked with command-line arguments targeting processes commonly associated with sensitive information, such as `lsass.exe` (Local Security Authority Subsystem Service) and other critical components like `comsvcs`. The rule relies on process creation logs to monitor instances where `xordump.exe` is executed, specifically looking for command-line parameters that may indicate an attempt to dump memory from potentially sensitive or protected processes. By analyzing these parameters, the rule can help identify follow-up activities related to credential theft or unauthorized data access, which are common tactics employed by attackers to evade detection.
+  ### Investigation Steps
+  - Review recent process creation logs on the affected endpoint using EDR tools to confirm the execution of `xordump.exe` and its associated command-line arguments.
+  - Check the context of any alerts by analyzing the activity in the Proxy and VPN logs to determine if there were any unusual outbound connections made after the execution of XORDump.
+  - Investigate associated processes that may have run concurrently with `xordump.exe` to assess potential lateral movement or additional compromise indicators.
+  - Correlate findings with threat intelligence and previous incident reports to determine if this activity is consistent with known tactics or techniques employed by threat actors.

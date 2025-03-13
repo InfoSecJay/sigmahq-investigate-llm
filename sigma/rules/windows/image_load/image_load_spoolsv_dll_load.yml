@@ -1,0 +1,39 @@
+title: Windows Spooler Service Suspicious Binary Load
+id: 02fb90de-c321-4e63-a6b9-25f4b03dfd14
+status: test
+description: Detect DLL Load from Spooler Service backup folder
+references:
+- https://web.archive.org/web/20210629055600/https://github.com/hhlxf/PrintNightmare/
+- https://github.com/ly4k/SpoolFool
+author: FPT.EagleEye, Thomas Patzke (improvements)
+date: 2021-06-29
+modified: 2022-06-02
+tags:
+- attack.persistence
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574
+- cve.2021-1675
+- cve.2021-34527
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\spoolsv.exe'
+    ImageLoaded|contains:
+    - '\Windows\System32\spool\drivers\x64\3\'
+    - '\Windows\System32\spool\drivers\x64\4\'
+    ImageLoaded|endswith: '.dll'
+  condition: selection
+falsepositives:
+- Loading of legitimate driver
+level: informational
+notes: |
+  ### Technical Context
+  The "Windows Spooler Service Suspicious Binary Load" detection rule identifies potential malicious activity involving the Windows Print Spooler service, specifically by monitoring the loading of DLLs from backup folders belonging to the service. The rule focuses on instances where the `spoolsv.exe` process attempts to load DLL files from specific directories related to printer drivers. By examining process creation logs and file loading events, this rule can help detect unauthorized or abnormal behavior linked to exploit attempts targeting vulnerabilities associated with the Print Spooler, such as CVE-2021-1675 and CVE-2021-34527. This type of activity is often indicative of advanced persistence threats or privilege escalation attempts where attackers seek to manipulate the spooler service for malicious purposes.
+  ### Investigation Steps
+  - Investigate the process creation logs for instances of `spoolsv.exe` that are loading DLLs, specifically focusing on DLLs found in the backup driver folders mentioned in the rule.
+  - Utilize EDR solutions to analyze the parent-child process relationships for `spoolsv.exe`, identifying any unusual launching contexts or command-line arguments.
+  - Check logs from the NGFW and Proxy servers for external connections originating from systems with suspicious spooler activity to detect possible command and control (C2) communications.
+  - Review any alerts or events related to printer services and drivers within the cloud platforms (AWS, GCP, Azure) for additional context and correlation with the detected suspicious behavior.

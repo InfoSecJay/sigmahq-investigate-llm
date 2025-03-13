@@ -1,0 +1,35 @@
+title: VolumeShadowCopy Symlink Creation Via Mklink
+id: 40b19fa6-d835-400c-b301-41f3a2baacaf
+status: stable
+description: Shadow Copies storage symbolic link creation using operating systems
+  utilities
+references:
+- https://www.slideshare.net/heirhabarov/hunting-for-credentials-dumping-in-windows-environment
+author: Teymur Kheirkhabarov, oscd.community
+date: 2019-10-22
+modified: 2023-03-06
+tags:
+- attack.credential-access
+- attack.t1003.002
+- attack.t1003.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - 'mklink'
+    - 'HarddiskVolumeShadowCopy'
+  condition: selection
+falsepositives:
+- Legitimate administrator working with shadow copies, access for backup purposes
+level: high
+notes: |
+  ### Technical Context
+  The "VolumeShadowCopy Symlink Creation Via Mklink" detection rule focuses on identifying the creation of symbolic links to Volume Shadow Copies (VSS) using the Windows `mklink` utility. This activity can be a tactic employed by attackers to access sensitive data and perform credential dumping by exposing shadow copies, which are backups of the system state. The rule triggers when the command line parameters contain both `mklink` and any reference to `HarddiskVolumeShadowCopy`. The primary data source involved in this detection is Windows process creation logs, which capture command-line arguments indicating when and how processes are initiated.
+  Given that shadow copies hold potentially sensitive information from a point-in-time snapshot of a system, unauthorized access to these could lead to significant data breaches. This rule is particularly important for incident responders to monitor since accesses made by legitimate administrators for backup purposes may lead to false positives. Careful evaluation of the context of each alert is therefore critical.
+  ### Investigation Steps
+  - Review recent process creation logs to identify the context in which the `mklink` command was executed, paying particular attention to user accounts and time of execution.
+  - Utilize EDR tools to investigate the behavior of the system prior to and following the creation of the symbolic link, confirming whether any unauthorized access or data exfiltration has occurred.
+  - Check the environment for legitimate administrative activities or scheduled tasks that might explain the presence of this link, to help differentiate between benign and malicious use.
+  - Examine any relevant backup logs or configurations within the cloud environment (if applicable) to verify if the shadow copies were accessed for authorized purposes.

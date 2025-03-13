@@ -1,0 +1,35 @@
+title: PowerShell Module File Created
+id: e36941d0-c0f0-443f-bc6f-cb2952eb69ea
+status: test
+description: Detects the creation of a new PowerShell module ".psm1", ".psd1", ".dll",
+  ".ps1", etc.
+references:
+- Internal Research
+- https://learn.microsoft.com/en-us/powershell/scripting/developer/module/understanding-a-windows-powershell-module?view=powershell-7.3
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-09
+tags:
+- attack.persistence
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    TargetFilename|contains:
+    - '\WindowsPowerShell\Modules\'
+    - '\PowerShell\7\Modules\'
+  condition: selection
+falsepositives:
+- Likely
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the creation of new PowerShell modules on Windows systems, specifically by monitoring file events associated with PowerShell executable processes (e.g., `powershell.exe`, `pwsh.exe`). The rule looks for file creations in specific directories where PowerShell modules are typically stored, including `\WindowsPowerShell\Modules\` and `\PowerShell\7\Modules\`. By identifying the creation of files with extensions such as `.psm1`, `.psd1`, or `.dll`, this detection rule can signal potentially unauthorized or malicious activities that leverage PowerShell's flexible scripting capabilities. PowerShell is a common tool for both legitimate system administration and malicious actions, so monitoring its module creation is essential for maintaining a secure environment.
+  ### Investigation Steps
+  - Review the file creation events in your EDR tool to confirm details about the created PowerShell module, including the timestamp, user account, and process that initiated the creation. 
+  - Cross-reference the source of the PowerShell execution logs with the User Behavior Analytics tool to determine if the user activity aligns with expected patterns or if it deviates from normal behavior.
+  - Investigate any associated command-line parameters used during the PowerShell execution for suspicious flags or arguments that may indicate malicious intent.
+  - Check for any previous alerts or incidents involving the user account or machine tied to the module creation, using logs from your SIEM to help contextualize the activity.

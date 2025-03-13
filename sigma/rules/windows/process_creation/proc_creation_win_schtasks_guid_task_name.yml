@@ -1,0 +1,43 @@
+title: Suspicious Scheduled Task Name As GUID
+id: ff2fff64-4cd6-4a2b-ba7d-e28a30bbe66b
+status: test
+description: Detects creation of a scheduled task with a GUID like name
+references:
+- https://thedfirreport.com/2022/10/31/follina-exploit-leads-to-domain-compromise/
+- https://thedfirreport.com/2022/02/21/qbot-and-zerologon-lead-to-full-domain-compromise/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-10-31
+tags:
+- attack.execution
+- attack.t1053.005
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+    Image|endswith: '\schtasks.exe'
+    CommandLine|contains: '/Create '
+  selection_tn:
+    CommandLine|contains:
+            # Can start with single or double quote
+    - '/TN "{'
+    - "/TN '{"
+    - "/TN {"
+  selection_end:
+    CommandLine|contains:
+            # Ending of the name to avoid possible FP in the rest of the commandline
+    - '}"'
+    - "}'"
+    - '} '
+  condition: all of selection_*
+falsepositives:
+- Legitimate software naming their tasks as GUIDs
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule identifies suspicious Windows scheduled tasks created with names resembling GUIDs (Globally Unique Identifiers). It focuses on the usage of `schtasks.exe` to create scheduled tasks that may have malicious intent. The rule inspects relevant data sources, specifically the process creation logs, to analyze the command-line parameters of any executed instances of `schtasks.exe`. It targets tasks whose names are formatted like JSON strings, allowing for the detection of potentially harmful behaviors often associated with malware that leverages scheduled tasks for persistence or execution. Given that malicious actors can obfuscate their activities using GUID-like names, this rule serves as a proactive measure for threat detection.
+  ### Investigation Steps
+  - Review recent process creation logs in the EDR tool to identify instances of `schtasks.exe` triggered around the same time as the alert.
+  - Analyze the command-line parameters associated with the detected instances to verify if they contain GUID-like names or patterns that are explicitly suspicious.
+  - Use your SIEM to correlate the alert with other security events in the environment, including logs from AV, NGFW, or any detected network anomalies.
+  - Assess scheduled tasks on the affected systems to determine whether the identified tasks align with normal operational procedures or indicate unauthorized modifications.

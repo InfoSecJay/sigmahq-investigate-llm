@@ -1,0 +1,45 @@
+title: Suspicious Active Directory Database Snapshot Via ADExplorer
+id: ef61af62-bc74-4f58-b49b-626448227652
+related:
+- id: 9212f354-7775-4e28-9c9f-8f0a4544e664
+  type: derived
+status: test
+description: Detects the execution of Sysinternals ADExplorer with the "-snapshot"
+  flag in order to save a local copy of the active directory database to a suspicious
+  directory.
+references:
+- https://www.documentcloud.org/documents/5743766-Global-Threat-Report-2019.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-03-14
+tags:
+- attack.credential-access
+- attack.t1552.001
+- attack.t1003.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\ADExplorer.exe'
+  - OriginalFileName: 'AdExp'
+  selection_flag:
+    CommandLine|contains: 'snapshot'
+  selection_paths:
+    CommandLine|contains:
+            # TODO: Add more suspicious paths
+    - '\Downloads\'
+    - '\Users\Public\'
+    - '\AppData\'
+    - '\Windows\Temp\'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets the execution of Sysinternals ADExplorer with a specific command-line flag that indicates an attempt to create a local snapshot of the Active Directory database. The rule specifically identifies instances where the ADExplorer executable (`ADExplorer.exe`) is run with the `-snapshot` parameter, which can indicate potentially malicious activity if it attempts to save the database to commonly abused directories like Downloads, Public, AppData, or Windows Temp folders. By monitoring process creation logs for these specific command-line patterns, security teams can detect unauthorized access to sensitive Active Directory information, which is critical for maintaining the integrity and security of an organization’s identity management.
+  ### Investigation Steps
+  - Check the process creation logs in your EDR to confirm the execution of `ADExplorer.exe` with the `-snapshot` flag, paying close attention to the timestamps and originating user accounts.
+  - Review the command line parameters in conjunction with the user account running the process to determine if the activity aligns with legitimate administrative work or indicates potential abuse.
+  - Investigate the destination directory specified in the command-line arguments to identify if the Active Directory snapshot was saved in a suspicious or unexpected location that could indicate malicious intent.
+  - Cross-reference any related log sources, such as VPN, AV, and Proxy logs, to determine if there were any other anomalous activities or connections made by the user around the time of the alleged snapshot creation.

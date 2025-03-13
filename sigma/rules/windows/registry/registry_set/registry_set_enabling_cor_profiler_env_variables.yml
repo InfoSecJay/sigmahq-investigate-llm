@@ -1,0 +1,39 @@
+title: Enabling COR Profiler Environment Variables
+id: ad89044a-8f49-4673-9a55-cbd88a1b374f
+status: test
+description: Detects .NET Framework CLR and .NET Core CLR "cor_enable_profiling" and
+  "cor_profiler" variables being set and configured.
+references:
+- https://twitter.com/jamieantisocial/status/1304520651248668673
+- https://www.slideshare.net/JamieWilliams130/started-from-the-bottom-exploiting-data-sources-to-uncover-attck-behaviors
+- https://www.sans.org/cyber-security-summit/archives
+- https://learn.microsoft.com/en-us/dotnet/core/runtime-config/debugging-profiling
+author: Jose Rodriguez (@Cyb3rPandaH), OTR (Open Threat Research), Jimmy Bayne (@bohops)
+date: 2020-09-10
+modified: 2023-11-24
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.defense-evasion
+- attack.t1574.012
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection_1:
+    TargetObject|endswith:
+    - '\COR_ENABLE_PROFILING'
+    - '\COR_PROFILER'
+    - '\CORECLR_ENABLE_PROFILING'
+  selection_2:
+    TargetObject|contains: '\CORECLR_PROFILER_PATH'
+  condition: 1 of selection_*
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the setting of specific environment variables related to .NET profiling, which can indicate malicious attempts to exploit features of the .NET runtime for malicious purposes. The rule monitors Windows registry modifications to detect the presence of variables like `COR_ENABLE_PROFILING`, `COR_PROFILER`, and `CORECLR_ENABLE_PROFILING`. These variables, when set, enable profiling features that can facilitate the execution of malicious code under the guise of legitimate application behavior. The rule uses Windows registry set logs as its primary data source, specifically looking for modifications that could indicate an attacker leveraging these variables to alter application execution to their advantage.
+  ### Investigation Steps
+  - Review EDR logs for any process creations or command line arguments associated with the applications that could be utilizing the modified profiling environment variables.
+  - Check registry logs for the exact timestamp and user context of the environment variable modifications to determine if they align with known user activity or anomalous behavior.
+  - Utilize network traffic analysis tools to monitor for unusual outbound connections initiated by applications that are known to use the modified .NET environment variables.
+  - Examine application logs and any relevant cloud logging (e.g., from Azure or AWS) for signs of abnormal behavior or execution paths that coincide with the setting of these profiling variables.

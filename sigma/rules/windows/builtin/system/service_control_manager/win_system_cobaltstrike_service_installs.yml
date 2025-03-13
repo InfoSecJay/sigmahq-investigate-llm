@@ -1,0 +1,51 @@
+title: CobaltStrike Service Installations - System
+id: 5a105d34-05fc-401e-8553-272b45c1522d
+status: test
+description: Detects known malicious service installs that appear in cases in which
+  a Cobalt Strike beacon elevates privileges or lateral movement
+references:
+- https://www.sans.org/webcasts/119395
+- https://www.crowdstrike.com/blog/getting-the-bacon-from-cobalt-strike-beacon/
+- https://thedfirreport.com/2021/08/29/cobalt-strike-a-defenders-guide/
+author: Florian Roth (Nextron Systems), Wojciech Lesicki
+date: 2021-05-26
+modified: 2022-11-27
+tags:
+- attack.execution
+- attack.privilege-escalation
+- attack.lateral-movement
+- attack.t1021.002
+- attack.t1543.003
+- attack.t1569.002
+logsource:
+  product: windows
+  service: system
+detection:
+  selection_id:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7045
+  selection1:
+    ImagePath|contains|all:
+    - 'ADMIN$'
+    - '.exe'
+  selection2:
+    ImagePath|contains|all:
+    - '%COMSPEC%'
+    - 'start'
+    - 'powershell'
+  selection3:
+    ImagePath|contains: 'powershell -nop -w hidden -encodedcommand'
+  selection4:
+    ImagePath|base64offset|contains: "IEX (New-Object Net.Webclient).DownloadString('http://127.0.0.1:"
+  condition: selection_id and (selection1 or selection2 or selection3 or selection4)
+falsepositives:
+- Unknown
+level: critical
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the installation of malicious services associated with Cobalt Strike beacons, which are common tools used by threat actors to execute lateral movement and elevate privileges within a compromised network. The rule focuses on specific Windows Service Control Manager events (Event ID 7045) that indicate a new service has been created on the system. It looks for service installations that involve suspicious patterns in the `ImagePath` of the service, such as paths containing `ADMIN$`, PowerShell commands with encoding options, and the use of certain scripts or web client functions indicative of malicious intent. By monitoring these conditions, the rule aims to identify potential exploitation scenarios that could lead to further compromises within the environment.
+  ### Investigation Steps
+  - Investigate EDR alerts related to Event ID 7045 to identify the source of the suspicious service installation and gather additional context on the associated processes.
+  - Review the corresponding process creation logs for instances of PowerShell execution to determine what commands were run and whether they correlate with known attack patterns.
+  - Analyze network logs for unusual outbound connections, particularly those directed towards internal hosts, which may indicate lateral movement.
+  - Check AV and proxy logs for any detections or blocks during the timeframe of the event, as these can provide additional insights into the activity and help confirm if malicious behavior occurred.

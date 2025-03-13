@@ -1,0 +1,64 @@
+title: HackTool - Mimikatz Execution
+id: a642964e-bead-4bed-8910-1bb4d63e3b4d
+status: test
+description: Detection well-known mimikatz command line arguments
+references:
+- https://www.slideshare.net/heirhabarov/hunting-for-credentials-dumping-in-windows-environment
+- https://tools.thehacker.recipes/mimikatz/modules
+author: Teymur Kheirkhabarov, oscd.community, David ANDRE (additional keywords), Tim
+  Shelton
+date: 2019-10-22
+modified: 2023-02-21
+tags:
+- attack.credential-access
+- attack.t1003.001
+- attack.t1003.002
+- attack.t1003.004
+- attack.t1003.005
+- attack.t1003.006
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_tools_name:
+    CommandLine|contains:
+    - 'DumpCreds'
+    - 'mimikatz'
+  selection_function_names:   # To cover functions from modules that are not in module_names
+    CommandLine|contains:
+    - '::aadcookie'         # misc module
+    - '::detours'         # misc module
+    - '::memssp'         # misc module
+    - '::mflt'         # misc module
+    - '::ncroutemon'         # misc module
+    - '::ngcsign'         # misc module
+    - '::printnightmare'         # misc module
+    - '::skeleton'         # misc module
+    - '::preshutdown'          # service module
+    - '::mstsc'          # ts module
+    - '::multirdp'          # ts module
+  selection_module_names:
+    CommandLine|contains:
+    - 'rpc::'
+    - 'token::'
+    - 'crypto::'
+    - 'dpapi::'
+    - 'sekurlsa::'
+    - 'kerberos::'
+    - 'lsadump::'
+    - 'privilege::'
+    - 'process::'
+    - 'vault::'
+  condition: 1 of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule "HackTool 
+  - Mimikatz Execution" is designed to detect the execution of Mimikatz, a popular post-exploitation tool often used for credential harvesting and manipulation in Windows environments. The rule specifically looks for command-line arguments associated with Mimikatz, including well-known commands such as `DumpCreds` and various module function names. Additionally, it captures indicators from process creation logs to identify any attempts to engage Mimikatz functionalities like credential dumping (for example, via AAD cookie retrieval, Kerberos ticket management, or LSASS memory access). Technical data sources involved primarily include process creation logs that provide insights into command-line parameters, function names, and specific module executions associated with Mimikatz activities.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify instances of Mimikatz execution, emphasizing command-line arguments that contain keywords like "DumpCreds" and various module names.
+  - Check for anomalous user behavior in identity management logs, particularly those related to account access or credential use that may correlate with Mimikatz activity.
+  - Utilize the SIEM to correlate any detected Mimikatz execution with anomalous network traffic, examining proxy logs for unusual outbound connections that may indicate data exfiltration.
+  - Perform a deep dive into the affected endpoints using the EDR tool, analyzing the memory and processes to assess if Mimikatz left any artifacts, such as dumped credentials or residual files that may indicate further compromise.

@@ -1,0 +1,35 @@
+title: Potential DLL Sideloading Of MsCorSvc.DLL
+id: cdb15e19-c2d0-432a-928e-e49c8c60dcf2
+status: experimental
+description: Detects potential DLL sideloading of "mscorsvc.dll".
+references:
+- https://hijacklibs.net/entries/microsoft/built-in/mscorsvc.html
+author: Wietze Beukema
+date: 2024-07-11
+tags:
+- attack.defense-evasion
+- attack.t1574.002
+logsource:
+  product: windows
+  category: image_load
+detection:
+  selection:
+    ImageLoaded|endswith: '\mscorsvc.dll'
+  filter_main_generic:
+    ImageLoaded|startswith:
+    - 'C:\Windows\Microsoft.NET\Framework\'
+    - 'C:\Windows\Microsoft.NET\Framework64\'
+    - 'C:\Windows\WinSxS\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Legitimate applications loading their own versions of the DLL mentioned in this
+  rule.
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Potential DLL Sideloading Of MsCorSvc.DLL" is designed to detect potential DLL sideloading involving the `mscorsvc.dll` file, a core .NET library typically found in legitimate Microsoft .NET Framework installations. The rule operates by monitoring the loading of this DLL specifically from unconventional paths or locations that deviate from its expected directories, such as `C:\Windows\Microsoft.NET\Framework\` and `C:\Windows\WinSxS\`. When `mscorsvc.dll` is loaded from an unexpected path, it may indicate an attempt to exploit DLL sideloading techniques, where an attacker tricks a legitimate application into loading a malicious version of the DLL instead of the legitimate one. This detection leverages image load events as captured in Windows logs, requiring close examination of the loading process and source paths of the library.
+  ### Investigation Steps
+  - Investigate the process that loaded `mscorsvc.dll` by querying EDR logs for recently executed processes and identifying the parent-child relationships.
+  - Check command-line parameters associated with the parent process to uncover any unusual or suspicious flags that may indicate malicious intent.
+  - Review Windows event logs for any anomalous file creations or modifications in the directories associated with `.NET Framework` installations, particularly during the timeframe of the alert.
+  - Correlate findings with network logs (NDR or Firewall) and check for any unusual outbound connections made by the involved application to determine if exfiltration or command-and-control activity is taking place.

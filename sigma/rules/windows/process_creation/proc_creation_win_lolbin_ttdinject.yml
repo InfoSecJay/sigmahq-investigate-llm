@@ -1,0 +1,32 @@
+title: Use of TTDInject.exe
+id: b27077d6-23e6-45d2-81a0-e2b356eea5fd
+status: test
+description: Detects the executiob of TTDInject.exe, which is used by Windows 10 v1809
+  and newer to debug time travel (underlying call of tttracer.exe)
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Ttdinject/
+author: frack113
+date: 2022-05-16
+tags:
+- attack.defense-evasion
+- attack.t1127
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+  - Image|endswith: 'ttdinject.exe'
+  - OriginalFileName: 'TTDInject.EXE'
+  condition: selection
+falsepositives:
+- Legitimate use
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of `TTDInject.exe`, a process associated with Windows 10 version 1809 and later, which is utilized for debugging through time travel debugging capabilities leveraging `tttracer.exe`. The rule specifically focuses on the properties of the process creation events, looking for instances where the image name ends with `ttdinject.exe` or where the original file name is `TTDInject.EXE`. By monitoring these indicators within process creation logs, the rule flags potential misuse or malicious activities since `TTDInject.exe` can also be exploited for evading detections through debugging techniques. 
+  The data sources involved in this rule include Windows process creation logs that hold critical information about launched processes, including their names and other relevant metadata. This monitoring is essential for detecting unauthorized or unusual use of this debugging tool, thereby enabling a proactive approach to identifying evasive tactics commonly used in advanced threats.
+  ### Investigation Steps
+  - Use your EDR tool to search for any instances of `TTDInject.exe` execution and gather additional context, such as the parent process and user account that initiated the action.
+  - Review any relevant process creation logs to identify patterns or sequences of actions leading up to the execution of `TTDInject.exe`, focusing on unusual behaviors or timing.
+  - Cross-reference the execution with known legitimate uses of `TTDInject.exe` to assess whether it may be part of a valid application or whether it warrants further investigation.
+  - Analyze network connections and proxy logs to detect any suspicious communications or file transfers that may correlate with the execution of the detected process.

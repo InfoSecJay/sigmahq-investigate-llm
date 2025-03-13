@@ -1,0 +1,43 @@
+title: Root Certificate Installed From Susp Locations
+id: 5f6a601c-2ecb-498b-9c33-660362323afa
+status: test
+description: Adversaries may install a root certificate on a compromised system to
+  avoid warnings when connecting to adversary controlled web servers.
+references:
+- https://www.microsoft.com/security/blog/2022/09/07/profiling-dev-0270-phosphorus-ransomware-operations/
+- https://learn.microsoft.com/en-us/powershell/module/pki/import-certificate?view=windowsserver2022-ps
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-09
+modified: 2023-01-16
+tags:
+- attack.defense-evasion
+- attack.t1553.004
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+    - 'Import-Certificate'
+    - ' -FilePath '
+    - 'Cert:\LocalMachine\Root'
+    CommandLine|contains:
+    - '\AppData\Local\Temp\'
+    - ':\Windows\TEMP\'
+    - '\Desktop\'
+    - '\Downloads\'
+    - '\Perflogs\'
+    - ':\Users\Public\'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the installation of root certificates from suspicious locations on Windows systems, a technique often employed by adversaries to enable secure communication with malicious servers without triggering warnings. Specifically, the rule looks for instances where the PowerShell command `Import-Certificate` is executed, combined with the specification of a file path that targets key directories such as Temporary files, Desktop, Downloads, and Public user folders. The primary data source for this detection is process creation logs, which provide crucial details about command-line activities executed on the system.
+  Analyzing these logs allows SOC analysts to pinpoint unauthorized or unusual attempts to install root certificates, which can be an indicator of compromise. By leveraging the information from the command-line parameters utilized in the installation process, teams can assess whether such actions are legitimate administrative activities or part of a broader attack narrative.
+  ### Investigation Steps
+  - Verify the command activity in the EDR console by searching for the command lines matching `Import-Certificate` and check the corresponding user account associated with the action.
+  - Review process execution history alongside timestamped logs to identify any related suspicious activities that occurred before or after the installation event.
+  - Cross-reference the detected root certificate installation with existing certificate stores to understand potential impacts and assess whether the certificate is being used maliciously.
+  - Investigate network traffic through the proxy or firewall logs to evaluate any outbound connections made to domains that may be controlled by adversaries following the certificate installation.

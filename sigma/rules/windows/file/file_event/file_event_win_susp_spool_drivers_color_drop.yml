@@ -1,0 +1,33 @@
+title: Drop Binaries Into Spool Drivers Color Folder
+id: ce7066a6-508a-42d3-995b-2952c65dc2ce
+status: test
+description: Detects the creation of suspcious binary files inside the "\windows\system32\spool\drivers\color\"
+  as seen in the blog referenced below
+references:
+- https://www.microsoft.com/security/blog/2022/07/27/untangling-knotweed-european-private-sector-offensive-actor-using-0-day-exploits/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-28
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|startswith: 'C:\Windows\System32\spool\drivers\color\'
+    TargetFilename|endswith:
+    - '.dll'
+    - '.exe'
+    - '.sys'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation of potentially malicious binary files within the color folder of Windows spool drivers, specifically targeting files with the extensions `.dll`, `.exe`, and `.sys`. Attackers may use this technique to evade detection while executing payloads or establishing persistence on a compromised system. The rule operates by monitoring file event logs from Windows, focusing on entries where the target filename begins with `C:\Windows\System32\spool\drivers\color\` and ends with one of the specified executable file extensions. By correlating this information, the rule can help identify suspicious activities that may indicate malicious intent, particularly in environments vulnerable to exploitation by advanced persistent threats.
+  ### Investigation Steps
+  - Review recent file creation events in the EDR logs to determine the context of the detected binaries, including the user and process responsible for creating the files.
+  - Check for related process activity and command-line arguments that may provide insight into the execution of the suspicious binaries.
+  - Cross-reference the timestamps of the alerts with Active Directory logs to investigate user logins and any anomalies.
+  - Analyze network traffic through the NDR and Proxy logs for any associated communication attempts made by the newly created binaries to external IP addresses.

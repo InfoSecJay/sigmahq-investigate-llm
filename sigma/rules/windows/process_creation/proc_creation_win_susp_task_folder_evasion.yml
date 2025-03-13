@@ -1,0 +1,47 @@
+title: Tasks Folder Evasion
+id: cc4e02ba-9c06-48e2-b09e-2500cace9ae0
+status: test
+description: |
+  The Tasks folder in system32 and syswow64 are globally writable paths.
+  Adversaries can take advantage of this and load or influence any script hosts or ANY .NET Application
+  in Tasks to load and execute a custom assembly into cscript, wscript, regsvr32, mshta, eventvwr
+references:
+- https://twitter.com/subTee/status/1216465628946563073
+- https://gist.github.com/am0nsec/8378da08f848424e4ab0cc5b317fdd26
+author: Sreeman
+date: 2020-01-13
+modified: 2022-12-25
+tags:
+- attack.defense-evasion
+- attack.persistence
+- attack.execution
+- attack.t1574.002
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection1:
+    CommandLine|contains:
+    - 'echo '
+    - 'copy '
+    - 'type '
+    - 'file createnew'
+  selection2:
+    CommandLine|contains:
+    - ' C:\Windows\System32\Tasks\'
+    - ' C:\Windows\SysWow64\Tasks\'
+  condition: all of selection*
+falsepositives:
+- Unknown
+fields:
+- CommandLine
+- ParentProcess
+level: high
+notes: |
+  ### Technical Context
+  The "Tasks Folder Evasion" detection rule identifies potentially malicious activities involving scripts or custom assemblies that may be executed through Windows Task Scheduler. This rule focuses on command lines that indicate attempts to manipulate or utilize the writable `Tasks` folders within the `C:\Windows\System32\` and `C:\Windows\SysWow64\` directories. By capturing specific keywords such as "echo," "copy," "type," and "file createnew" in command line arguments, the rule aims to flag potential adversarial behavior attempting to exploit these globally writable paths to execute unauthorized or harmful actors like `cscript`, `wscript`, `regsvr32`, or `mshta`. The key log source for this detection is process creation logs, which document how commands are executed by processes in the Windows environment.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify the parent processes associated with the detected command line execution, which may reveal the origin of the suspicious behavior.
+  - Analyze command line parameters for any execution involving the `C:\Windows\System32\Tasks\` or `C:\Windows\SysWow64\Tasks\` directories to assess whether the activity aligns with known legitimate processes.
+  - Inspect system event logs for any unusual modifications or creations of tasks in the Task Scheduler, as this could further indicate unauthorized attempts to persist malware.
+  - Examine network logs from the firewall or proxy to identify any outbound connections initiated by the suspicious processes that may suggest exfiltration or communication with command-and-control servers.

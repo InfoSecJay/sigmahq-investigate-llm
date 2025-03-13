@@ -1,0 +1,36 @@
+title: Renamed Jusched.EXE Execution
+id: edd8a48c-1b9f-4ba1-83aa-490338cd1ccb
+status: test
+description: Detects the execution of a renamed "jusched.exe" as seen used by the
+  cobalt group
+references:
+- https://www.bitdefender.com/files/News/CaseStudies/study/262/Bitdefender-WhitePaper-An-APT-Blueprint-Gaining-New-Visibility-into-Financial-Threats-interactive.pdf
+author: Markus Neis, Swisscom
+date: 2019-06-04
+modified: 2023-02-03
+tags:
+- attack.execution
+- attack.defense-evasion
+- attack.t1036.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Description:
+    - Java Update Scheduler
+    - Java(TM) Update Scheduler
+  filter:
+    Image|endswith: '\jusched.exe'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule aims to identify the execution of the Java Update Scheduler (jusched.exe) process that has been renamed to conceal its true nature. The rule specifically targets instances where the process description corresponds to the Java Update Scheduler but the executable name ends with 'jusched.exe'. Such behavior is often associated with malware tactics, particularly those employed by advanced persistent threat (APT) groups, like the Cobalt group, which use renaming techniques to evade detection. The key data sources for this rule are process creation logs that capture details such as the executable name and the description of processes running on Windows systems.
+  ### Investigation Steps
+  - Utilize your EDR solution to search for recent executions of processes with the description "Java Update Scheduler" and having the name 'jusched.exe' to confirm potential malicious activity.
+  - Correlate any flagged events with user activity logs to determine if the execution aligns with any normal user behavior or scheduled tasks that legitimately use Java update functionality.
+  - Review network activity logs from your NDR to identify any suspicious outbound connections made shortly after the execution of this process, which could indicate command and control communications.
+  - Consult endpoint logs and AV solutions for any related alerts or quarantined files that might correspond to prior malicious activities associated with the identified process execution.

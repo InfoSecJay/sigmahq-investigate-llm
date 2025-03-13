@@ -1,0 +1,53 @@
+title: ADS Zone.Identifier Deleted By Uncommon Application
+id: 3109530e-ab47-4cc6-a953-cac5ebcc93ae
+related:
+- id: 7eac0a16-5832-4e81-865f-0268a6d19e4b
+  type: similar
+status: test
+description: Detects the deletion of the "Zone.Identifier" ADS by an uncommon process.
+  Attackers can leverage this in order to bypass security restrictions that make use
+  of the ADS such as Microsoft Office apps.
+references:
+- https://securityliterate.com/how-malware-abuses-the-zone-identifier-to-circumvent-detection-and-analysis/
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-09-04
+modified: 2024-04-26
+tags:
+- attack.defense-evasion
+- attack.t1070.004
+logsource:
+  product: windows
+  category: file_delete
+detection:
+  selection:
+    TargetFilename|endswith: ':Zone.Identifier'
+  filter_main_generic:
+        # Note: in some envs this activity might be performed by other software. Apply additional filters as necessary
+    Image:
+    - 'C:\Program Files\PowerShell\7-preview\pwsh.exe'
+    - 'C:\Program Files\PowerShell\7\pwsh.exe'
+    - 'C:\Windows\explorer.exe'
+    - 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+    - 'C:\Windows\SysWOW64\explorer.exe'
+    - 'C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe'
+  filter_optional_browsers_chrome:
+    Image:
+    - 'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe'
+    - 'C:\Program Files\Google\Chrome\Application\chrome.exe'
+  filter_optional_browsers_firefox:
+    Image:
+    - 'C:\Program Files (x86)\Mozilla Firefox\firefox.exe'
+    - 'C:\Program Files\Mozilla Firefox\firefox.exe'
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+- Other third party applications not listed.
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the deletion of the "Zone.Identifier" Alternate Data Stream (ADS) by uncommon processes on Windows systems. The "Zone.Identifier" stream is typically used by Microsoft applications to track the security zone of files downloaded from the internet, such as indicating whether they should be treated as safe or potentially harmful. Attackers often manipulate or delete this ADS to bypass security controls and execute malicious files without being flagged by security software. The detection rule analyzes file deletion events and filters on specific executable paths that are more commonly associated with file interactions to pinpoint potential malicious activity. The primary data source for this detection is Windows file delete logs.
+  ### Investigation Steps
+  - Review the file deletion logs in the SIEM to identify instances where "Zone.Identifier" ADS was deleted and record the process name associated with this activity.
+  - Use EDR to investigate the behavior of the process identified in the previous step, checking for any suspicious command-line parameters or unusual parent-child process relationships.
+  - Analyze network traffic logs from the NDR to determine if the uncommon application made any outbound connections, especially to known malicious domains or IPs.
+  - Cross-reference the file deletion event with user activity logs from the Proxy or VPN to establish a timeline and legitimacy of the user's actions during the event.

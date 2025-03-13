@@ -1,0 +1,63 @@
+title: .RDP File Created By Uncommon Application
+id: fccfb43e-09a7-4bd2-8b37-a5a7df33386d
+related:
+- id: f748c45a-f8d3-4e6f-b617-fe176f695b8f
+  type: derived
+status: test
+description: |
+  Detects creation of a file with an ".rdp" extension by an application that doesn't commonly create such files.
+references:
+- https://www.blackhillsinfosec.com/rogue-rdp-revisiting-initial-access-methods/
+- https://web.archive.org/web/20230726144748/https://blog.thickmints.dev/mintsights/detecting-rogue-rdp/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-04-18
+modified: 2024-11-01
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|endswith: '.rdp'
+    Image|endswith:
+            # Covers browsers
+    - '\brave.exe'
+    - '\CCleaner Browser\Application\CCleanerBrowser.exe'
+    - '\chromium.exe'
+    - '\firefox.exe'
+    - '\Google\Chrome\Application\chrome.exe'
+    - '\iexplore.exe'
+    - '\microsoftedge.exe'
+    - '\msedge.exe'
+    - '\Opera.exe'
+    - '\Vivaldi.exe'
+    - '\Whale.exe'
+            # Covers email clients
+    - '\olk.exe'         # Outlook
+    - '\Outlook.exe'
+    - '\RuntimeBroker.exe'         # If the windows mail client is used
+    - '\Thunderbird.exe'
+            # Covers chat applications
+    - '\Discord.exe'         # Should open the browser for download, but just in case.
+    - '\Keybase.exe'
+    - '\msteams.exe'
+    - '\Slack.exe'
+    - '\teams.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule focuses on detecting the creation of Remote Desktop Protocol (.rdp) files by applications that are not typically associated with this activity, such as web browsers, email clients, and communication tools. The rationale behind this detection is that the creation of an .rdp file by an uncommon application could indicate malicious intent, such as an unauthorized attempt to facilitate remote access to a compromised system. The rule identifies such events by monitoring file creation logs within Windows environments, specifically looking for files with names ending in '.rdp' and originating from the specified uncommon applications, including various web browsers (e.g., Chrome, Firefox) and chat applications (e.g., Slack, Teams).
+  The detection leverages event data sourced from Windows file events, which comprise the `TargetFilename` and the `Image` fields. These fields provide crucial information about the file being created and the application responsible for its creation. By correlating this data, security teams can better identify potentially harmful activities that could pose risks to the organization's IT infrastructure.
+  ### Investigation Steps
+   
+  1. Investigate the endpoint logs using EDR tools to review the application activity around the time the .rdp file was created. Look for unusual behavior patterns or additional suspicious file operations.
+   
+  2. Query the SIEM for historical event logs related to the specific application that created the .rdp file. Pay attention to prior communications and file access that preceded the creation event.
+   
+  3. Check the application’s network traffic logs via the Network Detection and Response (NDR) tool to identify any abnormal or unauthorized outbound connections that might relate to the .rdp file usage.
+   
+  4. For any relevant users, review the cloud access logs in AWS, GCP, or Azure for significant actions that correlate with the file creation event, especially focusing on logins or new connections from unusual geographic locations.

@@ -1,0 +1,37 @@
+title: T1047 Wmiprvse Wbemcomn DLL Hijack
+id: f6c68d5f-e101-4b86-8c84-7d96851fd65c
+status: test
+description: Detects a threat actor creating a file named `wbemcomn.dll` in the `C:\Windows\System32\wbem\`
+  directory over the network for a WMI DLL Hijack scenario.
+references:
+- https://threathunterplaybook.com/hunts/windows/201009-RemoteWMIWbemcomnDLLHijack/notebook.html
+author: Roberto Rodriguez @Cyb3rWard0g, Open Threat Research (OTR)
+date: 2020-10-12
+modified: 2022-02-24
+tags:
+- attack.execution
+- attack.t1047
+- attack.lateral-movement
+- attack.t1021.002
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 5145
+    RelativeTargetName|endswith: '\wbem\wbemcomn.dll'
+  filter:
+    SubjectUserName|endswith: '$'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  n
+  ### Technical Context
+  This detection rule is designed to identify potential threats involving the creation of a malicious DLL file named `wbemcomn.dll` in the `C:\Windows\System32\wbem\` directory. Such activity typically indicates an attempt by a threat actor to utilize the Windows Management Instrumentation (WMI) service for a DLL hijack, allowing for unauthorized remote activities or lateral movement within the network. The rule specifically looks for Windows Event ID 5145, which logs file share access attempts, while filtering out entries that occur under service accounts (those ending with a dollar sign). By concentrating on the file path and event context, the rule effectively captures instances where unusual DLL files may be introduced into sensitive system directories.
+  ### Investigation Steps
+  - Review the relevant EDR logs to analyze the process creation events around the time of the DLL's creation to identify any suspicious activities or processes that may have led to the event.
+  - Investigate the file properties of `C:\Windows\System32\wbem\wbemcomn.dll` using file integrity monitoring tools to determine its source, creation timestamps, and any changes made to it.
+  - Check the network logs in your NGFW and Proxy solutions for unusual outbound connections or traffic patterns that may coincide with the DLL's creation, indicating potential exfiltration or external communication.
+  - Conduct a forensic analysis of related accounts and sessions to evaluate any anomalous user activity or unauthorized access attempts that may indicate lateral movement exploiting the hijacked DLL.

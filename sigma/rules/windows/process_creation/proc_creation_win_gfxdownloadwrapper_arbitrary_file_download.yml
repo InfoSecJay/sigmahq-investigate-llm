@@ -1,0 +1,36 @@
+title: Arbitrary File Download Via GfxDownloadWrapper.EXE
+id: eee00933-a761-4cd0-be70-c42fe91731e7
+status: test
+description: Detects execution of GfxDownloadWrapper.exe with a URL as an argument
+  to download file.
+references:
+- https://lolbas-project.github.io/lolbas/HonorableMentions/GfxDownloadWrapper/
+author: Victor Sergeev, oscd.community
+date: 2020-10-09
+modified: 2023-10-18
+tags:
+- attack.command-and-control
+- attack.t1105
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\GfxDownloadWrapper.exe'
+    CommandLine|contains:
+    - 'http://'
+    - 'https://'
+  filter_main_known_urls:
+    CommandLine|contains: 'https://gameplayapi.intel.com/'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule identifies the execution of the executable file GfxDownloadWrapper.exe when it is provided with a URL as an argument. GfxDownloadWrapper.exe is normally associated with legitimate applications but can be misused to download arbitrary files over the internet, potentially indicating malicious activity such as command-and-control (C2) downloads or data exfiltration attempts. The rule monitors process creation logs for instances where GfxDownloadWrapper.exe is launched with either an HTTP or HTTPS URL. It specifically aims to detect commands that do not correspond to known safe URLs, thereby raising alerts for potentially harmful download behavior. Key technical data sources utilized in this detection include Windows process creation logs and command-line parameters passed to executable files.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR to confirm the execution of GfxDownloadWrapper.exe along with the command line arguments provided during its execution.
+  - Investigate additional network traffic logs using the NDR or firewall logs to see if any outbound connections were made to the URL specified in the command line.
+  - Check any relevant endpoint security alerts or AV logs that may indicate the context of the usage of GfxDownloadWrapper.exe and whether any files were downloaded.
+  - Query the proxy logs to determine if the suspicious URL was accessed previously, and gather additional context regarding the activity associated with that endpoint.

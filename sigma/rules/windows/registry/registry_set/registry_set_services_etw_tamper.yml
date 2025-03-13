@@ -1,0 +1,33 @@
+title: ETW Logging Disabled For SCM
+id: 4f281b83-0200-4b34-bf35-d24687ea57c2
+status: test
+description: Detects changes to the "TracingDisabled" key in order to disable ETW
+  logging for services.exe (SCM)
+references:
+- http://redplait.blogspot.com/2020/07/whats-wrong-with-etw.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-12-09
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1112
+- attack.t1562
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject|endswith: 'Software\Microsoft\Windows NT\CurrentVersion\Tracing\SCM\Regular\TracingDisabled'
+    Details: 'DWORD (0x00000001)'     # Funny (sad) enough, this value is by default 1.
+  condition: selection
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  The Sigma rule titled "ETW Logging Disabled For SCM" is designed to detect unauthorized changes to the Windows registry that disable Event Tracing for Windows (ETW) logging for the Service Control Manager (SCM). Specifically, it monitors modifications to the "TracingDisabled" key located at `HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Tracing\SCM\Regular\TracingDisabled`, where a DWORD value of `1` indicates that logging is disabled. This change can be indicative of attempts by malicious actors to hide their activities from detection mechanisms by modifying logging configuration. The core data source involved in this detection is Windows registry logs that track changes in critical system settings.
+  ### Investigation Steps
+  - Review Windows registry logs for modifications to the "TracingDisabled" key and examine the timestamp to determine when the change occurred.
+  - Utilize EDR tools to investigate process activity around the time of the registry modification, looking for any suspicious processes that might correlate with the registry change.
+  - Check corresponding Windows Event Logs, particularly security and system logs, to identify any authentication events or administrative actions preceding the registry change.
+  - Analyze network traffic logs through NDR or NGFW tools to look for unusual outbound connections associated with the identified processes or activities that correlate with potential indicators of compromise.

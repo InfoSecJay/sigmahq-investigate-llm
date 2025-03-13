@@ -1,0 +1,44 @@
+title: Audit Policy Tampering Via NT Resource Kit Auditpol
+id: c6c56ada-612b-42d1-9a29-adad3c5c2c1e
+related:
+- id: 0a13e132-651d-11eb-ae93-0242ac130002     # New auditpol version
+  type: similar
+status: test
+description: |
+  Threat actors can use an older version of the auditpol binary available inside the NT resource kit to change audit policy configuration to impair detection capability.
+  This can be carried out by selectively disabling/removing certain audit policies as well as restoring a custom policy owned by the threat actor.
+references:
+- https://github.com/3CORESec/MAL-CL/tree/master/Descriptors/Windows%202000%20Resource%20Kit%20Tools/AuditPol
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2021-12-18
+modified: 2023-02-21
+tags:
+- attack.defense-evasion
+- attack.t1562.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains:
+    - '/logon:none'
+    - '/system:none'
+    - '/sam:none'
+    - '/privilege:none'
+    - '/object:none'
+    - '/process:none'
+    - '/policy:none'
+  condition: selection
+falsepositives:
+- The old auditpol utility isn't available by default on recent versions of Windows
+  as it was replaced by a newer version. The FP rate should be very low except for
+  tools that use a similar flag structure
+level: high
+notes: |
+  ### Technical Context
+  This detection rule aims to identify potential tampering with Windows audit policies by detecting the invocation of the `auditpol` command with specific command-line parameters indicative of an attacker disabling audit logging capabilities. The rule specifically looks for instances where the command includes flags such as `/logon:none`, `/system:none`, and others, suggesting an attempt to suppress logs that are critical for threat detection. By analyzing process creation logs that capture command-line arguments for executed binaries, security teams can pinpoint unauthorized modifications to audit policies. Given that the old `auditpol` utility from the NT Resource Kit is not included in recent Windows versions, findings from this rule likely indicate suspicious activity, emphasizing the importance of monitoring and investigating these instances for potential threat actor involvement.
+  ### Investigation Steps
+  - Use EDR tools to search for the execution of the `auditpol` command, particularly focusing on the use of deprecated command-line parameters to confirm possible tampering.
+  - Review process creation logs on Windows systems to correlate the identified `auditpol` command usage with user accounts and systems, determining if the activity aligns with known user behavior.
+  - Examine related access logs from security appliances (e.g., NGFW, AV) to identify any anomalous network connections or file accesses linked to the timeframe of the detected `auditpol` usage.
+  - Consult the cloud audit logs in AWS, GCP, or Azure to verify if any associated changes to VM configurations or IAM policies correlate with the potential tampering attempt noted in the alerts.

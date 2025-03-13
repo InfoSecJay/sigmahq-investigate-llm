@@ -1,0 +1,35 @@
+title: Suspicious Get-Variable.exe Creation
+id: 0c3fac91-5627-46e8-a6a8-a0d7b9b8ae1b
+status: test
+description: |
+  Get-Variable is a valid PowerShell cmdlet
+  WindowsApps is by default in the path where PowerShell is executed.
+  So when the Get-Variable command is issued on PowerShell execution, the system first looks for the Get-Variable executable in the path and executes the malicious binary instead of looking for the PowerShell cmdlet.
+references:
+- https://blog.malwarebytes.com/threat-intelligence/2022/04/colibri-loader-combines-task-scheduler-and-powershell-in-clever-persistence-technique/
+- https://www.joesandbox.com/analysis/465533/0/html
+author: frack113
+date: 2022-04-23
+tags:
+- attack.persistence
+- attack.t1546
+- attack.defense-evasion
+- attack.t1027
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|endswith: 'Local\Microsoft\WindowsApps\Get-Variable.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Suspicious Get-Variable.exe Creation" detection rule identifies potential misuse of a PowerShell command to execute a malicious binary masquerading as a valid cmdlet. Specifically, attackers may exploit the WindowsApps directory to deploy an executable named "Get-Variable.exe" that could ultimately obfuscate malicious activity. When the `Get-Variable` command is invoked in PowerShell, the system searches for the executable file in the specified path rather than executing the intended PowerShell cmdlet. This behavior can facilitate the launch of malicious activities while evading detection. The rule leverages file event logs, specifically looking for the creation of an executable file ending in 'Local\Microsoft\WindowsApps\Get-Variable.exe'.
+  ### Investigation Steps
+  - Review EDR alerts for execution history related to `Get-Variable.exe` to assess any unusual process behaviors that could indicate compromise.
+  - Check command-line parameters of PowerShell sessions around the time of the suspicious creation to gather context on how the `Get-Variable` command was executed.
+  - Analyze file creation logs within the specified directory to identify the process responsible for creating the executable and whether it was associated with legitimate activities.
+  - Investigate user activity logs and related network traffic to determine if the affected user account exhibited any unauthorized access or actions leading up to the alert.

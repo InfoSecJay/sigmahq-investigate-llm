@@ -1,0 +1,32 @@
+title: Visual Basic Command Line Compiler Usage
+id: 7b10f171-7f04-47c7-9fa2-5be43c76e535
+status: test
+description: Detects successful code compilation via Visual Basic Command Line Compiler
+  that utilizes Windows Resource to Object Converter.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Vbc/
+author: 'Ensar Şamil, @sblmsrsn, @oscd_initiative'
+date: 2020-10-07
+modified: 2021-11-27
+tags:
+- attack.defense-evasion
+- attack.t1027.004
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\vbc.exe'
+    Image|endswith: '\cvtres.exe'
+  condition: selection
+falsepositives:
+- Utilization of this tool should not be seen in enterprise environment
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Visual Basic Command Line Compiler Usage" is designed to detect instances of the Visual Basic Command Line Compiler (`vbc.exe`) being employed to compile code that utilizes the Windows Resource to Object Converter (`cvtres.exe`). This rule operates by monitoring process creation logs, specifically looking for cases where `cvtres.exe` is spawned by `vbc.exe`. The presence of this sequence could indicate a potential misuse of legitimate development tools for malicious purposes, such as obfuscating malware or bypassing security controls. By capturing and analyzing these specific process relationships, the rule facilitates proactive detection of suspicious activities, allowing security teams to respond to potential threats.
+  ### Investigation Steps
+  - Review EDR logs to confirm the presence of `vbc.exe` and `cvtres.exe` execution, focusing on the parent-child process relationship to identify potentially malicious compilation activities.
+  - Analyze command-line parameters associated with the `vbc.exe` execution to determine if any suspicious or unusual flags are used, which could indicate attempted evasion tactics.
+  - Query the Proxy logs to investigate any outbound connections initiated by systems running these processes, which may reveal additional indicators of compromise or data exfiltration efforts.
+  - Examine the AWS, GCP, and Azure cloud logs for any related activities or resource modifications that correlate with the detected process executions to understand the broader impact.

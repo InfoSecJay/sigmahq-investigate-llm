@@ -1,0 +1,44 @@
+title: MMC Spawning Windows Shell
+id: 05a2ab7e-ce11-4b63-86db-ab32e763e11d
+status: test
+description: Detects a Windows command line executable started from MMC
+references:
+- https://enigma0x3.net/2017/01/05/lateral-movement-using-the-mmc20-application-com-object/
+author: Karneades, Swisscom CSIRT
+date: 2019-08-05
+modified: 2022-07-14
+tags:
+- attack.lateral-movement
+- attack.t1021.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection1:
+    ParentImage|endswith: '\mmc.exe'
+  selection2:
+  - Image|endswith:
+    - '\cmd.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\wscript.exe'
+    - '\cscript.exe'
+    - '\sh.exe'
+    - '\bash.exe'
+    - '\reg.exe'
+    - '\regsvr32.exe'
+  - Image|contains: '\BITSADMIN'
+  condition: all of selection*
+fields:
+- CommandLine
+- Image
+- ParentCommandLine
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious behavior involving the Microsoft Management Console (MMC), specifically instances where MMC spawns standard command-line executables. The rule triggers when a process created by `mmc.exe` (the Microsoft Management Console) invokes child processes such as `cmd.exe`, `powershell.exe`, or common scripting engines like `wscript.exe` or `cscript.exe`. By monitoring process creation events, particularly examining relationships between parent and child processes, the rule aims to highlight potential lateral movement tactics often used by attackers to execute commands or scripts within a network. The relevant data sources include process creation logs that record the command line arguments and images associated with these processes to facilitate effective investigation.
+  ### Investigation Steps
+  - Review the security events in the EDR to identify potential malicious command executions initiated by `mmc.exe` and examine their corresponding command-line parameters for signs of abuse.
+  - Check the AV logs for any flagged activity associated with the identified command-line executions, as this can provide insight into whether the behavior was potentially harmful or benign.
+  - Analyze network traffic logs through the NDR or firewall (NGFW) to trace any outbound connections made by the spawned command-line processes, which may indicate exfiltration attempts or contact with known malicious IPs.
+  - Investigate user and entity behavior analytics (UEBA) logs in cloud environments (AWS, GCP, Azure) for unusual access patterns from the accounts involved, which may suggest compromised credentials and lateral movement within these platforms.

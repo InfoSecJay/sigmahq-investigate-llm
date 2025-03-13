@@ -1,0 +1,32 @@
+title: Hijack Legit RDP Session to Move Laterally
+id: 52753ea4-b3a0-4365-910d-36cff487b789
+status: test
+description: Detects the usage of tsclient share to place a backdoor on the RDP source
+  machine's startup folder
+author: Samir Bousseaden
+references:
+- Internal Research
+date: 2019-02-21
+modified: 2021-11-27
+tags:
+- attack.command-and-control
+- attack.t1219
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    Image|endswith: '\mstsc.exe'
+    TargetFilename|contains: '\Microsoft\Windows\Start Menu\Programs\Startup\'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets the misuse of the Remote Desktop Protocol (RDP) by monitoring for the placement of a backdoor in a legitimate user's startup folder through the `tsclient` shared directory. The rule specifically looks for instances where the executable `mstsc.exe`, which is the Microsoft Terminal Services Client, is involved in creating or modifying files in the Windows Startup folder, indicating potential lateral movement by an attacker. The primary data sources utilized for this detection include file event logs from Windows systems, which capture file operations and their associating executables, allowing for visibility into potentially malicious activity leveraging RDP sessions.
+  ### Investigation Steps
+  - Review EDR logs for any recent connections made using `mstsc.exe` and check if the source IP address aligns with legitimate user activity.
+  - Investigate the file creation or modification events in the specified Startup folder and determine the legitimacy of the files placed there.
+  - Analyze process creation logs around the time the backdoor was created to identify any anomalies or associated malicious processes.
+  - Conduct a cross-referencing check with AV and proxy logs to see if the file has been flagged as malicious or if any suspicious web activity was associated with the user session.

@@ -1,0 +1,39 @@
+title: New DNS ServerLevelPluginDll Installed
+id: e61e8a88-59a9-451c-874e-70fcc9740d67
+related:
+- id: cbe51394-cd93-4473-b555-edf0144952d9
+  type: derived
+- id: f63b56ee-3f79-4b8a-97fb-5c48007e8573
+  type: derived
+status: test
+description: Detects the installation of a DNS plugin DLL via ServerLevelPluginDll
+  parameter in registry, which can be used to execute code in context of the DNS server
+  (restart required)
+references:
+- https://medium.com/@esnesenon/feature-not-bug-dnsadmin-to-dc-compromise-in-one-line-a0f779b8dc83
+- https://blog.3or.de/hunting-dns-server-level-plugin-dll-injection.html
+author: Florian Roth (Nextron Systems)
+date: 2017-05-08
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.t1574.002
+- attack.t1112
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject|endswith: '\services\DNS\Parameters\ServerLevelPluginDll'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the installation of a DNS Server Level Plugin DLL through modifications to the Windows registry, specifically monitoring the `ServerLevelPluginDll` parameter under the DNS service settings. This parameter allows for the execution of additional code within the DNS server context, which can be abused by attackers to insert malicious DLLs, potentially leading to unauthorized access or a compromise of the DNS. The rule primarily leverages Windows registry set logs to identify when this parameter is altered, indicating that a new DNS plugin has been installed. Importantly, the detection of this activity, especially if it's unexpected, warrants further investigation due to its potential association with code execution and system compromise.
+  ### Investigation Steps
+  - Check EDR logs for any recent actions or events associated with the DNS service or the specific registry modification to identify if lateral movement or unexpected changes have occurred.
+  - Query the Windows registry to confirm the newly installed `ServerLevelPluginDll` value and assess its legitimacy, verifying against known good configurations.
+  - Utilize network detection tools to analyze DNS traffic for anomalies, looking for unusual query patterns or external communications originating from the DNS server.
+  - Review system and application logs for any indications of service restarts or other activities around the time of the registry change to correlate with the alert timeframe.

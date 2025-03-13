@@ -1,0 +1,36 @@
+title: Remote Access Tool - ScreenConnect Temporary File
+id: 0afecb6e-6223-4a82-99fb-bf5b981e92a5
+related:
+- id: b1f73849-6329-4069-bc8f-78a604bb8b23
+  type: similar
+status: test
+description: |
+  Detects the creation of files in a specific location by ScreenConnect RMM.
+  ScreenConnect has feature to remotely execute binaries on a target machine. These binaries will be dropped to ":\Users\<username>\Documents\ConnectWiseControl\Temp\" before execution.
+references:
+- https://github.com/SigmaHQ/sigma/pull/4467
+author: Ali Alwashali
+date: 2023-10-10
+tags:
+- attack.execution
+- attack.t1059.003
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\ScreenConnect.WindowsClient.exe'
+    TargetFilename|contains: '\Documents\ConnectWiseControl\Temp\'
+  condition: selection
+falsepositives:
+- Legitimate use of ScreenConnect
+# Note: Incase the level if ScreenConnect is not used
+level: low
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying the suspicious creation of temporary files in the Windows user directory by ScreenConnect, a remote access tool commonly used for remote administration. The rule looks specifically for instances where the ScreenConnect executable (`ScreenConnect.WindowsClient.exe`) is used to create files in the path `C:\Users\<username>\Documents\ConnectWiseControl\Temp\`. When ScreenConnect executes, it may drop binaries in this location before executing them, which can be indicative of unauthorized or malicious activity. By monitoring file creation events within this specific directory and correlating them with the execution of the ScreenConnect client, the rule aims to uncover potential abuse of legitimate remote access capabilities.
+  ### Investigation Steps
+  - Utilize the EDR to search for recent activity from the `ScreenConnect.WindowsClient.exe` process, correlating it with file creation events in the specified temporary directory.
+  - Review file hashes and properties of any newly created files to determine their legitimacy and whether they have been reported as malicious.
+  - Check user access logs in the system for any abnormal login patterns or unauthorized access that could correlate with the execution of ScreenConnect.
+  - If relevant, consult VPN and proxy logs to identify network connections initiated by the users around the time of the file creation to monitor for unusual remote access activity.

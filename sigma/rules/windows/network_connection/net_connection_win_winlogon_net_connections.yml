@@ -1,0 +1,46 @@
+title: Outbound Network Connection To Public IP Via Winlogon
+id: 7610a4ea-c06d-495f-a2ac-0a696abcfd3b
+status: test
+description: Detects a "winlogon.exe" process that initiate network communications
+  with public IP addresses
+references:
+- https://www.microsoft.com/en-us/security/blog/2023/04/11/guidance-for-investigating-attacks-using-cve-2022-21894-the-blacklotus-campaign/
+author: Christopher Peacock @securepeacock, SCYTHE @scythe_io
+date: 2023-04-28
+modified: 2024-03-12
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.command-and-control
+- attack.t1218.011
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\winlogon.exe'
+    Initiated: 'true'
+  filter_main_local_ranges:
+    DestinationIp|cidr:
+    - '127.0.0.0/8'
+    - '10.0.0.0/8'
+    - '172.16.0.0/12'
+    - '192.168.0.0/16'
+    - '169.254.0.0/16'
+    - '::1/128'          # IPv6 loopback
+    - 'fe80::/10'          # IPv6 link-local addresses
+    - 'fc00::/7'          # IPv6 private addresses
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Communication to other corporate systems that use IP addresses from public address
+  spaces
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule aims to identify potentially malicious behavior by monitoring outgoing network connections initiated by the "winlogon.exe" process on Windows systems. The rule specifically targets outbound communications to public IP addresses while filtering out local and private IP ranges commonly used within the enterprise environment, such as the loopback address and corporate networks. By analyzing network connection logs, the rule detects instances where "winlogon.exe" attempts to communicate with external entities, which might indicate a command and control (C2) communication tactic employed by adversaries.
+  The primary data sources involved in this detection are network connection logs capturing information about the processes that initiate network activity and the corresponding destination IP addresses. Investigating alerts triggered by this rule helps responders identify potential unauthorized access or malware activity, ultimately contributing to the overall security posture of the organization.
+  ### Investigation Steps
+  - Review the associated alert in the SIEM to gather details on the timestamp, source and destination IP addresses, and the user context in which "winlogon.exe" initiated the connection.
+  - Use EDR tools to conduct a forensic analysis of the "winlogon.exe" process, checking for unusual command-line parameters or any known malicious behavior associated with this process.
+  - Correlate the network logs with firewall and proxy logs to see if the outbound connection was part of a larger suspicious activity pattern that could indicate a wider compromise.
+  - Investigate any related alerts or logs from AV software or cloud platforms to check for additional indicators of compromise or other anomalous activities tied to the same user or device.

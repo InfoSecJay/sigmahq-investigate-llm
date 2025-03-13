@@ -1,0 +1,41 @@
+title: Microsoft Defender Tamper Protection Trigger
+id: 49e5bc24-8b86-49f1-b743-535f332c2856
+status: stable
+description: Detects blocked attempts to change any of Defender's settings such as
+  "Real Time Monitoring" and "Behavior Monitoring"
+references:
+- https://bhabeshraj.com/post/tampering-with-microsoft-defenders-tamper-protection
+- https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus?view=o365-worldwide
+author: Bhabesh Raj, Nasreddine Bencherchali
+date: 2021-07-05
+modified: 2022-12-06
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  product: windows
+  service: windefend
+detection:
+  selection:
+    EventID: 5013     # Tamper protection blocked a change to Microsoft Defender Antivirus. If Tamper protection is enabled then, any attempt to change any of Defender's settings is blocked. Event ID 5013 is generated and states which setting change was blocked.
+    Value|endswith:
+    - '\Windows Defender\DisableAntiSpyware'
+    - '\Windows Defender\DisableAntiVirus'
+    - '\Windows Defender\Scan\DisableArchiveScanning'
+    - '\Windows Defender\Scan\DisableScanningNetworkFiles'
+    - '\Real-Time Protection\DisableRealtimeMonitoring'
+    - '\Real-Time Protection\DisableBehaviorMonitoring'
+    - '\Real-Time Protection\DisableIOAVProtection'
+    - '\Real-Time Protection\DisableScriptScanning'
+  condition: selection
+falsepositives:
+- Administrator might try to disable defender features during testing (must be investigated)
+level: high
+notes: |
+  ### Technical Context
+  This rule is designed to detect and alert on blocked attempts to modify critical settings of Microsoft Defender Antivirus related to tamper protection. Specifically, it focuses on Event ID 5013, which is generated when a change to Defender settings, such as disabling real-time monitoring or behavior monitoring, is attempted while tamper protection is enabled. The rule looks for specific value patterns that indicate which Defender settings were attempted to be altered. By monitoring these events from Windows Defender logs, security teams can identify potential security evasion tactics employed by malicious actors attempting to disable critical antivirus protections.
+  ### Investigation Steps
+  - Review Windows Defender logs in the EDR console to identify the source of the tampering attempt, focusing on the Event ID 5013 for detailed information about the blocked change.
+  - Analyze process creation logs around the time of the event to determine if any suspicious processes were initiated that could correlate with the attempt to modify Defender settings.
+  - Check for user accounts that attempted these changes to assess if it was a legitimate administrative action or potentially a compromised account initiating malicious activity.
+  - Investigate network traffic via NDR or Proxy logs for any unusual outbound connections that might indicate an ongoing compromise or exploitation related to the blocked attempts.

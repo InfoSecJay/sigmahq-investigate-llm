@@ -1,0 +1,33 @@
+title: PUA - DIT Snapshot Viewer
+id: d3b70aad-097e-409c-9df2-450f80dc476b
+status: test
+description: Detects the use of Ditsnap tool, an inspection tool for Active Directory
+  database, ntds.dit.
+references:
+- https://thedfirreport.com/2020/06/21/snatch-ransomware/
+- https://web.archive.org/web/20201124182207/https://github.com/yosqueoy/ditsnap
+author: Furkan Caliskan (@caliskanfurkan_)
+date: 2020-07-04
+modified: 2023-02-21
+tags:
+- attack.credential-access
+- attack.t1003.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith: '\ditsnap.exe'
+  - CommandLine|contains: 'ditsnap.exe'
+  condition: selection
+falsepositives:
+- Legitimate admin usage
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects the execution of the Ditsnap tool, a utility specifically designed for inspecting the Active Directory database file (ntds.dit). The rule looks for process creation events where the image name ends with 'ditsnap.exe' and/or where the command line of the process contains 'ditsnap.exe'. These indicators suggest potential unauthorized access to the Active Directory database, which could be a precursor to credential theft or other malicious activities. The primary data source for this detection is Windows process creation logs, which capture detailed information about executed processes, including their command-line parameters and parent-child relationships.
+  ### Investigation Steps
+  - Query EDR logs for any instances of 'ditsnap.exe' being executed in the last 72 hours, paying special attention to unusual parent processes that may indicate malicious behavior.
+  - Review command-line arguments associated with the 'ditsnap.exe' execution to identify any suspicious parameters that may provide insight into an attacker's intent.
+  - Check network logs in conjunction with proxy or VPN logs to trace any outbound connections made by the system running 'ditsnap.exe' for potential data exfiltration.
+  - Investigate user account activity associated with the execution of 'ditsnap.exe' to determine if the account used has legitimate administrative privileges or if it has been compromised.

@@ -1,0 +1,49 @@
+title: Usage Of Web Request Commands And Cmdlets - ScriptBlock
+id: 1139d2e2-84b1-4226-b445-354492eba8ba
+related:
+- id: 9fc51a3c-81b3-4fa7-b35f-7c02cf10fd2d
+  type: derived
+status: test
+description: Detects the use of various web request commands with commandline tools
+  and Windows PowerShell cmdlets (including aliases) via PowerShell scriptblock logs
+references:
+- https://4sysops.com/archives/use-powershell-to-download-a-file-with-http-https-and-ftp/
+- https://blog.jourdant.me/post/3-ways-to-download-files-with-powershell
+author: James Pemberton / @4A616D6573
+date: 2019-10-24
+modified: 2023-01-10
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains:
+    - '[System.Net.WebRequest]::create'
+    - 'curl '
+    - 'Invoke-RestMethod'
+    - 'Invoke-WebRequest'
+    - 'iwr '
+    - 'Net.WebClient'
+    - 'Resume-BitsTransfer'
+    - 'Start-BitsTransfer'
+    - 'wget '
+    - 'WinHttp.WinHttpRequest'
+  filter:
+    Path|startswith: 'C:\Packages\Plugins\Microsoft.GuestConfiguration.ConfigurationforWindows\'
+  condition: selection and not filter
+falsepositives:
+- Use of Get-Command and Get-Help modules to reference Invoke-WebRequest and Start-BitsTransfer.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying the use of web request commands and cmdlets within Windows PowerShell via script block logs. It monitors for specific PowerShell commands and their aliases that are indicative of attempts to download files or interact with web services, such as `Invoke-RestMethod`, `Invoke-WebRequest`, `curl`, and `wget`. By analyzing PowerShell script block logs, the rule triggers alerts when these commands are executed in contexts that are not associated with legitimate system processes, and it includes commands that can create web requests. To facilitate the detection, Script Block Logging must be enabled on the Windows systems being monitored.
+  The primary data source for this rule is the PowerShell script block logs (category: ps_script), which capture the command-line parameters and script executions within PowerShell. An additional filter excludes legitimate environment paths associated with Microsoft Guest Configuration, allowing for a more accurate identification of potentially malicious activity.
+  ### Investigation Steps
+  - Review the PowerShell script block logs for occurrences of flagged commands such as `Invoke-WebRequest` or `curl` to understand the context in which they were executed.
+  - Correlate any findings with endpoint detection and response (EDR) tool alerts to identify the user and process that initiated the command.
+  - Utilize network detection and response (NDR) tools to inspect outbound traffic from the affected endpoint, looking for unusual connections or data transfers.
+  - Check web proxy logs for any unusual URLs or domains accessed following the command’s execution to determine if the requests were directed towards known malicious sites.

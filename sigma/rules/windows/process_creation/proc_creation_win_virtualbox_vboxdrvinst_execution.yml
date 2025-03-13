@@ -1,0 +1,44 @@
+title: Suspicious VBoxDrvInst.exe Parameters
+id: b7b19cb6-9b32-4fc4-a108-73f19acfe262
+status: test
+description: |
+  Detect VBoxDrvInst.exe run with parameters allowing processing INF file.
+  This allows to create values in the registry and install drivers.
+  For example one could use this technique to obtain persistence via modifying one of Run or RunOnce registry keys
+references:
+- https://github.com/LOLBAS-Project/LOLBAS/blob/4db780e0f0b2e2bb8cb1fa13e09196da9b9f1834/yml/LOLUtilz/OtherBinaries/VBoxDrvInst.yml
+- https://twitter.com/pabraeken/status/993497996179492864
+author: Konstantin Grishchenko, oscd.community
+date: 2020-10-06
+modified: 2021-11-27
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\VBoxDrvInst.exe'
+    CommandLine|contains|all:
+    - 'driver'
+    - 'executeinf'
+  condition: selection
+fields:
+- ComputerName
+- User
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Legitimate use of VBoxDrvInst.exe utility by VirtualBox Guest Additions installation
+  process
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of `VBoxDrvInst.exe` with specific parameters that indicate potential malicious activity. The rule focuses on identifying instances where the command line contains both the terms `driver` and `executeinf`, which suggests that the tool is being used to install drivers or modify the system in a way that could lead to persistence via registry changes. Such modifications can enable attackers to establish persistent access to the system by altering registry keys, particularly those associated with system startup. The primary data source for this detection is process creation logs, which log executable actions along with their associated command-line arguments.
+  By monitoring for this particular combination of executable and command-line parameters, security teams can identify behaviors indicative of defense evasion techniques, thus allowing for proactive measures against potential threats related to unauthorized driver installations.
+  ### Investigation Steps
+  - Review process creation logs in your EDR solution to identify the execution of `VBoxDrvInst.exe` with the specified parameters, paying attention to the corresponding user and timeline of the event.
+  - Investigate the command line parameters used during the execution to analyze if they suggest any malicious intent, such as attempts to modify critical registry keys.
+  - Check the registry changes made by the execution of `VBoxDrvInst.exe`, specifically focusing on any entries added to the Run or RunOnce keys for evidence of potential persistence mechanisms.
+  - Correlate findings with other logs (e.g., proxy, VPN) to determine if there are any associated suspicious activities or communications occurring on the same system around the time of the alert.

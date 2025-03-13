@@ -1,0 +1,39 @@
+title: Admin User Remote Logon
+id: 0f63e1ef-1eb9-4226-9d54-8927ca08520a
+status: test
+description: Detect remote login by Administrator user (depending on internal pattern).
+references:
+- https://car.mitre.org/wiki/CAR-2016-04-005
+author: juju4
+date: 2017-10-29
+modified: 2022-10-09
+tags:
+- attack.lateral-movement
+- attack.t1078.001
+- attack.t1078.002
+- attack.t1078.003
+- car.2016-04-005
+logsource:
+  product: windows
+  service: security
+  definition: 'Requirements: Identifiable administrators usernames (pattern or special
+    unique character. ex: "Admin-*"), internal policy mandating use only as secondary
+    account'
+detection:
+  selection:
+    EventID: 4624
+    LogonType: 10
+    AuthenticationPackageName: Negotiate
+    TargetUserName|startswith: 'Admin'
+  condition: selection
+falsepositives:
+- Legitimate administrative activity.
+level: low
+notes: |
+  ### Technical Context
+  The "Admin User Remote Logon" detection rule targets unauthorized remote logins made by accounts identified as administrators, which may indicate lateral movement or potential compromise within a network. The rule specifically looks for Event ID 4624 in Windows Security logs, which captures successful logon events. It filters for Logon Type 10, indicating remote interactive logons, where the Authentication Package Name is "Negotiate" and the Target User Name starts with "Admin," ensuring it aligns with recognizable naming conventions for administrative accounts within the organization. Given that these types of logons may often be legitimate during administrative tasks, this rule has been tagged as a 'low' false positive risk.
+  ### Investigation Steps
+  - Review the instance of the alert in your EDR tool to identify the originating host and determine the context of the logon, including the user account and time of access.
+  - Cross-reference with proxy logs to assess outbound connections initiated by the administrator user during the relevant time frame; look for any suspicious activity that deviates from normal patterns.
+  - Check VPN logs to verify whether the remote session originates from an expected geographic location or IP address, which can help in identifying any potential abuse of credentials.
+  - Conduct a review of cloud platform logs (like AWS or Azure) to see if any changes in permissions or administrative actions coincided with the remote login event, aiding in identifying correlating risky behaviors.

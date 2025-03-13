@@ -1,0 +1,31 @@
+title: Device Installation Blocked
+id: c9eb55c3-b468-40ab-9089-db2862e42137
+status: test
+description: Detects an installation of a device that is forbidden by the system policy
+references:
+- https://github.com/Yamato-Security/EnableWindowsLogSettings/blob/7f6d755d45ac7cc9fc35b0cbf498e6aa4ef19def/ConfiguringSecurityLogAuditPolicies.md
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-6423
+author: frack113
+date: 2022-10-14
+tags:
+- attack.initial-access
+- attack.t1200
+logsource:
+  service: security
+  product: windows
+detection:
+  selection:
+    EventID: 6423
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Device Installation Blocked" detection rule is designed to identify attempts to install devices that are prohibited by the organization's security policy. This is particularly critical for maintaining the integrity of systems and preventing unauthorized hardware from being added to the network. The rule relies on Windows security logs, specifically Event ID 6423, which is generated when a device installation is blocked by system policies. By monitoring these events, the detection aims to uncover potential policy violations, which might indicate attempts by malicious actors to introduce rogue devices for exploitation or data exfiltration.
+  The rule utilizes data from Windows security logs to recognize blocked installation attempts. This detection is essential for maintaining endpoint security and ensuring compliance with internal device management policies. SOC analysts and incident responders can leverage this information to assess whether the block is legitimate or if it indicates a larger security issue.
+  ### Investigation Steps
+  - Review the corresponding Windows Security logs for Event ID 6423 to gather details about the blocked device installation attempt, including timestamps and user account information.
+  - Use EDR tools to perform a forensic analysis on the affected endpoint to determine if any other suspicious activities were recorded around the same time.
+  - Investigate network traffic using your NDR system to see if the blocked device had any prior association with the organization’s network or if there were any attempted communications.
+  - Examine user access logs to determine the legitimacy of the user involved in the device installation attempt and investigate their recent activities for any patterns of concern.

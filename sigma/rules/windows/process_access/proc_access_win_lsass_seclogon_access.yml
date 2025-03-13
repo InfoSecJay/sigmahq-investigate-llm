@@ -1,0 +1,36 @@
+title: Suspicious LSASS Access Via MalSecLogon
+id: 472159c5-31b9-4f56-b794-b766faa8b0a7
+status: test
+description: Detects suspicious access to LSASS handle via a call trace to "seclogon.dll"
+  with a suspicious access right.
+references:
+- https://twitter.com/SBousseaden/status/1541920424635912196
+- https://github.com/elastic/detection-rules/blob/2bc1795f3d7bcc3946452eb4f07ae799a756d94e/rules/windows/credential_access_lsass_handle_via_malseclogon.toml
+- https://splintercod3.blogspot.com/p/the-hidden-side-of-seclogon-part-3.html
+author: Samir Bousseaden (original elastic rule), Nasreddine Bencherchali (Nextron
+  Systems)
+date: 2022-06-29
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  category: process_access
+  product: windows
+detection:
+  selection:
+    TargetImage|endswith: '\lsass.exe'
+    SourceImage|endswith: '\svchost.exe'
+    GrantedAccess: '0x14c0'
+    CallTrace|contains: 'seclogon.dll'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious access patterns to the Local Security Authority Subsystem Service (LSASS) on Windows systems, a common target for credential theft. Specifically, it analyzes process access logs for attempts by `svchost.exe` to access LSASS (`lsass.exe`) with a specific access right, identified by the hexadecimal value `0x14c0`. This value indicates an attempt to read and potentially manipulate sensitive credential information. Furthermore, the rule checks for calls to `seclogon.dll`, which can be indicative of malicious activity, particularly in scenarios involving credential stealing. By monitoring these specific interactions, SOC analysts can identify potentially unauthorized access that may compromise system security and user credentials.
+  ### Investigation Steps
+  - Utilize the EDR tool to investigate any related processes triggered around the time of the alert, focusing on `svchost.exe` and its parent processes for signs of unusual behavior or indicators of compromise.
+  - Cross-reference the access attempts against the process creation logs to identify the context of the `svchost.exe` execution, checking if it was spawned by any known malicious or unusual applications.
+  - Review the Windows Event Logs, specifically Security and Process Creation logs, for additional entries related to LSASS access, including user sessions and prior connections that may indicate unauthorized access patterns.
+  - Inspect network traffic through the NDR or Proxy for any anomalous outbound connections from affected hosts, especially if related to credential dumping tools or known malicious IP addresses.

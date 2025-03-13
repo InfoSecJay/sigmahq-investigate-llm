@@ -1,0 +1,40 @@
+title: PUA - Nmap/Zenmap Execution
+id: f6ecd1cf-19b8-4488-97f6-00f0924991a3
+status: test
+description: Detects usage of namp/zenmap. Adversaries may attempt to get a listing
+  of services running on remote hosts, including those that may be vulnerable to remote
+  software exploitation
+references:
+- https://nmap.org/
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1046/T1046.md#atomic-test-3---port-scan-nmap-for-windows
+author: frack113
+date: 2021-12-10
+modified: 2023-12-11
+tags:
+- attack.discovery
+- attack.t1046
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+  - Image|endswith:
+    - '\nmap.exe'
+    - '\zennmap.exe'
+  - OriginalFileName:
+    - 'nmap.exe'
+    - 'zennmap.exe'
+  condition: selection
+falsepositives:
+- Legitimate administrator activity
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "PUA 
+  - Nmap/Zenmap Execution" is designed to detect the execution of the Nmap and Zenmap utilities within a Windows environment. Nmap is a widely used network scanning tool that adversaries can leverage to enumerate live hosts, open ports, and services running on remote machines. The rule specifically looks for process creation events where the executable paths end with `nmap.exe` or `zenmap.exe`, or where the `OriginalFileName` property matches these names. These indicators can signal potentially malicious behavior, especially if executed outside of legitimate administrative tasks or in unusual contexts. 
+  By monitoring these process creation logs, security operations can identify attempts to gather information on network services, which might expose the organization to further exploitation attempts. The logs are pulled from the process creation category, providing critical insights into system behavior and potential unauthorized scanning activities.
+  ### Investigation Steps
+  - Review EDR logs for process creation events related to `nmap.exe` or `zenmap.exe` to determine the context of the execution, including the user account and parent process.
+  - Analyze network traffic logs from the NDR to identify any port scanning activity initiated by the potentially malicious process, including the target IP addresses and ports.
+  - Investigate firewall logs on the NGFW to see if any inbound or outbound connections were made as a result of the Nmap or Zenmap scan.
+  - Check system logs and alerts from AV tools to evaluate if the execution of these tools was flagged, and if any subsequent actions were taken by security control measures.

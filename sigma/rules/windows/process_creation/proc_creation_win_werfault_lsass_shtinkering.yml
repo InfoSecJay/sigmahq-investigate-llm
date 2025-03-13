@@ -1,0 +1,51 @@
+title: Potential Credential Dumping Via WER
+id: 9a4ccd1a-3526-4d99-b980-9f9c5d3a6ff3
+status: test
+description: Detects potential credential dumping via Windows Error Reporting LSASS
+  Shtinkering technique which uses the Windows Error Reporting to dump lsass
+references:
+- https://github.com/deepinstinct/Lsass-Shtinkering
+- https://media.defcon.org/DEF%20CON%2030/DEF%20CON%2030%20presentations/Asaf%20Gilboa%20-%20LSASS%20Shtinkering%20Abusing%20Windows%20Error%20Reporting%20to%20Dump%20LSASS.pdf
+author: '@pbssubhash , Nasreddine Bencherchali'
+date: 2022-12-08
+modified: 2022-12-09
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith: '\Werfault.exe'
+  - OriginalFileName: 'WerFault.exe'
+  selection_cli:
+    ParentUser|contains:     # covers many language settings
+    - 'AUTHORI'
+    - 'AUTORI'
+    User|contains:
+    - 'AUTHORI'
+    - 'AUTORI'
+    CommandLine|contains|all:
+            # Doc: WerFault.exe -u -p <target process> -ip <source process> -s <file mapping handle>
+            # Example: C:\Windows\system32\Werfault.exe -u -p 744 -ip 1112 -s 244
+            # If the source process is not equal to the target process and the target process is LSASS then this is an indication of this technique
+            # Example: If the "-p" points the PID of "lsass.exe" and "-ip" points to a different process than "lsass.exe" then this is a sign of malicious activity
+    - ' -u -p '
+    - ' -ip '
+    - ' -s '
+  filter_lsass:
+    ParentImage: 'C:\Windows\System32\lsass.exe'
+  condition: all of selection_* and not 1 of filter_*
+falsepositives:
+- Windows Error Reporting might produce similar behavior. In that case, check the
+  PID associated with the "-p" parameter in the CommandLine.
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects potential credential dumping activities that exploit Windows Error Reporting (WER) to extract sensitive information from the Local Security Authority Subsystem Service (LSASS) process. Attackers can use the `WerFault.exe` executable with specific command-line parameters to dump LSASS memory, which typically contains passwords and authentication tokens. The rule activates when it identifies instances where `WerFault.exe` is called with the `-p` argument pointing to the PID of the LSASS process and the `-ip` argument pointing to a different source process. It relies primarily on process creation logs to monitor the command line used in the execution context, making it crucial for recognizing unauthorized attempts at credential extraction through this sophisticated method.
+  ### Investigation Steps
+  - Use your EDR tool to review the process creation logs and specifically look for instances where `WerFault.exe` was executed with the command-line parameters `-p`, `-ip`, and `-s`. 
+  - Verify the Parent Image of the detected instance to assess if it has a legitimate context or if it is directly associated with the LSASS process.
+  - Analyze the command-line arguments to determine the PIDs involved; particularly check if the PID specified in the `-p` parameter corresponds to LSASS while the `-ip` points to another process.
+  - Cross-reference with your AV and NGFW logs to see if there are any related alerts or unusual network connections made by the processes involved in the execution to gather more contextual information.

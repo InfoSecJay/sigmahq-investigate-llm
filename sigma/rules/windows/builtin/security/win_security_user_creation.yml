@@ -1,0 +1,33 @@
+title: Local User Creation
+id: 66b6be3d-55d0-4f47-9855-d69df21740ea
+status: test
+description: |
+  Detects local user creation on Windows servers, which shouldn't happen in an Active Directory environment. Apply this Sigma Use Case on your Windows server logs and not on your DC logs.
+references:
+- https://patrick-bareiss.com/detecting-local-user-creation-in-ad-with-sigma/
+author: Patrick Bareiss
+date: 2019-04-18
+modified: 2021-01-17
+tags:
+- attack.persistence
+- attack.t1136.001
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4720
+  condition: selection
+falsepositives:
+- Domain Controller Logs
+- Local accounts managed by privileged account management tools
+level: low
+notes: |
+  ### Technical Context
+  The "Local User Creation" detection rule is designed to identify the creation of local user accounts on Windows servers, an event that is generally not expected in environments governed by Active Directory (AD). The rule specifically looks for Windows Security Event ID 4720, which indicates that a new user account has been created. In a typical AD setup, user account management should occur centrally, and local account creation is often a sign of potential configuration issues or unauthorized activity. 
+  By implementing this Sigma rule, organizations can monitor their Windows server logs for any discrepancies that may indicate malicious behavior or misconfigured accounts. The data sources involved primarily include security logs from Windows servers, making it crucial to apply the rule outside of Domain Controller logs to avoid false positives associated with privileged account management tools.
+  ### Investigation Steps
+  - Review the Windows Security event logs to investigate the specific Event ID 4720 entries, which indicate new local user accounts have been created.
+  - Check for any corresponding process creation events around the same timestamp to identify which application or user initiated the account creation.
+  - Validate the legitimacy of the created accounts by comparing them against a whitelist of expected local accounts or privileges, identifying unauthorized additions.
+  - Correlate the time of the account creation with any other alerts or unusual activities reported by your EDR or NDR solutions to assess any potential security incidents.

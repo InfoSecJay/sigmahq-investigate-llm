@@ -1,0 +1,39 @@
+title: Modify User Shell Folders Startup Value
+id: 9c226817-8dc9-46c2-a58d-66655aafd7dc
+status: test
+description: Detect modification of the startup key to a path where a payload could
+  be stored to be launched during startup
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/9e5b12c4912c07562aec7500447b11fa3e17e254/atomics/T1547.001/T1547.001.md
+author: frack113
+date: 2022-10-01
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1547.001
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject|contains: 'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User
+      Shell Folders'
+    TargetObject|endswith: 'Startup'     # cover Common Startup and Startup
+        # can use Details|contains: path if get too many FP
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The rule "Modify User Shell Folders Startup Value" detects modifications to a specific Windows Registry key that is associated with user shell folder locations, particularly the Startup folder. Attackers may exploit this registry key to set a malicious payload to execute upon user login, thereby aiding in persistence on compromised systems. The detection focuses on registry set operations targeting the path `SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders`, specifically monitoring for any changes that involve the Startup folder. The required data sources for this detection include Windows registry logs that capture changes to registry values.
+  ### Investigation Steps
+   
+  - Review recent registry set logs to identify any changes made to the User Shell Folders Startup value. Note any unusual paths that are not associated with legitimate applications.
+   
+  - Utilize endpoint detection and response (EDR) tools to investigate the associated process activity around the time of the registry modification. Look for any suspicious processes that executed or initiated after the registry change.
+   
+  - Check the execution history of applications on the affected system to see if any unauthorized applications attempted to start during the user login phase. This may provide insight into potential payload execution.
+   
+  - Analyze network traffic logs for any connections made by the affected system after the registry modification. Look for any communications with known malicious domains or IP addresses that could indicate malicious intent.

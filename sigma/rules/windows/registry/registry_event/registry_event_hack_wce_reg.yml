@@ -1,0 +1,31 @@
+title: Windows Credential Editor Registry
+id: a6b33c02-8305-488f-8585-03cb2a7763f2
+status: test
+description: Detects the use of Windows Credential Editor (WCE)
+references:
+- https://www.ampliasecurity.com/research/windows-credentials-editor/
+author: Florian Roth (Nextron Systems)
+date: 2019-12-31
+modified: 2021-11-27
+tags:
+- attack.credential-access
+- attack.t1003.001
+- attack.s0005
+logsource:
+  category: registry_event
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: Services\WCESERVICE\Start
+  condition: selection
+falsepositives:
+- Unknown
+level: critical
+notes: |
+  ### Technical Context
+  The Sigma rule identifies potentially malicious activity associated with the use of Windows Credential Editor (WCE), a tool often used by attackers to manipulate Windows credentials. This rule specifically looks for registry events that indicate a change in the service startup configuration for WCE, specifically targeting the registry path `Services\WCESERVICE\Start`. When this registry path is modified, it suggests that the WCE may be used to harvest or manipulate credentials, potentially opening avenues for lateral movement or privilege escalation within an enterprise environment. The primary data source for this detection is Windows registry event logs, which track changes in the system registry, making them critical for identifying unauthorized or suspicious behavior.
+  ### Investigation Steps
+  - Utilize EDR tools to review process creation logs around the time of the registry change to identify any processes associated with WCE or other suspicious tools.
+  - Query AV logs for any detections related to WCE or its associated processes, assessing the effectiveness of existing endpoint protection.
+  - Search proxy and network traffic logs for unusual outbound connections or patterns that may indicate data exfiltration attempts linked to credential theft.
+  - Examine cloud logs for any unauthorized access attempts or changes to IAM roles and user permissions that might relate back to the use of compromised credentials.

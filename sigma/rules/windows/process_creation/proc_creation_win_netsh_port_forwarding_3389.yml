@@ -1,0 +1,41 @@
+title: RDP Port Forwarding Rule Added Via Netsh.EXE
+id: 782d6f3e-4c5d-4b8c-92a3-1d05fed72e63
+status: test
+description: Detects the execution of netsh to configure a port forwarding of port
+  3389 (RDP) rule
+references:
+- https://www.fireeye.com/blog/threat-research/2019/01/bypassing-network-restrictions-through-rdp-tunneling.html
+author: Florian Roth (Nextron Systems), oscd.community
+date: 2019-01-29
+modified: 2023-02-13
+tags:
+- attack.lateral-movement
+- attack.defense-evasion
+- attack.command-and-control
+- attack.t1090
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\netsh.exe'
+  - OriginalFileName: 'netsh.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - ' i'
+    - ' p'
+    - '=3389'
+    - ' c'
+  condition: all of selection_*
+falsepositives:
+- Legitimate administration activity
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to identify unauthorized port forwarding activities for Remote Desktop Protocol (RDP) via the Netsh command-line utility in Windows environments. Specifically, it detects instances where `netsh.exe` is utilized to set up a port forwarding rule that targets port 3389, the default port for RDP. The detection works by analyzing process creation logs for specific command-line arguments that indicate an attempt to manipulate the RDP connectivity settings. Responders should be aware that legitimate administrative activities may use similar commands, so context is essential during investigations.
+  The rule captures key indicators such as the execution of `netsh.exe` along with command-line parameters that include instructions for port forwarding to port 3389. This can point towards potential lateral movement or command-and-control operations by adversaries attempting to bypass network restrictions.
+  ### Investigation Steps
+  - Investigate the `process_creation` logs in your EDR to identify the source and context of the `netsh.exe` execution, noting the user account associated with the action.
+  - Cross-reference relevant `CommandLine` arguments against your organization's policy to determine if there is legitimate approval for the use of port forwarding to port 3389.
+  - Examine the network traffic logs from the NGFW or NDR to see if there have been any unusual RDP connection attempts initiated on the configured port, especially from external sources.
+  - Review VPN and cloud platform logs (AWS, GCP, Azure) for any unauthorized access attempts that could indicate lateral movement or exploitation following the configuration of the port forwarding rule.

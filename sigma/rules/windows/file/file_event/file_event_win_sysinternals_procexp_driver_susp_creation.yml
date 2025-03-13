@@ -1,0 +1,40 @@
+title: Process Explorer Driver Creation By Non-Sysinternals Binary
+id: de46c52b-0bf8-4936-a327-aace94f94ac6
+status: test
+description: |
+  Detects creation of the Process Explorer drivers by processes other than Process Explorer (procexp) itself.
+  Hack tools or malware may use the Process Explorer driver to elevate privileges, drops it to disk for a few moments, runs a service using that driver and removes it afterwards.
+references:
+- https://learn.microsoft.com/en-us/sysinternals/downloads/process-explorer
+- https://github.com/Yaxser/Backstab
+- https://www.elastic.co/security-labs/stopping-vulnerable-driver-attacks
+- https://news.sophos.com/en-us/2023/04/19/aukill-edr-killer-malware-abuses-process-explorer-driver/
+author: Florian Roth (Nextron Systems)
+date: 2023-05-05
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1068
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|contains: '\PROCEXP'
+    TargetFilename|endswith: '.sys'
+  filter_main_process_explorer:
+    Image|endswith:
+    - '\procexp.exe'
+    - '\procexp64.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Some false positives may occur with legitimate renamed process explorer binaries
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule aims to detect unusual activity involving the creation of Process Explorer driver files by non-Process Explorer binaries. Typically, the legitimate Process Explorer application (procexp.exe or procexp64.exe) creates these driver files for system monitoring and management. However, malicious actors may exploit this functionality by utilizing other tools or malware to elevate their privileges improperly. The rule monitors Windows file event logs for any attempts to create driver files (denoted by the `.sys` extension) that contain 'PROCEXP' in their filename and checks to ensure these creations are not initiated by the legitimate Process Explorer executables. This enables the detection of potential privilege escalation or persistent threats that involve dropping and manipulating these drivers outside of their intended usage.
+  ### Investigation Steps
+  - Review EDR logs for any processes that were active around the time the suspicious driver was created to identify potential malware or unauthorized tools at play.
+  - Investigate the creation event details, focusing on the command-line parameters and parent-child process relationships to gather context on how the driver was initiated.
+  - Check for any related network activity through the NDR to identify communication to known malicious IP addresses or domains linked to potential exploitation.
+  - Examine cloud platform logs (if applicable) to see if there are any connections between the suspicious process and any cloud resources that might suggest a broader infrastructure compromise.

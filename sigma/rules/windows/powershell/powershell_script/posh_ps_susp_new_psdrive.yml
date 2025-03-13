@@ -1,0 +1,38 @@
+title: Suspicious New-PSDrive to Admin Share
+id: 1c563233-030e-4a07-af8c-ee0490a66d3a
+status: test
+description: Adversaries may use to interact with a remote network share using Server
+  Message Block (SMB). The adversary may then perform actions as the logged-on user.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1021.002/T1021.002.md#atomic-test-2---map-admin-share-powershell
+- https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/new-psdrive?view=powershell-7.2
+author: frack113
+date: 2022-08-13
+tags:
+- attack.lateral-movement
+- attack.t1021.002
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - 'New-PSDrive'
+    - '-psprovider '
+    - 'filesystem'
+    - '-root '
+    - '\\\\'
+    - '$'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects potentially malicious usage of the `New-PSDrive` PowerShell cmdlet, which can be used by adversaries to establish a connection to a remote network share via the Server Message Block (SMB) protocol. The cmdlet creates a new drive that maps to a specified folder on this share, effectively allowing the attacker to interact with the remote share as if it were a local resource. Key indicators that the rule looks for include the presence of parameters indicating a filesystem provider, a root that points to a network path (e.g., `\\server\share`), and the use of administrative shares (e.g., `$`). The rule relies on process creation logs with script block logging enabled, capturing the script block text of executed PowerShell scripts.
+  ### Investigation Steps
+  - Review PowerShell execution logs in your EDR solution to identify the context in which the `New-PSDrive` command was executed, focusing on the associated user account and time of execution.
+  - Cross-reference the SMB connections during the same timeframe in your network tools to identify any suspicious file access patterns or unauthorized access to administrative shares.
+  - Examine any command-line arguments and associated processes that executed the PowerShell command to understand if they correlate with known malicious activity or anomalous behavior.
+  - Check relevant system and security event logs in the Windows Event Viewer for any indicators of lateral movement or privilege escalation that may align with the execution of the `New-PSDrive` command.

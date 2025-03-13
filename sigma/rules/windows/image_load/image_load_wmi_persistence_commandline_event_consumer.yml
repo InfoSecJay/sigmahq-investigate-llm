@@ -1,0 +1,32 @@
+title: WMI Persistence - Command Line Event Consumer
+id: 05936ce2-ee05-4dae-9d03-9a391cf2d2c6
+status: test
+description: Detects WMI command line event consumers
+references:
+- https://www.eideon.com/2018-03-02-THL03-WMIBackdoors/
+author: Thomas Patzke
+date: 2018-03-07
+modified: 2021-11-27
+tags:
+- attack.t1546.003
+- attack.persistence
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image: 'C:\Windows\System32\wbem\WmiPrvSE.exe'
+    ImageLoaded|endswith: '\wbemcons.dll'
+  condition: selection
+falsepositives:
+- Unknown (data set is too small; further testing needed)
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets the use of Windows Management Instrumentation (WMI) for persistence through command line event consumers. Specifically, it looks for the process `WmiPrvSE.exe`, which is a legitimate WMI provider service, to load a suspicious DLL named `wbemcons.dll`. WMI is a powerful feature in Windows that can be abused by attackers to maintain persistence on infected systems, allowing them to execute commands or scripts on system events. By monitoring for the loading of specific DLLs within the context of the WMI service, security teams can identify potential indicators of malicious activity that might be attempting to establish unauthorized persistence.
+  The key data source involved in this detection is the image load logs, which provide insight into which processes are executing and what libraries they are loading. Analyzing these logs can help incident responders spot anomalies that suggest the presence of malware or backdoor techniques leveraging WMI.
+  ### Investigation Steps
+  - Investigate the alert in your EDR tool to identify the source and destination processes involved, gathering information on the parent process and any command-line arguments used.
+  - Check the corresponding Windows Event Logs for any WMI-related events, particularly those indicating the creation or modification of WMI event consumer subscriptions.
+  - Utilize your AV or EDR solution to scan the identified DLL (`wbemcons.dll`) for known signatures or other indicators of compromise.
+  - Review network logs for any unusual outbound connections made by the process associated with the alert, which may indicate command and control (C2) activity.

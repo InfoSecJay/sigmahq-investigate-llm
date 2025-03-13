@@ -1,0 +1,35 @@
+title: Powershell Store File In Alternate Data Stream
+id: a699b30e-d010-46c8-bbd1-ee2e26765fe9
+status: test
+description: Storing files in Alternate Data Stream (ADS) similar to Astaroth malware.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1564.004/T1564.004.md
+author: frack113
+date: 2021-09-02
+modified: 2022-12-25
+tags:
+- attack.defense-evasion
+- attack.t1564.004
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_compspec:
+    ScriptBlockText|contains|all:
+    - 'Start-Process'
+    - '-FilePath "$env:comspec" '
+    - '-ArgumentList '
+    - '>'
+  condition: selection_compspec
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the use of PowerShell for storing files in an Alternate Data Stream (ADS), a technique that can be exploited for stealthy malicious activities, similar to those seen in Astaroth malware. The rule specifically monitors for PowerShell script block logs that include the `Start-Process` command invoking the `$env:comspec` environment variable, often used to execute system commands with redirected output into ADS, signified by the presence of the `'>'` operator in the command line. To effectively trigger this detection, it is essential that Script Block Logging is enabled on Windows systems, allowing the collection of detailed logs related to PowerShell execution. 
+  ### Investigation Steps
+  - Review PowerShell script block logs in your EDR solution to identify the specific scripts being executed that triggered the alert.
+  - Check the related process trees to understand the context of the execution, including parent processes and any subsequent child processes that may have been spawned.
+  - Utilize your NGFW or Proxy logs to analyze outbound connections or unusual traffic that may correlate with the detected ADS activity, indicating potential data exfiltration.
+  - Investigate any files stored in ADS by using Windows utilities like `dir /r`, and verify their content to assess whether they contain suspicious or potentially harmful information.

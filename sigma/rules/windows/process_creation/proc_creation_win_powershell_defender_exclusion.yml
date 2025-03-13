@@ -1,0 +1,45 @@
+title: Powershell Defender Exclusion
+id: 17769c90-230e-488b-a463-e05c08e9d48f
+related:
+- id: c1344fa2-323b-4d2e-9176-84b4d4821c88
+  type: similar
+status: test
+description: Detects requests to exclude files, folders or processes from Antivirus
+  scanning using PowerShell cmdlets
+references:
+- https://learn.microsoft.com/en-us/defender-endpoint/configure-process-opened-file-exclusions-microsoft-defender-antivirus
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1562.001/T1562.001.md
+- https://twitter.com/AdamTheAnalyst/status/1483497517119590403
+author: Florian Roth (Nextron Systems)
+date: 2021-04-29
+modified: 2022-05-12
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection1:
+    CommandLine|contains:
+    - 'Add-MpPreference '
+    - 'Set-MpPreference '
+  selection2:
+    CommandLine|contains:
+    - ' -ExclusionPath '
+    - ' -ExclusionExtension '
+    - ' -ExclusionProcess '
+    - ' -ExclusionIpAddress '
+  condition: all of selection*
+falsepositives:
+- Possible Admin Activity
+- Other Cmdlets that may use the same parameters
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activity involving the PowerShell cmdlets `Add-MpPreference` and `Set-MpPreference`. These cmdlets are used to manage Microsoft Defender Antivirus preferences, particularly for excluding files, folders, or processes from scanning. The rule looks for command line arguments that indicate exclusions, such as parameters labeled as `-ExclusionPath`, `-ExclusionExtension`, `-ExclusionProcess`, or `-ExclusionIpAddress`. By monitoring process creation logs in a Windows environment, the rule helps highlight suspicious attempts that could facilitate evasion of antivirus protections, thereby enabling a proactive defense against potential threats.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR tool to identify instances of `Add-MpPreference` or `Set-MpPreference` being executed, paying special attention to the command-line parameters used.
+  - Cross-reference the affected user accounts with the organization's normal user behavior to determine if the actions were typical for that user or indicate possible unauthorized access.
+  - Utilize the AV and security logs to check if any files, folders, or processes that were excluded have been part of previous incidents or alerts, establishing a risk assessment.
+  - Investigate any related network activities via the NDR or Proxy logs, especially around the times of the exclusions to look for signs of command-and-control communications or data exfiltration attempts.

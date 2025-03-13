@@ -1,0 +1,33 @@
+title: Invoke-Obfuscation STDIN+ Launcher - Powershell
+id: 779c8c12-0eb1-11eb-adc1-0242ac120002
+status: test
+description: Detects Obfuscated use of stdin to execute PowerShell
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009      # (Task 25)
+author: Jonathan Cheong, oscd.community
+date: 2020-10-15
+modified: 2024-04-05
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_4104:
+    ScriptBlockText|re: 'cmd.{0,5}(?:/c|/r).+powershell.+(?:\$?\{?input\}?|noexit).+"'
+  condition: selection_4104
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect instances where obfuscated PowerShell commands are executed via standard input (stdin) using a combination of command-line parameters and PowerShell's capabilities. Specifically, it looks for script block logs capturing the invocation of PowerShell with command options such as `/c` or `/r`, indicating that commands are being executed. The rule focuses on identifying patterns in the ScriptBlockText field that suggest obfuscation, particularly those referencing the usage of `input` or the `noexit` parameter. For accurate detection, it requires that Script Block Logging is enabled on the Windows environment where the analysis is conducted, allowing visibility into the executed PowerShell scripts for analysis.
+  ### Investigation Steps
+  - Review the output from EDR for any recent process creation events involving PowerShell, specifically focusing on entries that match the detection criteria outlined by the rule.
+  - Analyze command-line parameters associated with the identified PowerShell execution to determine if they correspond to known obfuscation techniques or malicious usage.
+  - Check Script Block Logging on the affected system to extract details of any obfuscated scripts executed via stdin that may indicate further compromise or lateral movement.
+  - Utilize network logs from the NGFW or Proxy to assess any external communication events triggered by the PowerShell commands, looking for unusual connections or data exfiltration attempts.

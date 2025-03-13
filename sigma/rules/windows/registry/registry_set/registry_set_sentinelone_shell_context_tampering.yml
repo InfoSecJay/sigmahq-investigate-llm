@@ -1,0 +1,39 @@
+title: Potential SentinelOne Shell Context Menu Scan Command Tampering
+id: 6c304b02-06e6-402d-8be4-d5833cdf8198
+status: test
+description: Detects potentially suspicious changes to the SentinelOne context menu
+  scan command by a process other than SentinelOne.
+references:
+- https://mrd0x.com/sentinelone-persistence-via-menu-context/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2024-03-06
+tags:
+- attack.persistence
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\shell\SentinelOneScan\command\'
+  filter_main_sentinelone_default_scan_binary:
+    Details|startswith:
+    - 'C:\Program Files\SentinelOne\Sentinel Agent'
+    - 'C:\Program Files (x86)\SentinelOne\Sentinel Agent'
+    Details|contains: '\SentinelScanFromContextMenu.exe'
+  filter_main_sentinelone_binary:
+    Image|endswith:
+    - 'C:\Program Files\SentinelOne\'
+    - 'C:\Program Files (x86)\SentinelOne\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potential tampering with the SentinelOne context menu scan command in the Windows registry. It specifically looks for modifications targeting the registry path that contains the SentinelOne scan command. To trigger the alert, the rule identifies cases where processes, other than the legitimate SentinelOne application, are altering this registry key. The primary data sources involved in this detection include registry change logs as well as process execution logs, enabling the identification of unauthorized actions taken by potentially malicious applications or actors. 
+  By focusing on key aspects such as the target object and the image paths associated with SentinelOne, the rule aims to proactively identify possible persistence mechanisms or evasion tactics used by attackers attempting to disable or manipulate security tools.
+  ### Investigation Steps
+  - Review the registry change logs for `\shell\SentinelOneScan\command\` to identify any recent modifications and correlate these with associated timestamps from alerts in your SIEM tool.
+  - Use EDR solutions to examine the process execution history around the time of the tampering event to determine what processes were involved and if any unauthorized software is present.
+  - Check antivirus logs for any detected threats or suspicious behavior from processes interacting with SentinelOne's installation directories.
+  - Consult network traffic logs from your NDR solution to identify any anomalous communications or patterns from the process responsible for registry changes.

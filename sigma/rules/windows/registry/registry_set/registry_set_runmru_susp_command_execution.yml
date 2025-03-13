@@ -1,0 +1,59 @@
+title: Potentially Suspicious Command Executed Via Run Dialog Box - Registry
+id: a7df0e9e-91a5-459a-a003-4cde67c2ff5d
+related:
+- id: f9d091f6-f1c7-4873-a24f-050b4a02b4dd
+  type: derived
+status: test
+description: |
+  Detects execution of commands via the run dialog box on Windows by checking values of the "RunMRU" registry key.
+  This technique was seen being abused by threat actors to deceive users into pasting and executing malicious commands, often disguised as CAPTCHA verification steps.
+references:
+- https://medium.com/@ahmed.moh.farou2/fake-captcha-campaign-on-arabic-pirated-movie-sites-delivers-lumma-stealer-4f203f7adabf
+- https://medium.com/@shaherzakaria8/downloading-trojan-lumma-infostealer-through-capatcha-1f25255a0e71
+- https://www.forensafe.com/blogs/runmrukey.html
+- https://redcanary.com/blog/threat-intelligence/intelligence-insights-october-2024/
+author: Ahmed Farouk, Nasreddine Bencherchali
+date: 2024-11-01
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection_key:
+    TargetObject|contains: '\Microsoft\Windows\CurrentVersion\Explorer\RunMRU'
+  selection_powershell_command:
+    Details|contains:
+    - 'powershell'
+    - 'pwsh'
+  selection_powershell_susp_keywords:
+    Details|contains:
+    - ' -e '
+    - ' -ec '
+    - ' -en '
+    - ' -enc '
+    - ' -enco'
+    - 'ftp'
+    - 'Hidden'
+    - 'http'
+    - 'iex'
+    - 'Invoke-'
+  selection_wmic_command:
+    Details|contains: 'wmic'
+  selection_wmic_susp_keywords:
+    Details|contains:
+    - 'shadowcopy'
+    - 'process call create'
+  condition: selection_key and (all of selection_powershell_* or all of selection_wmic_*)
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially suspicious commands executed via the Windows Run dialog box by monitoring changes to the "RunMRU" registry key. Threat actors have been known to manipulate this feature to execute malicious commands disguised as legitimate operations, such as CAPTCHA verifications. The rule focuses on registry activity that includes the "RunMRU" path and looks for key indicators that signify the execution of potentially harmful PowerShell or Windows Management Instrumentation (WMIC) commands. By analyzing command details and parameters that are often abused, such as those containing obfuscation techniques and specific keywords, the rule aims to flag risky behavior that could indicate an ongoing attack.
+  ### Investigation Steps
+  - Utilize EDR tools to search for recent process creations linked to the Run dialog interactions, particularly focusing on entries that correspond to the "RunMRU" registry key. 
+  - Examine command-line arguments and associated network activity to identify any suspicious PowerShell or WMIC commands that may have been executed during the event timeframe.
+  - Review proxy logs for any outbound connections initiated by the identified processes, paying close attention to requests that match suspicious keywords like "ftp" or "http."
+  - Cross-reference with cloud logs in AWS, GCP, or Azure to detect any anomalous API calls or unauthorized access attempts that might correlate with the detected command execution.

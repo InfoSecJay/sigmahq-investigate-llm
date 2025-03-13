@@ -1,0 +1,63 @@
+title: HackTool - Certipy Execution
+id: 6938366d-8954-4ddc-baff-c830b3ba8fcd
+status: test
+description: |
+  Detects Certipy execution, a tool for Active Directory Certificate Services enumeration and abuse based on PE metadata characteristics and common command line arguments.
+references:
+- https://github.com/ly4k/Certipy
+- https://research.ifcr.dk/certipy-4-0-esc9-esc10-bloodhound-gui-new-authentication-and-request-methods-and-more-7237d88061f7
+author: pH-T (Nextron Systems), Sittikorn Sangrattanapitak
+date: 2023-04-17
+modified: 2024-10-08
+tags:
+- attack.discovery
+- attack.credential-access
+- attack.t1649
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\Certipy.exe'
+  - OriginalFileName: 'Certipy.exe'
+  - Description|contains: 'Certipy'
+  selection_cli_commands:
+    CommandLine|contains:
+    - ' account '
+    - ' auth '
+            # - ' ca ' # Too short to be used with just one CLI
+    - ' cert '
+    - ' find '
+    - ' forge '
+    - ' ptt '
+    - ' relay '
+    - ' req '
+    - ' shadow '
+    - ' template '
+  selection_cli_flags:
+    CommandLine|contains:
+    - ' -bloodhound'
+    - ' -ca-pfx '
+    - ' -dc-ip '
+    - ' -kirbi'
+    - ' -old-bloodhound'
+    - ' -pfx '
+    - ' -target'
+    - ' -template'
+    - ' -username '
+    - ' -vulnerable'
+    - 'auth -pfx'
+    - 'shadow auto'
+    - 'shadow list'
+  condition: selection_img or all of selection_cli_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies unauthorized execution of Certipy, a tool designed for enumerating and abusing Active Directory Certificate Services. The rule captures specific characteristics of the Certipy executable, such as its filename and metadata, while also monitoring for particular command-line arguments that indicate its usage. By examining the process creation logs from Windows systems, the rule looks for instances where `Certipy.exe` is executed with commands typically associated with credential extraction, certificate manipulation, or Active Directory interactions. This allows security teams to detect potentially malicious activities aimed at exploiting Active Directory environments.
+  ### Investigation Steps
+  - Use your Endpoint Detection and Response (EDR) tool to search for instances of `Certipy.exe` execution and review the process tree to determine the parent process.
+  - Examine command-line arguments associated with the execution of Certipy by analyzing process creation logs to identify any suspicious parameters or flags.
+  - Correlate findings with logs from Active Directory to assess any unauthorized access attempts or abnormal activities linked to the user executing Certipy.
+  - Review firewall and proxy logs to ensure that there are no outbound connections made to known malicious IPs or domains during or after the execution of Certipy.

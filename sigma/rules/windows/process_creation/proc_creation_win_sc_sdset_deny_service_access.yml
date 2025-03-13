@@ -1,0 +1,50 @@
+title: Deny Service Access Using Security Descriptor Tampering Via Sc.EXE
+id: 99cf1e02-00fb-4c0d-8375-563f978dfd37
+related:
+- id: 98c5aeef-32d5-492f-b174-64a691896d25     # Generic SD tampering
+  type: similar
+- id: a537cfc3-4297-4789-92b5-345bfd845ad0     # Specific Technique
+  type: similar
+status: test
+description: Detects suspicious DACL modifications to deny access to a service that
+  affects critical trustees. This can be used to hide services or make them unstoppable.
+references:
+- https://www.sans.org/blog/red-team-tactics-hiding-windows-services/
+- https://itconnect.uw.edu/tools-services-support/it-systems-infrastructure/msinf/other-help/understanding-sddl-syntax/
+- https://learn.microsoft.com/en-us/windows/win32/secauthz/sid-strings
+author: Jonhnathan Ribeiro, oscd.community
+date: 2020-10-16
+modified: 2023-02-28
+tags:
+- attack.persistence
+- attack.t1543.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_sc:
+  - Image|endswith: '\sc.exe'
+  - OriginalFileName: 'sc.exe'
+  selection_sdset:
+    CommandLine|contains|all:
+    - 'sdset'
+    - 'D;'         # Deny Access
+  selection_trustee:
+    CommandLine|contains:
+    - ';IU'         # Interactively logged-on user
+    - ';SU'         # Service logon user
+    - ';BA'         # Built-in administrators
+    - ';SY'         # Local system
+    - ';WD'         # Everyone
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential security descriptor tampering using the `sc.exe` command-line tool on Windows systems. Specifically, it looks for suspicious modifications to Discretionary Access Control Lists (DACLs) that may deny access to critical system services. When the `sdset` command is used with parameters that indicate denial of access (specifically those starting with 'D;'), such actions might target key trustees such as interactively logged-on users, service logon users, built-in administrators, the local system, or even all users. By closely monitoring process creation events and capturing relevant command-line parameters, this rule enables incident responders to detect and investigate malicious attempts to obscure or disable critical service functions.
+  ### Investigation Steps
+  - Use EDR tools to analyze the process creation logs for instances of `sc.exe`. Pay particular attention to the command-line parameters to identify any recent modifications to service access controls.
+  - Review recent changes to the security descriptor of critical services identified in the detection rule. Investigate which user or service account executed the `sdset` command to modify the DACL.
+  - Check for any related suspicious activity in the Windows Event Logs, specifically focusing on security events that might correlate with the time the modifications were made.
+  - Leverage historical data from the SIEM to correlate any detected anomalies with other indicators of compromise, such as unusual login patterns or unexpected service states.

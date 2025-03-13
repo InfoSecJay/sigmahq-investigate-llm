@@ -1,0 +1,38 @@
+title: Invoke-Obfuscation RUNDLL LAUNCHER - PowerShell
+id: e6cb92b4-b470-4eb8-8a9d-d63e8583aae0
+status: test
+description: Detects Obfuscated Powershell via RUNDLL LAUNCHER
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009     # (Task 23)
+author: Timur Zinniatullin, oscd.community
+date: 2020-10-18
+modified: 2022-11-29
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_4104:
+    ScriptBlockText|contains|all:
+    - 'rundll32.exe'
+    - 'shell32.dll'
+    - 'shellexec_rundll'
+    - 'powershell'
+  condition: selection_4104
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect obfuscated PowerShell commands executed through the RUNDLL launcher. The detection mechanism focuses on identifying specific patterns in PowerShell Script Block logging, which requires that Script Block Logging is enabled on Windows systems. The rule looks for instances where PowerShell utilizes `rundll32.exe` in conjunction with `shell32.dll` and the `shellexec_rundll` function, indicating potential malicious behavior. By monitoring these components, the rule can help identify attempts to evade detection through obfuscation techniques commonly used by threat actors to execute PowerShell scripts covertly.
+  The technical data sources involved in this detection include Script Block logs from PowerShell, which capture the commands executed within PowerShell environments. The use of these logs allows security teams to gain insights into potentially harmful activities that leverage Windows' legitimate functionalities, ultimately enabling them to respond to threats that utilize these tactics in their execution chains.
+  ### Investigation Steps
+  - Review recent PowerShell Script Block logs for activities correlating to the RUNDLL launcher and the keywords specified in the rule documentation.
+  - Utilize EDR tools to analyze the process tree related to the detected PowerShell execution, focusing on the lineage of `rundll32.exe` and its parent processes.
+  - Investigate network logs and proxy traffic for any outbound connections initiated during or after the obfuscated PowerShell execution to identify potential data exfiltration attempts.
+  - Check for any recent changes in system configurations, scheduled tasks, or new services installed that may have been executed as part of the obfuscation process.

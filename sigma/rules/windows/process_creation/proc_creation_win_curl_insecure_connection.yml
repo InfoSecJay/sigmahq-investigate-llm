@@ -1,0 +1,32 @@
+title: Insecure Transfer Via Curl.EXE
+id: cb9cc1d1-e84e-4bdc-b7ad-c31b1b7908ec
+status: test
+description: Detects execution of "curl.exe" with the "--insecure" flag.
+references:
+- https://curl.se/docs/manpage.html
+author: X__Junior (Nextron Systems)
+date: 2023-06-30
+tags:
+- attack.execution
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith: '\curl.exe'
+  - OriginalFileName: 'curl.exe'
+  selection_cli:
+  - CommandLine|re: '\s-k\s'
+  - CommandLine|contains: '--insecure'
+  condition: all of selection_*
+falsepositives:
+- Access to badly maintained internal or development systems
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of `curl.exe` with the `--insecure` flag, which indicates that the user is willing to accept connections to SSL sites without verifying the server's certificate. This flag is commonly used by attackers to bypass SSL verification when transferring data, potentially leading to data exfiltration or man-in-the-middle attacks. The rule analyzes process creation logs on Windows systems, focusing on entries where `curl.exe` is executed with the flag present in the command-line arguments. The detection leverages the combination of process name checking, original file naming, and specific command-line pattern matching to identify potentially malicious activity.
+  ### Investigation Steps
+  - Review the process creation logs for instances of `curl.exe` invoked with the `--insecure` flag to identify the user and system involved in the execution.
+  - Utilize the EDR tool to analyze the execution context, including parent process relationships and user behavior leading up to the `curl.exe` execution.
+  - Examine any associated network activity using NDR or firewall logs to determine if any suspicious or unauthorized outbound connections were established.
+  - Check for sensitive data exposure by querying cloud storage or file-sharing services to ascertain if files were transferred during the `curl` execution.

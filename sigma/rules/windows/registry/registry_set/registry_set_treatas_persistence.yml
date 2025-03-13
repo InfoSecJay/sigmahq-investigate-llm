@@ -1,0 +1,46 @@
+title: COM Hijacking via TreatAs
+id: dc5c24af-6995-49b2-86eb-a9ff62199e82
+status: test
+description: Detect modification of TreatAs key to enable "rundll32.exe -sta" command
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/40b77d63808dd4f4eafb83949805636735a1fd15/atomics/T1546.015/T1546.015.md
+- https://www.youtube.com/watch?v=3gz1QmiMhss&t=1251s
+author: frack113
+date: 2022-08-28
+modified: 2023-08-17
+tags:
+- attack.persistence
+- attack.t1546.015
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|endswith: 'TreatAs\(Default)'
+  filter_office:
+    Image|startswith: 'C:\Program Files\Common Files\Microsoft Shared\ClickToRun\'
+    Image|endswith: '\OfficeClickToRun.exe'
+  filter_office2:
+    Image: 'C:\Program Files (x86)\Microsoft Office\root\integration\integrator.exe'
+  filter_svchost:
+        # Example of target object by svchost
+        # TargetObject: HKLM\SOFTWARE\Microsoft\MsixRegistryCompatibility\Package\Microsoft.Paint_11.2208.6.0_x64__8wekyb3d8bbwe\User\SOFTWARE\Classes\CLSID\{0003000A-0000-0000-C000-000000000046}\TreatAs\(Default)
+        # TargetObject: HKU\S-1-5-21-1000000000-000000000-000000000-0000_Classes\CLSID\{0003000A-0000-0000-C000-000000000046}\TreatAs\(Default)
+    Image: 'C:\Windows\system32\svchost.exe'
+  filter_misexec:
+        # This FP has been seen during installation/updates
+    Image:
+    - 'C:\Windows\system32\msiexec.exe'
+    - 'C:\Windows\SysWOW64\msiexec.exe'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Legitimate use
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on detecting potential COM hijacking attempts via the modification of the "TreatAs" registry key, which could allow malicious commands to execute under the guise of legitimate applications. Specifically, the rule identifies changes made to the "TreatAs" registry values associated with COM objects, particularly through processes like `rundll32.exe`, which may be manipulated to run arbitrary code. The relevant log sources include Windows registry set events that monitor changes to registry keys, specifically looking for the "TreatAs(Default)" entries tied to known applications. By analyzing these key modifications, the rule aims to flag risk scenarios where potentially malicious activity, such as using `svchost.exe` or `msiexec.exe` to execute harmful payloads, may occur.
+  ### Investigation Steps
+  - Utilize EDR tools to review process creation and command-line arguments for instances of `rundll32.exe` that may indicate suspicious behavior, particularly those linked to registry modifications.
+  - Investigate recent registry changes in the Windows event logs to determine if unauthorized modifications were made to the "TreatAs" key, especially in relation to critical applications listed in the rule.
+  - Query the AV and NGFW logs for any flagged activities that coincide with the timestamps of the detected registry changes to assess whether the alteration was linked to known malware or attack signatures.
+  - Access cloud console logs if applicable, particularly for applications running in a cloud environment, to check for any changes in behavior or unusual settings that might correlate with the detected activity.

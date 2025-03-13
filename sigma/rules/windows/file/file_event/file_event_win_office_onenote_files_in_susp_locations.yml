@@ -1,0 +1,42 @@
+title: OneNote Attachment File Dropped In Suspicious Location
+id: 7fd164ba-126a-4d9c-9392-0d4f7c243df0
+status: test
+description: Detects creation of files with the ".one"/".onepkg" extension in suspicious
+  or uncommon locations. This could be a sign of attackers abusing OneNote attachments
+references:
+- https://www.bleepingcomputer.com/news/security/hackers-now-use-microsoft-onenote-attachments-to-spread-malware/
+- https://blog.osarmor.com/319/onenote-attachment-delivers-asyncrat-malware/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-22
+modified: 2023-09-19
+tags:
+- attack.defense-evasion
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|contains:
+            # Note: add more common locations for drops such as download folders and the like. Or baseline legitimate locations and alert on everything else
+    - '\AppData\Local\Temp\'
+    - '\Users\Public\'
+    - '\Windows\Temp\'
+    - ':\Temp\'
+    TargetFilename|endswith:
+    - '.one'
+    - '.onepkg'
+  filter_main_onenote:
+    Image|contains: ':\Program Files\Microsoft Office\'
+    Image|endswith: '\ONENOTE.EXE'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Legitimate usage of ".one" or ".onepkg" files from those locations
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying the creation of OneNote files with the extensions ".one" or ".onepkg" in locations that are considered suspicious or uncommon. Attackers may exploit these file types for malicious purposes, such as delivering malware, by dropping them in directories like `C:\AppData\Local\Temp\`, `C:\Users\Public\`, or `C:\Windows\Temp\`. The rule leverages file event logs to monitor for these file creations, alongside filtering events specifically related to the OneNote application (`ONENOTE.EXE`). By analyzing the target filename and its directory path, the rule seeks to highlight potentially malicious behavior while minimizing false positives from legitimate usage.
+  ### Investigation Steps
+  - Review file creation logs in the EDR to confirm whether any OneNote files were indeed dropped in the identified suspicious directories.
+  - Examine the command-line parameters and parent process of the OneNote process (`ONENOTE.EXE`) to determine if it was initiated by an unlikely or unauthorized source.
+  - Utilize the SIEM to correlate the alert with other security events across the environment, looking for any unusual patterns or additional indicators of compromise.
+  - Inspect relevant proxy and network logs to identify if any outbound connections were made by the OneNote application that could suggest data exfiltration or command-and-control activity.

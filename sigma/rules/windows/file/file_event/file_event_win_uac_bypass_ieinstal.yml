@@ -1,0 +1,35 @@
+title: UAC Bypass Using IEInstal - File
+id: bdd8157d-8e85-4397-bb82-f06cc9c71dbb
+status: test
+description: Detects the pattern of UAC Bypass using IEInstal.exe (UACMe 64)
+references:
+- https://github.com/hfiref0x/UACME
+author: Christian Burkard (Nextron Systems)
+date: 2021-08-30
+modified: 2022-10-09
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    Image: 'C:\Program Files\Internet Explorer\IEInstal.exe'
+    TargetFilename|startswith: 'C:\Users\'
+    TargetFilename|contains: '\AppData\Local\Temp\'
+    TargetFilename|endswith: 'consent.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential User Account Control (UAC) bypass attempts using the application `IEInstal.exe` associated with the UACMe 64 tool. UAC bypass is a technique used by attackers to gain elevated privileges without proper authorization. The rule works by monitoring file event logs specifically for instances where `IEInstal.exe` is executed and targeting files that are created or manipulated within user directories, particularly those that lead to `consent.exe` located in the Temp directory. By analyzing these file creation events, the detection rule aims to flag any suspicious behavior indicative of privilege escalation attempts that often circumvent security protocols.
+  The primary data sources involved in this detection are Windows file event logs, which record the creation and modification of files along with their paths. Responders should be aware that false positives may arise due to legitimate software behaviors or installations, necessitating further investigation.
+  ### Investigation Steps
+  - Query the EDR for recent activities involving `IEInstal.exe` and check the process tree to identify the parent process and behavior leading to its execution.
+  - Review user and application logs to trace any legitimate actions performed in conjunction with `consent.exe` within the specified Temp directory, looking for unusual patterns.
+  - Correlate findings with firewall logs to determine if any outbound connections were initiated around the same time, indicating potentially malicious activity.
+  - Consult the SIEM for alerts and historical data concerning privilege escalation attempts, especially those involving other known UAC bypass techniques across the user environment.

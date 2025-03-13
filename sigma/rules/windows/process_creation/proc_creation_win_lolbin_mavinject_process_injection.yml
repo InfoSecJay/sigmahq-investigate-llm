@@ -1,0 +1,46 @@
+title: Mavinject Inject DLL Into Running Process
+id: 4f73421b-5a0b-4bbf-a892-5a7fb99bea66
+related:
+- id: 17eb8e57-9983-420d-ad8a-2c4976c22eb8
+  type: obsolete
+status: test
+description: Detects process injection using the signed Windows tool "Mavinject" via
+  the "INJECTRUNNING" flag
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1218/T1218.md
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1056.004/T1056.004.md
+- https://posts.specterops.io/mavinject-exe-functionality-deconstructed-c29ab2cf5c0e
+- https://twitter.com/gN3mes1s/status/941315826107510784
+- https://reaqta.com/2017/12/mavinject-microsoft-injector/
+- https://twitter.com/Hexacorn/status/776122138063409152      # Deleted tweet
+- https://github.com/SigmaHQ/sigma/issues/3742
+- https://github.com/keyboardcrunch/SentinelOne-ATTACK-Queries/blob/6a228d23eefe963ca81f2d52f94b815f61ef5ee0/Tactics/DefenseEvasion.md#t1055-process-injection
+author: frack113, Florian Roth
+date: 2021-07-12
+modified: 2022-12-05
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1055.001
+- attack.t1218.013
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains: ' /INJECTRUNNING '
+  filter:
+    ParentImage: 'C:\Windows\System32\AppVClient.exe'     # This parent is the expected process to launch "mavinject"
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Mavinject Inject DLL Into Running Process" is designed to detect the use of the signed Windows tool "Mavinject," specifically when used with the `/INJECTRUNNING` command line parameter. This tool is typically employed for process injection—a technique that can be utilized by both legitimate applications and malicious actors to inject code into the memory space of an existing process. The detection mechanism focuses on process creation logs captured from Windows systems, looking for instances where the command line of a new process contains the target injection command while filtering out instances where the known parent process, `AppVClient.exe`, was involved, as this is a legitimate behavior.
+  By identifying unexpected usage of the Mavinject tool outside its intended context, analysts can proactively flag potential security incidents that may indicate attempts to evade detection through process injection or escalate privileges. This rule allows SOC teams to focus on potentially harmful activities and respond swiftly by analyzing the corresponding alerts generated from the configured log sources.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR platform to identify the specific instance of Mavinject execution, noting the timestamp and user context. This will help determine the legitimacy of the process.
+  - Inspect the memory space of the target process to find any injected DLLs. Utilize memory analysis tools to analyze potential indicators of compromise resulting from the injection.
+  - Correlate the event with other logs, such as network activity or file access logs from the NGFW or Proxy, to detect any related malicious behaviors or lateral movement attempts.
+  - Check for any additional alerts related to privilege escalation or other process injection techniques, ensuring a comprehensive view of the incident to accurately assess and respond to the threat.

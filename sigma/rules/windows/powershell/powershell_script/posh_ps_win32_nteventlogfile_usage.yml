@@ -1,0 +1,41 @@
+title: Potentially Suspicious Call To Win32_NTEventlogFile Class - PSScript
+id: e2812b49-bae0-4b21-b366-7c142eafcde2
+status: test
+description: Detects usage of the WMI class "Win32_NTEventlogFile" in a potentially
+  suspicious way (delete, backup, change permissions, etc.) from a PowerShell script
+references:
+- https://learn.microsoft.com/en-us/previous-versions/windows/desktop/legacy/aa394225(v=vs.85)
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-07-13
+tags:
+- attack.defense-evasion
+logsource:
+  category: ps_script
+  product: windows
+  definition: bade5735-5ab0-4aa7-a642-a11be0e40872
+detection:
+  selection_class:
+    ScriptBlockText|contains: 'Win32_NTEventlogFile'
+  selection_function:
+    ScriptBlockText|contains:
+    - '.BackupEventlog('
+    - '.ChangeSecurityPermissions('
+    - '.ChangeSecurityPermissionsEx('
+    - '.ClearEventLog('
+    - '.Delete('
+    - '.DeleteEx('
+    - '.Rename('
+    - '.TakeOwnerShip('
+    - '.TakeOwnerShipEx('
+  condition: all of selection_*
+falsepositives:
+- Legitimate administration and backup scripts
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially suspicious actions performed on the "Win32_NTEventlogFile" class through PowerShell scripts. It focuses on specific functions commonly associated with event log management, such as backing up, deleting, and modifying permissions of event logs. When a PowerShell script executes a command that includes any of the specified function calls—like `.BackupEventlog()`, `.ClearEventLog()`, or `.Delete()`—it raises an alert for further investigation. The rule leverages process execution logs that capture detailed PowerShell script execution activities, specifically monitoring the ScriptBlockText field for the presence of these functions in conjunction with the Win32_NTEventlogFile class.
+  ### Investigation Steps
+  - Review the PowerShell script execution logs via your EDR to extract additional context regarding the specific command executed and the user context under which it ran.  
+  - Check for matching events in your SIEM that document user activities associated with the affected systems before and after the script execution to look for unusual patterns.  
+  - Utilize AV logs to review any alerts related to PowerShell activity, as benign scripts can sometimes be flagged by security solutions during monitoring.  
+  - Monitor relevant cloud logs (if applicable) for any administrative changes made from the elevation of privileges that may coincide with the timestamps of the detected scripts to detect potential misuse.

@@ -1,0 +1,34 @@
+title: TeamViewer Log File Deleted
+id: b1decb61-ed83-4339-8e95-53ea51901720
+status: test
+description: Detects the deletion of the TeamViewer log files which may indicate an
+  attempt to destroy forensic evidence
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1070.004/T1070.004.md
+author: frack113
+date: 2022-01-16
+modified: 2023-02-15
+tags:
+- attack.defense-evasion
+- attack.t1070.004
+logsource:
+  product: windows
+  category: file_delete
+detection:
+  selection:
+    TargetFilename|contains: '\TeamViewer_'
+    TargetFilename|endswith: '.log'
+  filter:
+    Image: C:\Windows\system32\svchost.exe
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the deletion of TeamViewer log files on Windows systems, an action that could indicate an attempt to destroy forensic evidence during a security incident. It specifically looks for file deletion events where the file name contains "TeamViewer_" and ends with ".log". Such logs are crucial for understanding user activity and remote sessions, and their removal may signify malicious intent. The data source involved in this detection is primarily file delete logs collected from Windows systems, specifically filtering on actions performed by `svchost.exe`, which is a common Windows process.
+  ### Investigation Steps
+  - Investigate the file deletion logs in the EDR for any recent deletions of TeamViewer log files. Look for timestamps and the processes associated with these deletions to identify suspicious activity.
+  - Check the command-line arguments of the `svchost.exe` process and related subprocesses to understand the context in which the log files were deleted. This may provide insight into whether legitimate processes were manipulated.
+  - Analyze user activity in the proxy logs during the time frame of the deletion to identify any unusual remote access or data transmission, which could correlate with potential unauthorized actions.
+  - Review authentication logs on the affected system for any abnormal login attempts or access patterns that coincide with the deletion events to establish a timeline of user behavior.

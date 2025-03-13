@@ -1,0 +1,51 @@
+title: File In Suspicious Location Encoded To Base64 Via Certutil.EXE
+id: 82a6714f-4899-4f16-9c1e-9a333544d4c3
+related:
+- id: e62a9f0c-ca1e-46b2-85d5-a6da77f86d1a
+  type: derived
+status: test
+description: Detects the execution of certutil with the "encode" flag to encode a
+  file to base64 where the files are located in potentially suspicious locations
+references:
+- https://www.virustotal.com/gui/file/35c22725a92d5cb1016b09421c0a6cdbfd860fd4778b3313669b057d4a131cb7/behavior
+- https://www.virustotal.com/gui/file/427616528b7dbc4a6057ac89eb174a3a90f7abcf3f34e5a359b7a910d82f7a72/behavior
+- https://www.virustotal.com/gui/file/34de4c8beded481a4084a1fd77855c3e977e8ac643e5c5842d0f15f7f9b9086f/behavior
+- https://www.virustotal.com/gui/file/4abe1395a09fda06d897a9c4eb247278c1b6cddda5d126ce5b3f4f499e3b8fa2/behavior
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-15
+modified: 2024-03-05
+tags:
+- attack.defense-evasion
+- attack.t1027
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\certutil.exe'
+  - OriginalFileName: 'CertUtil.exe'
+  selection_cli:
+    CommandLine|contains|windash: '-encode'
+  selection_extension:
+    CommandLine|contains:
+            # Note: Add more suspicious locations to increase coverage
+    - '\AppData\Roaming\'
+    - '\Desktop\'
+    - '\Local\Temp\'
+    - '\PerfLogs\'
+    - '\Users\Public\'
+    - '\Windows\Temp\'
+    - '$Recycle.Bin'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the use of `certutil.exe`, a legitimate Windows utility often abused for encoding files into base64 format. The rule specifically monitors for instances where `certutil.exe` is invoked with the `-encode` flag, particularly when the target files are located in suspicious directories, such as AppData, Desktop, or Temp folders. These locations are often targeted by attackers to hide malicious activities. The rule leverages process creation logs to capture relevant details about the executed commands, including the command-line parameters and the paths of the files involved.
+  The aim is to alert security analysts to potentially malicious behavior related to obfuscation techniques commonly used in malware operations. By focusing on the execution of `certutil.exe` in specific contexts, the rule helps in recognizing patterns that may indicate attempts to evade detection and manipulate files silently.
+  ### Investigation Steps
+  - Query the EDR solution to identify the specific user context and process tree associated with the execution of `certutil.exe` to determine whether it was part of a legitimate operation or a malicious attempt.
+  - Investigate command-line arguments in the process creation logs to analyze the specific files being encoded into base64, paying attention to any anomalous file types or names.
+  - Review user activity logs, particularly for the specified suspicious locations, to see if there are any preceding actions indicating the potential compromise or misuse of those directories.
+  - Check web proxy logs for suspicious outbound traffic that may correlate with the use of encoded files, looking for data exfiltration attempts or connections to known malicious domains.

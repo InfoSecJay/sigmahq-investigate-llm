@@ -1,0 +1,40 @@
+title: Critical Hive In Suspicious Location Access Bits Cleared
+id: 39f919f3-980b-4e6f-a975-8af7e507ef2b
+related:
+- id: 839dd1e8-eda8-4834-8145-01beeee33acd
+  type: obsolete
+status: test
+description: |
+  Detects events from the Kernel-General ETW indicating that the access bits of a hive with a system like hive name located in the temp directory have been reset.
+  This occurs when an application tries to access a hive and the hive has not be recognized since the last 7 days (by default).
+  Registry hive dumping utilities such as QuarksPwDump were seen emitting this behavior.
+references:
+- https://github.com/nasbench/Misc-Research/blob/b20da2336de0f342d31ef4794959d28c8d3ba5ba/ETW/Microsoft-Windows-Kernel-General.md
+author: Florian Roth (Nextron Systems)
+date: 2017-05-15
+modified: 2024-01-18
+tags:
+- attack.credential-access
+- attack.t1003.002
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    EventID: 16
+    Provider_Name: Microsoft-Windows-Kernel-General
+    HiveName|contains:
+    - '\Temp\SAM'
+    - '\Temp\SECURITY'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify suspicious activity involving the Windows registry, specifically targeting access to registry hive files named 'SAM' and 'SECURITY' located in the temp directory. When an application attempts to access these registry hives and the access bits are reset, it may indicate malicious activity, such as the use of registry hive dumping tools like QuarksPwDump. The rule leverages Kernel-General Event Tracing for Windows (ETW) events to detect these actions. Importantly, the event must have occurred after the hive has not been recognized for at least seven days, which is a common characteristic of these types of attacks. This detection is crucial for identifying attempts to escalate privileges or access sensitive information through unauthorized means.
+  ### Investigation Steps
+  - Utilize EDR tools to investigate the process associated with the Event ID 16 to determine if it is a legitimate system process or a potentially malicious application.
+  - Review the command-line parameters and execution context of the application to identify any unusual flags or parameters that may indicate the use of a registry dumping utility.
+  - Check the Windows security event logs for any related failed login or access attempts that correlate with the timing of the suspicious hive access.
+  - Collect and analyze any associated logs from AV solutions to identify if there are any known malicious signatures or behaviors related to the detected event.

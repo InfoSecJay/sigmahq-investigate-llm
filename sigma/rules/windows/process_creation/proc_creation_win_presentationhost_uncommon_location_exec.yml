@@ -1,0 +1,39 @@
+title: XBAP Execution From Uncommon Locations Via PresentationHost.EXE
+id: d22e2925-cfd8-463f-96f6-89cec9d9bc5f
+status: test
+description: |
+  Detects the execution of ".xbap" (Browser Applications) files via PresentationHost.EXE from an uncommon location. These files can be abused to run malicious ".xbap" files any bypass AWL
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Presentationhost/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-01
+modified: 2023-11-09
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\presentationhost.exe'
+  - OriginalFileName: 'PresentationHost.exe'
+  selection_cli:
+    CommandLine|contains: '.xbap'
+  filter_main_generic:
+    CommandLine|contains:     # Filter out legitimate locations if you find them
+    - ' C:\Windows\'
+    - ' C:\Program Files'
+  condition: all of selection* and not 1 of filter_main_*
+falsepositives:
+- Legitimate ".xbap" being executed via "PresentationHost"
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the execution of ".xbap" (XML Browser Application) files through `PresentationHost.EXE` from uncommon file locations on Windows systems. The rule specifically checks for processes that are initiated using `PresentationHost.EXE`, a legitimate application component of the .NET framework responsible for hosting XBAP applications. Notably, these applications can be exploited to execute malicious code, particularly if they originate from unusual directories, bypassing whitelists that may restrict the execution of potentially harmful scripts. The rule utilizes process creation logs to monitor invocations of `PresentationHost.EXE` along with the command line used to start the process, filtering out commands that are associated with common and safe paths like `C:\Windows\` or `C:\Program Files`.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR system to find instances of `PresentationHost.EXE` executing from non-standard directories. Pay particular attention to the paths listed in the alerts.
+  - Analyze the command line parameters associated with the suspicious executions to identify any malicious indicators or obfuscation techniques used within the XBAP file.
+  - Cross-reference the originating IP addresses and connections in your proxy or network logs to check for unusual external communications connected to the execution events.
+  - Conduct a reputation check on the specific `.xbap` files being executed to see if any are known malware or related to previous security incidents.

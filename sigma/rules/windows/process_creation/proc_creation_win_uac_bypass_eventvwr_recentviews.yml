@@ -1,0 +1,38 @@
+title: UAC Bypass Using Event Viewer RecentViews
+id: 30fc8de7-d833-40c4-96b6-28319fbc4f6c
+related:
+- id: 63e4f530-65dc-49cc-8f80-ccfa95c69d43
+  type: similar
+status: test
+description: Detects the pattern of UAC Bypass using Event Viewer RecentViews
+references:
+- https://twitter.com/orange_8361/status/1518970259868626944
+- https://lolbas-project.github.io/lolbas/Binaries/Eventvwr/#execute
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-11-22
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_path:
+        # Example: ysoserial.exe -o raw -f BinaryFormatter - g DataSet -c calc > RecentViews & copy RecentViews %LOCALAPPDATA%\Microsoft\EventV~1\RecentViews & eventvwr.exe
+    CommandLine|contains:
+    - '\Event Viewer\RecentViews'
+    - '\EventV~1\RecentViews'
+  selection_redirect:
+    CommandLine|contains: '>'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying a technique used to bypass User Account Control (UAC) on Windows systems through manipulation of the Event Viewer RecentViews. The rule examines process creation logs for command-line parameters that reference paths associated with the RecentViews feature of the Event Viewer, specifically looking for input that redirects output to these paths. The key indicators include command-line invocations that contain `\Event Viewer\RecentViews` or `\EventV~1\RecentViews`, as well as commands that include output redirection operators (e.g., `>`). By analyzing these patterns, the rule can help to detect potential privilege escalation attempts that may be indicative of malicious activity.
+  ### Investigation Steps
+  - Review the EDR logs to identify any recent process creations that match the suspicious command-line patterns outlined in the detection rule.
+  - Use the SIEM to correlate alerts with additional contextual information, such as user activity and other potential security events that occurred around the same time.
+  - Investigate the affected host's execution history for any recent use of the Event Viewer or similar applications that could relate to the UAC bypass mechanism.
+  - Check for any associated logs from Antivirus software or firewalls that may indicate unusual behavior, network connections, or data exfiltration attempts originating from the affected system.

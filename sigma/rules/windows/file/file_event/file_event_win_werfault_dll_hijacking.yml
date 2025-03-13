@@ -1,0 +1,40 @@
+title: Creation of WerFault.exe/Wer.dll in Unusual Folder
+id: 28a452f3-786c-4fd8-b8f2-bddbe9d616d1
+status: test
+description: Detects the creation of a file named "WerFault.exe" or "wer.dll" in an
+  uncommon folder, which could be a sign of WerFault DLL hijacking.
+references:
+- https://www.bleepingcomputer.com/news/security/hackers-are-now-hiding-malware-in-windows-event-logs/
+author: frack113
+date: 2022-05-09
+modified: 2024-11-28
+tags:
+- attack.persistence
+- attack.defense-evasion
+- attack.t1574.001
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|endswith:
+    - '\WerFault.exe'
+    - '\wer.dll'
+  filter_main_known_locations:
+    TargetFilename|startswith:
+    - 'C:\Windows\SoftwareDistribution\'
+    - 'C:\Windows\System32\'
+    - 'C:\Windows\SysWOW64\'
+    - 'C:\Windows\WinSxS\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies suspicious activity involving the creation of "WerFault.exe" or "wer.dll" files in directories that are uncommon for these executable and DLL files. Normally, these files reside in well-known system folders like "C:\Windows\System32" or "C:\Windows\SoftwareDistribution." By monitoring the file creation events through file event logs, this rule aims to catch potential DLL hijacking attempts, where an adversary might place malicious versions of these files in atypical locations to evade detection. This behavior could indicate an unauthorized modification as part of a larger persistence or defense evasion tactic.
+  ### Investigation Steps
+  - Investigate the specific file creation event through your EDR tool by checking the file path, timestamp, and associated process to see if legitimate applications were involved.
+  - Review any associated command-line arguments used during the creation of "WerFault.exe" or "wer.dll" to determine if they were launched by known, trusted applications or processes.
+  - Correlate with system event logs to look for any abnormal behavior preceding or following the file creation, which may indicate a larger compromise.
+  - Check proxy and network logs for unusual outbound connections from the processes linked with the created files to assess potential data exfiltration or command and control (C2) communications.

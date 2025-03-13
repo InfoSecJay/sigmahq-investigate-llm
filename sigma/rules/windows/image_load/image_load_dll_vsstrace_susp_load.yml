@@ -1,0 +1,51 @@
+title: Potentially Suspicious Volume Shadow Copy Vsstrace.dll Load
+id: 48bfd177-7cf2-412b-ad77-baf923489e82
+related:
+- id: 333cdbe8-27bb-4246-bf82-b41a0dca4b70     # vss_ps.dll
+  type: similar
+- id: 37774c23-25a1-4adb-bb6d-8bb9fd59c0f8     # vssapi.dll
+  type: similar
+status: test
+description: Detects the image load of VSS DLL by uncommon executables
+references:
+- https://github.com/ORCx41/DeleteShadowCopies
+author: frack113
+date: 2023-02-17
+modified: 2025-01-19
+tags:
+- attack.defense-evasion
+- attack.impact
+- attack.t1490
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\vsstrace.dll'
+  filter_main_windows:
+  - Image:
+    - 'C:\Windows\explorer.exe'
+    - 'C:\Windows\ImmersiveControlPanel\SystemSettings.exe'
+  - Image|startswith:
+    - 'C:\Windows\System32\'
+    - 'C:\Windows\SysWOW64\'
+    - 'C:\Windows\Temp\{'           # Installers
+    - 'C:\Windows\WinSxS\'
+    - 'C:\ProgramData\Package Cache\{'            # Microsoft Visual Redistributable installer  VC_redist/vcredist EXE
+  filter_optional_program_files:
+        # When using this rule in your environment replace the "Program Files" folder by the exact applications you know use this. Examples would be software such as backup solutions
+    Image|startswith:
+    - 'C:\Program Files\'
+    - 'C:\Program Files (x86)\'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially suspicious loading of the `vsstrace.dll` by uncommon executables in a Windows environment. Specifically, it focuses on identifying instances where this DLL is loaded by processes that are not typically associated with this library. The rule utilizes image load events as the main data source, particularly monitoring for executables like `explorer.exe` and `SystemSettings.exe` among others, to determine whether `vsstrace.dll` is being loaded from unusual paths. By filtering out typical usage scenarios, this detection helps pinpoint potentially malicious behavior, such as attempts to manipulate volume shadow copies – a technique often used to evade detection during data exfiltration or ransomware activity.
+  ### Investigation Steps
+  - Utilize your EDR tool to search for the specific process and the associated `vsstrace.dll` load events, focusing on the parent process and any unusual command-line arguments.
+  - Analyze system event logs for recent system activities related to volume shadow copies or backups that may correlate with the times of the detected suspicious DLL load.
+  - Review network connections and log data in your NGFW or Proxy to identify any external communication from the identified process during the time frame of interest.
+  - Check cloud platform logs for any triggered automated processes or scheduled tasks that might correlate with the execution of the suspicious executable to confirm intent.

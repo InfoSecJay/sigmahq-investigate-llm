@@ -1,0 +1,33 @@
+title: Suspicious Files in Default GPO Folder
+id: 5f87308a-0a5b-4623-ae15-d8fa1809bc60
+status: test
+description: Detects the creation of copy of suspicious files (EXE/DLL) to the default
+  GPO storage folder
+references:
+- https://redcanary.com/blog/intelligence-insights-november-2021/
+author: elhoim
+date: 2022-04-28
+tags:
+- attack.t1036.005
+- attack.defense-evasion
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|contains: '\Policies\{31B2F340-016D-11D2-945F-00C04FB984F9}\'
+    TargetFilename|endswith:
+    - '.dll'
+    - '.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation of potentially malicious executable (EXE) or dynamic link library (DLL) files within the default Group Policy Object (GPO) storage folder on Windows systems. The specific path monitored is related to the unique identifier for Group Policies (`\Policies\{31B2F340-016D-11D2-945F-00C04FB984F9}\`), where unauthorized or suspicious files may indicate attempts to utilize GPOs for evasion or malicious activity. The rule analyzes file creation events in the GPO directory, leveraging data sources such as Windows file event logs that capture file manipulation behaviors, thereby enabling incident responders to identify abnormal activities affecting system policies.
+  ### Investigation Steps
+  - Examine the process creation logs surrounding the time of the file creation to determine if associated parent processes are known and legitimate, or if they appear suspicious.
+  - Query endpoint detection and response (EDR) solutions for historical data regarding the referenced file, focusing on prior activity and signatures to assess if it has been flagged or identified as malicious.
+  - Analyze corresponding command-line parameters used during the file creation process to uncover additional context that may illuminate intent or method of execution.
+  - Check the organization's proxy and internet gateway logs for any outbound connections made by the suspicious files to identify potential data exfiltration or C2 (Command and Control) communication attempts.

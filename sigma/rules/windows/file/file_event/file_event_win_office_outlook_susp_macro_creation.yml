@@ -1,0 +1,39 @@
+title: Suspicious Outlook Macro Created
+id: 117d3d3a-755c-4a61-b23e-9171146d094c
+related:
+- id: 8c31f563-f9a7-450c-bfa8-35f8f32f1f61
+  type: derived
+status: test
+description: Detects the creation of a macro file for Outlook.
+references:
+- https://www.mdsec.co.uk/2020/11/a-fresh-outlook-on-mail-based-persistence/
+- https://speakerdeck.com/heirhabarov/hunting-for-persistence-via-microsoft-exchange-server-or-outlook?slide=53
+- https://www.linkedin.com/pulse/outlook-backdoor-using-vba-samir-b-/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-02-08
+tags:
+- attack.persistence
+- attack.command-and-control
+- attack.t1137
+- attack.t1008
+- attack.t1546
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|endswith: '\Microsoft\Outlook\VbaProject.OTM'
+  filter:
+    Image|endswith: '\outlook.exe'
+  condition: selection and not filter
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies the creation of suspicious macro files specifically associated with Microsoft Outlook. The core operation involved in this rule is the monitoring of file events targeting the `VbaProject.OTM` file, which is utilized by Outlook to store Visual Basic for Applications (VBA) macros. When the rule detects the target file is created, it cross-references the process responsible for the file creation, filtering out any legitimate instances where the process is not `outlook.exe`. This enables the identification of potential macro-based persistence mechanisms that attackers may use for command-and-control operations or to establish long-term footholds within an organization’s environment. The logs captured come from file event monitoring on Windows systems and hinge primarily on identifying the creation of macro files that could facilitate malicious activity.
+  ### Investigation Steps
+  - Review EDR logs to identify the relevant file creation events, focusing on the `VbaProject.OTM` file and correlating timestamps to identify potentially malicious activity.
+  - Analyze the process tree of the `outlook.exe` instance that created the macro to determine if any unusual behavior preceded the file creation.
+  - Check email logs from your email gateway to see if there were any recent incoming attachments that may have been used to deliver the malicious macro.
+  - Inspect network logs to identify any command-and-control traffic that may correlate with the timeline of the macro creation, indicating potential exfiltration or secondary payload delivery.

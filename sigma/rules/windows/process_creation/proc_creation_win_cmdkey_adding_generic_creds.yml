@@ -1,0 +1,39 @@
+title: New Generic Credentials Added Via Cmdkey.EXE
+id: b1ec66c6-f4d1-4b5c-96dd-af28ccae7727
+status: test
+description: |
+  Detects usage of "cmdkey.exe" to add generic credentials.
+  As an example, this can be used before connecting to an RDP session via command line interface.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1021.001/T1021.001.md#t1021001---remote-desktop-protocol
+author: frack113, Nasreddine Bencherchali (Nextron Systems)
+date: 2023-02-03
+modified: 2024-03-05
+tags:
+- attack.credential-access
+- attack.t1003.005
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\cmdkey.exe'
+  - OriginalFileName: 'cmdkey.exe'
+  selection_cli_generic:
+    CommandLine|contains|windash: ' -g'     # Generic
+  selection_cli_user:
+    CommandLine|contains|windash: ' -u'     # User
+  selection_cli_password:
+    CommandLine|contains|windash: ' -p'     # Password
+  condition: all of selection_*
+falsepositives:
+- Legitimate usage for administration purposes
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects the execution of `cmdkey.exe`, a Windows command-line utility used to manage stored user credentials. It is particularly used for adding generic credentials, which is often a prelude to connecting to services such as Remote Desktop Protocol (RDP) via the command line. The rule focuses on monitoring process creation logs within Windows, specifically looking for instances where `cmdkey.exe` is invoked with command-line arguments that indicate the addition of credentials (e.g., options that contain `-g` for generic credentials, `-u` for username, and `-p` for password). Detecting this activity can highlight potential misuse or malicious attempts to access systems using stored credentials.
+  ### Investigation Steps
+  - Utilize the EDR to search for recent executions of `cmdkey.exe`, focusing on the process creation logs for relevant command-line parameters.
+  - Check for contextual information surrounding the execution, such as the user account that executed the command and any related processes to identify suspicious behavior.
+  - Review Windows Security and event logs to track subsequent login attempts made using these generic credentials, particularly looking for any anomalies or unauthorized access.
+  - Correlate findings with network logs from the NGFW and Proxy to identify any unusual outbound connections associated with the user or system following the credential addition.

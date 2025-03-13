@@ -1,0 +1,37 @@
+title: JScript Compiler Execution
+id: 52788a70-f1da-40dd-8fbd-73b5865d6568
+status: test
+description: |
+  Detects the execution of the "jsc.exe" (JScript Compiler).
+  Attacker might abuse this in order to compile JScript files on the fly and bypassing application whitelisting.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Jsc/
+- https://www.phpied.com/make-your-javascript-a-windows-exe/
+- https://twitter.com/DissectMalware/status/998797808907046913
+author: frack113
+date: 2022-05-02
+modified: 2024-04-24
+tags:
+- attack.defense-evasion
+- attack.t1127
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+  - Image|endswith: '\jsc.exe'
+  - OriginalFileName: 'jsc.exe'
+  condition: selection
+falsepositives:
+- Legitimate use to compile JScript by developers.
+# Note: Can be decreased to informational or increased to medium depending on how this utility is used.
+level: low
+notes: |
+  ### Technical Context
+  The Sigma rule titled "JScript Compiler Execution" is designed to identify the execution of `jsc.exe`, the JScript Compiler used in Windows environments. This tool can be exploited by attackers to compile JScript files on the fly, which may allow them to bypass traditional application whitelisting defenses. The rule specifically monitors process creation events for instances where the image name ends with `\jsc.exe` or has the original file name specified as `jsc.exe`. By correlating this activity with other contextual data, analysts can evaluate whether the execution is legitimate or potentially malicious.
+  Data sources involved in this detection include process creation logs, which provide details about newly created processes along with their command-line parameters. This information assists investigators in determining the context of `jsc.exe` usage, including any scripts being executed and the environments in which they are invoked.
+  ### Investigation Steps
+  - Review recent process creation logs in your EDR to identify the time and user account associated with the execution of `jsc.exe`.
+  - Check command-line parameters used during the execution to assess whether the JScript Compiler is being leveraged in a suspicious manner, such as running obfuscated scripts.
+  - Correlate the user account activity with other security events from the SIEM to identify potential lateral movement or malicious user behavior.
+  - Investigate any related network traffic through your NDR or Proxy logs to determine if the execution context involves communications with external or suspicious domains.

@@ -1,0 +1,38 @@
+title: Suspicious IIS URL GlobalRules Rewrite Via AppCmd
+id: 7c8af9b2-dcae-41a2-a9db-b28c288b5f08
+status: test
+description: Detects usage of "appcmd" to create new global URL rewrite rules. This
+  behaviour has been observed being used by threat actors to add new rules so they
+  can access their webshells.
+references:
+- https://twitter.com/malmoeb/status/1616702107242971144
+- https://learn.microsoft.com/en-us/answers/questions/739120/how-to-add-re-write-global-rule-with-action-type-r
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-22
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\appcmd.exe'
+  - OriginalFileName: 'appcmd.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'set'
+    - 'config'
+    - 'section:system.webServer/rewrite/globalRules'
+    - 'commit:'
+  condition: all of selection_*
+falsepositives:
+- Legitimate usage of appcmd to add new URL rewrite rules
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the suspicious use of the "appcmd" tool in Windows environments, specifically focusing on the creation of new global URL rewrite rules. Threat actors often leverage "appcmd" to modify the IIS (Internet Information Services) configuration, allowing them to establish persistence or access web shells. The rule looks for process creation logs where "appcmd.exe" is invoked with specific command-line parameters, particularly those that include keywords such as "set," "config," "section:system.webServer/rewrite/globalRules," and "commit:". By monitoring these parameters and the associated process creation events, the rule aims to identify potential malicious activities that could compromise web server integrity.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify instances where "appcmd.exe" was executed alongside the suspicious command-line parameters listed in this rule.
+  - Correlate the timestamp of the detected event with any recent changes or anomalies in web server behavior, looking for unauthorized access attempts or unexpected modifications.
+  - Check IIS logs for any requests made to the web server that could indicate exploitation attempts, signifying whether any web shells or malicious payloads have been deployed.
+  - Conduct a scan using your AV or endpoint security tools on the affected system to ensure that no additional malware or threats have been introduced alongside the appcmd activity.

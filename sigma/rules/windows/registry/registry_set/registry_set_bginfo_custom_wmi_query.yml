@@ -1,0 +1,35 @@
+title: New BgInfo.EXE Custom WMI Query Registry Configuration
+id: cd277474-5c52-4423-a52b-ac2d7969902f
+related:
+- id: 992dd79f-dde8-4bb0-9085-6350ba97cfb3
+  type: similar
+status: test
+description: Detects setting of a new registry value related to BgInfo configuration,
+  which can be abused to execute custom WMI query via "BgInfo.exe"
+references:
+- Internal Research
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-08-16
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    EventType: SetValue
+    TargetObject|contains: '\Software\Winternals\BGInfo\UserFields\'
+    Details|startswith: '6'     # WMI
+  condition: selection
+falsepositives:
+- Legitimate WMI query
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects the creation of a new registry value associated with BgInfo configuration, specifically monitoring modifications to the Windows registry at the path `\Software\Winternals\BGInfo\UserFields\`. The rule flags instances where the registry value begins with '6', indicating a potential setup for custom WMI queries that can be executed by the `BgInfo.exe` utility. The detection is primarily based on registry set events, which are collected from Windows systems. By monitoring these changes, the rule helps identify potential misuse of BgInfo—an ostensibly benign tool that can be exploited for malicious activities such as evading detection or executing unauthorized commands through WMI.
+  ### Investigation Steps
+  - Review recent registry modifications in the Windows Event Logs to pinpoint the exact time and source of the BgInfo configuration change. Utilize EDR tools to track user activity leading to the registry modification.
+  - Examine the command-line parameters associated with the `BgInfo.exe` process to determine if it has been executed with any suspicious or unusual arguments, which could indicate malicious intent.
+  - Check for the presence of any known malicious payloads or scripts that leverage WMI queries within the environment. Use your AV solution to perform checks against any recent detections or quarantined files.
+  - Investigate any outbound traffic through the Proxy logs that correlate with the timing of the registry change to identify potential command-and-control activity or data exfiltration attempts.

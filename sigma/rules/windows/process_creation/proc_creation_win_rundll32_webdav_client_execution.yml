@@ -1,0 +1,38 @@
+title: WebDav Client Execution Via Rundll32.EXE
+id: 2dbd9d3d-9e27-42a8-b8df-f13825c6c3d5
+status: test
+description: |
+  Detects "svchost.exe" spawning "rundll32.exe" with command arguments like "C:\windows\system32\davclnt.dll,DavSetCookie".
+  This could be an indicator of exfiltration or use of WebDav to launch code (hosted on a WebDav server).
+references:
+- https://github.com/OTRF/detection-hackathon-apt29/issues/17
+- https://github.com/OTRF/ThreatHunter-Playbook/blob/2d4257f630f4c9770f78d0c1df059f891ffc3fec/docs/evals/apt29/detections/7.B.4_C10730EA-6345-4934-AA0F-B0EFCA0C4BA6.md
+author: Roberto Rodriguez (Cyb3rWard0g), OTR (Open Threat Research)
+date: 2020-05-02
+modified: 2023-09-18
+tags:
+- attack.exfiltration
+- attack.t1048.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|endswith: '\svchost.exe'
+  selection_img:
+  - Image|endswith: '\rundll32.exe'
+  - OriginalFileName: 'RUNDLL32.EXE'
+  selection_cli:
+    CommandLine|contains: 'C:\windows\system32\davclnt.dll,DavSetCookie'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential misuse of `rundll32.exe`, a legitimate Windows utility often leveraged by attackers to execute malicious code, particularly in conjunction with `svchost.exe`. The rule focuses on the occurrence of `svchost.exe` spawning `rundll32.exe` with a specific command line argument that calls for `davclnt.dll`, a library associated with WebDAV operations. The presence of this command could indicate unauthorized attempts to exfiltrate data or execute further actions using code delivered via a WebDAV server. By monitoring process creation logs, specifically analyzing the parent-child process relationships and corresponding command-line parameters, security teams can detect these suspicious activities.
+  ### Investigation Steps
+  - Use EDR tools to review the process creation logs for the specific instance of `rundll32.exe` being invoked by `svchost.exe`, paying particular attention to the execution context and any parent processes.
+  - Examine command-line arguments for variations that might indicate malicious usage, specifically looking for entries containing `C:\windows\system32\davclnt.dll,DavSetCookie`.
+  - Correlate findings with network traffic logs in the NDR to identify any connections to known information exfiltration endpoints or unusual outbound communications that align with the detected activity.
+  - Conduct a review of user and system permissions related to the executed processes, ensuring that legitimate users have not been compromised and that appropriate security policies are enforced.

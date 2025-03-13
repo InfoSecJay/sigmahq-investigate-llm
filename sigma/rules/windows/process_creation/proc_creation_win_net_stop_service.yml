@@ -1,0 +1,41 @@
+title: Stop Windows Service Via Net.EXE
+id: 88872991-7445-4a22-90b2-a3adadb0e827
+related:
+- id: eb87818d-db5d-49cc-a987-d5da331fbd90
+  type: obsolete
+status: test
+description: Detects the stopping of a Windows service via the "net" utility.
+references:
+- https://ss64.com/nt/net-service.html
+author: Jakob Weinzettl, oscd.community, Nasreddine Bencherchali (Nextron Systems)
+date: 2023-03-05
+tags:
+- attack.impact
+- attack.t1489
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - OriginalFileName:
+    - 'net.exe'
+    - 'net1.exe'
+  - Image|endswith:
+    - '\net.exe'
+    - '\net1.exe'
+  selection_cli:
+    CommandLine|contains: ' stop '
+  condition: all of selection_*
+falsepositives:
+- There are many legitimate reasons to stop a service. This rule isn't looking for
+  any suspicious behaviour in particular. Filter legitimate activity accordingly
+level: low
+notes: |
+  ### Technical Context
+  This detection rule targets the stopping of Windows services using the "net" utility. Specifically, it looks for the execution of the `net.exe` or `net1.exe` process with command-line arguments that include the word "stop." The rule examines process creation logs, which capture details such as the executable's name and the command-line parameters used during execution. 
+  By focusing on the `net` utility, which is a legitimate Windows command-line tool, this rule enables the identification of potentially malicious activity where an attacker may attempt to disrupt services to evade detection or carry out further malicious actions. Furthermore, although stopping a service can be legitimate, the prevalence of such activity necessitates careful review of context surrounding each alert.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify the timestamp and context of the detected `net.exe` command execution.
+  - Analyze the command-line parameters associated with the `net` command to determine which specific service was stopped and whether this action aligns with normal operational procedures.
+  - Correlate other security events from the same timeframe, utilizing logs from the SIEM, to gather additional context around user activity and potential unauthorized access.
+  - Examine related network traffic logs (NDR and Proxy) to identify any unusual connections or data flows that could indicate further malicious activity following the service stoppage.

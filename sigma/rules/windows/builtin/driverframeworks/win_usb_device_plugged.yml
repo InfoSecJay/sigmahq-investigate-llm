@@ -1,0 +1,36 @@
+title: USB Device Plugged
+id: 1a4bd6e3-4c6e-405d-a9a3-53a116e341d4
+status: test
+description: Detects plugged/unplugged USB devices
+references:
+- https://df-stream.com/2014/01/the-windows-7-event-log-and-usb-device/
+- https://www.techrepublic.com/article/how-to-track-down-usb-flash-drive-usage-in-windows-10s-event-viewer/
+author: Florian Roth (Nextron Systems)
+date: 2017-11-09
+modified: 2021-11-30
+tags:
+- attack.initial-access
+- attack.t1200
+logsource:
+  product: windows
+  service: driver-framework
+  definition: 'Requires enabling and collection of the Microsoft-Windows-DriverFrameworks-UserMode/Operational
+    eventlog'
+detection:
+  selection:
+    EventID:
+    - 2003          # Loading drivers
+    - 2100          # Pnp or power management
+    - 2102          # Pnp or power management
+  condition: selection
+falsepositives:
+- Legitimate administrative activity
+level: low
+notes: |
+  ### Technical Context
+  This detection rule identifies events related to the plugging and unplugging of USB devices on Windows systems by monitoring specific Event IDs in the Microsoft-Windows-DriverFrameworks-UserMode/Operational event log. It focuses on events such as Event ID 2003, which signifies the loading of drivers, and Event IDs 2100 and 2102, which pertain to plug-and-play (PnP) or power management activities. When these events are triggered, the rule indicates that a USB device has been connected or disconnected. This is particularly significant in enterprise environments where the unauthorized use of USB devices may lead to data exfiltration, malware introduction, or other security incidents. The collection and analysis of these logs help bolster security posture by alerting responders to unusual USB activity.
+  ### Investigation Steps
+  - Review the EDR logs to identify the specific user and machine associated with the USB device connection event and look for any correlated suspicious actions.
+  - Check the Windows Event Viewer under the Microsoft-Windows-DriverFrameworks-UserMode/Operational log for relevant Event IDs to understand the context of the USB activity.
+  - Use AV solutions to scan for any malware or unauthorized applications introduced through the USB device, especially if there are indicators of compromise.
+  - Consult proxy logs for any unusual outbound traffic patterns that may correlate with the time of USB device usage, as this could indicate data exfiltration activities.

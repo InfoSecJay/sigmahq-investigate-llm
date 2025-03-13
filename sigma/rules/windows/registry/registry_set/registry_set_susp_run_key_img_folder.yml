@@ -1,0 +1,57 @@
+title: New RUN Key Pointing to Suspicious Folder
+id: 02ee49e2-e294-4d0f-9278-f5b3212fc588
+status: experimental
+description: Detects suspicious new RUN key element pointing to an executable in a
+  suspicious folder
+references:
+- https://www.fireeye.com/blog/threat-research/2018/08/fin7-pursuing-an-enigmatic-and-evasive-global-criminal-operation.html
+author: Florian Roth (Nextron Systems), Markus Neis, Sander Wiebing
+date: 2018-08-25
+modified: 2024-07-16
+tags:
+- attack.persistence
+- attack.t1547.001
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection_target:
+    TargetObject|contains:
+    - '\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\'
+    - '\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce\'
+  selection_details:
+  - Details|contains:
+    - ':\$Recycle.bin\'
+    - ':\Temp\'
+    - ':\Users\Default\'
+    - ':\Users\Desktop\'
+    - ':\Users\Public\'
+    - ':\Windows\Temp\'
+    - '\AppData\Local\Temp\'
+    - '%temp%\'
+    - '%tmp%\'
+  - Details|startswith:
+    - '%Public%\'
+    - 'wscript'
+    - 'cscript'
+  filter_main_windows_update:
+    TargetObject|contains: '\Microsoft\Windows\CurrentVersion\RunOnce\'
+    Image|startswith: 'C:\Windows\SoftwareDistribution\Download\'
+    Details|contains|all:
+    - 'rundll32.exe '
+    - 'C:\WINDOWS\system32\advpack.dll,DelNodeRunDLL32'
+    Details|contains:
+    - '\AppData\Local\Temp\'
+    - 'C:\Windows\Temp\'
+  condition: all of selection_* and not 1 of filter_main_*
+falsepositives:
+- Software using weird folders for updates
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious modifications to the Windows Registry, specifically additions to the RUN or RUNOnce keys. These keys are used to execute programs automatically when a user logs in to the system. The detection looks for entries pointing to executables located in directories typically associated with malicious behavior, such as temporary folders or the Recycle Bin, indicating potential persistence mechanisms. The rule inspects the details of the registry entry to catch common scripting engines like `wscript` or `cscript` that could signify an attacker's attempt to execute malware silently. By leveraging data from registry set logs, the rule provides a focused approach to identify possible threats in a Windows environment.
+  ### Investigation Steps
+  - Review recent registry changes in the EDR to pinpoint any new or modified entries in the RUN and RUNOnce keys, focusing on those linked to the suspicious paths indicated by the alert.
+  - Utilize the SIEM to correlate the identified registry changes with any related process creation logs, which may provide context on what executable was run and its command-line arguments.
+  - Check for alerts or logs from the AV tool regarding any executable that was executed from the paths mentioned, looking for any known malicious signatures or behaviors.
+  - Examine network traffic logs via the NDR and Proxy tools for any outbound connections that align with the identified executable, which could help determine if data exfiltration or further command and control activity is occurring.

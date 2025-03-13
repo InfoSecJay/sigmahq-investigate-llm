@@ -1,0 +1,35 @@
+title: Potential DLL Sideloading Of MpSvc.DLL
+id: 5ba243e5-8165-4cf7-8c69-e1d3669654c1
+status: experimental
+description: Detects potential DLL sideloading of "MpSvc.dll".
+references:
+- https://hijacklibs.net/entries/microsoft/built-in/mpsvc.html
+author: Nasreddine Bencherchali (Nextron Systems), Wietze Beukema
+date: 2024-07-11
+tags:
+- attack.defense-evasion
+- attack.t1574.002
+logsource:
+  product: windows
+  category: image_load
+detection:
+  selection:
+    ImageLoaded|endswith: '\MpSvc.dll'
+  filter_main_generic:
+    ImageLoaded|startswith:
+    - 'C:\Program Files\Windows Defender\'
+    - 'C:\ProgramData\Microsoft\Windows Defender\Platform\'
+    - 'C:\Windows\WinSxS\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Legitimate applications loading their own versions of the DLL mentioned in this
+  rule.
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potential DLL sideloading of the "MpSvc.dll" file, which is a component of Microsoft Defender. DLL sideloading is a technique that malicious actors may use to execute unauthorized code by masquerading it as a legitimate DLL. The rule specifically monitors for instances where "MpSvc.dll" is loaded from unusual locations, contrary to its legitimate paths in standard Windows directories. The primary data source for this rule is the Windows image load logs that capture information about the libraries loaded by processes on the system. By examining these logs, the rule aims to reveal any suspicious attempts to load "MpSvc.dll" from non-standard locations, where it may have been maliciously placed for execution.
+  ### Investigation Steps
+  - Review EDR logs to identify the process that loaded "MpSvc.dll" and investigate its parent process for signs of suspicious behavior.
+  - Cross-reference the loading event with the timestamps of recent file modifications, particularly in directories that are not standard for legitimate DLL storage.
+  - Use AV tools to scan the system for known malware signatures, particularly focusing on the process that initiated the loading of "MpSvc.dll".
+  - Analyze proxy and network logs to determine if any anomalous outbound connections were made by the process following the DLL load, which could indicate command and control (C2) activity.

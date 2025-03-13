@@ -1,0 +1,41 @@
+title: Registry Persistence via Service in Safe Mode
+id: 1547e27c-3974-43e2-a7d7-7f484fb928ec
+status: test
+description: Detects the modification of the registry to allow a driver or service
+  to persist in Safe Mode.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1112/T1112.md#atomic-test-33---windows-add-registry-value-to-load-service-in-safe-mode-without-network
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1112/T1112.md#atomic-test-34---windows-add-registry-value-to-load-service-in-safe-mode-with-network
+author: frack113
+date: 2022-04-04
+modified: 2024-03-25
+tags:
+- attack.defense-evasion
+- attack.t1564.001
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains:
+    - '\Control\SafeBoot\Minimal\'
+    - '\Control\SafeBoot\Network\'
+    TargetObject|endswith: '\(Default)'
+    Details: 'Service'
+  filter_optional_sophos:
+    Image: 'C:\WINDOWS\system32\msiexec.exe'
+    TargetObject|endswith:
+    - '\Control\SafeBoot\Minimal\SAVService\(Default)'
+    - '\Control\SafeBoot\Network\SAVService\(Default)'
+  condition: selection and not 1 of filter_optional_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Registry Persistence via Service in Safe Mode" detection rule is designed to identify potential persistence mechanisms leveraging the Windows Registry. Specifically, it monitors changes made to registry keys that allow a service or driver to load in Safe Mode, which is a common technique used by threat actors to maintain access to compromised systems while limiting detection. The rule focuses on identifying modifications to the `\Control\SafeBoot\Minimal\` and `\Control\SafeBoot\Network\` registry paths, particularly checking if the registry entry for a service, indicated by the details field containing "Service," has been altered. Key data sources involved include registry logs that capture these modifications, allowing analysts to pinpoint unauthorized persistence attempts.
+  ### Investigation Steps
+  - Review the registry modification logs in the Windows EDR solution for entries that match the specified paths indicating Safe Mode persistence.
+  - Utilize the process creation logs in your SIEM to trace any processes associated with the modified registry key, specifically identifying activities involving `msiexec.exe`.
+  - Check network activity through the NGFW or Proxy logs to determine if any unusual outbound connections were established following the service's registry modification.
+  - Cross-reference alerts with threat intelligence sources to assess the legitimacy of the service being modified and whether it might be linked to known malicious behavior.

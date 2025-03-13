@@ -1,0 +1,39 @@
+title: Remotely Hosted HTA File Executed Via Mshta.EXE
+id: b98d0db6-511d-45de-ad02-e82a98729620
+status: test
+description: Detects execution of the "mshta" utility with an argument containing
+  the "http" keyword, which could indicate that an attacker is executing a remotely
+  hosted malicious hta file
+references:
+- https://www.trendmicro.com/en_us/research/22/e/avoslocker-ransomware-variant-abuses-driver-file-to-disable-anti-Virus-scans-log4shell.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-08
+modified: 2023-02-06
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1218.005
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\mshta.exe'
+  - OriginalFileName: 'MSHTA.EXE'
+  selection_cli:
+    CommandLine|contains:
+    - 'http://'
+    - 'https://'
+    - 'ftp://'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious behavior involving the execution of the Microsoft HTML Application Host (mshta.exe). The rule looks specifically for instances where mshta.exe is invoked with command-line arguments that include remote file access protocols such as HTTP, HTTPS, or FTP. This behavior can indicate that an attacker is trying to execute a remotely hosted HTA (HTML Application) file, which is often used for delivering malware or executing malicious scripts. The data sources involved in this detection primarily include process creation logs that capture details about running processes, including their command-line parameters and original file names, allowing for the identification of suspicious execution patterns.
+  ### Investigation Steps
+  - Use EDR tools to search for any instances of mshta.exe execution, reviewing the command-line parameters for indications of remote file access, such as URLs that may point to malicious HTA files.
+  - Check the timeline of the detected mshta.exe execution to correlate it with other suspicious activities, such as unusual network connections or file modifications that may indicate a larger compromise.
+  - Review any Proxy logs for outbound connections to the URLs executed via mshta.exe, which could provide additional context about the potential risk associated with those remote files.
+  - Look into the logs of any installed AV or endpoint protection solutions to see if they flagged the HTA file or related processes as malicious, which could aid in determining the severity of the incident.

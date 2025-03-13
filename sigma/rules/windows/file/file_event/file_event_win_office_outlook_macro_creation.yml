@@ -1,0 +1,37 @@
+title: New Outlook Macro Created
+id: 8c31f563-f9a7-450c-bfa8-35f8f32f1f61
+related:
+- id: 117d3d3a-755c-4a61-b23e-9171146d094c
+  type: derived
+status: test
+description: Detects the creation of a macro file for Outlook.
+references:
+- https://www.mdsec.co.uk/2020/11/a-fresh-outlook-on-mail-based-persistence/
+author: '@ScoubiMtl'
+date: 2021-04-05
+modified: 2023-02-08
+tags:
+- attack.persistence
+- attack.command-and-control
+- attack.t1137
+- attack.t1008
+- attack.t1546
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\outlook.exe'
+    TargetFilename|endswith: '\Microsoft\Outlook\VbaProject.OTM'
+  condition: selection
+falsepositives:
+- User genuinely creates a VB Macro for their email
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activity related to the creation of macro files within Microsoft Outlook. Specifically, it monitors for the `VbaProject.OTM` file, which contains Visual Basic for Applications (VBA) macros that can be used to automate tasks in Outlook. Such macros can also be exploited by attackers to establish persistence or execute malicious code when the document is opened. The rule is triggered when an event is logged indicating that the `outlook.exe` process has produced or modified the `VbaProject.OTM` file. The data sources involved in this detection include file event logs from Windows, which capture file creation and modification events, as well as process execution logs that confirm the activity of the Outlook application.
+  ### Investigation Steps
+  - Review the event logs from the EDR to determine the process tree related to `outlook.exe`. Look for any unusual parent processes that may indicate suspicious behavior.
+  - Analyze the contents of the `VbaProject.OTM` file by exporting it and extracting the macros. Assess the code for any malicious commands or indicators of compromise.
+  - Verify the user associated with the macro creation event through identity management tools and check their recent activity for unusual patterns or anomalies.
+  - Investigate outbound network traffic patterns using NDR tools to detect any communication with known malicious command-and-control (C2) servers following the macro creation event.

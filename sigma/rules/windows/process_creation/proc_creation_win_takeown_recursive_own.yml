@@ -1,0 +1,39 @@
+title: Suspicious Recursive Takeown
+id: 554601fb-9b71-4bcc-abf4-21a611be4fde
+status: test
+description: Adversaries can interact with the DACLs using built-in Windows commands
+  takeown which can grant adversaries higher permissions on specific files and folders
+references:
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/takeown
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1222.001/T1222.001.md#atomic-test-1---take-ownership-using-takeown-utility
+author: frack113
+date: 2022-01-30
+modified: 2022-11-21
+tags:
+- attack.defense-evasion
+- attack.t1222.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\takeown.exe'
+    CommandLine|contains|all:
+    - '/f '
+    - '/r'
+  condition: selection
+fields:
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- Scripts created by developers and admins
+- Administrative activity
+level: medium
+notes: |
+  ### Technical Context
+  The "Suspicious Recursive Takeown" Sigma rule detects potentially malicious use of the `takeown.exe` utility, which allows users to take ownership of files and directories in Windows. Adversaries may use `takeown` to escalate their permissions on sensitive files and folders, thus facilitating unauthorized access or control over critical system components. This rule specifically looks for process creation events where the command line includes both the `/f` and `/r` flags, indicating that an adversary is attempting to take ownership recursively on a specified path. Data sources involved include process creation logs that capture executable names and command-line parameters, ensuring that unusual or unauthorized activities are flagged for further investigation.
+  ### Investigation Steps
+  - Utilize EDR tools to search for recent instances of `takeown.exe` execution on endpoints, examining any related process trees to uncover potential exploitation paths.
+  - Review command-line parameters for these instances to determine the target directories and assess whether the ownership attempts were legitimate or indicative of malicious intent.
+  - Correlate findings with user activity logs from the SIEM to identify any anomalous behavior associated with the accounts that executed `takeown` commands.
+  - Check for any related alerts or logs from the AV and NGFW to identify concurrent malicious activity or known indicators of compromise that might be linked to the same incident.

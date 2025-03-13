@@ -1,0 +1,42 @@
+title: Potential Arbitrary File Download Via Cmdl32.EXE
+id: f37aba28-a9e6-4045-882c-d5004043b337
+status: test
+description: |
+  Detects execution of Cmdl32 with the "/vpn" and "/lan" flags.
+  Attackers can abuse this utility in order to download arbitrary files via a configuration file.
+  Inspect the location and the content of the file passed as an argument in order to determine if it is suspicious.
+references:
+- https://lolbas-project.github.io/lolbas/Binaries/Cmdl32/
+- https://twitter.com/SwiftOnSecurity/status/1455897435063074824
+- https://github.com/LOLBAS-Project/LOLBAS/pull/151
+author: frack113
+date: 2021-11-03
+modified: 2024-04-22
+tags:
+- attack.execution
+- attack.defense-evasion
+- attack.t1218
+- attack.t1202
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\cmdl32.exe'
+  - OriginalFileName: CMDL32.EXE
+  selection_cli:
+    CommandLine|contains|all:
+    - '/vpn'
+    - '/lan'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential misuse of the `Cmdl32.exe` executable, specifically when it is invoked with the `/vpn` and `/lan` flags. Command-line tools such as `Cmdl32.exe` can be exploited by attackers to download arbitrary files via configuration files, posing a significant security risk. The rule monitors process creation logs for instances of `Cmdl32.exe` with the key flags, leveraging data points such as the executable name and the command-line parameters provided. It’s crucial to inspect the source and content of any files referenced in these command-line executions to ascertain their legitimacy and uncover any malicious intent.
+  ### Investigation Steps
+  - Utilize EDR tools to search for instances of `Cmdl32.exe` being executed with the specified command-line arguments, focusing on the timestamp of the alerts to correlate with user activity.
+  - Review process creation logs to identify the parent process of `Cmdl32.exe` to determine if the execution was initiated by a legitimate application or an unauthorized script.
+  - Analyze any downloaded files for signatures or characteristics indicative of malware using antivirus tools or sandbox environments.
+  - Check network logs (from the NDR or proxy) for any outgoing connections made during the execution of `Cmdl32.exe`, which may provide context about potential data exfiltration attempts.

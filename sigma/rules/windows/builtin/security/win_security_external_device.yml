@@ -1,0 +1,35 @@
+title: External Disk Drive Or USB Storage Device Was Recognized By The System
+id: f69a87ea-955e-4fb4-adb2-bb9fd6685632
+status: test
+description: Detects external disk drives or plugged-in USB devices.
+references:
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-6416
+author: Keith Wright
+date: 2019-11-20
+modified: 2024-02-09
+tags:
+- attack.t1091
+- attack.t1200
+- attack.lateral-movement
+- attack.initial-access
+logsource:
+  product: windows
+  service: security
+detection:
+  selection_eid:
+    EventID: 6416
+  selection_field:
+  - ClassName: 'DiskDrive'
+  - DeviceDescription: 'USB Mass Storage Device'
+  condition: all of selection_*
+falsepositives:
+- Likely
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect when an external disk drive or USB storage device is recognized by a Windows system. The rule specifically monitors Windows Security log entries for Event ID 6416, which indicates the connection of a removable storage device. It focuses on two main attributes: the `ClassName`, which should be 'DiskDrive', and the `DeviceDescription`, which should specify 'USB Mass Storage Device'. When these criteria are met, the rule triggers an alert, suggesting that a USB device has been connected to the system. This detection helps in recognizing potential lateral movement or initial access attempts facilitated by removable media, as attackers may use USB drives to exfiltrate data or introduce malware.
+  ### Investigation Steps
+  - Check the EDR logs for any indications of malicious processes that were executed shortly after the USB device was connected. Look for unusual process behaviors or known bad hashes.
+  - Review the access logs from your firewall or proxy devices to identify any suspicious outbound connections made immediately after the USB connection was registered.
+  - Analyze the audit logs from Windows to determine what files or systems were accessed or modified following the registration of the external device, focusing on potential data exfiltration.
+  - If applicable, investigate cloud system logs (AWS, GCP, Azure) for any unauthorized data movements or access that coincided with the local USB device connection to assess potential cloud interactions.

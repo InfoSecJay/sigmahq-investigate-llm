@@ -1,0 +1,33 @@
+title: Windows Service Terminated With Error
+id: acfa2210-0d71-4eeb-b477-afab494d596c
+related:
+- id: d6b5520d-3934-48b4-928c-2aa3f92d6963
+  type: similar
+status: test
+description: Detects Windows services that got terminated for whatever reason
+references:
+- https://www.microsoft.com/en-us/security/blog/2023/04/11/guidance-for-investigating-attacks-using-cve-2022-21894-the-blacklotus-campaign/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-04-14
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7023     # The X Service service terminated with the following error
+  condition: selection
+falsepositives:
+- False positives could occur since service termination could happen due to multiple
+  reasons
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule focuses on detecting instances where Windows services have been terminated with errors, specifically utilizing Event ID 7023 from the Service Control Manager. The rule captures key data that indicates a service has stopped unexpectedly, including the provider name and any error messages associated with the termination. Such events are crucial in identifying potential attacks or system malfunctions, particularly when associated with malicious activities. Analysts should pay close attention to services that are critical to system operations, as abnormal terminations could signal attempted exploits or other compromise indicators. By monitoring these logs, SOC teams can effectively identify potential defense evasion tactics employed by threat actors.
+  ### Investigation Steps
+  - Review the EDR for any related process activity around the time the service was terminated, focusing on anomalies that might suggest malicious intent.
+  - Analyze Windows Security logs to identify any user accounts or processes that initiated the service termination, checking for any unauthorized actions.
+  - Cross-reference proxy logs to identify any external connections that could correlate with the timing of the service termination, looking for unusual traffic patterns or known bad IP addresses.
+  - Search cloud logs (AWS, GCP, Azure) for any related incidents or changes in the configuration of instances that might indicate further compromise attempts related to this event.

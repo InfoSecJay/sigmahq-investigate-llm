@@ -1,0 +1,44 @@
+title: Cab File Extraction Via Wusa.EXE From Potentially Suspicious Paths
+id: c74c0390-3e20-41fd-a69a-128f0275a5ea
+related:
+- id: 59b39960-5f9d-4a49-9cef-1e4d2c1d0cb9
+  type: derived
+status: test
+description: |
+  Detects the execution of the "wusa.exe" (Windows Update Standalone Installer) utility to extract ".cab" files using the "/extract" argument from potentially suspicious paths.
+references:
+- https://web.archive.org/web/20180331144337/https://www.fireeye.com/blog/threat-research/2018/03/sanny-malware-delivery-method-updated-in-recently-observed-attacks.html
+- https://www.echotrail.io/insights/search/wusa.exe/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-05
+modified: 2023-11-28
+tags:
+- attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_root:
+    Image|endswith: '\wusa.exe'
+    CommandLine|contains: '/extract:'
+  selection_paths:
+    CommandLine|contains:
+    - ':\PerfLogs\'
+    - ':\Users\Public\'
+    - ':\Windows\Temp\'
+    - '\Appdata\Local\Temp\'
+            # - '\Desktop\'
+            # - '\Downloads\'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule monitors for the execution of `wusa.exe`, the Windows Update Standalone Installer, specifically when it is invoked to extract `.cab` files using the `/extract` command-line argument. The rule is designed to identify this activity when it occurs from potentially suspicious paths, including `C:\PerfLogs\`, `C:\Users\Public\`, `C:\Windows\Temp\`, and `C:\Appdata\Local\Temp\`. Malicious actors may misuse `wusa.exe` to deploy malware or perform unauthorized installations, hence tracking this executable from these directories serves as an indicator of suspicious behavior. The primary data sources involved in this detection are process creation logs that capture the execution of programs alongside their command-line parameters.
+  ### Investigation Steps
+  - Review the process creation logs within your EDR tool to identify instances of `wusa.exe` executed with the `/extract` command-line argument from the specified suspicious paths.
+    
+  - Correlate the timestamps of the detected activity with other logs such as AV alerts and network traffic to assess if there are additional indicators of compromise or associated malicious behavior.
+  - Analyze the contents of the directories from which `wusa.exe` was executed to determine whether unauthorized or unexpected files are present.
+  - Check for anomalies in user activity associated with the execution of `wusa.exe`, focusing on user accounts accessing these paths around the same time frame.

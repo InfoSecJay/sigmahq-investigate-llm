@@ -1,0 +1,36 @@
+title: PowerShell Web Download
+id: 6e897651-f157-4d8f-aaeb-df8151488385
+status: test
+description: Detects suspicious ways to download files or content using PowerShell
+references:
+- https://github.com/VirtualAlllocEx/Payload-Download-Cradles/blob/88e8eca34464a547c90d9140d70e9866dcbc6a12/Download-Cradles.cmd
+author: Florian Roth (Nextron Systems)
+date: 2022-03-24
+modified: 2023-01-05
+tags:
+- attack.command-and-control
+- attack.execution
+- attack.t1059.001
+- attack.t1105
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    CommandLine|contains:
+    - '.DownloadString('
+    - '.DownloadFile('
+    - 'Invoke-WebRequest '
+    - 'iwr '
+  condition: selection
+falsepositives:
+- Scripts or tools that download files
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify suspicious PowerShell commands that are commonly used to download files or content from the internet. By focusing on specific command-line parameters such as `.DownloadString()`, `.DownloadFile()`, and the `Invoke-WebRequest` cmdlet (abbreviated as `iwr`), the rule can flag potential misuse of PowerShell indicating command-and-control activities or unauthorized file downloads. The primary data source for this rule is process creation logs on Windows systems, which capture the command-line arguments of executed processes. This allows incident responders to quickly assess whether such downloads were conducted maliciously or if they are legitimate operations performed by administrative scripts.
+  ### Investigation Steps
+  - Review recent process creation logs in the EDR tool for instances of PowerShell execution that contain the flagged commands, paying close attention to the context of their execution.
+  - Correlate the detected PowerShell activities with any internal scripts or scheduled tasks to determine if the command originated from a legitimate source.
+  - Analyze network traffic logs and proxy data to identify connections that may have been established by the flagged PowerShell commands, focusing on unusual or unauthorized external domains.
+  - Conduct a malware scan on the affected endpoint using the AV solution to ensure that no malicious payloads were downloaded as a result of the suspicious PowerShell execution.

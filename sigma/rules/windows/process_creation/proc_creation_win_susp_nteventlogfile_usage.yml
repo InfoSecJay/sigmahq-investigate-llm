@@ -1,0 +1,43 @@
+title: Potentially Suspicious Call To Win32_NTEventlogFile Class
+id: caf201a9-c2ce-4a26-9c3a-2b9525413711
+related:
+- id: e2812b49-bae0-4b21-b366-7c142eafcde2
+  type: similar
+status: test
+description: Detects usage of the WMI class "Win32_NTEventlogFile" in a potentially
+  suspicious way (delete, backup, change permissions, etc.) from a PowerShell script
+references:
+- https://learn.microsoft.com/en-us/previous-versions/windows/desktop/legacy/aa394225(v=vs.85)
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-07-13
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_class:
+    CommandLine|contains: 'Win32_NTEventlogFile'
+  selection_function:
+    CommandLine|contains:
+    - '.BackupEventlog('
+    - '.ChangeSecurityPermissions('
+    - '.ChangeSecurityPermissionsEx('
+    - '.ClearEventLog('
+    - '.Delete('
+    - '.DeleteEx('
+    - '.Rename('
+    - '.TakeOwnerShip('
+    - '.TakeOwnerShipEx('
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially malicious or suspicious activities that involve the Windows Management Instrumentation (WMI) class `Win32_NTEventlogFile`. By monitoring for specific PowerShell command line arguments that interact with this class, the rule identifies actions such as deleting, backing up, or changing permissions of event log files. The `Win32_NTEventlogFile` class contains methods that can manipulate Windows event logs, which are critical for system auditing and forensic investigations. A legitimate user rarely invokes these methods, especially through PowerShell scripts. The primary data sources for this detection include process creation logs that capture command-line parameters when these PowerShell scripts are executed.
+  ### Investigation Steps
+  - Query the EDR for any recent process creation events involving PowerShell that reference `Win32_NTEventlogFile` in the command line. 
+  - Check for any associated parent processes of the detected PowerShell scripts that could indicate a larger attack chain or a legitimate process misuse.
+  - Review event log entries to identify any actual changes made to the event log files, such as deletions or permission modifications.
+  - Use network logs from the firewall or proxy to determine if any suspicious data exfiltration correlated with these PowerShell executions occurred.

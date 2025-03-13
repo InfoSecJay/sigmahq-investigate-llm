@@ -1,0 +1,35 @@
+title: HybridConnectionManager Service Installation - Registry
+id: ac8866c7-ce44-46fd-8c17-b24acff96ca8
+status: test
+description: Detects the installation of the Azure Hybrid Connection Manager service
+  to allow remote code execution from Azure function.
+references:
+- https://twitter.com/Cyb3rWard0g/status/1381642789369286662
+author: Roberto Rodriguez (Cyb3rWard0g), OTR (Open Threat Research)
+date: 2021-04-12
+modified: 2022-11-27
+tags:
+- attack.resource-development
+- attack.t1608
+logsource:
+  category: registry_event
+  product: windows
+detection:
+  selection1:
+    TargetObject|contains: '\Services\HybridConnectionManager'
+  selection2:
+    EventType: SetValue
+    Details|contains: 'Microsoft.HybridConnectionManager.Listener.exe'
+  condition: selection1 or selection2
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule monitors for changes in the Windows registry specifically related to the installation of the Azure Hybrid Connection Manager (HCM) service. The Azure HCM is used to create hybrid connections that enable remote code execution from Azure functions, making it a potential vector for malicious activity. The rule looks for registry events that indicate either the creation of a service related to HybridConnectionManager or modifications associated with the executable `Microsoft.HybridConnectionManager.Listener.exe`. By analyzing these registry modifications, security teams can identify unauthorized or unexpected installations of this service, which may signify an attempted attack.
+  The data sources involved in this detection encompass registry event logs, where specific keys and values related to the HybridConnectionManager are monitored. This allows the SOC to track alterations that could indicate the service is being leveraged for malicious purposes.
+  ### Investigation Steps
+  - Review the registry event logs using EDR tools to verify the presence or modification of the `HybridConnectionManager` service entries.
+  - Inspect process creation logs to identify any instances of `Microsoft.HybridConnectionManager.Listener.exe` executing and determine its parent processes for context.
+  - Analyze network traffic through NDR tools to check for any suspicious outbound connections or commands that coincide with the installation of the Hybrid Connection Manager.
+  - Correlate findings with cloud activity logs in Azure to assess whether any remote actions correspond with the detected changes, thereby assessing the full impact of the possible breach.

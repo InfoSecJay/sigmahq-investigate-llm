@@ -1,0 +1,35 @@
+title: Winget Admin Settings Modification
+id: 6db5eaf9-88f7-4ed9-af7d-9ef2ad12f236
+status: test
+description: Detects changes to the AppInstaller (winget) admin settings. Such as
+  enabling local manifest installations or disabling installer hash checks
+references:
+- https://github.com/nasbench/Misc-Research/tree/b9596e8109dcdb16ec353f316678927e507a5b8d/LOLBINs/Winget
+- https://github.com/microsoft/winget-cli/blob/02d2f93807c9851d73eaacb4d8811a76b64b7b01/src/AppInstallerCommonCore/Public/winget/AdminSettings.h#L13
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-04-17
+modified: 2023-08-17
+tags:
+- attack.defense-evasion
+- attack.persistence
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    Image|endswith: '\winget.exe'
+    TargetObject|startswith: '\REGISTRY\A\'
+    TargetObject|endswith: '\LocalState\admin_settings'
+  condition: selection
+falsepositives:
+- The event doesn't contain information about the type of change. False positives
+  are expected with legitimate changes
+level: low
+notes: |
+  ### Technical Context
+  The "Winget Admin Settings Modification" detection rule focuses on monitoring changes to the Windows AppInstaller (winget) configuration settings in the Windows Registry. Specifically, it detects modifications made to the `admin_settings` keys, which control critical aspects such as allowing local manifest installations and toggling hash checks on installers. By tracking these changes, the rule helps to identify potential unauthorized adjustments that may lead to security risks, such as the installation of malicious software or the circumvention of security policies. The detection mechanism leverages Windows Registry logs, monitoring instances where the `winget.exe` process alters specific registry paths associated with administrative settings.
+  ### Investigation Steps
+  - Review recent changes captured in the Windows Registry around the `LocalState\admin_settings` path to verify if they align with the organization's intended configuration policies.
+  - Use EDR tools to inspect the behavior of the `winget.exe` process during the time of the registry modification, checking for any suspicious command-line parameters or associated processes.
+  - Analyze any network activity related to the winget process using NDR tools to see if there were any outbound connections to known malicious hosts or unusual external locations.
+  - Check for any related logs or alerts from the SIEM that correlate with this modification to understand the broader context of the incident and identify if there are additional affected systems.

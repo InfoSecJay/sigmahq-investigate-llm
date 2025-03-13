@@ -1,0 +1,32 @@
+title: Suspicious RASdial Activity
+id: 6bba49bf-7f8c-47d6-a1bb-6b4dece4640e
+status: test
+description: Detects suspicious process related to rasdial.exe
+references:
+- https://twitter.com/subTee/status/891298217907830785
+author: juju4
+date: 2019-01-16
+modified: 2021-11-27
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1059
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: 'rasdial.exe'
+  condition: selection
+falsepositives:
+- False positives depend on scripts and administrative tools used in the monitored
+  environment
+level: medium
+notes: |
+  ### Technical Context
+  The "Suspicious RASdial Activity" detection rule identifies potentially malicious uses of the Windows utility `rasdial.exe`, which is commonly used for remote access and dial-up network connections. By monitoring process creation logs for instances where the image name ends with 'rasdial.exe', this rule flags potential unauthorized or unusual activity related to remote access. Attackers may exploit legitimate system tools like `rasdial.exe` to evade detection while exfiltrating data or establishing remote connections without proper authorization. The main data source leveraged by this detection rule is the process creation logs from Windows, which provide insight into what processes are being launched on the system and can help identify suspicious behaviors or usage patterns.
+  ### Investigation Steps
+  - Review the process creation logs for all instances of `rasdial.exe` to determine the context of its execution, including the user account associated with it and the command-line parameters used.
+  - Cross-reference the timestamps of the `rasdial.exe` executions with any other relevant logs (e.g., VPN logs, firewall logs) to identify any correlating suspicious activities or unauthorized network connections.
+  - Utilize EDR tools to inspect the behavior of the system that executed `rasdial.exe`, checking for related processes, file modifications, or unusual network activity around the time of the alert.
+  - Consult with system and network teams to validate whether authorized administrative scripts or tools may have legitimately invoked `rasdial.exe`, ruling out false positives based on the environment's operational context.

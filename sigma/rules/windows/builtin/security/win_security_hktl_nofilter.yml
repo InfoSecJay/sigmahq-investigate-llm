@@ -1,0 +1,40 @@
+title: HackTool - NoFilter Execution
+id: 7b14c76a-c602-4ae6-9717-eff868153fc0
+status: test
+description: |
+  Detects execution of NoFilter, a tool for abusing the Windows Filtering Platform for privilege escalation via hardcoded policy name indicators
+references:
+- https://github.com/deepinstinct/NoFilter/blob/121d215ab130c5e8e3ad45a7e7fcd56f4de97b4d/NoFilter/Consts.cpp
+- https://github.com/deepinstinct/NoFilter
+- https://www.deepinstinct.com/blog/nofilter-abusing-windows-filtering-platform-for-privilege-escalation
+- https://x.com/_st0pp3r_/status/1742203752361128162?s=20
+author: Stamatis Chatzimangou (st0pp3r)
+date: 2024-01-05
+tags:
+- attack.privilege-escalation
+- attack.t1134
+- attack.t1134.001
+logsource:
+  product: windows
+  service: security
+  definition: 'Requirements: Audit Filtering Platform Policy Change needs to be enabled'
+detection:
+  selection_5447:
+    EventID: 5447
+    FilterName|contains: 'RonPolicy'
+  selection_5449:
+    EventID: 5449
+    ProviderContextName|contains: 'RonPolicy'
+  condition: 1 of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potential abuse of the Windows Filtering Platform through the use of the NoFilter tool, which is known for facilitating privilege escalation attacks. The rule works by monitoring specific Windows security events related to filtering platform policy changes. It focuses on Event ID 5447 and 5449, highlighting activities associated with filters that contain the hardcoded policy name "RonPolicy." When these events are logged, they may indicate malicious intent aimed at manipulating system filtering policies to gain elevated privileges.
+  To effectively detect these activities, it is crucial that the enterprise environment has the Audit Filtering Platform Policy Change capability enabled. By capturing these events, the rule helps to surface instances of the NoFilter tool's execution, which can be indicative of a broader exploitation attempt or unauthorized changes to system security settings.
+  ### Investigation Steps
+  - Review the EDR logs for any recent executions of the NoFilter tool or modifications to the filtering policies, correlating them with the detected Event ID 5447 or 5449.
+  - Check for any unusual process activity or command-line arguments associated with the flagged events to identify potential indicators of compromise.
+  - Analyze the window logs to see if any unauthorized access or privilege escalations occurred around the time of the detected events.
+  - Query the SIEM for any related alerts or anomalies in user behavior that might suggest further exploitation following the execution of the NoFilter tool.

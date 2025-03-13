@@ -1,0 +1,32 @@
+title: Octopus Scanner Malware
+id: 805c55d9-31e6-4846-9878-c34c75054fe9
+status: test
+description: Detects Octopus Scanner Malware.
+references:
+- https://securitylab.github.com/research/octopus-scanner-malware-open-source-supply-chain
+author: NVISO
+date: 2020-06-09
+modified: 2021-11-27
+tags:
+- attack.t1195
+- attack.t1195.001
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|endswith:
+    - '\AppData\Local\Microsoft\Cache134.dat'
+    - '\AppData\Local\Microsoft\ExplorerSync.db'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Octopus Scanner Malware detection rule focuses on identifying specific file events related to known malicious artifacts associated with this malware variant. It monitors for the creation or modification of files with specific names within the Windows operating system. The targeted file paths are `\AppData\Local\Microsoft\Cache134.dat` and `\AppData\Local\Microsoft\ExplorerSync.db`, which are typically used by the malware for data storage. The rule processes data sourced from file events to capture activities indicative of potential malware operations. By tracking these particular filenames, the system aims to flag instances of Octopus Scanner Malware, which is known for its involvement in supply chain attacks.
+  ### Investigation Steps
+  - Verify the file creation and modification timestamps in the EDR logs to establish a timeline of the malicious file's activities.
+  - Query the process creation logs to identify any parent processes associated with the creation of the suspicious files to understand how the malware was executed.
+  - Review network traffic through the NDR and Proxy logs to detect any unusual outbound connections or data exfiltration attempts related to the identified malware.
+  - Search for related indicators of compromise (IOCs) in cloud platform logs (AWS, GCP, Azure) to assess if the malware has spread or impacted cloud resources.

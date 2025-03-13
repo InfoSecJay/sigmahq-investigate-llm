@@ -1,0 +1,43 @@
+title: Rundll32 Execution Without Parameters
+id: 5bb68627-3198-40ca-b458-49f973db8752
+status: test
+description: Detects rundll32 execution without parameters as observed when running
+  Metasploit windows/smb/psexec exploit module
+references:
+- https://bczyz1.github.io/2021/01/30/psexec.html
+author: Bartlomiej Czyz, Relativity
+date: 2021-01-31
+modified: 2023-02-28
+tags:
+- attack.lateral-movement
+- attack.t1021.002
+- attack.t1570
+- attack.execution
+- attack.t1569.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine:
+    - 'rundll32.exe'
+    - 'rundll32'
+  condition: selection
+fields:
+- ComputerName
+- SubjectUserName
+- CommandLine
+- Image
+- ParentImage
+falsepositives:
+- False positives may occur if a user called rundll32 from CLI with no options
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies instances where the `rundll32.exe` application is executed without any parameters. Such activity is suspicious, as legitimate use of `rundll32.exe` typically involves command-line arguments specifying the dynamic link library (DLL) to be executed along with additional options. The execution of `rundll32.exe` without parameters can indicate a potential malicious attempt, often related to lateral movement techniques as seen in exploitation tools like Metasploit, specifically the `windows/smb/psexec` module. 
+  To facilitate this detection, the rule analyzes process creation logs on Windows systems, focusing on the command-line arguments associated with the `rundll32.exe` process. Relevant data points include the computer name, user who initiated the command, the exact command line used, the process image, and its parent image, allowing responders to assess the context of the execution.
+  ### Investigation Steps
+  - Query EDR logs for `rundll32.exe` process creation events and examine the command-line parameters for instances that lack meaningful arguments.
+  - Investigate the user account associated with the execution to determine if it has a history of anomalous behavior or unduly high privileges.
+  - Analyze network traffic logs from the NDR tool to check for any unusual outbound connections made just after the `rundll32.exe` execution.
+  - Review security logs and alerts from NGFW and AV solutions related to lateral movement or initial access attempts that may correlate with the detected execution.

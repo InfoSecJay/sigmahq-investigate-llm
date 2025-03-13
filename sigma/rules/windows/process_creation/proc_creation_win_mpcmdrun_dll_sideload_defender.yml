@@ -1,0 +1,44 @@
+title: Potential Mpclient.DLL Sideloading Via Defender Binaries
+id: 7002aa10-b8d4-47ae-b5ba-51ab07e228b9
+related:
+- id: 418dc89a-9808-4b87-b1d7-e5ae0cb6effc
+  type: similar
+status: test
+description: Detects potential sideloading of "mpclient.dll" by Windows Defender processes
+  ("MpCmdRun" and "NisSrv") from their non-default directory.
+references:
+- https://www.sentinelone.com/blog/living-off-windows-defender-lockbit-ransomware-sideloads-cobalt-strike-through-microsoft-security-tool
+author: Bhabesh Raj
+date: 2022-08-01
+modified: 2023-08-04
+tags:
+- attack.defense-evasion
+- attack.t1574.002
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    Image|endswith:
+    - '\MpCmdRun.exe'
+    - '\NisSrv.exe'
+  filter_main_known_locations:
+    Image|startswith:
+    - 'C:\Program Files (x86)\Windows Defender\'
+    - 'C:\Program Files\Microsoft Security Client\'
+    - 'C:\Program Files\Windows Defender\'
+    - 'C:\ProgramData\Microsoft\Windows Defender\Platform\'
+    - 'C:\Windows\WinSxS\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potential sideloading activities involving the `mpclient.dll` library executed via Windows Defender processes, specifically `MpCmdRun.exe` and `NisSrv.exe`. The key aspect of the rule lies in monitoring the file paths from which these processes are invoked. By verifying that these processes are initiated from non-standard directories, the detection rule highlights anomalous behavior indicative of potential malware sideloading tactics. The technical data sources involved primarily include process creation logs that capture the execution details of system processes, particularly their image file paths and the command-line parameters associated with their execution.
+  The context for this alert is grounded in the understanding that attackers may exploit Windows Defender’s trusted binaries to run malicious code without raising suspicion. Such tactics can facilitate stealthy persistence or further exploits within the enterprise environment. Understanding this attack vector helps incident responders take appropriate action for deeper investigation and mitigation.
+  ### Investigation Steps
+  - Use the EDR to review the process creation logs for any instances of `MpCmdRun.exe` and `NisSrv.exe` running from non-standard directories, noting any suspicious command-line parameters associated with these processes.
+  - Cross-reference execution timestamps with logs from other systems to check for lateral movement or additional related suspicious activities that could indicate a broader compromise.
+  - Investigate the integrity and timestamp of the `mpclient.dll` file within the detected process execution environment to determine if it has been altered or replaced.
+  - Check network logs via the NGFW or Proxy for any unusual outbound connections initiated by the Windows Defender processes, focusing on destination addresses that are unfamiliar or potentially malicious.

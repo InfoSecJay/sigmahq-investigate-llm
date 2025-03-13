@@ -1,0 +1,39 @@
+title: Potential LSASS Process Dump Via Procdump
+id: 5afee48e-67dd-4e03-a783-f74259dcf998
+status: stable
+description: |
+  Detects suspicious uses of the SysInternals Procdump utility by using a special command line parameter in combination with the lsass.exe process.
+  This way we are also able to catch cases in which the attacker has renamed the procdump executable.
+references:
+- https://learn.microsoft.com/en-us/sysinternals/downloads/procdump
+author: Florian Roth (Nextron Systems)
+date: 2018-10-30
+modified: 2024-03-13
+tags:
+- attack.defense-evasion
+- attack.t1036
+- attack.credential-access
+- attack.t1003.001
+- car.2013-05-009
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_flags:
+    CommandLine|contains|windash: ' -ma '
+  selection_process:
+    CommandLine|contains: ' ls'     # Short for lsass
+  condition: all of selection*
+falsepositives:
+- Unlikely, because no one should dump an lsass process memory
+- Another tool that uses command line flags similar to ProcDump
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potentially malicious use of the SysInternals Procdump utility, which attackers can exploit to extract credentials from memory by dumping the Local Security Authority Subsystem Service (LSASS) process. The rule looks for specific command-line parameters and patterns, particularly those associated with the LSASS executable (`lsass.exe`), alongside the usage of `-ma`, a flag indicating that the entire memory of the process is to be dumped. This approach makes it effective even if the attacker renames the Procdump executable, as the rule will still trigger on the distinct usage pattern tied to memory dumping of the LSASS process.
+  The primary data sources for this detection include process creation logs, which capture command-line arguments and the processes being executed on Windows systems. By analyzing these logs, security analysts can detect unusual or unauthorized attempts to dump LSASS memory, which could indicate credential theft or other malicious activities.
+  ### Investigation Steps
+  - Review recent process creation logs in your EDR system for instances of `lsass.exe` being executed with the `-ma` command-line argument to identify potential malicious activity.
+  - Analyze processes related to Procdump to verify if there are unusual executions or renamed instances that align with the captured command-line parameters.
+  - Cross-reference user activities and access logs from your authentication system to determine if there were any unauthorized logins or significant account changes around the time of the alert.
+  - Check for any related alerts in the SIEM that might highlight other suspicious behavior or processes running concurrently with the detected LSASS dump attempt.

@@ -1,0 +1,36 @@
+title: PsExec Service File Creation
+id: 259e5a6a-b8d2-4c38-86e2-26c5e651361d
+related:
+- id: 42c575ea-e41e-41f1-b248-8093c3e82a28
+  type: derived
+status: test
+description: Detects default PsExec service filename which indicates PsExec service
+  installation and execution
+references:
+- https://www.jpcert.or.jp/english/pub/sr/ir_research.html
+- https://jpcertcc.github.io/ToolAnalysisResultSheet
+author: Thomas Patzke
+date: 2017-06-12
+modified: 2022-10-26
+tags:
+- attack.execution
+- attack.t1569.002
+- attack.s0029
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|endswith: '\PSEXESVC.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule detects the creation of a Windows service file named "PSEXESVC.exe", which is associated with PsExec, a tool often exploited by attackers for remote execution of commands and processes. When PsExec is used, it typically installs a service named "PSEXESVC" on the target machine. The rule primarily examines file event logs to identify instances where a file with this specific name is created, indicating potential misuse of the PsExec tool. Detection relies on monitoring data from Windows file event logs, particularly focusing on file creation events that have notations matching the specified filename.
+  ### Investigation Steps
+  - Review recent process creation logs from the EDR to identify any instances where PsExec has been executed or any suspicious commands run in conjunction with the created service.
+  - Utilize antivirus (AV) logs to check for any alerts or blocks related to "PSEXESVC.exe" to determine if it has been flagged as malicious.
+  - Investigate firewall (NGFW) logs to assess if there has been any unauthorized outbound or inbound traffic associated with the machine that created the service, which could indicate further malicious activity.
+  - Analyze Windows event logs for logged service creation events and correlate these with user login patterns and administrative access to determine legitimacy.

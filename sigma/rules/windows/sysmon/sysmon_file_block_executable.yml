@@ -1,0 +1,30 @@
+title: Sysmon Blocked Executable
+id: 23b71bc5-953e-4971-be4c-c896cda73fc2
+status: test
+description: Triggers on any Sysmon "FileBlockExecutable" event, which indicates a
+  violation of the configured block policy
+references:
+- https://medium.com/@olafhartong/sysmon-14-0-fileblockexecutable-13d7ba3dff3e
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-08-16
+modified: 2023-09-16
+tags:
+- attack.defense-evasion
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    EventID: 27      # this is fine, we want to match any FileBlockExecutable event
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The "Sysmon Blocked Executable" detection rule monitors for events where executable files are blocked by Sysmon, specifically leveraging EventID 27, which indicates that an attempt to execute a file was prevented due to a violation of the configured block policy. This functionality is crucial in detecting potentially malicious attempts to run unauthorized applications or processes that could compromise the security posture of an organization. By focusing on these "FileBlockExecutable" events, the rule helps identify and alert on activities that could indicate attempts at lateral movement, execution of malicious payloads, or evasion of security measures. The primary data source involved is Sysmon's extensive logging capabilities, which record process creation, network connections, and file modifications.
+  ### Investigation Steps
+  - Review Sysmon logs for EventID 27 to identify which executables were blocked and assess the context of the block event, including the user and system activity at the time.
+  - Utilize your EDR tool to trace any related processes or actions that occurred around the same time as the blocking event to get insights into potential malicious behavior.
+  - Check Windows Event Logs for any suspicious logons or failed execution attempts that might correlate with the blocked executable events, providing further context.
+  - Investigate potential indicators of compromise (IoCs) by using threat intelligence feeds or AV logs to see if the blocked executable has a known reputation or history of malicious activity.

@@ -1,0 +1,52 @@
+title: Windows Pcap Drivers
+id: 7b687634-ab20-11ea-bb37-0242ac130002
+status: test
+description: Detects Windows Pcap driver installation based on a list of associated
+  .sys files.
+references:
+- https://ragged-lab.blogspot.com/2020/06/capturing-pcap-driver-installations.html#more
+author: Cian Heasley
+date: 2020-06-10
+modified: 2023-04-14
+tags:
+- attack.discovery
+- attack.credential-access
+- attack.t1040
+logsource:
+  product: windows
+  service: security
+  definition: The 'System Security Extension' audit subcategory need to be enabled
+    to log the EID 4697
+detection:
+  selection:
+    EventID: 4697
+    ServiceFileName|contains:
+    - 'pcap'
+    - 'npcap'
+    - 'npf'
+    - 'nm3'
+    - 'ndiscap'
+    - 'nmnt'
+    - 'windivert'
+    - 'USBPcap'
+    - 'pktmon'
+  condition: selection
+fields:
+- EventID
+- ServiceFileName
+- Account_Name
+- Computer_Name
+- Originating_Computer
+- ServiceName
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Windows Pcap Drivers" detection rule aims to identify the installation of Packet Capture (Pcap) drivers within a Windows environment. Such drivers facilitate network traffic capturing and can be exploited by attackers for various malicious activities, including credential theft and reconnaissance. The rule specifically looks for Event ID 4697, which logs new service installations on Windows systems. By filtering for known Pcap-related driver filenames—including 'pcap', 'npcap', and 'USBPcap'—the rule helps detect potentially unauthorized installations of these drivers, which can indicate suspicious or malicious behavior.
+  This detection relies primarily on logs from the Windows Security Audit subcategory, which must be enabled to capture relevant events. The identified filenames can serve as indicators of compromise, alerting analysts to investigate further any unauthorized installations that could lead to security risks.
+  ### Investigation Steps
+  - Review the event logs in your EDR solution to identify the instances of Event ID 4697 related to the installation of Pcap drivers. Pay special attention to the "ServiceFileName" field for any suspicious entries.
+  - Correlate the account names associated with the installations to determine whether any potentially compromised or anomalous accounts were involved in the driver installation process.
+  - Use the SIEM dashboard to track the originating computer and assess any other associated events around the same timeframe to understand the context better and identify any related malicious activities.
+  - Verify the legitimacy of the installed drivers against known safe drivers and consult threat intelligence feeds to check if any of the observed drivers are associated with known threats.

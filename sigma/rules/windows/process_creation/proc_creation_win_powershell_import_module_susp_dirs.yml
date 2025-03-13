@@ -1,0 +1,47 @@
+title: Import PowerShell Modules From Suspicious Directories - ProcCreation
+id: c31364f7-8be6-4b77-8483-dd2b5a7b69a3
+related:
+- id: 21f9162c-5f5d-4b01-89a8-b705bd7d10ab
+  type: similar
+status: test
+description: Detects powershell scripts that import modules from suspicious directories
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1003.002/T1003.002.md
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-10
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains:
+    - 'Import-Module "$Env:Temp\'
+    - Import-Module '$Env:Temp\
+    - 'Import-Module $Env:Temp\'
+    - 'Import-Module "$Env:Appdata\'
+    - Import-Module '$Env:Appdata\
+    - 'Import-Module $Env:Appdata\'
+    - 'Import-Module C:\Users\Public\'
+            # Import-Module alias is "ipmo"
+    - 'ipmo "$Env:Temp\'
+    - ipmo '$Env:Temp\
+    - 'ipmo $Env:Temp\'
+    - 'ipmo "$Env:Appdata\'
+    - ipmo '$Env:Appdata\
+    - 'ipmo $Env:Appdata\'
+    - 'ipmo C:\Users\Public\'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies suspicious PowerShell activity related to the importation of modules from common temporary or publicly accessible directories. Attackers may leverage these locations, such as `$Env:Temp`, `$Env:Appdata`, or `C:\Users\Public`, to execute malicious scripts that have been downloaded or stored in user-accessible locations. By monitoring process creation logs for command-line arguments that feature the "Import-Module" PowerShell command referencing these directories, this rule helps uncover potential exploitation tactics that unauthorized users may employ to execute payloads or obfuscate their malicious activities. The rule utilizes data from Windows process creation logs, specifically looking for PowerShell command invocations with specific patterns anticipated in these contexts.
+  ### Investigation Steps
+  - Utilize EDR tools to inspect the process details associated with the detected event, focusing on command-line arguments and the parent process to establish the context of execution.
+  - Review PowerShell event logs for any prior commands executed from the same script or session to uncover potential pre-existing conditions or additional malicious intent.
+  - Conduct a forensic analysis of the mentioned directories (`$Env:Temp`, `$Env:Appdata`, `C:\Users\Public`) to identify any suspicious files or scripts that may correlate with the detected command.
+  - Check the reputation of any identified scripts through threat intelligence sources, and consult firewall logs or proxy logs to ascertain if these scripts were recently downloaded from external sources.

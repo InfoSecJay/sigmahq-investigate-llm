@@ -1,0 +1,32 @@
+title: Network Connection Initiated By Eqnedt32.EXE
+id: a66bc059-c370-472c-a0d7-f8fd1bf9d583
+status: test
+description: Detects network connections from the Equation Editor process "eqnedt32.exe".
+references:
+- https://twitter.com/forensicitguy/status/1513538712986079238
+- https://forensicitguy.github.io/xloader-formbook-velvetsweatshop-spreadsheet/
+- https://news.sophos.com/en-us/2019/07/18/a-new-equation-editor-exploit-goes-commercial-as-maldoc-attacks-using-it-spike/
+author: Max Altgelt (Nextron Systems)
+date: 2022-04-14
+modified: 2024-05-31
+tags:
+- attack.execution
+- attack.t1203
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\eqnedt32.exe'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious network connections initiated by the Equation Editor process, identified by the executable name `eqnedt32.exe`. This process is typically benign and associated with Microsoft Word document editing; however, cybercriminals have recently exploited it to deliver malware through malicious documents. The detection focuses on identifying any outbound network connections that originate from this executable, which could indicate that it is being misused in a malicious context. The rule leverages logs from network connections on Windows systems to monitor for this specific behavior, allowing security teams to spot and investigate potential exploitation attempts.
+  ### Investigation Steps
+  - Examine the EDR logs for any unusual activity associated with `eqnedt32.exe`, including its execution context and the user that initiated the process.
+  - Check the network connection logs to identify the destination IP and port being accessed by `eqnedt32.exe`, focusing on any known malicious or suspicious addresses.
+  - Review recent document-related activities, such as file downloads or email attachments, that may have led to the execution of `eqnedt32.exe`.
+  - Analyze proxy logs for any web traffic related to the time frame of the event to trace the source of the malware delivery, which may provide context for the malicious activity.

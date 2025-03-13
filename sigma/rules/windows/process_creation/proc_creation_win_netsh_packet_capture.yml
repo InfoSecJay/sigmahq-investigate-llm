@@ -1,0 +1,38 @@
+title: New Network Trace Capture Started Via Netsh.EXE
+id: d3c3861d-c504-4c77-ba55-224ba82d0118
+status: test
+description: Detects the execution of netsh with the "trace" flag in order to start
+  a network capture
+references:
+- https://blogs.msdn.microsoft.com/canberrapfe/2012/03/30/capture-a-network-trace-without-installing-anything-capture-a-network-trace-of-a-reboot/
+- https://klausjochem.me/2016/02/03/netsh-the-cyber-attackers-tool-of-choice/
+author: Kutepov Anton, oscd.community
+date: 2019-10-24
+modified: 2023-02-13
+tags:
+- attack.discovery
+- attack.credential-access
+- attack.t1040
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\netsh.exe'
+  - OriginalFileName: 'netsh.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'trace'
+    - 'start'
+  condition: all of selection_*
+falsepositives:
+- Legitimate administration activity
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of `netsh.exe` with the parameters used to initiate a network trace capture, specifically when the command-line includes the flags "trace" and "start". The `netsh` tool is a built-in Windows utility that can manipulate network configuration and is often leveraged for legitimate network diagnostics. However, its powerful capabilities can also be exploited by malicious actors to gather sensitive network information or facilitate further attacks. The rule analyzes process creation logs, focusing on the image name and command-line arguments associated with the execution of `netsh.exe`. By monitoring for specific command-line parameters, this rule aims to uncover potentially suspicious activity tied to network reconnaissance or credential harvesting efforts.
+  ### Investigation Steps
+  - Use EDR to review the timeline of `netsh.exe` executions on the affected systems, focusing on recent process creation events that match the rule's criteria.
+  - Check for any unusual network traffic correlating with the timing of the `netsh` execution by analyzing logs from the Network Detection and Response (NDR) tool.
+  - Investigate user activity around the time of the alert to determine if there was legitimate administrative action or if it was initiated by an unauthorized actor.
+  - Examine event logs for changes in system or network configuration that may have occurred alongside the `netsh` command execution to identify potential malicious intent.

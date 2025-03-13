@@ -1,0 +1,40 @@
+title: Potential Persistence Via New AMSI Providers - Registry
+id: 33efc23c-6ea2-4503-8cfe-bdf82ce8f705
+status: test
+description: Detects when an attacker registers a new AMSI provider in order to achieve
+  persistence
+references:
+- https://persistence-info.github.io/Data/amsi.html
+- https://github.com/gtworek/PSBits/blob/8d767892f3b17eefa4d0668f5d2df78e844f01d8/FakeAMSI/FakeAMSI.c
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-21
+modified: 2023-02-07
+tags:
+- attack.persistence
+logsource:
+  category: registry_add
+  product: windows
+detection:
+  selection:
+    EventType: CreateKey
+    TargetObject|contains:
+    - '\SOFTWARE\Microsoft\AMSI\Providers\'
+    - '\SOFTWARE\WOW6432Node\Microsoft\AMSI\Providers\'
+  filter:
+    Image|startswith:
+    - 'C:\Windows\System32\'
+    - 'C:\Program Files\'
+    - 'C:\Program Files (x86)\'
+  condition: selection and not filter
+falsepositives:
+- Legitimate security products adding their own AMSI providers. Filter these according
+  to your environment
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects potential persistence mechanisms employed by attackers who register new AMSI (Antimalware Scan Interface) providers within the Windows Registry. AMSI is used by applications to communicate with security software for malware detection, and adding new providers can allow malicious actors to bypass detection by filtering or altering scans conducted by legitimate security solutions. The rule works by monitoring registry changes that involve creating new keys in specific AMSI provider directories, namely `\SOFTWARE\Microsoft\AMSI\Providers\` and its 32-bit counterpart. The rule specifically looks for events where these registry keys are created but is notably focused on preventing legitimate security software installations from being flagged as malicious by filtering out certain known images.
+  ### Investigation Steps
+  - Review recent registry changes using EDR tools to identify any new keys added under the AMSI provider paths mentioned in the rule.
+  - Correlate these registry entries with process creation logs to determine which application triggered the registry changes and whether it falls within a known, legitimate context.
+  - Analyze command-line parameters of the process that made the registry changes to assess any suspicious activities or patterns indicative of potential exploitation.
+  - Monitor network activity via NDR and firewall logs to check for any outbound connections made by the processes involved, further verifying their legitimacy or potential malicious intent.

@@ -1,0 +1,39 @@
+title: SysKey Registry Keys Access
+id: 9a4ff3b8-6187-4fd2-8e8b-e0eae1129495
+status: test
+description: Detects handle requests and access operations to specific registry keys
+  to calculate the SysKey
+references:
+- https://threathunterplaybook.com/hunts/windows/190625-RegKeyAccessSyskey/notebook.html
+author: Roberto Rodriguez @Cyb3rWard0g
+date: 2019-08-12
+modified: 2021-11-27
+tags:
+- attack.discovery
+- attack.t1012
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID:
+    - 4656
+    - 4663
+    ObjectType: 'key'
+    ObjectName|endswith:
+    - 'lsa\JD'
+    - 'lsa\GBG'
+    - 'lsa\Skew1'
+    - 'lsa\Data'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule aims to identify unauthorized access to specific Windows registry keys associated with the SysKey feature, which is used to secure local SAM (Security Account Manager) data. It monitors particular event IDs—4656 and 4663—that capture handle requests and access operations related to the target registry keys, such as `lsa\JD`, `lsa\GBG`, `lsa\Skew1`, and `lsa\Data`. These keys are important for protecting sensitive information during system boot processes. By examining the relevant logs from Windows Security, analysts can detect potential malicious activities aimed at compromising local account credentials.  
+  ### Investigation Steps
+  - Review the EDR for detailed process creation events that correspond to the times of the registry access alerts, looking for suspicious processes accessing these registry keys. 
+  - Utilize the SIEM to correlate alerts with other security events, such as failed login attempts or unusual network traffic, which may indicate a broader attack attempt.
+  - Check the Windows Security logs for additional context surrounding the registry access events, specifically analyzing the users and systems involved to identify any anomalies.
+  - Investigate the activity in related environments, such as on-premise or cloud resources, to determine if there are any similar anomalies in AWS, GCP, or Azure logs that could indicate an extended compromise.

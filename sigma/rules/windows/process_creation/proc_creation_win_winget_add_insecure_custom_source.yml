@@ -1,0 +1,44 @@
+title: Add Insecure Download Source To Winget
+id: 81a0ecb5-0a41-4ba1-b2ba-c944eb92bfa2
+related:
+- id: 05ebafc8-7aa2-4bcd-a269-2aec93f9e842
+  type: similar
+- id: c15a46a0-07d4-4c87-b4b6-89207835a83b
+  type: similar
+status: test
+description: |
+  Detects usage of winget to add a new insecure (http) download source.
+  Winget will not allow the addition of insecure sources, hence this could indicate potential suspicious activity (or typos)
+references:
+- https://learn.microsoft.com/en-us/windows/package-manager/winget/source
+- https://github.com/nasbench/Misc-Research/tree/b9596e8109dcdb16ec353f316678927e507a5b8d/LOLBINs/Winget
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-04-17
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1059
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\winget.exe'
+  - OriginalFileName: 'winget.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'source '
+    - 'add '
+    - 'http://'
+  condition: all of selection_*
+falsepositives:
+- False positives might occur if the users are unaware of such control checks
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule targets the use of the Windows Package Manager (`winget`) for adding new download sources that utilize insecure HTTP protocols. Normally, `winget` is designed to prevent the addition of such sources due to security concerns; thus, any attempt to do so is suspicious and may indicate potential misuse or misconfiguration. The rule monitors process creation logs for instances where `winget.exe` is executed with command-line arguments containing "source", "add", and an "http://" prefix. By capturing these specific conditions paired with the process that called `winget`, the rule helps identify potentially malicious activities. The primary data sources involved in this detection include process creation logs and command-line parameters.
+  ### Investigation Steps
+  - Review the EDR logs for instances of `winget.exe` being executed, specifically noting the command-line arguments used in the execution event.
+  - Cross-reference the user accounts associated with the `winget` command execution against known directories to identify if the actions align with expected behavior.
+  - Check network logs from your proxy or firewall to see if there were any outbound connections to unknown or suspicious HTTP sources shortly after the `winget` activity.
+  - Analyze historical context within cloud logs (if applicable) to determine if similar insecure sources were added in the past and if they align with normal operational patterns.

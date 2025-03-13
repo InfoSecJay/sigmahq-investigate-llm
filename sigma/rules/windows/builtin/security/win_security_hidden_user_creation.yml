@@ -1,0 +1,34 @@
+title: Hidden Local User Creation
+id: 7b449a5e-1db5-4dd0-a2dc-4e3a67282538
+status: test
+description: Detects the creation of a local hidden user account which should not
+  happen for event ID 4720.
+references:
+- https://twitter.com/SBousseaden/status/1387743867663958021
+author: Christian Burkard (Nextron Systems)
+date: 2021-05-03
+modified: 2024-01-16
+tags:
+- attack.persistence
+- attack.t1136.001
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4720
+    TargetUserName|endswith: '$'
+  filter_main_homegroup:
+    TargetUserName: 'HomeGroupUser$'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Hidden Local User Creation" Sigma rule is designed to detect the unauthorized creation of local user accounts on Windows systems, specifically those that are hidden from typical account listings. It focuses on monitoring Windows Security Event ID 4720, which is triggered whenever a new user account is created. The rule looks for user accounts with usernames that end with a dollar sign (`$`), a common suffix indicating a hidden or service account, and specifically excludes the legitimate "HomeGroupUser$" account. By filtering out known safe accounts, this rule helps analysts identify potentially malicious activity aimed at establishing persistence on a system by creating covert accounts that evade detection. 
+  ### Investigation Steps
+  Investigate the originating system by analyzing the Windows Security logs for Event ID 4720 to confirm the creation of the hidden user account.
+  Check the EDR for any recent processes that correlate with the time of the account creation event, looking for suspicious executables or scripts that may indicate malicious activity.
+  Review authentication logs from the NGFW or VPN to identify any login attempts using the newly created account, as this may shed light on further unauthorized access.
+  Consult AV logs for any actions taken against malicious software that could have led to the account's creation, focusing on potential threats that were detected around the same timeframe.

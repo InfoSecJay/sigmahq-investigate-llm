@@ -1,0 +1,37 @@
+title: UAC Bypass Using MSConfig Token Modification - Process
+id: ad92e3f9-7eb6-460e-96b1-582b0ccbb980
+status: test
+description: Detects the pattern of UAC Bypass using a msconfig GUI hack (UACMe 55)
+references:
+- https://github.com/hfiref0x/UACME
+author: Christian Burkard (Nextron Systems)
+date: 2021-08-30
+modified: 2024-12-01
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    IntegrityLevel:
+    - 'High'
+    - 'System'
+    - 'S-1-16-16384'         # System
+    - 'S-1-16-12288'         # High
+    ParentImage|endswith: '\AppData\Local\Temp\pkgmgr.exe'
+    CommandLine: '"C:\Windows\system32\msconfig.exe" -5'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects a potential User Account Control (UAC) bypass using a method involving the Windows system utility, msconfig.exe. UAC bypass techniques often seek to execute processes with elevated privileges without proper user consent. The rule focuses on identifying instances where processes are initiated with a high or system integrity level, specifically looking for the parent image process being `pkgmgr.exe` located in the Temp directory. The command-line parameter checked here is `'"C:\Windows\system32\msconfig.exe" -5'`, indicating that the rule is monitoring for unauthorized attempts to leverage msconfig for privilege escalation. Data sources involved include process creation logs that capture detailed information about running processes, their hierarchies, and command-line arguments.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR tool to confirm the instance of msconfig.exe being executed with the specified command-line parameters.
+  - Investigate the parent process, `pkgmgr.exe`, in your logs for any indications of abnormal behavior or other suspicious activities leading up to the msconfig execution.
+  - Utilize threat intelligence feeds to correlate the behavior observed with known UAC bypass techniques, specifically referencing the UACMe tool described in the provided reference.
+  - Assess endpoint security logs for any alerts or blocks related to privilege escalation or attempts to change system configurations that may accompany this behavior.

@@ -1,0 +1,34 @@
+title: Publisher Attachment File Dropped In Suspicious Location
+id: 3d2a2d59-929c-4b78-8c1a-145dfe9e07b1
+status: test
+description: Detects creation of files with the ".pub" extension in suspicious or
+  uncommon locations. This could be a sign of attackers abusing Publisher documents
+references:
+- https://twitter.com/EmericNasi/status/1623224526220804098
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-02-08
+tags:
+- attack.defense-evasion
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|contains:
+    - '\AppData\Local\Temp\'
+    - '\Users\Public\'
+    - '\Windows\Temp\'
+    - 'C:\Temp\'
+    TargetFilename|endswith: '.pub'
+  condition: selection
+falsepositives:
+- Legitimate usage of ".pub" files from those locations
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the creation of files with the ".pub" extension in suspicious or uncommon locations on Windows operating systems. Attackers may exploit Microsoft Publisher documents as part of their tactics, using them to deliver malware or execute malicious scripts. The rule specifically focuses on locations that are often misused, such as temporary directories and public or system folders, which are not typical for legitimate Publisher files. By analyzing file event logs, the rule looks for instances where ".pub" files are created in these targeted directories, helping to flag potential malicious activities for further investigation.
+  ### Investigation Steps
+  - Review the alert details in the SIEM to identify the specific file paths and timestamps associated with the ".pub" file creations.
+  - Use EDR tools to trace the process history leading up to the creation of the file, including any command-line parameters used during its execution.
+  - Check antivirus logs and alerts to ascertain if there were any warnings or detections related to the ".pub" files or processes that created them.
+  - Query network logs from the NGFW or proxy to identify any outbound connections initiated by the suspicious file or related processes, which could reveal further malicious intent.

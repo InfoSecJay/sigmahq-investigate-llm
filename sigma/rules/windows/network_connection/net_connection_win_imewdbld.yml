@@ -1,0 +1,37 @@
+title: Network Connection Initiated By IMEWDBLD.EXE
+id: 8d7e392e-9b28-49e1-831d-5949c6281228
+related:
+- id: 863218bd-c7d0-4c52-80cd-0a96c09f54af
+  type: derived
+status: test
+description: |
+  Detects a network connection initiated by IMEWDBLD.EXE. This might indicate potential abuse of the utility as a LOLBIN in order to download arbitrary files or additional payloads.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1105/T1105.md#atomic-test-10---windows---powershell-download
+- https://lolbas-project.github.io/lolbas/Binaries/IMEWDBLD/
+author: frack113
+date: 2022-01-22
+modified: 2023-11-09
+tags:
+- attack.command-and-control
+- attack.t1105
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Initiated: 'true'
+    Image|endswith: '\IMEWDBLD.exe'
+  condition: selection
+falsepositives:
+- Unknown
+# Note: Please reduce this to medium if you find legitimate connections
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify network connections initiated by the executable `IMEWDBLD.EXE`, a legitimate Windows utility that may be exploited by attackers as a Living Off The Land Binary (LOLBIN). The rule specifically monitors for instances where this executable initiates outbound network connections, which can indicate attempts to download malicious payloads or files from external sources. The detection relies on data sourced from network connection logs within a Windows environment, capturing details such as the process image name, connection initiation, and associated network activity. Understanding this rule is critical for recognizing potential abuse of the utility that could compromise the security landscape of the enterprise.
+  ### Investigation Steps
+  - Review the relevant EDR logs to trace the process execution timeline of `IMEWDBLD.EXE`, checking for unusual command-line parameters or unexpected parent processes.
+  - Analyze network traffic associated with the detected connection, using NDR tools to assess traffic patterns, destination IPs, and whether any connections were made to known malicious domains.
+  - Check firewall logs from the NGFW for any unusual outbound connection attempts from the originating system, ensuring to cross-reference with traffic captured by network analysis tools.
+  - Investigate user activity on the affected host around the time of the alerts using audit logs or user activity logs, looking for signs of unauthorized access or other suspicious behaviors.

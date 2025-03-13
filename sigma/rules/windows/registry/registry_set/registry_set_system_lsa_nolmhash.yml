@@ -1,0 +1,37 @@
+title: Enable LM Hash Storage
+id: c420410f-c2d8-4010-856b-dffe21866437
+related:
+- id: 98dedfdd-8333-49d4-9f23-d7018cccae53     # process_creation
+  type: similar
+status: test
+description: |
+  Detects changes to the "NoLMHash" registry value in order to allow Windows to store LM Hashes.
+  By setting this registry value to "0" (DWORD), Windows will be allowed to store a LAN manager hash of your password in Active Directory and local SAM databases.
+references:
+- https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-347a
+- https://learn.microsoft.com/en-us/troubleshoot/windows-server/windows-security/prevent-windows-store-lm-hash-password
+- https://www.sans.org/blog/protecting-privileged-domain-accounts-lm-hashes-the-good-the-bad-and-the-ugly/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-12-15
+tags:
+- attack.defense-evasion
+- attack.t1112
+logsource:
+  product: windows
+  category: registry_set
+detection:
+  selection:
+    TargetObject|endswith: 'System\CurrentControlSet\Control\Lsa\NoLMHash'
+    Details: 'DWORD (0x00000000)'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule detects changes to the Windows registry key that controls the storage of LAN Manager (LM) hashes. Specifically, it looks for modifications to the "NoLMHash" registry value under the "System\CurrentControlSet\Control\Lsa" path. When set to "0" (DWORD), this setting allows the Windows operating system to store LM hashes of user passwords, which can pose a significant security risk by enabling easier password cracking for an attacker if the hashes are obtained. This rule leverages registry set logs as its primary data source to identify unauthorized or suspicious changes, which may indicate an attempt to weaken password security within an organization.
+  ### Investigation Steps
+  - Review recent registry changes using EDR or Windows Event Logs to identify the source of the modification and any related systems or accounts involved.
+  - Check for any anomalous user activity, such as failed logins or privilege escalation attempts, by analyzing logs from your SIEM or Windows security logs.
+  - Investigate the process creation logs to see if any suspicious processes were initiated around the same time the registry change occurred, potentially providing context on how the change was made.
+  - Evaluate network traffic and proxy logs for connections to known malicious IPs or domains that may indicate external threat actor involvement in the change.

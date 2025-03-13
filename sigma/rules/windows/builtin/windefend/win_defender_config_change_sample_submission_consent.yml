@@ -1,0 +1,39 @@
+title: Windows Defender Submit Sample Feature Disabled
+id: 91903aba-1088-42ee-b680-d6d94fe002b0
+related:
+- id: 1321dc4e-a1fe-481d-a016-52c45f0c8b4f
+  type: similar
+- id: a3ab73f1-bd46-4319-8f06-4b20d0617886
+  type: similar
+- id: 801bd44f-ceed-4eb6-887c-11544633c0aa
+  type: similar
+status: stable
+description: Detects disabling of the "Automatic Sample Submission" feature of Windows
+  Defender.
+references:
+- https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus?view=o365-worldwide
+- https://bidouillesecurity.com/disable-windows-defender-in-powershell/#DisableAntiSpyware
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-12-06
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  product: windows
+  service: windefend
+detection:
+  selection:
+    EventID: 5007     # The antimalware platform configuration changed.
+    NewValue|contains: '\Real-Time Protection\SubmitSamplesConsent = 0x0'
+  condition: selection
+falsepositives:
+- Administrator activity (must be investigated)
+level: low
+notes: |
+  ### Technical Context
+  This detection rule monitors configurations within Windows Defender, specifically targeting the status of the "Automatic Sample Submission" feature. Windows Defender uses this feature to submit samples of potentially harmful software to Microsoft for analysis and response improvement. When the feature is disabled, it can indicate attempts to evade detection or lower the effectiveness of malware protection. The rule captures event logs with EventID 5007, which signal changes in the antimalware platform's configuration. By checking for a configuration change that sets the `SubmitSamplesConsent` parameter to `0x0`, the rule flags this potentially malicious activity, alerting SOC analysts to investigate further.
+  ### Investigation Steps
+  - Review the EventID 5007 logs in the EDR solution to identify the user and system context in which the disabling action occurred. Check for legitimate administrative activities or other suspicious patterns.
+  - Correlate the timestamp of the configuration change with other alerts or logs in the SIEM, especially focusing on any prior events that may indicate suspicious behavior or unauthorized access.
+  - Examine process creation logs around the relevant time using the EDR to see if any scripts or administrative tools (like PowerShell) were used to modify the Windows Defender settings.
+  - Consult firewall and proxy logs for any remote connections or downloads that transpired before or after the modification, which may provide additional context about the threat actor’s actions.

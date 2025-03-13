@@ -1,0 +1,31 @@
+title: Suspicious Process Discovery With Get-Process
+id: af4c87ce-bdda-4215-b998-15220772e993
+status: test
+description: Get the processes that are running on the local computer.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1057/T1057.md#atomic-test-3---process-discovery---get-process
+- https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-process?view=powershell-7.4
+author: frack113
+date: 2022-03-17
+tags:
+- attack.discovery
+- attack.t1057
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains: Get-Process
+  condition: selection
+falsepositives:
+- Legitimate PowerShell scripts
+level: low
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the use of the PowerShell command `Get-Process`, a common command used for process discovery on Windows systems. By monitoring for Script Block Logging, the rule looks for instances where the command is executed, indicating possible reconnaissance activity by threat actors. When adversaries gain access to a system, they may use such commands to gather information about running processes to further their objectives, such as identifying processes to terminate or exploiting active applications. The rule relies on Windows PowerShell logs, specifically filtering for script block text that includes `Get-Process`, to trigger alerts and flag potentially suspicious behavior.
+  ### Investigation Steps
+  - Review the relevant PowerShell logs in your EDR system to locate instances of the `Get-Process` command and correlate them with user context to identify the source of execution.
+  - Examine the context of the process execution by checking command-line parameters through your SIEM platform to discern whether any unusual arguments were passed.
+  - Monitor the surrounding events leading to the script execution in proxy and firewall logs to identify any connections made to external or suspicious IP addresses during the time of the `Get-Process` command use.
+  - Conduct a threat intelligence lookup on the user or system accounts associated with the alert to assess if they have been previously involved in malicious activity or are indicative of legitimate administrative tasks.

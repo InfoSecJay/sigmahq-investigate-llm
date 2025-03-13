@@ -1,0 +1,39 @@
+title: Impacket PsExec Execution
+id: 32d56ea1-417f-44ff-822b-882873f5f43b
+status: test
+description: Detects execution of Impacket's psexec.py.
+references:
+- https://web.archive.org/web/20230329171218/https://blog.menasec.net/2019/02/threat-hunting-3-detecting-psexec.html
+author: Bhabesh Raj
+date: 2020-12-14
+modified: 2022-09-22
+tags:
+- attack.lateral-movement
+- attack.t1021.002
+logsource:
+  product: windows
+  service: security
+  definition: 'The advanced audit policy setting "Object Access > Audit Detailed File
+    Share" must be configured for Success/Failure'
+detection:
+  selection1:
+    EventID: 5145
+    ShareName: '\\\\\*\\IPC$'     # looking for the string \\*\IPC$
+    RelativeTargetName|contains:
+    - 'RemCom_stdin'
+    - 'RemCom_stdout'
+    - 'RemCom_stderr'
+  condition: selection1
+falsepositives:
+- Unknown
+level: high
+notes: |
+  n
+  ### Technical Context
+  The "Impacket PsExec Execution" detection rule monitors Windows systems for signs of lateral movement, specifically through the use of Impacket's PsExec tool. PsExec is often employed by attackers to execute commands on remote systems without needing a physical connection. This rule specifically looks for Security Event ID 5145, which indicates file access to specific shares, particularly the Inter-Process Communication (IPC) share (\\IPC$). It further narrows down the detection to shares containing "RemCom_stdin", "RemCom_stdout", or "RemCom_stderr", which are identifiers often associated with remote command shell communications. 
+  To detect this activity, logs from Windows Security events are leveraged, relying on an advanced audit policy that must be configured to capture both successful and failed access attempts. When the conditions are met, this could signify unauthorized or suspicious use of PsExec, warranting further investigation.
+  ### Investigation Steps
+  - Utilize the EDR solution to investigate the processes that were active during the triggering event. Look for instances of python.exe or psexec.py running alongside the identified event.
+  - Review Security Event logs with Event ID 5145 to analyze the source and destination IP addresses involved in the file access. This can help identify unauthorized devices in the network.
+  - Check historical logs from the firewall (NGFW) to monitor unusual or unexpected connections to the IPC$ share. This provides context on potential lateral movement attempts.
+  - Analyze any recent activities recorded in the proxy logs that might indicate a download or execution of the Impacket suite or related scripts. This may uncover the origin of the attack or further malicious activity.

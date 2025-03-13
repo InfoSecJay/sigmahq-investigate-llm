@@ -1,0 +1,41 @@
+title: HackTool - Quarks PwDump Execution
+id: 0685b176-c816-4837-8e7b-1216f346636b
+status: test
+description: Detects usage of the Quarks PwDump tool via commandline arguments
+references:
+- https://github.com/quarkslab/quarkspwdump
+- https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/seedworm-apt-iran-middle-east
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-09-05
+modified: 2023-02-05
+tags:
+- attack.credential-access
+- attack.t1003.002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+    Image|endswith: '\QuarksPwDump.exe'
+  selection_cli:
+    CommandLine:
+    - ' -dhl'
+    - ' --dump-hash-local'
+    - ' -dhdc'
+    - ' --dump-hash-domain-cached'
+    - ' --dump-bitlocker'
+    - ' -dhd '
+    - ' --dump-hash-domain '
+    - '--ntds-file'
+  condition: 1 of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the execution of the Quarks PwDump tool, which is commonly used for credential extraction from Windows systems. The rule identifies instances where the tool is executed by monitoring process creation logs specifically looking for the executable file `QuarksPwDump.exe` along with specific command-line arguments that indicate its operation. The command-line parameters of interest include options related to dumping hashes and BitLocker information, such as `-dhl`, `--dump-hash-local`, and `--ntds-file`. By correlating these technical indicators, the detection mechanism can effectively identify attempts to leverage this potentially malicious tool for unauthorized credential access.
+  ### Investigation Steps
+  - Review process creation logs in the EDR to confirm the execution of `QuarksPwDump.exe` and inspect its command-line arguments for any of the flags defined in the rule.
+  - Check the user's account that executed the tool in Active Directory logs and user activity records to determine whether the execution aligns with normal user behavior or indicates a possible compromise.
+  - Utilize the SIEM to search for any prior alerts or suspicious activity related to the user or system where the tool was detected, which may indicate a broader attack or lateral movement.
+  - Analyze system event logs for any anomalies surrounding the time of execution, including other process executions, failed logins, or access to sensitive file shares, to build context for the incident.

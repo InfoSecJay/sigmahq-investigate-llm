@@ -1,0 +1,39 @@
+title: PowerShell Profile Modification
+id: b5b78988-486d-4a80-b991-930eff3ff8bf
+status: test
+description: Detects the creation or modification of a powershell profile which could
+  indicate suspicious activity as the profile can be used as a mean of persistence
+references:
+- https://www.welivesecurity.com/2019/05/29/turla-powershell-usage/
+- https://persistence-info.github.io/Data/powershellprofile.html
+author: HieuTT35, Nasreddine Bencherchali (Nextron Systems)
+date: 2019-10-24
+modified: 2023-10-23
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1546.013
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|endswith:
+    - '\Microsoft.PowerShell_profile.ps1'
+    - '\PowerShell\profile.ps1'
+    - '\Program Files\PowerShell\7-preview\profile.ps1'
+    - '\Program Files\PowerShell\7\profile.ps1'
+    - '\Windows\System32\WindowsPowerShell\v1.0\profile.ps1'
+    - '\WindowsPowerShell\profile.ps1'
+  condition: selection
+falsepositives:
+- System administrator creating Powershell profile manually
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify the creation or modification of PowerShell profile scripts, specifically targeting files such as `Microsoft.PowerShell_profile.ps1` and other PowerShell profile variants. These profile scripts can be manipulated by threat actors to establish persistence on a system by executing malicious code every time PowerShell is launched. The rule monitors file event logs on Windows systems to track any activities related to these critical PowerShell profile files. By detecting changes in these profiles, security analysts can investigate potential misuse and respond accordingly, as the modification may signal an attempt to maintain unauthorized access or escalate privileges within the environment.
+  ### Investigation Steps
+  - Review the EDR logs for associated process creation events to determine if any suspicious PowerShell commands were executed around the time of the profile modification.
+  - Check the user account associated with the modification events to verify whether it is legitimate and to assess its recent activity for signs of compromise.
+  - Analyze the contents of the modified PowerShell profile file to identify any potentially malicious scripts or commands implemented by the actor.
+  - Query the SIEM for any alerting or logging information that correlates with known attack patterns related to persistence or privilege escalation involving PowerShell.

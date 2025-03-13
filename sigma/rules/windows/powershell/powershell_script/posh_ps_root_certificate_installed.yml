@@ -1,0 +1,39 @@
+title: Root Certificate Installed - PowerShell
+id: 42821614-9264-4761-acfc-5772c3286f76
+status: test
+description: Adversaries may install a root certificate on a compromised system to
+  avoid warnings when connecting to adversary controlled web servers.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1553.004/T1553.004.md
+author: 'oscd.community, @redcanary, Zach Stanford @svch0st'
+date: 2020-10-10
+modified: 2022-12-02
+tags:
+- attack.defense-evasion
+- attack.t1553.004
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection1:
+    ScriptBlockText|contains|all:
+    - 'Move-Item'
+    - 'Cert:\LocalMachine\Root'
+  selection2:
+    ScriptBlockText|contains|all:
+    - 'Import-Certificate'
+    - 'Cert:\LocalMachine\Root'
+  condition: 1 of selection*
+falsepositives:
+- Help Desk or IT may need to manually add a corporate Root CA on occasion. Need to
+  test if GPO push doesn't trigger FP
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects potential malicious activity related to the installation of root certificates via PowerShell on Windows systems. Adversaries may deploy root certificates to establish trusted connections to their controlled servers without triggering security warnings. The rule monitors PowerShell script block logs for specific command patterns associated with the installation process, specifically looking for instances where commands like `Move-Item` or `Import-Certificate` are executed on the root certificate store located at `Cert:\LocalMachine\Root`. To ensure effective detection, it is crucial that Script Block Logging is enabled on the monitored systems, providing the necessary visibility into command executions within PowerShell.
+  ### Investigation Steps
+  - Query EDR for recent PowerShell executions and filter for commands related to `Move-Item` or `Import-Certificate`, focusing on those affecting the root certificate store.
+  - Review Windows event logs for any unusual activity around the same timeframe, particularly logs related to certificate management or system changes in the user’s session.
+  - Check the Proxy logs for any connections made to unfamiliar or suspicious domains, especially those that were accessed immediately after the root certificate was installed.
+  - Analyze any recent changes made via Group Policy Objects (GPO) that could coincide with the installation of the root certificate to assess whether this was a legitimate action by IT personnel.

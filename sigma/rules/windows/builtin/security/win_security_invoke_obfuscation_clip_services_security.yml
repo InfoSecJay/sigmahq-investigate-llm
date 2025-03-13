@@ -1,0 +1,42 @@
+title: Invoke-Obfuscation CLIP+ Launcher - Security
+id: 4edf51e1-cb83-4e1a-bc39-800e396068e3
+related:
+- id: f7385ee2-0e0c-11eb-adc1-0242ac120002
+  type: derived
+status: test
+description: Detects Obfuscated use of Clip.exe to execute PowerShell
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009      # (Task 26)
+author: Jonathan Cheong, oscd.community
+date: 2020-10-13
+modified: 2022-11-27
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+
+logsource:
+  product: windows
+  service: security
+  definition: The 'System Security Extension' audit subcategory need to be enabled
+    to log the EID 4697
+detection:
+  selection:
+    EventID: 4697
+    ServiceFileName|contains|all:
+    - 'cmd'
+    - '&&'
+    - 'clipboard]::'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious use of the Windows `Clip.exe`, which is often utilized to access the system clipboard, in conjunction with PowerShell commands. The rule specifically looks for Event ID 4697, which logs the creation of a new service, and analyzes the `ServiceFileName` for certain patterns, including the presence of `cmd`, `&&`, and `clipboard]::`. An attacker may use obfuscation techniques to circumvent detection mechanisms by encoding commands and utilizing the clipboard for command execution, making this activity suspicious and warranting further investigation. This detection leverages Windows Security logs, necessitating that the appropriate auditing is enabled to generate the necessary logs.
+  ### Investigation Steps
+  - Review the generated EDR alerts for the corresponding Event ID 4697 to confirm the occurrence of the suspicious service creation.
+  - Analyze the command-line parameters associated with the `Clip.exe` execution to identify any encoded PowerShell commands or unusual patterns.
+  - Investigate the running processes and their parent-child hierarchies to understand the context of how `Clip.exe` was executed and whether it originated from a legitimate service.
+  - Cross-reference any network activity using NDR or firewall logs to identify communication with known malicious IPs or domains that may correlate with the observed behavior.

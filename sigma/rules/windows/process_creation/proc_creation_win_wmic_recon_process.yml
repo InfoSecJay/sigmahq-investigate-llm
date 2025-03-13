@@ -1,0 +1,41 @@
+title: Process Reconnaissance Via Wmic.EXE
+id: 221b251a-357a-49a9-920a-271802777cc0
+status: test
+description: Detects the execution of "wmic" with the "process" flag, which adversary
+  might use to list processes running on the compromised host or list installed software
+  hotfixes and patches.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1047/T1047.md
+- https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/wmic
+author: frack113
+date: 2022-01-01
+modified: 2023-02-14
+tags:
+- attack.execution
+- attack.t1047
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\WMIC.exe'
+  - OriginalFileName: 'wmic.exe'
+  selection_cli:
+    CommandLine|contains: 'process'
+  filter_main_creation:
+    CommandLine|contains|all:
+            # Rule id 526be59f-a573-4eea-b5f7-f0973207634d for `wmic process call create #{process_to_execute}`
+    - 'call'
+    - 'create'
+  condition: all of selection* and not 1 of filter_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies the execution of `wmic.exe` with the "process" flag, which may indicate adversary activity such as process enumeration or listing installed software on a compromised host. WMIC (Windows Management Instrumentation Command-line) provides a way for users and unauthorized actors alike to query and manage Windows system resources. By monitoring process creation events logged in Windows logs, this rule captures instances where the command-line arguments include the keyword "process" alongside the execution of `wmic.exe`, while ensuring that certain manipulative commands (e.g., `call` and `create`) are not included. Analysts should leverage this rule to discern potentially unauthorized reconnaissance activities within the environment.
+  ### Investigation Steps
+  - Review EDR logs for detailed process creation events around the time of the alert to identify the context of the execution.
+  - Examine command-line parameters associated with `wmic.exe` to ascertain if there are other suspicious flags or behaviors that may indicate malicious intent.
+  - Check proxy and network logs for unusual outbound connections correlating with process enumeration to identify potential data exfiltration attempts.
+  - Investigate other security logs and alerts that may suggest a broader campaign or coordinated attack involving this behavior across multiple endpoints.

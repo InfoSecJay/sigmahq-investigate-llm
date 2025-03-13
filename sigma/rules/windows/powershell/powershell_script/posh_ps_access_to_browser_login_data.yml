@@ -1,0 +1,48 @@
+title: Access to Browser Login Data
+id: fc028194-969d-4122-8abe-0470d5b8f12f
+related:
+- id: 98f4c75c-3089-44f3-b733-b327b9cd9c9d
+  type: obsolete
+- id: 47147b5b-9e17-4d76-b8d2-7bac24c5ce1b
+  type: similar
+status: test
+description: |
+  Adversaries may acquire credentials from web browsers by reading files specific to the target browser.
+  Web browsers commonly save credentials such as website usernames and passwords so that they do not need to be entered manually in the future.
+  Web browsers typically store the credentials in an encrypted format within a credential store.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1555.003/T1555.003.md
+author: frack113
+date: 2022-01-30
+tags:
+- attack.credential-access
+- attack.t1555.003
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_cmd:
+    ScriptBlockText|contains|all:
+    - Copy-Item
+    - '-Destination'
+  selection_path:
+    ScriptBlockText|contains:
+    - '\Opera Software\Opera Stable\Login Data'
+    - '\Mozilla\Firefox\Profiles'
+    - '\Microsoft\Edge\User Data\Default'
+    - '\Google\Chrome\User Data\Default\Login Data'
+    - '\Google\Chrome\User Data\Default\Login Data For Account'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule, titled "Access to Browser Login Data", is designed to identify potential credential theft activities conducted by adversaries targeting specific web browsers. It works by examining PowerShell script block logs for particular commands that suggest an attempt to copy sensitive login data from common browsers, such as Google Chrome, Mozilla Firefox, Microsoft Edge, and Opera. The rule looks for the use of the `Copy-Item` command, specifically indicating a destination path that includes known locations where browsers store credential information, such as the "Login Data" files. Because these files may contain encrypted credentials, their unauthorized access can be indicative of malicious behavior attempting to acquire stored login information.
+  The critical data sources involved in this rule include PowerShell script block logs, which must have script block logging enabled to capture the necessary activity. This allows the SOC to pinpoint when a script attempts to interact with sensitive browser data, providing an opportunity to investigate further.
+  ### Investigation Steps
+  - Review PowerShell execution logs in your EDR tool to identify the context around the detected script execution, including the user who triggered it and the timing of the event.
+  - Check for any unusual processes or commands executed before or after the alert was generated, particularly those involving browser processes or credential store access.
+  - Examine endpoint logs to assess if any anomalous file accesses occurred, especially targeting the identified browser data locations specified in the rule.
+  - Investigate network traffic to determine if there were any suspicious external communications initiated around the same time as the detected activity, which could indicate data exfiltration attempts.

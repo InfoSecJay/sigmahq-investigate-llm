@@ -1,0 +1,48 @@
+title: Suspicious Schtasks Execution AppData Folder
+id: c5c00f49-b3f9-45a6-997e-cfdecc6e1967
+status: test
+description: 'Detects the creation of a schtask that executes a file from C:\Users\<USER>\AppData\Local'
+references:
+- https://thedfirreport.com/2022/02/21/qbot-and-zerologon-lead-to-full-domain-compromise/
+author: pH-T (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2022-03-15
+modified: 2022-07-28
+tags:
+- attack.execution
+- attack.persistence
+- attack.t1053.005
+- attack.t1059.001
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    Image|endswith: '\schtasks.exe'
+    CommandLine|contains|all:
+    - '/Create'
+    - '/RU'
+    - '/TR'
+    - 'C:\Users\'
+    - '\AppData\Local\'
+    CommandLine|contains:
+    - 'NT AUT'         # This covers the usual NT AUTHORITY\SYSTEM
+    - ' SYSTEM '         # SYSTEM is a valid value for schtasks hence it gets it's own value with space
+  filter:
+        # FP from test set in SIGMA
+    ParentImage|contains|all:
+    - '\AppData\Local\Temp\'
+    - 'TeamViewer_.exe'
+    Image|endswith: '\schtasks.exe'
+    CommandLine|contains: '/TN TVInstallRestore'
+  condition: selection and not filter
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially malicious activity involving the Windows Task Scheduler (`schtasks.exe`). It specifically looks for instances where a task is created to execute a file located in the AppData folder, particularly from paths that include `C:\Users\<USER>\AppData\Local`. The detection focuses on command line parameters which are characteristic of such execution, including identifiers for user-level and system-level account execution (`/RU` and `NT AUTHORITY\SYSTEM`). By monitoring process creation logs, including command line arguments and image names, the rule can discern suspicious task creations that deviate from normal administrative operations, helping identify potential persistence mechanisms used in attacks.
+  ### Investigation Steps
+  - Collect detailed process creation logs from the EDR solution to identify the specific instances of `schtasks.exe` execution, including the full command line and the associated user account. 
+  - Review network artifacts through the NDR and proxy logs to detect any anomalous connections that may correlate with the suspicious task as execution may lead to additional network activity.
+  - Analyze the system and application logs on the host machine to find any other related anomalies or alerts around the time of the task being created.
+  - Investigate the associated user profile and application folder within AppData for signs of malware or suspicious files, which may indicate that the initial compromise involved the creation of malicious scheduled tasks.

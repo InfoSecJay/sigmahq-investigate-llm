@@ -1,0 +1,49 @@
+title: WScript or CScript Dropper - File
+id: 002bdb95-0cf1-46a6-9e08-d38c128a6127
+related:
+- id: cea72823-df4d-4567-950c-0b579eaf0846
+  type: derived
+status: test
+description: Detects a file ending in jse, vbe, js, vba, vbs written by cscript.exe
+  or wscript.exe
+references:
+- WScript or CScript Dropper (cea72823-df4d-4567-950c-0b579eaf0846)
+author: Tim Shelton
+date: 2022-01-10
+modified: 2022-12-02
+tags:
+- attack.execution
+- attack.t1059.005
+- attack.t1059.007
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+    - '\wscript.exe'
+    - '\cscript.exe'
+    TargetFilename|startswith:
+    - 'C:\Users\'
+    - 'C:\ProgramData'
+    TargetFilename|endswith:
+    - '.jse'
+    - '.vbe'
+    - '.js'
+    - '.vba'
+    - '.vbs'
+  condition: selection
+fields:
+- Image
+- TargetFilename
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious file creations that are executed by Windows scripting engines, specifically `wscript.exe` and `cscript.exe`. The rule is designed to monitor for files with extensions associated with scripts, such as `.jse`, `.vbe`, `.js`, `.vba`, and `.vbs`, which are commonly used in various attack vectors to execute malicious payloads. When either of these scripting engines writes a file under typical user directories (like `C:\Users\` or `C:\ProgramData`), it raises an alert, suggesting that a dropper or malicious script may be operating within the environment. The key technical data sources leveraged for this detection include file event logs originating from Windows systems, focusing specifically on the executing image and the target filename of the created file.
+  ### Investigation Steps
+  - Review the file event logs in the EDR to identify the timestamp, user context, and any other associated processes that may have triggered the creation of the suspicious file.
+  - Utilize the antivirus or endpoint security solution to perform a scan on the identified script files to assess for known malicious signatures or behaviors.
+  - Analyze network traffic logs via the NDR or Proxy to detect any outbound connections initiated by the created script files, which could reveal attempts to communicate with command and control servers.
+  - Investigate user activity logs from your SIEM to understand the context of the user who executed the script, including recent logins, access patterns, and any unusual behaviors around the time of the alert.

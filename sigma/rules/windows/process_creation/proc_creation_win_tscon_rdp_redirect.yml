@@ -1,0 +1,34 @@
+title: Suspicious RDP Redirect Using TSCON
+id: f72aa3e8-49f9-4c7d-bd74-f8ab84ff9bbb
+status: test
+description: Detects a suspicious RDP session redirect using tscon.exe
+references:
+- http://www.korznikov.com/2017/03/0-day-or-feature-privilege-escalation.html
+- https://medium.com/@networksecurity/rdp-hijacking-how-to-hijack-rds-and-remoteapp-sessions-transparently-to-move-through-an-da2a1e73a5f6
+- https://www.hackingarticles.in/rdp-session-hijacking-with-tscon/
+author: Florian Roth (Nextron Systems)
+date: 2018-03-17
+modified: 2023-05-16
+tags:
+- attack.lateral-movement
+- attack.t1563.002
+- attack.t1021.001
+- car.2013-07-002
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains: ' /dest:rdp-tcp#'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially suspicious activity involving Remote Desktop Protocol (RDP) session redirection using `tscon.exe`, a Windows utility for managing user sessions. The rule specifically monitors for command-line parameters that include `/dest:rdp-tcp#`, which may indicate an unauthorized or malicious attempt to redirect active RDP sessions. Analysts should understand that while legitimate users may use `tscon.exe` for administrative purposes, the context and frequency of its use are critical for assessing the risk to the organization. The primary data source for this detection is process creation logs, which capture the command-line arguments and execution context, allowing for the identification of unusual usage patterns associated with lateral movement attacks.
+  ### Investigation Steps
+  - Check the process creation logs in your EDR solution to identify instances of `tscon.exe` being invoked, focusing on the associated user accounts and originating machines.
+  - Analyze the command-line parameters to confirm the presence of `/dest:rdp-tcp#`, as well as any other suspicious flags or parameters that could indicate malicious intent.
+  - Cross-reference user activity through proxy logs and VPN logs to verify whether the user was legitimately connected to the RDP session at the time of redirection.
+  - Evaluate other log sources, such as Windows Event Logs, for related activities, including account logon events and network connections, to paint a broader picture of the potential compromise.

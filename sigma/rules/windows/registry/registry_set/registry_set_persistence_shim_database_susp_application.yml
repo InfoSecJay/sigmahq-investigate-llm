@@ -1,0 +1,45 @@
+title: Suspicious Shim Database Patching Activity
+id: bf344fea-d947-4ef4-9192-34d008315d3a
+status: test
+description: Detects installation of new shim databases that try to patch sections
+  of known processes for potential process injection or persistence.
+references:
+- https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/pillowmint-fin7s-monkey-thief/
+- https://www.fireeye.com/blog/threat-research/2017/05/fin7-shim-databases-persistence.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-08-01
+modified: 2023-12-06
+tags:
+- attack.persistence
+- attack.t1546.011
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection:
+    TargetObject|contains: '\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Custom\'
+    TargetObject|endswith:
+            # Note: add other application to increase coverage
+    - '\csrss.exe'
+    - '\dllhost.exe'
+    - '\explorer.exe'
+    - '\RuntimeBroker.exe'
+    - '\services.exe'
+    - '\sihost.exe'
+    - '\svchost.exe'
+    - '\taskhostw.exe'
+    - '\winlogon.exe'
+    - '\WmiPrvSe.exe'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The detection rule for "Suspicious Shim Database Patching Activity" identifies attempts to install new shim databases that modify the behavior of specific critical Windows processes. These shim databases are often used by attackers to enable process injection or establish persistence mechanisms within a compromised system. The rule specifically looks for modifications in the Windows registry at the path `\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Custom\`, targeting registry entries related to known processes such as `csrss.exe`, `explorer.exe`, and `winlogon.exe`. A significant addition or alteration of data within this registry path can indicate malicious intent, often associated with advanced persistent threats (APTs) and other forms of targeted attacks.
+  The data sources involved in this detection include Windows registry logs, which are monitored for changes to key applications that may be exploited by adversaries. By analyzing the registry modifications for suspicious patterns, security teams can proactively identify potential threats before they lead to significant breaches or disruptions.
+  ### Investigation Steps
+  - Review EDR alerts to determine if there are any associated process executions or behavioral anomalies related to the modified registry entries.
+  - Examine the Windows registry using tools like RegEdit or PowerShell to confirm the presence and details of the suspicious shim database entries.
+  - Analyze network telemetry from NDR tools to identify any unusual outbound connections or command and control traffic associated with the affected processes.
+  - Correlate findings with historical data and proxy logs to identify previous interactions or connections that could provide context for the alert.

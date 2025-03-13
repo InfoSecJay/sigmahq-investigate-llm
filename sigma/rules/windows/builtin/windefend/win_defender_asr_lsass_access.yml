@@ -1,0 +1,56 @@
+title: LSASS Access Detected via Attack Surface Reduction
+id: a0a278fe-2c0e-4de2-ac3c-c68b08a9ba98
+status: test
+description: Detects Access to LSASS Process
+references:
+- https://learn.microsoft.com/en-us/defender-endpoint/attack-surface-reduction
+author: Markus Neis
+date: 2018-08-26
+modified: 2022-08-13
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  product: windows
+  service: windefend
+  definition: 'Requirements:Enabled Block credential stealing from the Windows local
+    security authority subsystem (lsass.exe) from Attack Surface Reduction (GUID:
+    9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2)'
+detection:
+  selection:
+    EventID: 1121
+    Path|endswith: '\lsass.exe'
+  filter_thor:
+    ProcessName|startswith: 'C:\Windows\Temp\asgard2-agent\'
+    ProcessName|endswith:
+    - '\thor64.exe'
+    - '\thor.exe'
+  filter_exact:
+    ProcessName:
+    - 'C:\Windows\System32\atiesrxx.exe'
+    - 'C:\Windows\System32\CompatTelRunner.exe'
+    - 'C:\Windows\System32\msiexec.exe'
+    - 'C:\Windows\System32\nvwmi64.exe'
+    - 'C:\Windows\System32\svchost.exe'
+    - 'C:\Windows\System32\Taskmgr.exe'
+    - 'C:\Windows\System32\wbem\WmiPrvSE.exe'
+    - 'C:\Windows\SysWOW64\msiexec.exe'
+  filter_begins:
+    ProcessName|startswith:
+    - 'C:\Windows\System32\DriverStore\'
+    - 'C:\WINDOWS\Installer\'
+    - 'C:\Program Files\'
+    - 'C:\Program Files (x86)\'
+  condition: selection and not 1 of filter_*
+falsepositives:
+- Google Chrome GoogleUpdate.exe
+- Some Taskmgr.exe related activity
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies unauthorized access attempts to the Local Security Authority Subsystem Service (LSASS) process on Windows systems, using Microsoft's Attack Surface Reduction (ASR) capabilities. LSASS is crucial for managing security policies and handling authentication requests; thus, malicious access can indicate credential theft attempts. The rule triggers on Event ID 1121 when any process tries to access "lsass.exe," while incorporating filters that exclude benign processes typically known not to pose a security threat. The detection engine utilizes log data from Windows Defender to track these activities effectively, focusing on specific command-line parameters and executing process paths to differentiate legitimate actions from malicious intent.
+  ### Investigation Steps
+  - Review the detailed logs associated with Event ID 1121 for the specific timestamps of any detected access to LSASS to identify the originating process.
+  - Utilize your EDR solution to analyze the context of the access, paying special attention to the parent-child relationship of the processes involved to discern if the access was initiated by a known malicious actor.
+  - Conduct file and process reputation checks on any processes that triggered the alert (e.g., "thor64.exe" or "thor.exe") to determine if they are associated with previous incidents or known threat actors.
+  - Cross-reference the incident with firewall and proxy logs to see if any unusual external communications align with the timeline of the LSASS access, further providing insight into potential exfiltration attempts.

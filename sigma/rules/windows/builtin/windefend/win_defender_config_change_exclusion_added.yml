@@ -1,0 +1,31 @@
+title: Windows Defender Exclusions Added
+id: 1321dc4e-a1fe-481d-a016-52c45f0c8b4f
+status: stable
+description: Detects the Setting of Windows Defender Exclusions
+references:
+- https://twitter.com/_nullbind/status/1204923340810543109
+author: Christian Burkard (Nextron Systems)
+date: 2021-07-06
+modified: 2022-12-06
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  product: windows
+  service: windefend
+detection:
+  selection:
+    EventID: 5007     # The antimalware platform configuration changed.
+    NewValue|contains: '\Microsoft\Windows Defender\Exclusions'
+  condition: selection
+falsepositives:
+- Administrator actions
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies changes made to Windows Defender exclusions, specifically tracking the configuration changes indicated by Event ID 5007. When a new exclusion path is added, the relevant log entry contains the phrase "\Microsoft\Windows Defender\Exclusions" in the "NewValue" field. The purpose of this rule is to flag adjustments to exclusion settings, which could potentially be exploited by malicious actors to circumvent detection mechanisms and deploy malware undetected. Effective monitoring of such adjustments is crucial for identifying possible insider threats or misconfigurations that could compromise the security posture of the organization. Logs from the Windows Defender service are the primary data source for this rule, focusing on system-level changes that affect the malware protection capabilities of the Windows operating system.
+  ### Investigation Steps
+  - Review the Windows Defender event logs using your EDR solution to identify the specific user or service that made the changes and the timestamp of the exclusion.
+  - Correlate the time of the exclusion changes with other system activity logs, such as process creation logs, to determine if any malicious actions were performed shortly before or after the exclusions were set.
+  - Check user access logs to see if unauthorized administrators or accounts with elevated privileges initiated the changes to the Windows Defender configuration.
+  - Investigate any potential related alerts from your SIEM that may indicate unusual or suspicious activity in conjunction with the changes to Windows Defender exclusions.

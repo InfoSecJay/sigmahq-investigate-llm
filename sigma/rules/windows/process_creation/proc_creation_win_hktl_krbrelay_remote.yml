@@ -1,0 +1,68 @@
+title: HackTool - RemoteKrbRelay Execution
+id: a7664b14-75fb-4a50-a223-cb9bc0afbacf
+status: experimental
+description: |
+  Detects the use of RemoteKrbRelay, a Kerberos relaying tool via CommandLine flags and PE metadata.
+references:
+- https://github.com/CICADA8-Research/RemoteKrbRelay
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2024-06-27
+tags:
+- attack.credential-access
+- attack.t1558.003
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\RemoteKrbRelay.exe'
+  - OriginalFileName: 'RemoteKrbRelay.exe'
+  selection_cli_required:
+    CommandLine|contains|all:
+    - ' -clsid '
+    - ' -target '
+    - ' -victim '
+    # selection_cli_attacks:
+    #     # Note: In the current implementation these flags do not require any other flags. Which means they can't be used on their own. They're already covered by "selection_cli_required"
+    #     CommandLine|contains:
+    #         - '-adcs ' # relay to HTTP Web Enrollment and get certificate
+    #         - '-laps ' # relay to LDAP and extract LAPS passwords
+    #         - '-ldapwhoami ' # relay to LDAP and get info about relayed user
+    #         - '-shadowcred ' # relay to LDAP and setup Shadow Credentials
+  selection_cli_attack_smb:
+    CommandLine|contains|all:
+    - '-smb '         # relay to SMB
+    - '--smbkeyword '
+    CommandLine|contains:
+    - 'interactive'
+    - 'secrets'
+    - 'service-add'
+  selection_cli_attack_rbcd_main:
+    CommandLine|contains: '-rbcd '     # relay to LDAP and setup RBCD
+  selection_cli_attack_rbcd_options:
+    CommandLine|contains:
+    - '-cn '         # Computer name that will be written to msDs-AllowedToActOnBehalfOfOtherIdentity
+    - '--computername '         # Computer name that will be written to msDs-AllowedToActOnBehalfOfOtherIdentity
+  selection_cli_attack_changepass:
+    CommandLine|contains: '-chp '     # relay to LDAP and change user password
+    CommandLine|contains|all:
+    - '-chpPass '         # new password
+    - '-chpUser '         # the name of the user whose password you want to change
+  selection_cli_attack_addgrpname:
+    CommandLine|contains|all:
+    - '-addgroupmember '         # relay to LDAP and add user to group
+    - '-group '
+    - '-groupuser '
+  condition: selection_img or selection_cli_required or all of selection_cli_attack_rbcd_*
+    or selection_cli_attack_changepass or selection_cli_attack_addgrpname or selection_cli_attack_smb
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect malicious activity associated with the use of the RemoteKrbRelay tool, which is known for performing Kerberos relaying attacks. The rule examines process creation logs on Windows systems, focusing on the execution of the `RemoteKrbRelay.exe` executable. It identifies various command-line parameters that indicate potentially harmful behavior, such as flags that target Kerberos relay operations, change passwords, or manipulate group memberships within Active Directory environments. By analyzing the process metadata, it can flag anomalous executions of the tool, contributing to proactive detection of credential manipulation and unauthorized access within the enterprise.
+  ### Investigation Steps
+  - Review the EDR logs to locate the process creation events for `RemoteKrbRelay.exe`, noting the timestamp and user context under which the executable was run.
+  - Analyze the command-line parameters associated with the execution to identify specific actions being attempted, such as password changes or group modifications.
+  - Check the network traffic logs in your NDR solution for any outbound connections initiated by the machine running `RemoteKrbRelay.exe`, which may indicate communication with potentially malicious targets.
+  - Inspect the Windows Security Event logs for any accounts affected by the Kerberos authentication process during the timeframe of the RemoteKrbRelay usage to assess if there are any unauthorized access attempts.

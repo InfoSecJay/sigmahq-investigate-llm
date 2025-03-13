@@ -1,0 +1,33 @@
+title: Renamed Gpg.EXE Execution
+id: ec0722a3-eb5c-4a56-8ab2-bf6f20708592
+status: test
+description: Detects the execution of a renamed "gpg.exe". Often used by ransomware
+  and loaders to decrypt/encrypt data.
+references:
+- https://securelist.com/locked-out/68960/
+author: Nasreddine Bencherchali (Nextron Systems), frack113
+date: 2023-08-09
+tags:
+- attack.impact
+- attack.t1486
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    OriginalFileName: 'gpg.exe'
+  filter_main_img:
+    Image|endswith:
+    - '\gpg.exe'
+    - '\gpg2.exe'
+  condition: selection and not 1 of filter_main_*
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule "Renamed Gpg.EXE Execution" is designed to detect the execution of the Windows executable file originally named "gpg.exe." This file is commonly utilized by attackers, particularly ransomware variants and loaders, for encrypting or decrypting files during malicious operations. The rule specifically monitors for instances where this executable is running under a different name or path, which is a common tactic employed by threat actors to evade detection. To achieve this, the rule leverages process creation logs, analyzing metadata such as the original file name alongside the running image name for indicators of abnormal behavior.
+  This detection takes place primarily within the Windows ecosystem through process creation events that are logged. If a process is initiated with the original file name "gpg.exe" but shows a different running executable name (not matching “gpg.exe” or “gpg2.exe”), the rule triggers an alert for further investigation.
+  ### Investigation Steps
+  - Review recent process creation logs in your EDR solution to identify instances of "gpg.exe" or its variants that have been executed on the endpoint.
+  - Investigate the command-line parameters associated with the detected execution to understand the context and intentions behind the process initiation.
+  - Check the associated network activity through the NDR (Network Detection and Response) to identify any suspicious outbound connections that may indicate data exfiltration or communication with command-and-control servers.
+  - Assess the endpoint for any indicators of compromise (IoCs), including additional malware signatures or unusual file modifications that could point to related malicious activity.

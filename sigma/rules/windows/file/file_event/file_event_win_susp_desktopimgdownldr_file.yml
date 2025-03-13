@@ -1,0 +1,45 @@
+title: Suspicious Desktopimgdownldr Target File
+id: fc4f4817-0c53-4683-a4ee-b17a64bc1039
+status: test
+description: Detects a suspicious Microsoft desktopimgdownldr file creation that stores
+  a file to a suspicious location or contains a file with a suspicious extension
+references:
+- https://labs.sentinelone.com/living-off-windows-land-a-new-native-file-downldr/
+- https://twitter.com/SBousseaden/status/1278977301745741825
+author: Florian Roth (Nextron Systems)
+date: 2020-07-03
+modified: 2022-06-02
+tags:
+- attack.command-and-control
+- attack.t1105
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    Image|endswith: '\svchost.exe'
+    TargetFilename|contains: '\Personalization\LockScreenImage\'
+  filter1:
+    TargetFilename|contains: 'C:\Windows\'
+  filter2:
+    TargetFilename|contains:
+    - '.jpg'
+    - '.jpeg'
+    - '.png'
+  condition: selection and not filter1 and not filter2
+fields:
+- CommandLine
+- ParentCommandLine
+falsepositives:
+- False positives depend on scripts and administrative tools used in the monitored
+  environment
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule "Suspicious Desktopimgdownldr Target File" is designed to detect potentially malicious activity related to the creation of files by the `svchost.exe` process in the Windows environment. Specifically, it looks for file creations within the directory `C:\Users\[Username]\AppData\Local\Packages\Microsoft.Desktopimgdownldr_...` that are suspiciously located in the user's Lock Screen Image directory and contain uncommon file extensions, such as `.jpg`, `.jpeg`, or `.png`. This could indicate that an attacker is using a legitimate Windows service to download and store files for nefarious purposes, thereby evading traditional security measures. 
+  To trigger the detection, the rule checks for `svchost.exe` running with a command line that specifies file creation, while filtering out instances where the target file is being saved to the Windows directory or common image extensions are used. As such, the rule leverages Windows file event logs as its primary data source, necessitating careful monitoring of process creation and file system activities.
+  ### Investigation Steps
+  - Review EDR logs to identify further activities by `svchost.exe`, including its command line parameters and parent processes, which can provide context into the legitimacy of the operation.
+  - Examine recent file creations within the specified directory to confirm the presence of suspicious file extensions and potentially harmful content.
+  - Utilize the SIEM to correlate the detection with other alerts or anomalies observed in the environment, which may indicate a compromised vector or broader malicious activity.
+  - Investigate endpoint logs for any related network connections or proxy logs that may show outgoing data to unfamiliar domains or IP addresses, suggesting command and control activity.

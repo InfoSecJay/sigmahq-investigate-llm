@@ -1,0 +1,55 @@
+title: ADFS Database Named Pipe Connection By Uncommon Tool
+id: 1ea13e8c-03ea-409b-877d-ce5c3d2c1cb3
+status: test
+description: |
+  Detects suspicious local connections via a named pipe to the AD FS configuration database (Windows Internal Database).
+  Used to access information such as the AD FS configuration settings which contains sensitive information used to sign SAML tokens.
+references:
+- https://github.com/Azure/Azure-Sentinel/blob/f99542b94afe0ad2f19a82cc08262e7ac8e1428e/Detections/SecurityEvent/ADFSDBNamedPipeConnection.yaml
+- https://o365blog.com/post/adfs/
+- https://github.com/Azure/SimuLand
+author: Roberto Rodriguez @Cyb3rWard0g
+date: 2021-10-08
+modified: 2023-11-30
+tags:
+- attack.collection
+- attack.t1005
+logsource:
+  product: windows
+  category: pipe_created
+  definition: 'Note that you have to configure logging for Named Pipe Events in Sysmon
+    config (Event ID 17 and Event ID 18). The basic configuration is in popular sysmon
+    configuration (https://github.com/SwiftOnSecurity/sysmon-config), but it is worth
+    verifying. You can also use other repo, e.g. https://github.com/Neo23x0/sysmon-config,
+    https://github.com/olafhartong/sysmon-modular. How to test detection? You can
+    check powershell script from this site https://svch0st.medium.com/guide-to-named-pipes-and-hunting-for-cobalt-strike-pipes-dc46b2c5f575'
+detection:
+  selection:
+    PipeName: '\MICROSOFT##WID\tsql\query'
+  filter_main_generic:
+    Image|endswith:
+    - ':\Windows\System32\mmc.exe'
+    - ':\Windows\system32\svchost.exe'
+    - ':\Windows\System32\wsmprovhost.exe'
+    - ':\Windows\SysWOW64\mmc.exe'
+    - ':\Windows\SysWOW64\wsmprovhost.exe'
+    - ':\Windows\WID\Binn\sqlwriter.exe'
+    - '\AzureADConnect.exe'
+    - '\Microsoft.Identity.Health.Adfs.PshSurrogate.exe'
+    - '\Microsoft.IdentityServer.ServiceHost.exe'
+    - '\Microsoft.Tri.Sensor.exe'
+    - '\sqlservr.exe'
+    - '\tssdis.exe'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect potentially unauthorized access to the Active Directory Federation Services (AD FS) configuration database through a named pipe connection. Specifically, it targets connections made to the named pipe named `\MICROSOFT##WID\tsql\query`, which facilitates access to sensitive AD FS configuration settings that are critical for signing Security Assertion Markup Language (SAML) tokens. The detection mechanism involves monitoring Windows Event logs, specifically Sysmon events related to named pipe connections (Event ID 17 and Event ID 18). By implementing this rule, analysts can identify tools or processes that are not typically associated with legitimate access to this critical database, thereby flagging potential malicious activity.
+  To ensure the accuracy of this detection, it is essential to verify that Sysmon is correctly configured to log named pipe events. Processes such as `mmc.exe`, `svchost.exe`, `wsmprovhost.exe`, and others are specifically excluded from triggering alerts, as they are common system components. The purpose of filtering these known benign executables is to minimize false positives while maintaining vigilance against uncommon tools that could exploit these connections.
+  ### Investigation Steps
+  - Use EDR solutions to review the process execution history for any instances of the tools not included in the allowed list, particularly around the time of the alert.
+  - Check the Sysmon logs for Event ID 17 and Event ID 18 to gather details about the named pipe connections and the originating process.
+  - Investigate logs from the AD FS configuration database itself to determine if there have been any unauthorized access attempts or changes made.
+  - Review network traffic logs to identify any anomalous outbound connections from the host that triggered the alert, focusing on unusual IP addresses or external connections.

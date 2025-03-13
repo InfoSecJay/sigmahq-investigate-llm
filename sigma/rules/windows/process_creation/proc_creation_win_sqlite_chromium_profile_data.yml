@@ -1,0 +1,50 @@
+title: SQLite Chromium Profile Data DB Access
+id: 24c77512-782b-448a-8950-eddb0785fc71
+status: test
+description: Detect usage of the "sqlite" binary to query databases in Chromium-based
+  browsers for potential data stealing.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/84d9edaaaa2c5511144521b0e4af726d1c7276ce/atomics/T1539/T1539.md#atomic-test-2---steal-chrome-cookies-windows
+- https://blog.cyble.com/2022/04/21/prynt-stealer-a-new-info-stealer-performing-clipper-and-keylogger-activities/
+author: TropChaud
+date: 2022-12-19
+modified: 2023-01-19
+tags:
+- attack.credential-access
+- attack.t1539
+- attack.t1555.003
+- attack.collection
+- attack.t1005
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_sql:
+  - Product: SQLite
+  - Image|endswith:
+    - '\sqlite.exe'
+    - '\sqlite3.exe'
+  selection_chromium:
+    CommandLine|contains:
+    - '\User Data\'         # Most common folder for user profile data among Chromium browsers
+    - '\Opera Software\'         # Opera
+    - '\ChromiumViewer\'         # Sleipnir (Fenrir)
+  selection_data:
+    CommandLine|contains:
+    - 'Login Data'         # Passwords
+    - 'Cookies'
+    - 'Web Data'         # Credit cards, autofill data
+    - 'History'
+    - 'Bookmarks'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma detection rule aims to identify potential data exfiltration activities by monitoring the use of the "sqlite" binary within Chromium-based browsers. Specifically, it focuses on `sqlite.exe` and `sqlite3.exe`, which are commonly utilized to query databases that store sensitive user information such as login credentials, cookies, and other profile data. The rule analyzes process creation logs for instances where the command line indicates the use of SQLite to access files typically found in the user data directory of Chromium-based browsers, including Chrome and Opera. This targets actions related to querying databases like "Login Data," "Cookies," "Web Data," "History," and "Bookmarks," which are crucial for credential access and user privacy.
+  ### Investigation Steps
+  - Review process creation logs in your EDR to identify processes involving `sqlite.exe` or `sqlite3.exe` that access browser user data directories.
+  - Analyze the command-line arguments of the identified processes to determine if they target sensitive database files such as "Login Data," "Cookies," or "History."
+  - Investigate the user accounts associated with the activity to assess if any unauthorized actions were taken or if accounts were compromised.
+  - Consult network logs through your NDR or Proxy tools to identify any anomalous outbound connections that may correlate with the detected activities, indicating potential data exfiltration.

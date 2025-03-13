@@ -1,0 +1,42 @@
+title: Potentially Over Permissive Permissions Granted Using Dsacls.EXE
+id: 01c42d3c-242d-4655-85b2-34f1739632f7
+status: test
+description: Detects usage of Dsacls to grant over permissive permissions
+references:
+- https://ss64.com/nt/dsacls.html
+- https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/cc771151(v=ws.11)
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-06-20
+modified: 2023-02-04
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\dsacls.exe'
+  - OriginalFileName: "DSACLS.EXE"
+  selection_flag:
+    CommandLine|contains: ' /G '
+  selection_permissions:
+    CommandLine|contains:     # Add more permissions as you see fit in your environment
+    - 'GR'
+    - 'GE'
+    - 'GW'
+    - 'GA'
+    - 'WP'
+    - 'WD'
+  condition: all of selection_*
+falsepositives:
+- Legitimate administrators granting over permissive permissions to users
+level: medium
+notes: |
+  ### Technical Context
+  The detection rule focuses on identifying the misuse of the `dsacls.exe` tool, which is used to manage access control lists (ACLs) for Active Directory objects in Windows environments. Specifically, the rule flags instances where this tool is invoked with command-line parameters that indicate potentially over-permissive permissions are being granted to users. The presence of permissions such as "GR" (Generic Read), "GE" (Generic Execute), and "GA" (Generic All) in the command line arguments signifies an elevated risk of unauthorized access, which can be exploited by attackers for lateral movement or privilege escalation. The primary data source involved in this detection is process creation logs, which capture when `dsacls.exe` is executed along with its command-line arguments.
+  ### Investigation Steps
+  - Examine the process creation logs in your SIEM to identify instances of `dsacls.exe` being executed along with the relevant command-line arguments indicating possible over-permissive permissions. 
+  - Cross-reference the accounts executing these commands with your organization's administrative user list to determine if the activity was performed by a legitimate administrator or if it requires further scrutiny.
+  - Utilize EDR tools to analyze any related processes or activities that occurred around the time of the `dsacls.exe` execution, ensuring there are no indicators of compromise or malicious behavior.
+  - Review Active Directory audit logs to verify the specific permissions that were granted and assess whether they align with your organization's security policies and the principle of least privilege.

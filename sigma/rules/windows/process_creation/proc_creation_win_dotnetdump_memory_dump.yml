@@ -1,0 +1,36 @@
+title: Process Memory Dump Via Dotnet-Dump
+id: 53d8d3e1-ca33-4012-adf3-e05a4d652e34
+status: test
+description: |
+  Detects the execution of "dotnet-dump" with the "collect" flag. The execution could indicate potential process dumping of critical processes such as LSASS.
+references:
+- https://learn.microsoft.com/en-us/dotnet/core/diagnostics/dotnet-dump#dotnet-dump-collect
+- https://twitter.com/bohops/status/1635288066909966338
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-03-14
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\dotnet-dump.exe'
+  - OriginalFileName: 'dotnet-dump.dll'
+  selection_cli:
+    CommandLine|contains: 'collect'
+  condition: all of selection_*
+falsepositives:
+- Process dumping is the expected behavior of the tool. So false positives are expected
+  in legitimate usage. The PID/Process Name of the process being dumped needs to be
+  investigated
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule detects the execution of the "dotnet-dump" tool, particularly when invoked with the "collect" command-line flag. The presence of this flag is noteworthy because it could signify that a user is attempting to extract memory from sensitive processes, such as the Local Security Authority Subsystem Service (LSASS). By monitoring for process creation events and inspecting specific command-line parameters, the rule flags instances where "dotnet-dump.exe" is executed with the parameters defined. Essential data sources include process creation logs and the command-line arguments used during execution, allowing SOC analysts to assess potential misuse of this diagnostic tool in an attack scenario.
+  ### Investigation Steps
+  - Review the process creation logs to identify the time and user context in which "dotnet-dump.exe" was executed, focusing on the associated command-line arguments.
+  - Use EDR tools to analyze the process tree and determine the relationship of the "dotnet-dump" process with other active processes, especially any critical system components.
+  - Check for any recent changes or unusual activity in the system, especially around the time "dotnet-dump" was called, to differentiate between legitimate usage and potential malicious intent.
+  - Investigate related logs from other sources, such as VPN or proxy logs, to see if the activity originated from a remote access point that might suggest compromised credentials or lateral movement.

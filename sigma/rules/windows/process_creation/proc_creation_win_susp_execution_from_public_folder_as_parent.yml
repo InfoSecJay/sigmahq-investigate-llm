@@ -1,0 +1,54 @@
+title: Potentially Suspicious Execution From Parent Process In Public Folder
+id: 69bd9b97-2be2-41b6-9816-fb08757a4d1a
+status: test
+description: |
+  Detects a potentially suspicious execution of a parent process located in the "\Users\Public" folder executing a child process containing references to shell or scripting binaries and commandlines.
+references:
+- https://redcanary.com/blog/blackbyte-ransomware/
+author: Florian Roth (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2022-02-25
+modified: 2024-07-12
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1564
+- attack.t1059
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    ParentImage|contains: ':\Users\Public\'
+  selection_child:
+  - Image|endswith:
+    - '\bitsadmin.exe'
+    - '\certutil.exe'
+    - '\cmd.exe'
+    - '\cscript.exe'
+    - '\mshta.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\regsvr32.exe'
+    - '\rundll32.exe'
+    - '\wscript.exe'
+  - CommandLine|contains:
+    - 'bitsadmin'
+    - 'certutil'
+    - 'cscript'
+    - 'mshta'
+    - 'powershell'
+    - 'regsvr32'
+    - 'rundll32'
+    - 'wscript'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially suspicious activity originating from processes executed in the "\Users\Public" directory on Windows systems. Specifically, the rule looks for parent processes that are executed from this public folder which then invoke child processes associated with known scripting or command-line executables, such as `cmd.exe`, `powershell.exe`, and `rundll32.exe`. Given that these tools can commonly be leveraged for malicious activities such as downloading payloads, running scripts, or executing commands without user interaction, their execution from a publicly accessible location raises red flags. The data sources involved in this detection primarily include process creation logs, which detail the paths of parent and child processes, as well as the associated command-line arguments that may reveal further context around the execution behavior.
+  ### Investigation Steps
+  - Review the process creation logs in the EDR tool to identify the parent process and verify its path was indeed from the "\Users\Public" directory.
+  - Examine the child processes that were spawned from the identified parent process, paying special attention to the executable names and command-line arguments listed.
+  - Cross-reference any suspicious child processes with threat intelligence databases or known bad signatures in AV logs to determine if there's historical malicious behavior associated.
+  - Look at network traffic logs from the NDR or Proxy to assess whether any outbound connections were initiated by the suspicious processes, which could indicate further compromise or data exfiltration attempts.

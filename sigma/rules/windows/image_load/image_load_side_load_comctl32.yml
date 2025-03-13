@@ -1,0 +1,41 @@
+title: Potential DLL Sideloading Via comctl32.dll
+id: 6360757a-d460-456c-8b13-74cf0e60cceb
+status: test
+description: Detects potential DLL sideloading using comctl32.dll to obtain system
+  privileges
+references:
+- https://github.com/binderlabs/DirCreate2System
+- https://github.com/sailay1996/awesome_windows_logical_bugs/blob/60cbb23a801f4c3195deac1cc46df27c225c3d07/dir_create2system.txt
+author: Nasreddine Bencherchali (Nextron Systems), Subhash Popuri (@pbssubhash)
+date: 2022-12-16
+modified: 2022-12-19
+tags:
+- attack.defense-evasion
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|startswith:
+    - 'C:\Windows\System32\logonUI.exe.local\'
+    - 'C:\Windows\System32\werFault.exe.local\'
+    - 'C:\Windows\System32\consent.exe.local\'
+    - 'C:\Windows\System32\narrator.exe.local\'
+    - 'C:\windows\system32\wermgr.exe.local\'
+    ImageLoaded|endswith: '\comctl32.dll'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule focuses on identifying potential DLL sideloading by monitoring the loading of `comctl32.dll` in conjunction with specific Windows executable processes. DLL sideloading is a technique often used by attackers to execute malicious code by masquerading it as a legitimate system DLL. The rule examines log data from Windows image loads, particularly looking for instances where the specified executables (`logonUI.exe`, `werFault.exe`, `consent.exe`, `narrator.exe`, and `wermgr.exe`) load the `comctl32.dll` library from unusual paths (not typical system locations). This behavior is indicative of attempts to escalate privileges or maintain persistence on a target machine, which could compromise system security.
+  ### Investigation Steps
+  - Review EDR logs for the identified processes (`logonUI.exe`, `werFault.exe`, `consent.exe`, `narrator.exe`, and `wermgr.exe`) to determine their execution context and if suspicious behavior is present.
+  - Analyze the loaded modules related to these processes to verify the original file paths and ensure that they haven’t been tampered with or replaced with malicious versions.
+  - Query Windows event logs for relevant security events around the time of the alert to correlate activities, especially focusing on logs related to application installs and administrative actions.
+  - Check for any network activity related to these processes through the NDR or Proxy logs to identify potential callbacks to malicious servers or other indicators of compromise.

@@ -1,0 +1,45 @@
+title: Potential Shim Database Persistence via Sdbinst.EXE
+id: 517490a7-115a-48c6-8862-1a481504d5a8
+related:
+- id: 18ee686c-38a3-4f65-9f44-48a077141f42
+  type: similar
+status: test
+description: |
+  Detects installation of a new shim using sdbinst.exe.
+  Adversaries may establish persistence and/or elevate privileges by executing malicious content triggered by application shims
+references:
+- https://www.mandiant.com/resources/blog/fin7-shim-databases-persistence
+author: Markus Neis
+date: 2019-01-16
+modified: 2023-12-06
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1546.011
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\sdbinst.exe'
+  - OriginalFileName: 'sdbinst.exe'
+  selection_cli:
+    CommandLine|contains: '.sdb'
+  filter_optional_iis:
+    ParentImage|endswith: '\msiexec.exe'
+    CommandLine|contains:
+            # Expected behavior for IIS Express (e.g. https://www.hybrid-analysis.com/sample/15d4ff941f77f7bdfc9dfb2399b7b952a0a2c860976ef3e835998ff4796e5e91?environmentId=120)
+    - ':\Program Files (x86)\IIS Express\iisexpressshim.sdb'
+    - ':\Program Files\IIS Express\iisexpressshim.sdb'
+  condition: all of selection_* and not 1 of filter_optional_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Potential Shim Database Persistence via Sdbinst.EXE" is designed to detect instances where the `sdbinst.exe` binary is utilized in a potentially malicious manner. Adversaries may use `sdbinst.exe` to install shims, which are mechanisms that allow applications to run in altered conditions, an action that can lead to persistent backdoors or privilege escalation. This rule looks for specific indicators in process creation logs, primarily focusing on the `sdbinst.exe` executable and command-line parameters that hint at the installation of shim databases, identified by the presence of `.sdb` files. The detection criteria will only trigger alerts if these conditions are met and do not fall under benign execution scenarios, particularly those associated with `msiexec.exe` processes, which are considered legitimate for IIS Express functionality.
+  ### Investigation Steps
+  - Review process creation logs from EDR tools to identify any recent executions of `sdbinst.exe`, paying particular attention to the command-line parameters used.
+  - Cross-reference the alert with application logs to confirm whether legitimate IIS Express operations triggered the `sdbinst.exe` execution, specifically looking for expected `.sdb` file paths.
+  - Search for any unusual or suspect shims listed in the registry that may correspond to the identified `sdbinst.exe` execution, which could indicate malicious intent.
+  - Utilize network traffic logs from NDR tools to investigate any outbound connections that may correlate with the timing of the `sdbinst.exe` execution to ascertain if any additional malicious activities are taking place.

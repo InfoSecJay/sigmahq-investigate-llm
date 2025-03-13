@@ -1,0 +1,37 @@
+title: DLL Load By System Process From Suspicious Locations
+id: 9e9a9002-56c4-40fd-9eff-e4b09bfa5f6c
+status: test
+description: Detects when a system process (i.e. located in system32, syswow64, etc.)
+  loads a DLL from a suspicious location or a location with permissive permissions
+  such as "C:\Users\Public"
+references:
+- https://github.com/hackerhouse-opensource/iscsicpl_bypassUAC (Idea)
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-17
+modified: 2023-09-18
+tags:
+- attack.defense-evasion
+- attack.t1070
+logsource:
+  product: windows
+  category: image_load
+detection:
+  selection:
+    Image|startswith: 'C:\Windows\'
+    ImageLoaded|startswith:
+            # TODO: Add more suspicious paths as you see fit in your env
+    - 'C:\Users\Public\'
+    - 'C:\PerfLogs\'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This rule aims to detect potentially malicious activity involving system processes that load Dynamic Link Libraries (DLLs) from suspicious or weakly secured folders, such as "C:\Users\Public\" or "C:\PerfLogs\". By monitoring the `image_load` events on Windows, the rule identifies scenarios where system processes—typically housed in locations like `C:\Windows\System32` or `C:\Windows\SysWOW64`—initiate a DLL load from these less secure directories. Suspicious paths are indicative of possible evasion techniques where attackers may attempt to bypass security controls by loading harmful code from accessible locations rather than more tightly controlled directories, thus increasing the risk of privilege escalation and malware execution.
+  The data sources leveraged by this rule include image load events, specifically scrutinizing the paths of both the system process and any DLLs being loaded. The combination of looking for specific starting patterns in the image paths serves to highlight anomalies and potential threats that warrant deeper investigation.
+  ### Investigation Steps
+  - Review the detailed process creation logs from the EDR to identify the context of the system process that loaded the DLL, paying attention to the user and time of execution. 
+  - Check the permissions of the DLL located in the suspicious path using file system auditing or endpoint detection tools to confirm if it has overly permissive settings allowing execution by non-privileged users.
+  - Analyze network traffic for any unusual outbound connections initiated by the suspicious DLL or the associated system process through NDR solutions that might indicate exfiltration or command-and-control activity.
+  - Inspect proxy logs to see if there were any recent requests made to or from the identified suspicious URL or IP address correlated with the time of the DLL load, which might reveal additional malicious activity.

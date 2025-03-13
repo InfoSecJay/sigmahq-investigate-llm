@@ -1,0 +1,44 @@
+title: New User Created Via Net.EXE With Never Expire Option
+id: b9f0e6f5-09b4-4358-bae4-08408705bd5c
+related:
+- id: cd219ff3-fa99-45d4-8380-a7d15116c6dc
+  type: derived
+status: test
+description: Detects creation of local users via the net.exe command with the option
+  "never expire"
+references:
+- https://thedfirreport.com/2022/07/11/select-xmrig-from-sqlserver/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-07-12
+modified: 2023-02-21
+tags:
+- attack.persistence
+- attack.t1136.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\net.exe'
+    - '\net1.exe'
+  - OriginalFileName:
+    - 'net.exe'
+    - 'net1.exe'
+  selection_cli:
+    CommandLine|contains|all:
+    - 'user'
+    - 'add'
+    - 'expires:never'
+  condition: all of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the creation of new local user accounts on Windows systems using the `net.exe` or `net1.exe` command-line tools, specifically when these accounts are configured with the "never expire" password option. This detection is critical as it can indicate potential unauthorized user creation, which may be part of an attacker's persistence strategy within the environment. The rule examines process creation logs for instances where these binaries are executed with command-line arguments that include "user", "add", and "expires:never". These parameters are indicative of an attempt to create a user account with a password policy that bypasses standard expiration, potentially facilitating long-term access by malicious actors.
+  ### Investigation Steps
+  - Use your EDR tool to review process creation logs and identify instances of `net.exe` or `net1.exe` execution within the timeframe of the alert. Check the command-line parameters for any occurrences of "user" and "add" along with "expires:never".
+  - Inspect the user account management logs in Active Directory or local security policy logs to confirm if any new accounts were added and validate their properties, including password expiration settings.
+  - Cross-reference the system logs and event logs to track any unusual logins or other activities associated with the newly created user accounts, identifying any abnormal behavior or unauthorized access.
+  - Search through your SIEM for related alerts or incidents that may indicate suspicious behavior or an escalation of privileges from the same system, assisting in determining the wider impact of this activity.

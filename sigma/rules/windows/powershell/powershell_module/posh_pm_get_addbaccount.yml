@@ -1,0 +1,36 @@
+title: Suspicious Get-ADDBAccount Usage
+id: b140afd9-474b-4072-958e-2ebb435abd68
+status: test
+description: Detects suspicious invocation of the Get-ADDBAccount script that reads
+  from a ntds.dit file and may be used to get access to credentials without using
+  any credential dumpers
+references:
+- https://www.n00py.io/2022/03/manipulating-user-passwords-without-mimikatz/
+- https://github.com/MichaelGrafnetter/DSInternals/blob/7ba59c12ee9a1cb430d7dc186a3366842dd612c8/Documentation/PowerShell/Get-ADDBAccount.md
+author: Florian Roth (Nextron Systems)
+date: 2022-03-16
+tags:
+- attack.credential-access
+- attack.t1003.003
+logsource:
+  product: windows
+  category: ps_module
+  definition: 0ad03ef1-f21b-4a79-8ce8-e6900c54b65b
+detection:
+  selection:
+    Payload|contains|all:
+    - 'Get-ADDBAccount'
+    - 'BootKey '
+    - 'DatabasePath '
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The "Suspicious Get-ADDBAccount Usage" detection rule is designed to identify potentially malicious activity involving the invocation of the Get-ADDBAccount PowerShell script, which can extract sensitive information from the ntds.dit file. This file is a critical component of Active Directory as it contains user account credentials. By monitoring log entries that include specific payload keywords such as "Get-ADDBAccount," "BootKey," and "DatabasePath," the rule aims to flag attempts that could indicate unauthorized access or manipulation of user credentials without the use of traditional credential dumping tools like Mimikatz. This detection relies on PowerShell module logs and aims to spot nefarious activities before they lead to credential misuse.
+  ### Investigation Steps
+  - Review EDR logs for any recent executions of the Get-ADDBAccount PowerShell script, including associated command-line parameters, to understand the context of execution.
+  - Check for any abnormal user behavior or alerts related to the accounts that executed the suspicious script, as this can indicate account compromise.
+  - Collect relevant power shell logs within the specified timeframe to analyze the full command history and identify any further related suspicious activities.
+  - Investigate network traffic logs for any communication attempts that may have occurred after the execution, as attackers might seek to exfiltrate credentials or access additional resources.

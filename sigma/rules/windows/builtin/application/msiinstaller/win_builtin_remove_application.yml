@@ -1,0 +1,36 @@
+title: Application Uninstalled
+id: 570ae5ec-33dc-427c-b815-db86228ad43e
+status: test
+description: An application has been removed. Check if it is critical.
+references:
+- https://github.com/nasbench/EVTX-ETW-Resources/blob/f1b010ce0ee1b71e3024180de1a3e67f99701fe4/ETWProvidersManifests/Windows11/22H2/W11_22H2_Pro_20221220_22621.963/WEPExplorer/Microsoft-Windows-MsiServer.xml
+- https://learn.microsoft.com/en-us/windows/win32/msi/event-logging
+author: frack113
+date: 2022-01-28
+modified: 2022-09-17
+tags:
+- attack.impact
+- attack.t1489
+logsource:
+  product: windows
+  service: application
+detection:
+  selection:
+    Provider_Name: 'MsiInstaller'
+    EventID:
+    - 1034         # Windows Installer removed the product
+    - 11724         # Product Removal Successful
+  condition: selection
+falsepositives:
+- Unknown
+# Level is low as it can be very verbose, you can use the top or less 10 "Product Name" to have a quick overview
+level: low
+notes: |
+  ### Technical Context
+  The "Application Uninstalled" Sigma rule monitors Windows event logs specifically for the removal of applications via the Windows Installer service. It targets Event IDs 1034 and 11724, which indicate that a product was removed or that the removal process was successful. This detection rule works by focusing on the `Provider_Name` of the logs, filtering for the "MsiInstaller," ensuring that only relevant uninstall events are captured. Investigation of such events is critical for identifying potential unauthorized or accidental removals of important software that could impact system integrity, security, or compliance posture.
+  Investigation of this rule requires cross-referencing the detected events with other logs and resources to ascertain whether the uninstalled application was critical to business operations or security. The presence of this event alone does not imply malicious activity, hence appropriate context and verification are needed.
+  ### Investigation Steps
+  - **Review the Event Logs:** Utilize your SIEM to locate Event IDs 1034 and 11724 in the Windows event logs to confirm the application removal and gather details such as the application name and user involved.
+  - **Check Application Inventory:** Compare the uninstalled application against the organization's approved software inventory to determine if the removal of this application was authorized or expected.
+  - **Analyze User Behavior:** Investigate user activity to see if the person who uninstalled the application had prior anomalous actions or patterns situated around the same timeframe.
+  - **Validate Against Threat Intel:** Consult threat intelligence sources or internal reports to evaluate whether the uninstalled application had known vulnerabilities or was previously flagged for security risks.

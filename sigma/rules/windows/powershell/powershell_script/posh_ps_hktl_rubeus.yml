@@ -1,0 +1,54 @@
+title: HackTool - Rubeus Execution - ScriptBlock
+id: 3245cd30-e015-40ff-a31d-5cadd5f377ec
+related:
+- id: 7ec2c172-dceb-4c10-92c9-87c1881b7e18
+  type: similar
+status: test
+description: Detects the execution of the hacktool Rubeus using specific command line
+  flags
+references:
+- https://blog.harmj0y.net/redteaming/from-kekeo-to-rubeus
+- https://m0chan.github.io/2019/07/31/How-To-Attack-Kerberos-101.html
+- https://github.com/GhostPack/Rubeus
+author: Christian Burkard (Nextron Systems), Florian Roth (Nextron Systems)
+date: 2023-04-27
+tags:
+- attack.credential-access
+- attack.t1003
+- attack.t1558.003
+- attack.lateral-movement
+- attack.t1550.003
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains:
+    - 'asreproast '
+    - 'dump /service:krbtgt '
+    - 'dump /luid:0x'
+    - 'kerberoast '
+    - 'createnetonly /program:'
+    - 'ptt /ticket:'
+    - '/impersonateuser:'
+    - 'renew /ticket:'
+    - 'asktgt /user:'
+    - 'harvest /interval:'
+    - 's4u /user:'
+    - 's4u /ticket:'
+    - 'hash /password:'
+    - 'golden /aes256:'
+    - 'silver /user:'
+  condition: selection
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This detection rule monitors for the execution of Rubeus, a well-known hack tool used for manipulating Kerberos tickets in Windows environments. The rule focuses on specific command-line flags associated with various Rubeus functionalities that could indicate credential access or lateral movement attempts. To effectively utilize this rule, Script Block Logging must be enabled on the target systems to capture and analyze PowerShell commands. Key command phrases such as "asreproast," "kerberoast," and "ptt /ticket:" are evaluated through the logs collected from PowerShell execution events, allowing the detection of malicious activities related to Kerberos ticket manipulation.
+  ### Investigation Steps
+  - Utilize EDR tools to review the PowerShell execution history for the user or machine that triggered the alert. Look for anomalies in command patterns or user activities around the time of the alert.
+  - Analyze Windows event logs, specifically looking for events related to PowerShell execution (Event ID 4104). Pay attention to any unusual command-line arguments or script contents that match the detected Rubeus commands.
+  - Query the SIEM for additional contextual logs, such as authentication attempts or access to sensitive resources related to the affected user during the time frame of the incident.
+  - Conduct a review of network traffic logs using NDR to identify any suspicious outbound connections or data exfiltration attempts that may correlate with the detected activities of Rubeus.

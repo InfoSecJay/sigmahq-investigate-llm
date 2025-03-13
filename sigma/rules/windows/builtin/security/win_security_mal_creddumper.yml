@@ -1,0 +1,52 @@
+title: Credential Dumping Tools Service Execution - Security
+id: f0d1feba-4344-4ca9-8121-a6c97bd6df52
+related:
+- id: 4976aa50-8f41-45c6-8b15-ab3fc10e79ed
+  type: derived
+status: test
+description: Detects well-known credential dumping tools execution via service execution
+  events
+references:
+- https://www.slideshare.net/heirhabarov/hunting-for-credentials-dumping-in-windows-environment
+author: Florian Roth (Nextron Systems), Teymur Kheirkhabarov, Daniil Yugoslavskiy,
+  oscd.community
+date: 2017-03-05
+modified: 2022-11-29
+tags:
+- attack.credential-access
+- attack.execution
+- attack.t1003.001
+- attack.t1003.002
+- attack.t1003.004
+- attack.t1003.005
+- attack.t1003.006
+- attack.t1569.002
+- attack.s0005
+logsource:
+  product: windows
+  service: security
+  definition: The 'System Security Extension' audit subcategory need to be enabled
+    to log the EID 4697
+detection:
+  selection:
+    EventID: 4697
+    ServiceFileName|contains:
+    - 'cachedump'
+    - 'dumpsvc'
+    - 'fgexec'
+    - 'gsecdump'
+    - 'mimidrv'
+    - 'pwdump'
+    - 'servpw'
+  condition: selection
+falsepositives:
+- Legitimate Administrator using credential dumping tool for password recovery
+level: high
+notes: |
+  ### Technical Context
+  This detection rule aims to identify the execution of well-known credential dumping tools via Windows service activities. It specifically monitors for Event ID 4697, which logs attempts to create services on Windows machines. When a service is created using certain names associated with credential dumping tools (e.g., 'cachedump', 'pwdump', etc.), the rule triggers an alert. The primary data sources involved are the Windows security logs, specifically the audit logs related to service management, which track events related to service installation and configuration. Understanding these events is crucial for identifying potentially malicious behavior, as attackers often use legitimate service executions to hide their activities while attempting to extract sensitive information from compromised systems.
+  ### Investigation Steps
+  - Check the security logs in your EDR solution for Event ID 4697 and cross-reference the service names captured in the alert with the list of known credential dumping tools.
+  - Use the process creation logs from your EDR to trace the execution paths of any processes associated with the flagged services to identify potential malicious behavior or lateral movement.
+  - Review network traffic logs from your NDR and proxy solutions to detect any unusual outbound connections from the machine where the service was created, as attackers may exfiltrate credentials to command and control servers.
+  - Query cloud logs (if applicable, such as AWS CloudTrail or GCP Audit Logs) to check for any related actions or processes around the same timeframe, which might indicate coordinated or malicious activity across your infrastructure.

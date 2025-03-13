@@ -1,0 +1,34 @@
+title: PowerShell Downgrade Attack - PowerShell
+id: 6331d09b-4785-4c13-980f-f96661356249
+status: test
+description: Detects PowerShell downgrade attack by comparing the host versions with
+  the actually used engine version 2.0
+references:
+- http://www.leeholmes.com/blog/2017/03/17/detecting-and-preventing-powershell-downgrade-attacks/
+author: Florian Roth (Nextron Systems), Lee Holmes (idea), Harish Segar (improvements)
+date: 2017-03-22
+modified: 2023-10-27
+tags:
+- attack.defense-evasion
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_classic_start
+detection:
+  selection:
+    Data|contains: 'EngineVersion=2.'
+  filter_main:
+    Data|contains: 'HostVersion=2.'
+  condition: selection and not filter_main
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule aims to detect a PowerShell downgrade attack by identifying discrepancies between the PowerShell engine version in use and the host version installed on a Windows machine. Specifically, the rule looks for logs where the PowerShell engine version is listed as "2.0" while filtering out instances where the host version is also "2.0." By doing so, it identifies potential cases where an attacker has attempted to downgrade PowerShell to a less secure version for malicious purposes while still running a legitimate higher host version. The key technical data source involved in this detection is the PowerShell classic start logs that capture version-related information, ensuring that deviations from expected versions are flagged for investigation.
+  ### Investigation Steps
+  - Check the EDR logs for the identified endpoint to review all PowerShell command execution and to analyze the associated parameters used during the reported event.
+  - Query the SIEM for instances of PowerShell execution within the same timeframe to gather additional context on user activity and any related alerts.
+  - Review the Windows event logs to confirm installed PowerShell versions on the host machine and verify if any unauthorized modifications were made to the PowerShell environment.
+  - Examine network traffic through the NGFW or Proxy to identify any suspicious outbound communications that may correlate with the detected downgrade event.

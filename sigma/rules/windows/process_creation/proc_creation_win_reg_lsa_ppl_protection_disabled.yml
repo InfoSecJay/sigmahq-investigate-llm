@@ -1,0 +1,38 @@
+title: LSA PPL Protection Disabled Via Reg.EXE
+id: 8c0eca51-0f88-4db2-9183-fdfb10c703f9
+status: test
+description: Detects the usage of the "reg.exe" utility to disable PPL protection
+  on the LSA process
+references:
+- https://thedfirreport.com/2022/03/21/apt35-automates-initial-access-using-proxyshell/
+author: Florian Roth (Nextron Systems)
+date: 2022-03-22
+modified: 2023-03-26
+tags:
+- attack.defense-evasion
+- attack.t1562.010
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\reg.exe'
+  - OriginalFileName: 'reg.exe'
+  selection_cli:
+    CommandLine|contains: 'SYSTEM\CurrentControlSet\Control\Lsa'
+    CommandLine|contains|all:
+    - ' add '
+    - ' /d 0'
+    - ' /v RunAsPPL '
+  condition: all of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect the use of the Windows utility "reg.exe" for disabling protection on the Local Security Authority (LSA) process. LSA Process Protection Level (PPL) is a security feature that helps to safeguard sensitive components of the Windows operating system. The rule specifically looks for the execution of "reg.exe" with specific command-line arguments indicating that the PPL is being modified. The data sources utilized for this detection include process creation logs that capture details such as the image name of the executable (reg.exe) and the command-line parameters used during its execution. By monitoring for these specific alterations in LSA settings, the rule aims to identify potential evasion tactics employed by attackers, particularly those seeking to compromise system security.
+  ### Investigation Steps
+  - Examine recent process creation logs in your EDR solution to identify instances of "reg.exe" execution, noting the timestamps and user context under which the command was run.
+  - Investigate command-line parameters associated with the detected execution to confirm if the command is altering the LSA PPL settings, taking note of any unusual activities around that time.
+  - Review the system and security event logs to track changes made to the LSA protection settings, ensuring no unauthorized modifications have occurred.
+  - Check firewall and network logs for any suspicious outbound connections or activity related to the user account that executed the command, which may indicate further malicious intent.

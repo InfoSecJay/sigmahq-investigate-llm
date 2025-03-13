@@ -1,0 +1,38 @@
+title: WMI Persistence - Security
+id: f033f3f3-fd24-4995-97d8-a3bb17550a88
+related:
+- id: 0b7889b4-5577-4521-a60a-3376ee7f9f7b
+  type: derived
+status: test
+description: Detects suspicious WMI event filter and command line event consumer based
+  on WMI and Security Logs.
+references:
+- https://twitter.com/mattifestation/status/899646620148539397
+- https://www.eideon.com/2018-03-02-THL03-WMIBackdoors/
+author: Florian Roth (Nextron Systems), Gleb Sukhodolskiy, Timur Zinniatullin oscd.community
+date: 2017-08-22
+modified: 2022-11-29
+tags:
+- attack.persistence
+- attack.privilege-escalation
+- attack.t1546.003
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4662
+    ObjectType: 'WMI Namespace'
+    ObjectName|contains: 'subscription'
+  condition: selection
+falsepositives:
+- Unknown (data set is too small; further testing needed)
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious activity related to Windows Management Instrumentation (WMI), specifically focusing on WMI event filters and command-line event consumers. WMI is a powerful feature in Windows that allows for management and monitoring of system components; however, it can also be abused by malicious actors for persistence mechanisms. The rule inspects Windows Security Logs for Event ID 4662, which indicates that a WMI namespace operation is occurring. It specifically looks for actions involving WMI subscriptions, which can potentially be leveraged to maintain access to a system or escalate privileges undetected. By monitoring these events, the rule aids in identifying potentially harmful activities that might indicate compromise or misuse of system capabilities.
+  ### Investigation Steps
+  - Utilize your EDR solution to check for any recent modifications to WMI namespaces or subscriptions, paying particular attention to unusual or unauthorized changes.
+  - Query the Windows Security Logs for Event ID 4662 entries around the time of the alert to gather further context on the user and process that triggered the WMI event.
+  - Cross-reference any identified WMI modifications with the command-line execution history using your SIEM to identify any command-line activities that may correlate with the WMI events.
+  - Investigate related processes and parent-child relationships from your EDR tool to identify any suspicious processes that may have initiated WMI operations.

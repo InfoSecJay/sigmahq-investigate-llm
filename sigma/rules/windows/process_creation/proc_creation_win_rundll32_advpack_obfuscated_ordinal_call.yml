@@ -1,0 +1,39 @@
+title: Suspicious Advpack Call Via Rundll32.EXE
+id: a1473adb-5338-4a20-b4c3-126763e2d3d3
+status: test
+description: Detects execution of "rundll32" calling "advpack.dll" with potential
+  obfuscated ordinal calls in order to leverage the "RegisterOCX" function
+references:
+- https://twitter.com/Hexacorn/status/1224848930795552769
+- http://www.hexacorn.com/blog/2020/02/05/stay-positive-lolbins-not/
+author: Florian Roth (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2023-05-17
+tags:
+- attack.defense-evasion
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\rundll32.exe'
+  - OriginalFileName: 'RUNDLL32.EXE'
+  - CommandLine|contains: 'rundll32'
+  selection_cli_dll:
+    CommandLine|contains: 'advpack'
+  selection_cli_ordinal:
+  - CommandLine|contains|all:
+    - '#+'
+    - '12'
+  - CommandLine|contains: '#-'
+  condition: all of selection_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Suspicious Advpack Call Via Rundll32.EXE" is designed to detect potentially malicious activity involving the execution of the `rundll32.exe` process calling the `advpack.dll` library. This behavior is often indicative of attempts to exploit the `RegisterOCX` function for malicious purposes, leveraging obfuscated command lines that may use ordinal references or unusual characters. The rule specifically identifies instances where `rundll32.exe` is executed with a command line that references either `advpack` or contains obfuscated ordinal numbers. The primary technical data sources involved in this detection include process creation logs from Windows, which provide insights into how processes are started on the system, including the command-line arguments used during their initialization.
+  ### Investigation Steps
+  - Review the process creation logs in your EDR solution to identify instances of `rundll32.exe` being executed with the associated command line containing `advpack`.
+  - Correlate the identified instances with other events in the timeline to determine if there are additional suspicious activities, such as unusual network connections or file modifications.
+  - Check for the presence of `advpack.dll` and examine its integrity and hash against known good and bad indicators in your AV solution.
+  - Analyze any associated user activity in your SIEM or logs, particularly focusing on user behavior leading up to the execution of the detected command to identify possible exploitation or compromise.

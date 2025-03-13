@@ -1,0 +1,34 @@
+title: Invoke-Obfuscation VAR++ LAUNCHER OBFUSCATION - PowerShell
+id: e54f5149-6ba3-49cf-b153-070d24679126
+status: test
+description: Detects Obfuscated Powershell via VAR++ LAUNCHER
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009     # (Task27)
+author: Timur Zinniatullin, oscd.community
+date: 2020-10-13
+modified: 2024-04-05
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_4104:
+    ScriptBlockText|re: '(?i)&&set.*(\{\d\}){2,}\\"\s+?-f.*&&.*cmd.*/c'     # FPs with |\/r
+  condition: selection_4104
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Invoke-Obfuscation VAR++ LAUNCHER OBFUSCATION 
+  - PowerShell" is designed to detect obfuscated PowerShell scripts that utilize the VAR++ launcher technique. This detection focuses on identifying specific patterns in the ScriptBlockText of PowerShell logs, particularly looking for sequences that indicate obfuscated command execution. The rule operates under the assumption that Script Block Logging is enabled on the system, which captures detailed information about PowerShell scripts being executed. The identified patterns, as defined by the regular expression in the rule, are indicative of attempts to bypass standard security measures by concealing malicious commands within seemingly benign code.
+  ### Investigation Steps
+  - Review PowerShell logs from your EDR to identify any instances of the obfuscated script being executed, focusing on the timestamp correlated with the alert. 
+  - Check script block logging details to understand the context and specific command execution that triggered the alert to determine if it was legitimate or malicious.
+  - Correlate the detected event with any other suspicious activities or incidents in the environment, using the SIEM for a broader visibility across related logs. 
+  - Conduct a threat hunt using the PowerShell command history and other logs to assess the impact and determine if there are other affected systems within the network.

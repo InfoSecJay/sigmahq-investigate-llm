@@ -1,0 +1,43 @@
+title: Invoke-Obfuscation Via Use Rundll32 - System
+id: 641a4bfb-c017-44f7-800c-2aee0184ce9b
+status: test
+description: Detects Obfuscated Powershell via use Rundll32 in Scripts
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009     # (Task30)
+author: Nikita Nazarov, oscd.community
+date: 2020-10-09
+modified: 2022-11-29
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    Provider_Name: 'Service Control Manager'
+    EventID: 7045
+    ImagePath|contains|all:
+    - '&&'
+    - 'rundll32'
+    - 'shell32.dll'
+    - 'shellexec_rundll'
+    ImagePath|contains:
+    - 'value'
+    - 'invoke'
+    - 'comspec'
+    - 'iex'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious activity that uses the `rundll32.exe` executable to invoke obfuscated PowerShell commands, a technique often employed by attackers for evasion purposes. The rule focuses on Event ID 7045 from the Windows Service Control Manager, which logs events related to service installation. Specifically, it looks for instances where the command line arguments include indicators typical of obfuscation, such as "&&" (used for chaining commands) along with references to `invoke`, `comspec`, and PowerShell execution shortcuts like `iex`. By analyzing these elements in the context of `rundll32.exe` being called with specific parameters, the rule helps detect potentially harmful scripts being executed on the system, allowing analysts to pinpoint suspicious activity.
+  ### Investigation Steps
+  - Examine the relevant EDR logs for the service installation events logged under Event ID 7045, focusing on the `ImagePath` for any suspicious command strings that include `rundll32` and obfuscation patterns.
+  - Review associated processes and command-line arguments in the EDR to confirm whether the detected `rundll32` invocation is initiating a legitimate process or potentially malicious PowerShell commands.
+  - Utilize network proxy logs to trace any outbound connectivity established around the same time as the alert, identifying any malicious communication to external systems that may correlate with the obfuscation usage.
+  - Check cloud logs (if applicable) for any unusual activity or resource access within AWS, GCP, or Azure that might indicate a compromise or related attack spreading from the affected system.

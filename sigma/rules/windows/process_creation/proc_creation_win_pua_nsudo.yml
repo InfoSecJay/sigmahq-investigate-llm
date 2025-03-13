@@ -1,0 +1,58 @@
+title: PUA - NSudo Execution
+id: 771d1eb5-9587-4568-95fb-9ec44153a012
+status: test
+description: Detects the use of NSudo tool for command execution
+references:
+- https://web.archive.org/web/20221019044836/https://nsudo.m2team.org/en-us/
+- https://www.winhelponline.com/blog/run-program-as-system-localsystem-account-windows/
+author: Florian Roth (Nextron Systems), Nasreddine Bencherchali
+date: 2022-01-24
+modified: 2023-02-13
+tags:
+- attack.execution
+- attack.t1569.002
+- attack.s0029
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\NSudo.exe'
+    - '\NSudoLC.exe'
+    - '\NSudoLG.exe'
+  - OriginalFileName:
+    - 'NSudo.exe'
+    - 'NSudoLC.exe'
+    - 'NSudoLG.exe'
+  selection_cli:
+    CommandLine|contains:
+            # Covers Single/Double dash "-"/"--" + ":"
+    - '-U:S '         # System
+    - '-U:T '         # Trusted Installer
+    - '-U:E '         # Elevated
+    - '-P:E '         # Enable All Privileges
+    - '-M:S '         # System Integrity
+    - '-M:H '         # High Integrity
+            # Covers Single/Double dash "-"/"--" + "="
+    - '-U=S '
+    - '-U=T '
+    - '-U=E '
+    - '-P=E '
+    - '-M=S '
+    - '-M=H '
+    - '-ShowWindowMode:Hide'
+  condition: all of selection_*
+falsepositives:
+- Legitimate use by administrators
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "PUA 
+  - NSudo Execution" is designed to detect the execution of NSudo, a tool that allows users to run programs with elevated privileges, including system-level access. It specifically identifies instances where NSudo is invoked through specific executable names such as `NSudo.exe`, `NSudoLC.exe`, or `NSudoLG.exe`, and where the command-line parameters indicate elevated privileges. The rule monitors process creation logs from Windows systems, looking for distinctive command-line arguments that could signify potentially malicious activity, such as running applications with system integrity, trusted installer, or high integrity levels.
+  By inspecting properties such as `Image` (the executable name) and `CommandLine` (the arguments used), security teams can flag unusual or unauthorized uses of this powerful utility. The alert level is set to high, reflecting the potential risk associated with the misuse of administrative or system-level permissions.
+  ### Investigation Steps
+  - Utilize your EDR solution to search for the NSudo-related processes within the timeframe of the alert, paying close attention to their parent processes to understand the context of their execution.
+  - Review the command-line arguments used during NSudo execution in the process creation logs to ascertain whether any arguments indicate malicious intent, such as elevated privilege levels.
+  - Check for any associated network activity in your NDR or proxy logs that may correlate with the timing of the NSudo execution, which could provide insight into data exfiltration or lateral movement.
+  - Cross-reference with any known legitimate uses of NSudo by your organization's administrators to differentiate between typical administrative tasks and potentially unauthorized actions.

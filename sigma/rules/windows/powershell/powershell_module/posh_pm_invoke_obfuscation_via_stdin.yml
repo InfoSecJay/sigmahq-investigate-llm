@@ -1,0 +1,36 @@
+title: Invoke-Obfuscation Via Stdin - PowerShell Module
+id: c72aca44-8d52-45ad-8f81-f96c4d3c755e
+related:
+- id: 86b896ba-ffa1-4fea-83e3-ee28a4c915c7
+  type: derived
+status: test
+description: Detects Obfuscated Powershell via Stdin in Scripts
+references:
+- https://github.com/SigmaHQ/sigma/issues/1009      # (Task28)
+author: Nikita Nazarov, oscd.community
+date: 2020-10-12
+modified: 2024-04-05
+tags:
+- attack.defense-evasion
+- attack.t1027
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_module
+  definition: 0ad03ef1-f21b-4a79-8ce8-e6900c54b65b
+detection:
+  selection_4103:
+    Payload|re: '(?i)(set).*&&\s?set.*(environment|invoke|\$?\{?input).*&&.*"'
+  condition: selection_4103
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule identifies potentially malicious PowerShell scripts that employ the Invoke-Obfuscation technique via standard input (stdin). It specifically looks for obfuscated commands that manipulate environment variables or invoke other scripts, which can indicate an attempt to evade detection and execute harmful payloads. The primary data sources for this rule are Windows PowerShell module logs that capture command line parameters, particularly those related to script execution. By analyzing the regex pattern in the rule, the detection mechanism identifies specific sequences of commands typical of obfuscation tactics, correlating them with known attack techniques involving command execution and defense evasion.
+  ### Investigation Steps
+  - Review PowerShell command execution logs in your EDR platform to identify the full command context and execution history surrounding the alert.
+  - Correlate the detected script execution with previous alerts or incidents related to command obfuscation to evaluate potential associations or patterns of behavior.
+  - Check the associated user account and system for any anomalies, such as multiple failed login attempts or unusual access times, using both the SIEM and the Windows Event Logs.
+  - Investigate network activity related to the affected endpoint using your NDR tools to identify any outbound connections to suspicious hosts or data exfiltration attempts.

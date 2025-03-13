@@ -1,0 +1,65 @@
+title: PUA - Seatbelt Execution
+id: 38646daa-e78f-4ace-9de0-55547b2d30da
+status: test
+description: Detects the execution of the PUA/Recon tool Seatbelt via PE information
+  of command line parameters
+references:
+- https://github.com/GhostPack/Seatbelt
+- https://www.bluetangle.dev/2022/08/fastening-seatbelt-on-threat-hunting.html
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-10-18
+modified: 2023-02-04
+tags:
+- attack.discovery
+- attack.t1526
+- attack.t1087
+- attack.t1083
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+  - Image|endswith: '\Seatbelt.exe'
+  - OriginalFileName: 'Seatbelt.exe'
+  - Description: 'Seatbelt'
+  - CommandLine|contains:
+              # This just a list of the commands that will produce the least amount of FP in "theory"
+              # Comment out/in as needed in your environment
+              # To get the full list of commands see reference section
+    - ' DpapiMasterKeys'
+    - ' InterestingProcesses'
+    - ' InterestingFiles'
+    - ' CertificateThumbprints'
+    - ' ChromiumBookmarks'
+    - ' ChromiumHistory'
+    - ' ChromiumPresence'
+    - ' CloudCredentials'
+    - ' CredEnum'
+    - ' CredGuard'
+    - ' FirefoxHistory'
+    - ' ProcessCreationEvents'
+              # - ' RDPSessions'
+              # - ' PowerShellHistory'
+  selection_group_list:
+    CommandLine|contains:
+    - ' -group=misc'
+    - ' -group=remote'
+    - ' -group=chromium'
+    - ' -group=slack'
+    - ' -group=system'
+    - ' -group=user'
+    - ' -group=all'
+  selection_group_output:
+    CommandLine|contains: ' -outputfile='
+  condition: selection_img or all of selection_group_*
+falsepositives:
+- Unlikely
+level: high
+notes: |
+  ### Technical Context
+  The Sigma rule for detecting the execution of the Potentially Unwanted Application (PUA) known as Seatbelt is focused on process creation events in a Windows environment. Seatbelt is a reconnaissance tool that provides useful insights into a system's configuration and credentials but can also be used maliciously. This detection rule looks for specific indicators in the Windows process creation logs, particularly focusing on the command line parameters used during the execution of the Seatbelt executable (Seatbelt.exe). It targets the legitimate command line arguments associated with Seatbelt to minimize false positives while ensuring that real threats are identified. The primary technical sources involved are process creation logs, which provide information on the executed image, its original file name, description, and command-line arguments.
+  ### Investigation Steps
+  - Query EDR logs to identify the execution of "Seatbelt.exe" and review the associated command line parameters for further analysis.
+  - Cross-reference with historical process creation data to assess if the tool was executed as part of a legitimate administrative task or in an anomalous context.
+  - Utilize AV solutions to evaluate surrounding events or files related to the execution of Seatbelt for potential indicators of compromise.
+  - Review proxy and cloud logs to check for any unusual access patterns or outbound connections that may correlate with the execution of this tool within your environment.

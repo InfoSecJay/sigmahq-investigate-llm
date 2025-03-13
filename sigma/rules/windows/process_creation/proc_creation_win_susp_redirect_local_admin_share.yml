@@ -1,0 +1,37 @@
+title: Suspicious Redirection to Local Admin Share
+id: ab9e3b40-0c85-4ba1-aede-455d226fd124
+status: test
+description: Detects a suspicious output redirection to the local admins share, this
+  technique is often found in malicious scripts or hacktool stagers
+references:
+- https://www.microsoft.com/security/blog/2022/01/15/destructive-malware-targeting-ukrainian-organizations/
+- http://blog.talosintelligence.com/2022/09/lazarus-three-rats.html
+author: Florian Roth (Nextron Systems)
+date: 2022-01-16
+modified: 2023-12-28
+tags:
+- attack.exfiltration
+- attack.t1048
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_redirect:
+    CommandLine|contains: '>'
+  selection_share:
+    CommandLine|contains:
+    - '\\\\127.0.0.1\\admin$\\'
+    - '\\\\localhost\\admin$\\'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect suspicious output redirection to local administrative shares on Windows systems, specifically targeting the `admin$` share, which is often exploited during malicious attacks. The rule functions by monitoring process creation logs for command line parameters that include redirection operators (`>`) combined with paths that direct output to the local administrative share located at either `\\127.0.0.1\admin$` or `\\localhost\admin$`. Such behavior is frequently observed in malicious scripts or tools that aim to exfiltrate data, perform lateral movement, or execute further attacks without alerting system defenders.
+  The primary data source involved in this detection is process creation logs that capture command-line arguments executed by processes on the Windows operating system. By evaluating these logs, analysts can identify potentially harmful activity associated with unauthorized access to administrative shares, thus triggering a timely investigation by the security operations team.
+  ### Investigation Steps
+  - Review the process creation logs within your EDR to identify the specific process associated with the suspicious command line arguments logged during the alert timeframe. 
+  - Check for any unusual network connections to the `admin$` share by analyzing logs from the Windows firewall (or NGFW) to determine if there are any connections from external sources at the time of the alert.
+  - Query the AV logs for any remediation activities or alerts triggered around the same timestamps to see if any malicious activity was previously detected or responded to on the affected host.
+  - Examine authentication logs for any unusual login attempts or access rights changes associated with administrative accounts during the investigation window, providing context around potential misuse of credentials.

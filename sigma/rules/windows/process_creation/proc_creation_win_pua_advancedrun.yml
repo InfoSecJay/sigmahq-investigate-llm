@@ -1,0 +1,48 @@
+title: PUA - AdvancedRun Execution
+id: d2b749ee-4225-417e-b20e-a8d2193cbb84
+related:
+- id: fa00b701-44c6-4679-994d-5a18afa8a707
+  type: similar
+status: test
+description: Detects the execution of AdvancedRun utility
+references:
+- https://twitter.com/splinter_code/status/1483815103279603714
+- https://medium.com/s2wblog/analysis-of-destructive-malware-whispergate-targeting-ukraine-9d5d158f19f3
+- https://www.elastic.co/security-labs/operation-bleeding-bear
+- https://www.winhelponline.com/blog/run-program-as-system-localsystem-account-windows/
+author: Florian Roth (Nextron Systems)
+date: 2022-01-20
+modified: 2023-02-21
+tags:
+- attack.execution
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1564.003
+- attack.t1134.002
+- attack.t1059.003
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+  - OriginalFileName: 'AdvancedRun.exe'
+  - CommandLine|contains|all:
+    - ' /EXEFilename '
+    - ' /Run'
+  - CommandLine|contains|all:
+    - ' /WindowState 0'
+    - ' /RunAs '
+    - ' /CommandLine '
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "PUA 
+  - AdvancedRun Execution" is designed to detect the execution of the AdvancedRun utility, a tool often used for executing programs with elevated privileges or under different user contexts in Windows environments. The primary indicators of compromise (IoCs) for this detection include the presence of the executable file `AdvancedRun.exe` and specific command-line parameters associated with its operation. The rule checks for instances where the command-line includes flags like `/EXEFilename`, `/Run`, `/WindowState 0`, `/RunAs`, and `/CommandLine`, indicating potentially malicious use of the utility for privilege escalation or to evade defenses. This detection leverages process creation logs from the Windows operating system, focusing on key attributes of the executed processes.
+  ### Investigation Steps
+  - Query the EDR platform for process creation logs related to `AdvancedRun.exe`, filtering by the execution time frame of the alert.
+  - Review the command-line arguments used during execution to identify any unusual or malicious flags which may suggest an attempt to bypass security controls.
+  - Check the user accounts associated with the execution of AdvancedRun for any unauthorized or anomalous login patterns or privileges.
+  - Investigate related network activity through the NDR or proxy logs to determine if any outbound connections were attempted around the same time as the execution, potentially indicating data exfiltration or command and control activities.

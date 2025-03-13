@@ -1,0 +1,38 @@
+title: Potential Remote Desktop Tunneling
+id: 8a3038e8-9c9d-46f8-b184-66234a160f6f
+status: test
+description: Detects potential use of an SSH utility to establish RDP over a reverse
+  SSH Tunnel. This can be used by attackers to enable routing of network packets that
+  would otherwise not reach their intended destination.
+references:
+- https://www.elastic.co/guide/en/security/current/potential-remote-desktop-tunneling-detected.html
+author: Tim Rauch, Elastic (idea)
+date: 2022-09-27
+tags:
+- attack.lateral-movement
+- attack.t1021
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains: ':3389'     # RDP port and usual SSH tunneling related switches in command line
+  selection_opt:
+    CommandLine|contains:
+    - ' -L '
+    - ' -P '
+    - ' -R '
+    - ' -pw '
+    - ' -ssh '
+  condition: all of selection*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The "Potential Remote Desktop Tunneling" detection rule identifies potentially malicious activity involving the use of SSH utilities to establish Remote Desktop Protocol (RDP) connections over reverse SSH tunnels. By inspecting process creation logs, the rule focuses on command-line parameters that indicate the use of tunneling options commonly associated with secure shell (SSH) configurations. Specifically, it looks for command-line inputs containing the RDP port (3389) and various SSH flags such as '-L', '-R', '-P', and '-pw', which can be utilized by attackers to route network packets in ways that bypass standard defenses. This behavior may signify lateral movement within an enterprise network, highlighting risks associated with unauthorized remote access attempts, thereby enabling the detection of potentially harmful actions against corporate assets.
+  ### Investigation Steps
+  - Analyze the process creation logs on the host where the alert was triggered, focusing on the extracted command-line parameters that were executed.
+  - Utilize EDR tools to establish the execution context of the process, checking for any parent processes that may indicate whether the activity was legitimate or malicious.
+  - Review network traffic logs (NDR or NGFW) for connections initiated to the specified RDP port (3389) or inspect for anomalies that align with reverse SSH tunneling behavior.
+  - Check for any related activities in user behavior analytics or SIEM logs, which may reveal additional malicious lateral movement or unauthorized access attempts tied to the user or system in question.

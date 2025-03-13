@@ -1,0 +1,38 @@
+title: Potentially Suspicious Self Extraction Directive File Created
+id: ab90dab8-c7da-4010-9193-563528cfa347
+related:
+- id: 760e75d8-c3b5-409b-a9bf-6130b4c4603f
+  type: derived
+status: test
+description: |
+  Detects the creation of a binary file with the ".sed" extension. The ".sed" extension stand for Self Extraction Directive files.
+  These files are used by the "iexpress.exe" utility in order to create self extracting packages.
+  Attackers were seen abusing this utility and creating PE files with embedded ".sed" entries.
+  Usually ".sed" files are simple ini files and not PE binaries.
+references:
+- https://strontic.github.io/xcyclopedia/library/iexpress.exe-D594B2A33EFAFD0EABF09E3FDC05FCEA.html
+- https://en.wikipedia.org/wiki/IExpress
+- https://www.virustotal.com/gui/file/602f4ae507fa8de57ada079adff25a6c2a899bd25cd092d0af7e62cdb619c93c/behavior
+author: Joseliyo Sanchez, @Joseliyo_Jstnk
+date: 2024-02-05
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  product: windows
+  category: file_executable_detected
+detection:
+  selection:
+    TargetFilename|endswith: '.sed'
+  condition: selection
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This rule detects the creation of files with the `.sed` extension, indicative of Self Extraction Directive files utilized by the `iexpress.exe` utility. These files often serve as a method for bundling and distributing applications, but attackers have been observed leveraging this functionality to embed potentially harmful payloads within these seemingly innocuous files. The detection is based on file creation events logged on Windows systems, specifically focusing on executable files whose names end with `.sed`. Anomalous behavior, such as the unexpected use of the `iexpress.exe` utility to create these files, may warrant further investigation, as it could signal an attempt to execute malicious code or evade detection mechanisms.
+  ### Investigation Steps
+  - Analyze process creation logs to identify instances of `iexpress.exe` execution that coincide with `.sed` file creation. Look for unusual parent-child relationships or command-line arguments.
+  - Search endpoint detection and response (EDR) tools for any unusual activities linked to the identified `.sed` files. Review any associated processes and behaviors that could indicate compromise.
+  - Utilize antivirus (AV) solutions to perform scans on the detected `.sed` files and any files that may have been created or modified in proximity to their creation.
+  - Review network traffic logs and proxy logs to assess any outbound connections made following the `.sed` file creation. This can help identify potential exfiltration or command-and-control activities related to the alert.

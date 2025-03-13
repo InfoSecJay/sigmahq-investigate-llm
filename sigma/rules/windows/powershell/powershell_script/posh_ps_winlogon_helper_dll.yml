@@ -1,0 +1,39 @@
+title: Winlogon Helper DLL
+id: 851c506b-6b7c-4ce2-8802-c703009d03c0
+status: test
+description: |
+  Winlogon.exe is a Windows component responsible for actions at logon/logoff as well as the secure attention sequence (SAS) triggered by Ctrl-Alt-Delete.
+  Registry entries in HKLM\Software[Wow6432Node]Microsoft\Windows NT\CurrentVersion\Winlogon\ and HKCU\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\ are
+  used to manage additional helper programs and functionalities that support Winlogon. Malicious modifications to these Registry keys may cause Winlogon to
+  load and execute malicious DLLs and/or executables.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1547.004/T1547.004.md
+author: Timur Zinniatullin, oscd.community
+date: 2019-10-21
+modified: 2022-07-07
+tags:
+- attack.persistence
+- attack.t1547.004
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains: 'CurrentVersion\Winlogon'
+  selection2:
+    ScriptBlockText|contains:
+    - 'Set-ItemProperty'
+    - 'New-Item'
+  condition: all of selection*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule focuses on detecting potential malicious modifications to the Windows Registry that could compromise the Winlogon component. Winlogon is essential for facilitating logon and logoff processes in Windows systems, and it utilizes certain registry keys to manage helper programs and functionalities. The rule specifically looks for script block logging events where the registry paths related to Winlogon (located in `HKLM\Software[Wow6432Node]Microsoft\Windows NT\CurrentVersion\Winlogon\` and `HKCU\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\`) are modified using commands such as `Set-ItemProperty` or `New-Item`. By monitoring for these PowerShell commands in script block logs, the rule helps identify unauthorized alterations that could lead to running malicious DLLs or executables during the logon process, posing a security risk to the system.
+  ### Investigation Steps
+  - Review recent PowerShell script block logs to identify any commands that modify Winlogon registry keys, focusing on entries containing `Set-ItemProperty` or `New-Item`.
+  - Utilize EDR tools to track the process activity of `Winlogon.exe` around the time of the alerts, examining any suspicious child processes that may have been spawned.
+  - Inspect the affected registry keys using remote registry access or registry auditing logs to verify any unauthorized changes and identify the associated user account that made these modifications.
+  - Check network traffic and proxy logs for any unusual outbound connections initiated by `Winlogon.exe` or processes associated with the detected modifications.

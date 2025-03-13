@@ -1,0 +1,53 @@
+title: Office Application Initiated Network Connection Over Uncommon Ports
+id: 3b5ba899-9842-4bc2-acc2-12308498bf42
+status: experimental
+description: Detects an office suit application (Word, Excel, PowerPoint, Outlook)
+  communicating to target systems over uncommon ports.
+references:
+- https://blogs.blackberry.com/en/2023/07/romcom-targets-ukraine-nato-membership-talks-at-nato-summit
+author: X__Junior (Nextron Systems), Nasreddine Bencherchali (Nextron Systems)
+date: 2023-07-12
+modified: 2024-07-02
+tags:
+- attack.defense-evasion
+- attack.command-and-control
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    Initiated: 'true'
+    Image|endswith:
+    - '\excel.exe'
+    - '\outlook.exe'
+    - '\powerpnt.exe'
+    - '\winword.exe'
+    - '\wordview.exe'
+  filter_main_common_ports:
+    DestinationPort:
+    - 53         # DNS
+    - 80         # HTTP
+    - 139         # NETBIOS
+    - 443         # HTTPS
+    - 445         # SMB
+  filter_main_outlook_ports:
+    Image|contains: ':\Program Files\Microsoft Office\'
+    Image|endswith: '\OUTLOOK.EXE'
+    DestinationPort:
+    - 143
+    - 465         # SMTP
+    - 587         # SMTP
+    - 993         # IMAP
+    - 995         # POP3
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Other ports can be used, apply additional filters accordingly
+level: medium
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect unusual network activity from Microsoft Office applications—specifically Word, Excel, PowerPoint, and Outlook—initiating connections over non-standard ports. Typically, these applications use common ports for services like HTTP, HTTPS, and SMTP; however, when they begin to send traffic over uncommon ports, it may indicate a potential compromise or misuse. The rule analyzes network connection logs from Windows devices, focusing on instances where these applications are executing and attempting outbound communications. It leverages information such as the application image name and destination ports to differentiate between typical and uncommon usage patterns.
+  ### Investigation Steps
+  - Use the EDR tool to examine the process tree for the identified Office application, checking the command-line arguments and parent process to assess if the behavior aligns with normal usage.
+  - Review network connection logs to gather additional context on the destination IPs and ports being contacted, verifying whether they are known and trusted services or flagged as suspicious.
+  - Analyze firewall logs to determine whether the traffic was successfully allowed or denied, and to find additional patterns of similar behavior on other endpoints.
+  - Check proxy logs to identify any corresponding web activity or file downloads initiated by the Office application around the same time, providing insight into potential data exfiltration or command and control communications.

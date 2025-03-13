@@ -1,0 +1,40 @@
+title: Potential AVKkid.DLL Sideloading
+id: 952ed57c-8f99-453d-aee0-53a49c22f95d
+status: test
+description: Detects potential DLL sideloading of "AVKkid.dll"
+references:
+- https://research.checkpoint.com/2023/beyond-the-horizon-traveling-the-world-on-camaro-dragons-usb-flash-drives/
+author: X__Junior (Nextron Systems)
+date: 2023-08-03
+tags:
+- attack.defense-evasion
+- attack.privilege-escalation
+- attack.t1574.001
+- attack.t1574.002
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\AVKkid.dll'
+  filter_main_legit_path:
+    Image|contains:
+    - 'C:\Program Files (x86)\G DATA\'
+    - 'C:\Program Files\G DATA\'
+    Image|endswith: '\AVKKid.exe'
+    ImageLoaded|startswith:
+    - 'C:\Program Files (x86)\G DATA\'
+    - 'C:\Program Files\G DATA\'
+  condition: selection and not 1 of filter_main_*
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Potential AVKkid.DLL Sideloading" is designed to detect the suspicious loading of the `AVKkid.dll` file which may indicate a DLL sideloading technique often associated with privilege escalation and evasion tactics. DLL sideloading occurs when a legitimate application is tricked into loading a malicious DLL, which can then execute harmful activities under the guise of a trusted process. This rule specifically looks for instances where `AVKkid.dll` is loaded by `AVKKid.exe` from specific legitimate directories associated with G DATA software. By filtering out legitimate loads from recognized paths, the rule aims to identify potentially malicious activity while minimizing false positives.
+  This detection leverages Windows image load events, allowing analysts to monitor process interactions with DLLs. The critical sources of data include process creation logs and image load events that detail which DLLs are being executed by which applications. Incident responders can use this information to ascertain whether any suspicious loading behavior warrants further investigation.
+  ### Investigation Steps
+  - Review EDR alerts to identify the specific process instances of `AVKKid.exe` that loaded `AVKkid.dll`, noting the timestamps and parent process relationships.
+  - Query application logs from the G DATA software to determine if the observed DLL loading corresponds with legitimate user activity or anomalies that suggest tampering.
+  - Examine process creation logs for any unusual execution patterns or command-line parameters that may indicate misuse of the application.
+  - Utilize network logs to monitor for any outbound connections made by `AVKKid.exe` after the DLL loading event, which could signal malicious activities.

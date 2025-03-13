@@ -1,0 +1,36 @@
+title: VeeamBackup Database Credentials Dump Via Sqlcmd.EXE
+id: b57ba453-b384-4ab9-9f40-1038086b4e53
+status: test
+description: Detects dump of credentials in VeeamBackup dbo
+references:
+- https://thedfirreport.com/2021/12/13/diavol-ransomware/
+- https://forums.veeam.com/veeam-backup-replication-f2/recover-esxi-password-in-veeam-t34630.html
+author: frack113
+date: 2021-12-20
+modified: 2023-02-13
+tags:
+- attack.collection
+- attack.t1005
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_tools:
+    Image|endswith: '\sqlcmd.exe'
+  selection_query:
+    CommandLine|contains|all:
+    - 'SELECT'
+    - 'TOP'
+    - '[VeeamBackup].[dbo].[Credentials]'
+  condition: all of selection_*
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify potential security incidents related to the unauthorized exfiltration of database credentials from a VeeamBackup system using the SQL command line tool `sqlcmd.exe`. The rule looks for process creation events where the command involves `sqlcmd.exe` and contains specific SQL query structures that indicate a command is attempting to retrieve sensitive data from the `VeeamBackup` database, specifically from the `dbo.Credentials` table. The presence of command line parameters like 'SELECT', 'TOP', and references to '[VeeamBackup].[dbo].[Credentials]' raise a flag for further investigation. This detection relies on process creation logs as the primary data source to track unusual or unauthorized access attempts to sensitive database information.
+  ### Investigation Steps
+  - Confirm the alert by reviewing process creation logs in your EDR tool for any instances of `sqlcmd.exe` being executed with the detected command line parameters. Examine the user and system context to identify the source of the command.
+  - Check for additional suspicious activities associated with the same user account, such as logins from unusual locations or times, using your cloud platforms and VPN logs to correlate behaviors.
+  - Analyze the database access logs to review the timeframe of activities surrounding the alert. Look for additional queries that might indicate further attempts to access sensitive data.
+  - Utilize your SIEM to correlate this alert with other security alerts or indicators of compromise within the environment to determine if there is a broader attack campaign underway.

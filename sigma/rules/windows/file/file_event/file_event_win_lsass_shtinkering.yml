@@ -1,0 +1,34 @@
+title: LSASS Process Dump Artefact In CrashDumps Folder
+id: 6902955a-01b7-432c-b32a-6f5f81d8f625
+status: test
+description: Detects the presence of an LSASS dump file in the "CrashDumps" folder.
+  This could be a sign of LSASS credential dumping. Techniques such as the LSASS Shtinkering
+  have been seen abusing the Windows Error Reporting to dump said process.
+references:
+- https://github.com/deepinstinct/Lsass-Shtinkering
+- https://media.defcon.org/DEF%20CON%2030/DEF%20CON%2030%20presentations/Asaf%20Gilboa%20-%20LSASS%20Shtinkering%20Abusing%20Windows%20Error%20Reporting%20to%20Dump%20LSASS.pdf
+author: '@pbssubhash'
+date: 2022-12-08
+tags:
+- attack.credential-access
+- attack.t1003.001
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|startswith: 'C:\Windows\System32\config\systemprofile\AppData\Local\CrashDumps\'
+    TargetFilename|contains: 'lsass.exe.'
+    TargetFilename|endswith: '.dmp'
+  condition: selection
+falsepositives:
+- Rare legitimate dump of the process by the operating system due to a crash of lsass
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets the identification of LSASS (Local Security Authority Subsystem Service) dump files located in the "CrashDumps" folder. The presence of these dump files can indicate potential credential dumping activities, a common tactic employed by attackers to extract sensitive information like user credentials from memory. The rule looks for files that begin with the string `lsass.exe.` and have a `.dmp` extension, specifically within the path `C:\Windows\System32\config\systemprofile\AppData\Local\CrashDumps\`. It draws upon Windows file event logs as its primary data source to monitor and flag anomalous behavior that could suggest malicious intentions, such as the misuse of Windows Error Reporting for process dumping, often referred to as LSASS Shtinkering.
+  ### Investigation Steps
+  - Review the EDR logs for any process execution or memory access events related to `lsass.exe`, especially during the time frame the dump file was created.
+  - Check the CrashDumps folder and confirm whether there are unusual timestamps or patterns in the filenames of the dump files.
+  - Analyze user account activities in the directory to identify any unauthorized or anomalous access leading to the creation of the dump file.
+  - Evaluate network activity through the NGFW and Proxy logs during the same period to detect any suspicious outbound connections that may correlate with credential theft attempts.

@@ -1,0 +1,35 @@
+title: DNS Query To MEGA Hosting Website - DNS Client
+id: 66474410-b883-415f-9f8d-75345a0a66a6
+related:
+- id: 613c03ba-0779-4a53-8a1f-47f914a4ded3
+  type: similar
+status: test
+description: Detects DNS queries for subdomains related to MEGA sharing website
+references:
+- https://research.nccgroup.com/2021/05/27/detecting-rclone-an-effective-tool-for-exfiltration/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2023-01-16
+tags:
+- attack.exfiltration
+- attack.t1567.002
+logsource:
+  product: windows
+  service: dns-client
+  definition: 'Requirements: Microsoft-Windows-DNS Client Events/Operational Event
+    Log must be enabled/collected in order to receive the events.'
+detection:
+  selection:
+    EventID: 3008
+    QueryName|contains: 'userstorage.mega.co.nz'
+  condition: selection
+falsepositives:
+- Legitimate DNS queries and usage of Mega
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule is designed to identify Windows DNS client events that contain queries for the subdomains of the MEGA sharing website, specifically "userstorage.mega.co.nz". The rule works by monitoring EventID 3008, which captures DNS query events on Windows systems. When a DNS query matching the specified subdomain is detected, the rule triggers an alert. This type of detection is crucial for identifying potential data exfiltration attempts, especially when tools that interact with the MEGA platform are employed, as such tools can facilitate unauthorized data transfers. Analysts should ensure that the relevant Microsoft-Windows-DNS Client Events log is enabled and collected to effectively capture these DNS queries.
+  ### Investigation Steps
+  - Utilize your EDR tool to examine the originating process that initiated the DNS query to determine if it's associated with known exfiltration tools or suspicious activity.
+  - Review additional DNS logs or proxy logs for any related activity, including prior or subsequent queries to other MEGA subdomains or anomalous patterns within user behavior.
+  - Check the system's process creation logs to confirm if the suspicious process that generated the DNS query has any other malicious indicators, such as unusual command-line arguments.
+  - Cross-reference the user's activity around the time of the DNS query to ascertain if it aligns with legitimate business operations, and escalate if discrepancies are noted.

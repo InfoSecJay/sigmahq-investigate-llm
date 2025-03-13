@@ -1,0 +1,49 @@
+title: Suspicious PowerShell Invocations - Generic - PowerShell Module
+id: bbb80e91-5746-4fbe-8898-122e2cafdbf4
+related:
+- id: 3d304fda-78aa-43ed-975c-d740798a49c1
+  type: derived
+- id: ed965133-513f-41d9-a441-e38076a0798f
+  type: similar
+status: test
+description: Detects suspicious PowerShell invocation command parameters
+references:
+- Internal Research
+author: Florian Roth (Nextron Systems)
+date: 2017-03-12
+modified: 2023-01-03
+tags:
+- attack.execution
+- attack.t1059.001
+logsource:
+  product: windows
+  category: ps_module
+  definition: 0ad03ef1-f21b-4a79-8ce8-e6900c54b65b
+detection:
+  selection_encoded:
+    ContextInfo|contains:
+    - ' -enc '
+    - ' -EncodedCommand '
+    - ' -ec '
+  selection_hidden:
+    ContextInfo|contains:
+    - ' -w hidden '
+    - ' -window hidden '
+    - ' -windowstyle hidden '
+    - ' -w 1 '
+  selection_noninteractive:
+    ContextInfo|contains:
+    - ' -noni '
+    - ' -noninteractive '
+  condition: all of selection*
+falsepositives:
+- Very special / sneaky PowerShell scripts
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets suspicious PowerShell invocations that utilize specific command parameters often associated with obfuscation or malicious intent. The rule looks for characteristics in the command line arguments of PowerShell executions such as encoded commands, hidden windows, and non-interactive sessions. By analyzing logs from PowerShell module executions in Windows environments, the detection relies on the ContextInfo property which captures the command parameters passed during these invocations. Such parameters could indicate attempts to bypass user interaction or conceal the execution environment, potentially signaling malicious activity.
+  ### Investigation Steps
+  - Review the relevant EDR logs to identify the PowerShell executions that triggered the alert, paying close attention to the command-line parameters used.
+  - Analyze the process creation logs for any associated actions or parent processes that may provide context around the execution, helping to determine if the invocation was legitimate.
+  - Check network traffic logs from your NDR or NGFW for any outgoing connections initiated by the PowerShell process, which can indicate further malicious activities such as data exfiltration.
+  - Inspect any alerts from your AV and proxy solutions related to the same time frame to identify if any known malicious behavior or connections were detected.

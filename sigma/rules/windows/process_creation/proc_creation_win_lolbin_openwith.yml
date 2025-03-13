@@ -1,0 +1,37 @@
+title: OpenWith.exe Executes Specified Binary
+id: cec8e918-30f7-4e2d-9bfa-a59cc97ae60f
+status: test
+description: The OpenWith.exe executes other binary
+references:
+- https://github.com/LOLBAS-Project/LOLBAS/blob/4db780e0f0b2e2bb8cb1fa13e09196da9b9f1834/yml/LOLUtilz/OSBinaries/Openwith.yml
+- https://twitter.com/harr0ey/status/991670870384021504
+author: Beyu Denis, oscd.community (rule), @harr0ey (idea)
+date: 2019-10-12
+modified: 2021-11-27
+tags:
+- attack.defense-evasion
+- attack.t1218
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\OpenWith.exe'
+    CommandLine|contains: '/c'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule is designed to detect instances where the `OpenWith.exe` process executes a specified binary with a command-line argument containing the `/c` option. `OpenWith.exe` is a Windows utility typically used to open files with a specified application; however, its misuse can indicate evasion tactics or suspicious activity by attackers attempting to execute arbitrary commands without raising immediate flags. The rule specifically focuses on process creation logs from Windows systems, capturing relevant information such as the image name and command-line parameters to identify potential abuse of this executable.
+  By monitoring for the `OpenWith.exe` process with the `/c` argument, this rule serves as an indicator of potential defense evasion techniques, allowing security teams to detect and initiate investigations into unusual usage patterns that could signify malicious activity. The logs sourced for this detection typically include details about process initiation, including timestamps, parent processes, and command-line arguments.
+  ### Investigation Steps
+    
+  - Review process creation logs in your EDR to determine the context of the `OpenWith.exe` execution, checking for parent-child relationships that may indicate how the process was initiated.
+    
+  - Analyze the command-line arguments associated with `OpenWith.exe` to assess which binaries are being executed, correlating this information with known good applications to identify anomalies.
+    
+  - Utilize threat intelligence sources to validate any binaries executed via `OpenWith.exe` to determine if they are linked to known malicious behaviors or activities.
+    
+  - Check network logs in your NGFW or Proxy to uncover any external communications initiated as a result of the `OpenWith.exe` execution, which may reveal additional malicious intent or follow-on actions.

@@ -1,0 +1,46 @@
+title: Always Install Elevated MSI Spawned Cmd And Powershell
+id: 1e53dd56-8d83-4eb4-a43e-b790a05510aa
+status: test
+description: Detects Windows Installer service (msiexec.exe) spawning "cmd" or "powershell"
+references:
+- https://image.slidesharecdn.com/kheirkhabarovoffzonefinal-181117201458/95/hunting-for-privilege-escalation-in-windows-environment-50-638.jpg
+author: Teymur Kheirkhabarov (idea), Mangatas Tondang (rule), oscd.community
+date: 2020-10-13
+modified: 2022-10-20
+tags:
+- attack.privilege-escalation
+- attack.t1548.002
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_img:
+  - Image|endswith:
+    - '\cmd.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+  - OriginalFileName:
+    - 'Cmd.Exe'
+    - 'PowerShell.EXE'
+    - 'pwsh.dll'
+  selection_parent:
+    ParentImage|contains|all:
+    - '\Windows\Installer\'
+    - 'msi'
+    ParentImage|endswith: 'tmp'
+  condition: all of selection_*
+fields:
+- Image
+- ParentImage
+falsepositives:
+- Unknown
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule targets potential privilege escalation attempts on Windows systems by monitoring the Windows Installer service (msiexec.exe). It identifies instances where the Installer spawns command-line utilities such as `cmd.exe`, `powershell.exe`, or `pwsh.exe`. The rule checks for specific indicators: the process creation logs will display instances where these command-line tools are initiated with the `ParentImage` originating from the Windows Installer directory or containing 'msi'. By analyzing the `Image` and `ParentImage` fields, this rule helps detect suspicious behavior that could indicate an unauthorized escalation of privileges through scripting or command execution.
+  The key data sources for this rule involve process creation logs from Windows systems that track which binaries are executed and their origins. The SIEM or EDR systems in use will aggregate these logs to support the rule's detection capabilities and allow for effective monitoring of potentially malicious activity.
+  ### Investigation Steps
+  - Review process creation logs in the EDR to identify the context of the `cmd.exe` or `powershell.exe` invocation, focusing on the `ParentImage` to confirm it originated from the Windows Installer service.
+  - Check for additional evidence of privilege escalation by examining related user accounts and their permission levels, especially if the execution context involves any system accounts.
+  - Analyze command-line parameters used by the spawned processes in the alerts to determine their intent and any obfuscated or scripted commands that may indicate malicious activity.
+  - Investigate any correlating logs in the SIEM, such as Windows Security logs, to detect other potential indicators of compromise around the same time frame as the alert.

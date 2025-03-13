@@ -1,0 +1,43 @@
+title: PUA - CSExec Default Named Pipe
+id: f318b911-ea88-43f4-9281-0de23ede628e
+related:
+- id: 9e77ed63-2ecf-4c7b-b09d-640834882028
+  type: obsolete
+status: test
+description: Detects default CSExec pipe creation
+references:
+- https://drive.google.com/file/d/1lKya3_mLnR3UQuCoiYruO3qgu052_iS_/view
+- https://github.com/malcomvetter/CSExec
+author: Nikita Nazarov, oscd.community, Nasreddine Bencherchali (Nextron Systems)
+date: 2023-08-07
+modified: 2023-11-30
+tags:
+- attack.lateral-movement
+- attack.t1021.002
+- attack.execution
+- attack.t1569.002
+logsource:
+  product: windows
+  category: pipe_created
+  definition: 'Note that you have to configure logging for Named Pipe Events in Sysmon
+    config (Event ID 17 and Event ID 18). The basic configuration is in popular sysmon
+    configuration (https://github.com/SwiftOnSecurity/sysmon-config), but it is worth
+    verifying. You can also use other repo, e.g. https://github.com/Neo23x0/sysmon-config,
+    https://github.com/olafhartong/sysmon-modular. How to test detection? You can
+    check powershell script from this site https://svch0st.medium.com/guide-to-named-pipes-and-hunting-for-cobalt-strike-pipes-dc46b2c5f575'
+detection:
+  selection:
+    PipeName|contains: '\csexecsvc'
+  condition: selection
+falsepositives:
+- Legitimate Administrator activity
+level: medium
+notes: |
+  ### Technical Context
+  The "PUA 
+  - CSExec Default Named Pipe" detection rule focuses on identifying the creation of named pipes associated with the CSExec service, specifically looking for instances where the pipe name contains the string `\csexecsvc`. CSExec is a known tool used for executing commands on remote systems, often leveraged in malicious lateral movement as part of attack workflows. By monitoring Windows systems for this pattern through named pipe creation events (specifically Sysmon Event IDs 17 and 18), security teams can detect potential unauthorized or suspicious use of CSExec, which may indicate an early stage of a cyber attack. Data sources involved include Sysmon logs, which must be appropriately configured to capture these events.
+  ### Investigation Steps
+  - Check the Sysmon logs for Event IDs 17 and 18 to gather context about the named pipe creation event and its associated user session.
+  - Utilize the EDR tool to examine the process activity around the time of the alert, focusing on parents and children of the process that created the named pipe.
+  - Analyze network traffic logs for any unusual outbound connections corresponding with the time frame of the detected event to identify potential command and control activity.
+  - Review user and system behavior logs in the SIEM to determine if any legitimate administrative actions coincide with the created named pipe, which could help differentiate between benign and malicious activity.

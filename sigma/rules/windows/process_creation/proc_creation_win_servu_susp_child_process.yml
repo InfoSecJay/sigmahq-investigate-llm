@@ -1,0 +1,49 @@
+title: Suspicious Serv-U Process Pattern
+id: 58f4ea09-0fc2-4520-ba18-b85c540b0eaf
+status: test
+description: Detects a suspicious process pattern which could be a sign of an exploited
+  Serv-U service
+references:
+- https://www.microsoft.com/security/blog/2021/07/13/microsoft-discovers-threat-actor-targeting-solarwinds-serv-u-software-with-0-day-exploit/
+author: Florian Roth (Nextron Systems)
+date: 2021-07-14
+modified: 2022-07-14
+tags:
+- attack.credential-access
+- attack.t1555
+- cve.2021-35211
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\Serv-U.exe'
+    Image|endswith:
+    - '\cmd.exe'
+    - '\powershell.exe'
+    - '\pwsh.exe'
+    - '\wscript.exe'
+    - '\cscript.exe'
+    - '\sh.exe'
+    - '\bash.exe'
+    - '\schtasks.exe'
+    - '\regsvr32.exe'
+    - '\wmic.exe'          # https://app.any.run/tasks/c903e9c8-0350-440c-8688-3881b556b8e0/
+    - '\mshta.exe'
+    - '\rundll32.exe'
+    - '\msiexec.exe'
+    - '\forfiles.exe'
+    - '\scriptrunner.exe'
+  condition: selection
+falsepositives:
+- Legitimate uses in which users or programs use the SSH service of Serv-U for remote
+  command execution
+level: high
+notes: |
+  ### Technical Context
+  The "Suspicious Serv-U Process Pattern" detection rule focuses on identifying potentially malicious activity associated with the Serv-U service on Windows systems. It specifically looks for process creation events where the parent process is identified as the Serv-U executable (`Serv-U.exe`), and the child processes are common command-line utilities that could indicate exploitation, such as `cmd.exe`, `powershell.exe`, or `wmic.exe`. The rule targets these subprocesses which might be used to execute commands without authorization or perform other malicious tasks. Given the specific patterns of legitimate versus suspicious activity, this detection helps security teams identify potential breaches or exploitation attempts on the Serv-U service, which has been previously targeted by threat actors exploiting a 0-day vulnerability.
+  ### Investigation Steps
+  - Review recent process creation logs in your EDR to confirm whether the `Serv-U.exe` was the parent process and identify any suspicious child processes that may have been launched.
+  - Examine command-line arguments associated with the identified child processes for any signs of malicious intent, such as unusual flags or commands that suggest exploitation.
+  - Correlate the timestamps of the suspicious processes with other logs, such as firewall or authentication logs, to detect any unusual network activity or unauthorized access attempts related to the Serv-U service.
+  - Use cloud service logs (e.g., AWS, GCP, Azure) if applicable, to investigate any anomalous behavior or patterns originating from instances running the Serv-U service that could indicate a broader incident.

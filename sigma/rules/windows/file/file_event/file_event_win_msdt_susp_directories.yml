@@ -1,0 +1,39 @@
+title: File Creation In Suspicious Directory By Msdt.EXE
+id: 318557a5-150c-4c8d-b70e-a9910e199857
+status: test
+description: Detects msdt.exe creating files in suspicious directories which could
+  be a sign of exploitation of either Follina or Dogwalk vulnerabilities
+references:
+- https://irsl.medium.com/the-trouble-with-microsofts-troubleshooters-6e32fc80b8bd
+- https://msrc-blog.microsoft.com/2022/05/30/guidance-for-cve-2022-30190-microsoft-support-diagnostic-tool-vulnerability/
+author: Vadim Varganov, Florian Roth (Nextron Systems)
+date: 2022-08-24
+modified: 2023-02-23
+tags:
+- attack.persistence
+- attack.t1547.001
+- cve.2022-30190
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\msdt.exe'
+    TargetFilename|contains:
+    - '\Desktop\'
+    - '\Start Menu\Programs\Startup\'
+    - 'C:\PerfLogs\'
+    - 'C:\ProgramData\'
+    - 'C:\Users\Public\'
+  condition: selection
+falsepositives:
+- Unknown
+level: high
+notes: |
+  ### Technical Context
+  This detection rule targets the behavior of the Microsoft Support Diagnostic Tool (msdt.exe) creating files in specific directories that are often associated with either user persistence techniques or exploitation attempts related to vulnerabilities such as Follina (CVE-2022-30190) and Dogwalk. The rule operates by inspecting Windows file event logs, focusing on the file creation activities of msdt.exe. It looks for instances where this executable is writing to commonly abused directories such as the Desktop, Startup menu, PerfLogs, ProgramData, and Public Users folder. Such behavior can indicate potentially malicious attempts to persistently execute scripts or commands when a user logs in, and is a known tactic employed by threat actors to compromise systems and maintain a foothold.
+  ### Investigation Steps
+  - Investigate the file event logs in the SIEM to identify any recent creations involving msdt.exe, focusing on timestamps and the files created in suspicious directories.
+  - Use the EDR tool to check the activity history of msdt.exe on the affected machine, looking for unusual command-line parameters or processes that preceded the file creation events.
+  - Review firewall and proxy logs to determine if there any suspicious outbound connections were initiated by msdt.exe shortly after the file creations, indicating potential data exfiltration or command-and-control communications.
+  - Assess user account activity in Active Directory or cloud audit logs to identify any anomalous logins or actions that coincide with the times of the suspicious file creation incidents.

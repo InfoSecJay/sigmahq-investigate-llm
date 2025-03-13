@@ -1,0 +1,49 @@
+title: Clear PowerShell History - PowerShell
+id: 26b692dc-1722-49b2-b496-a8258aa6371d
+related:
+- id: dfba4ce1-e0ea-495f-986e-97140f31af2d
+  type: derived
+status: test
+description: Detects keywords that could indicate clearing PowerShell history
+references:
+- https://gist.github.com/hook-s3c/7363a856c3cdbadeb71085147f042c1a
+author: Ilyas Ochkov, Jonhnathan Ribeiro, Daniil Yugoslavskiy, oscd.community
+date: 2022-01-25
+modified: 2022-12-02
+tags:
+- attack.defense-evasion
+- attack.t1070.003
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection1a:
+    ScriptBlockText|contains:
+    - 'del'
+    - 'Remove-Item'
+    - 'rm'
+  selection1b:
+    ScriptBlockText|contains: '(Get-PSReadlineOption).HistorySavePath'
+  selection_2:
+    ScriptBlockText|contains|all:
+    - 'Set-PSReadlineOption'
+    - '–HistorySaveStyle'          # not sure if the homoglyph –/- is intended, just checking for both
+    - 'SaveNothing'
+  selection_3:
+    ScriptBlockText|contains|all:
+    - 'Set-PSReadlineOption'
+    - '-HistorySaveStyle'
+    - 'SaveNothing'
+  condition: 1 of selection_* or all of selection1*
+falsepositives:
+- Legitimate PowerShell scripts
+level: medium
+notes: |
+  ### Technical Context
+  This detection rule identifies potential attempts to clear PowerShell command history within a Windows environment. It searches for specific keywords and commands commonly associated with the clearing of logs, such as `Remove-Item`, `Set-PSReadlineOption`, and other variations of these commands. The presence of strings like `-HistorySaveStyle SaveNothing` indicates an intent to prevent PowerShell from saving command history, which can signify defense evasion techniques often used by attackers. To function effectively, this rule relies on PowerShell script block logging, which must be enabled to capture relevant events from the PowerShell execution context. By monitoring the ScriptBlockText for these indicators, the rule seeks to flag unauthorized or suspicious activity in real-time.
+  ### Investigation Steps
+  - Review the relevant PowerShell script block logs in your EDR solution to identify the context and origin of the suspicious commands that triggered the alert. Pay particular attention to the user account and machine involved.
+  - Check the logs for any other activities from the same user or system around the time the alert was generated. Look for additional unusual command executions that might indicate malicious intent.
+  - Examine network traffic logs, if applicable, for any connections to external hosts around the time of the detection. This could reveal if the endpoint was communicating with a command-and-control server.
+  - Verify the configuration of PowerShell logging within your environment to ensure compliance and confirm if this was an anomaly or a legitimate script execution by an authorized user.

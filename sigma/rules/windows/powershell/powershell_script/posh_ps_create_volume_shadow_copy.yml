@@ -1,0 +1,35 @@
+title: Create Volume Shadow Copy with Powershell
+id: afd12fed-b0ec-45c9-a13d-aa86625dac81
+status: test
+description: Adversaries may attempt to access or create a copy of the Active Directory
+  domain database in order to steal credential information
+references:
+- https://attack.mitre.org/datasources/DS0005/
+- https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-wmiobject?view=powershell-5.1&viewFallbackFrom=powershell-7
+author: frack113
+date: 2022-01-12
+tags:
+- attack.credential-access
+- attack.t1003.003
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection:
+    ScriptBlockText|contains|all:
+    - Win32_ShadowCopy
+    - ').Create('
+    - ClientAccessible
+  condition: selection
+falsepositives:
+- Legitimate PowerShell scripts
+level: high
+notes: |
+  ### Technical Context
+  This Sigma rule identifies potential unauthorized attempts to create Volume Shadow Copies using PowerShell—an activity commonly associated with credential theft. By monitoring PowerShell script block logs, the rule looks for specific commands such as `Win32_ShadowCopy` combined with the creation method `').Create('`, indicating that an adversary may be trying to generate a backup of the Active Directory domain database for credential extraction. The presence of the term `ClientAccessible` suggests that the shadow copy could be accessed externally. To ensure that this rule functions correctly, it is essential that Script Block Logging is enabled on the monitored machines.
+  ### Investigation Steps
+  - Check EDR logs for any PowerShell command execution around the timestamp of the alert to identify unauthorized script execution by users.
+  - Review Windows Event Logs, particularly Security and PowerShell logs, to determine if any anomalous behavior or unauthorized access attempts were detected in conjunction with the alert.
+  - Analyze Proxy logs for unusual outbound connections that may correlate with the time of the potential shadow copy creation, indicating data exfiltration attempts.
+  - Investigate AWS, GCP, and Azure cloud logs for any associated identities or services that may have been involved, looking for suspicious API calls or service usage that could relate to the event.
