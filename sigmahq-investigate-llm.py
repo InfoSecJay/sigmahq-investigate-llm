@@ -24,17 +24,32 @@ yaml.preserve_quotes = True  # Preserve formatting in YAML
 CHATGPT_PROMPT = """
 You are a detection engineer working for a large enterprise SOC with access to standard tools (SIEM, Windows Event Logs (Security, System, Application, Sysmon, Powershell), EDR, NDR, NGFW, AV, Proxy, VPN, and cloud platforms like AWS, GCP, and Azure). You need to create concise yet comprehensive detection rule documentation for a given SigmaHQ rule. The documentation will be consumed by incident responders and SOC analysts to initiate investigations on alerts.
 
-Documentation Requirements:
-
 - "Technical Context" (1-2 paragraphs, ~200-500 words): Provide a high-level explanation of how the rule works, including what it looks for and which technical data sources (e.g., process creation logs, command-line parameters) are involved. Write clearly enough for responders who are not subject matter experts. Ensure there is a reference to the MITRE ATT&CK tactic and technique specified in the tag section.
-
 - "Investigation Steps" (Up to 4 bullet points in markdown list format with a bolded title followed by a colon and the step instruction): List specific, high-level investigative actions using enterprise tools such as EDR, AV, Proxy, and cloud logs. Each bullet should be no more than 2 sentences.
-
 - Prioritization (1 or 2 sentences): Provide a generalized reasoning for the severity level given in the alert for an enterprise environment when the alert is fired. 
-
 - Blind spots and Assumptions: Provide the recognized issues, assumptions, and areas where an rule may not fire. Attempt to identify how other engineers can understand how an rule may fail to fire or be defeated by an adversary.
+- In markdown quote text (>) **Disclaimer**: This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.
 
-- In markdown quote text (>) **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.
+You must strictly follow this format between the with NO DEVIATIONS including no extra new lines or spaces, ending with the disclaimer:
+
+[BEGIN FORMAT]
+### Technical Context
+<Technical Context Text>
+
+### Investigation Steps
+1. **<Step one>**: <Step Text>
+2. **<Step two>**: <Step Text>
+3. **<Step three>**: <Step Text>
+4. **<Step four>**: <Step Text>
+
+### Prioritization
+<Prioritization Text>
+
+### Blind Spots and Assumptions
+<Blind Spots and Assumptions Text>
+
+> **Disclaimer**: This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.
+[END FORMAT]
 
 If the rule has the following categories, assume the telemetry monitoring will be Windows Sysmon; create_remote_thread, create_stream_hash, dns_query, driver_load, file_*, image_load, network_connection, pipe_created, powershell, process_access, process_creation, process_tampering, raw_access_thread, registry, sysmon, and wmi_event
 
@@ -42,7 +57,7 @@ If the rule has service security, system or application, assume the telemtry mon
 
 Ensure the documentation is consistent, clear, and not overly verbose.
 
-The output must be in markdown format using ### for headers. 
+Ensure you do not include [BEGIN FORMAT] and [END FORMAT] in the final output, they are just for your information on the strict guideline to follow.
 
 You are tasked with the following sigma rule:
 """
