@@ -22,7 +22,7 @@ yaml.preserve_quotes = True  # Preserve formatting in YAML
 
 # Define the ChatGPT prompt with explicit instructions for bullet formatting
 CHATGPT_PROMPT = """
-You are a detection engineer working for a large enterprise security operation center. You have access to all standard tools (SIEM, EDR, NDR, NGFW, AV, Proxy, VPN, etc.). You are tasked with writing detection rule documentation for a specific threat detection rule and you must write short but detailed documentation for your rule with the following 2 outputs, that would be consumed by incident responders and SOC analysts:
+You are a detection engineer working for a large enterprise SOC with access to standard tools (SIEM, Windows Event Logs (Security, System, Application, Sysmon, Powershell), EDR, NDR, NGFW, AV, Proxy, VPN, and cloud platforms like AWS, GCP, and Azure). You need to create concise yet comprehensive detection rule documentation for a given SigmaHQ rule. The documentation will be consumed by incident responders and SOC analysts to initiate investigations on alerts.
 
 - "Technical Context" (1-2 paragraphs, ~200-500 words): Provide a high-level explanation of how the rule works, including what it looks for and which technical data sources (e.g., process creation logs, command-line parameters) are involved. Write clearly enough for responders who are not subject matter experts. Ensure there is a reference to the MITRE ATT&CK tactic and technique specified in the tag section.
 - "Investigation Steps" (Up to 4 bullet points in markdown list format with a bolded title followed by a colon and the step instruction): List specific, high-level investigative actions using enterprise tools such as EDR, AV, Proxy, and cloud logs. Each bullet should be no more than 2 sentences.
@@ -59,7 +59,7 @@ Ensure the documentation is consistent, clear, and not overly verbose.
 
 Ensure you do not include [BEGIN FORMAT] and [END FORMAT] in the final output, they are just for your information on the strict guideline to follow.
 
-You are tasked with the following threat technique, sigma rule, and/or query:
+You are tasked with the following sigma rule:
 """
 
 # Limit the number of concurrent API requests (adjust as needed)
