@@ -37,9 +37,19 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  The Sigma rule titled "Potential Shim Database Persistence via Sdbinst.EXE" is designed to detect instances where the `sdbinst.exe` binary is utilized in a potentially malicious manner. Adversaries may use `sdbinst.exe` to install shims, which are mechanisms that allow applications to run in altered conditions, an action that can lead to persistent backdoors or privilege escalation. This rule looks for specific indicators in process creation logs, primarily focusing on the `sdbinst.exe` executable and command-line parameters that hint at the installation of shim databases, identified by the presence of `.sdb` files. The detection criteria will only trigger alerts if these conditions are met and do not fall under benign execution scenarios, particularly those associated with `msiexec.exe` processes, which are considered legitimate for IIS Express functionality.
+  The Sigma rule titled *Potential Shim Database Persistence via Sdbinst.EXE* is designed to detect malicious activities related to application shimming on Windows systems. It achieves this by monitoring process creation events specifically for the execution of `sdbinst.exe`, a legitimate Windows utility used to install shim databases. The rule focuses on instances where `sdbinst.exe` is invoked with a command line containing `.sdb`, indicating an attempt to register a potentially malicious shim that could establish persistence or elevate privileges within the system. This behavior aligns with the MITRE ATT&CK framework, specifically under the tactic of Persistence (T1546.011 
+  - Event Triggered Execution).
+  The detection relies on data sources such as Windows Process Creation logs, specifically tracking the image name (to confirm it’s `sdbinst.exe`) and analyzing command-line parameters for signs of anomalous behavior. It also implements an optional filter for instances where `sdbinst.exe` is launched by `msiexec.exe`, which is commonly associated with legitimate software installations to reduce false positives.
   ### Investigation Steps
-  - Review process creation logs from EDR tools to identify any recent executions of `sdbinst.exe`, paying particular attention to the command-line parameters used.
-  - Cross-reference the alert with application logs to confirm whether legitimate IIS Express operations triggered the `sdbinst.exe` execution, specifically looking for expected `.sdb` file paths.
-  - Search for any unusual or suspect shims listed in the registry that may correspond to the identified `sdbinst.exe` execution, which could indicate malicious intent.
-  - Utilize network traffic logs from NDR tools to investigate any outbound connections that may correlate with the timing of the `sdbinst.exe` execution to ascertain if any additional malicious activities are taking place.
+  - **Review Process Creation Logs:** Examine recent process creation logs for instances of `sdbinst.exe` to confirm its execution context and any suspicious command-line arguments associated with the event.
+    
+  - **Validate the Context of Execution:** Contextualize the execution of `sdbinst.exe` by investigating the parent process ID (PID) and other related processes to identify any associations with known malware or unusual behavior patterns.
+    
+  - **Examine Shim Database Entries:** Investigate the system’s shim database entries to determine if any newly created shims are present and assess their legitimacy and source.
+    
+  - **Correlate with Other Logs:** Cross-reference findings with other enterprise logs, such as EDR telemetry or firewall logs, to identify any related suspicious activities that may support a broader compromise investigation.
+  ### Prioritization
+  The alert is marked as medium severity due to the potential for adversaries to establish persistence mechanisms or elevate privileges within an enterprise environment, which can lead to further exploitation or data breaches if successfully executed.
+  ### Blind Spots and Assumptions
+  This detection rule may not fire if the `sdbinst.exe` utility is executed in a legitimate context where no suspicious command-line arguments are present, potentially causing legitimate activities to go unnoticed. Additionally, attackers may disguise their use of `sdbinst.exe` under other processes or use alternative methods for persistence that do not trigger this rule. Engineers should be aware that modifications to process attributes or execution paths can render this detection ineffective against sophisticated threats.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

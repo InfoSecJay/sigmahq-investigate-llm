@@ -38,17 +38,18 @@ falsepositives:
 level: high
 notes: |
   ### Technical Context
-  The Sigma rule titled "Wab/Wabmig Unusual Parent Or Child Processes" is designed to detect anomalous activity surrounding the `wab.exe` (Windows Contacts) and `wabmig.exe` (Microsoft Address Book Import Tool) processes, particularly when these processes are initiated or connected to unusual parent processes. This behavior is commonly associated with malicious tactics, such as those employed by the Bumblebee loader, which often uses legitimate tools to evade detection and perform operations that could lead to further compromise of the system. The rule monitors process creation events and is primarily based on Windows process creation logs. It looks for parent processes like `WmiPrvSE.exe`, `svchost.exe`, and `dllhost.exe` that are indicative of potential exploitation, as well as any suspicious child processes launched by `wab.exe` or `wabmig.exe`.
+  The Sigma rule titled "Wab/Wabmig Unusual Parent Or Child Processes" is designed to detect anomalous behavior associated with `wab.exe` (Windows Contacts) and `wabmig.exe` (Microsoft Address Book Import Tool) processes. These processes, while legitimate, can be exploited by attackers, notably in association with the BumbleBee malware framework. The rule specifically examines the parent and child processes of these executables to identify unusual parent processes like `wmiPrvSE.exe`, `svchost.exe`, and `dllhost.exe`, as well as suspicious child processes launched by `wab.exe` and `wabmig.exe`. The use of these processes in unexpected contexts often indicates potential malicious activity. 
+  The detection is based on event logs related to process creations, specifically from the Windows Event Logs and Sysmon telemetry. By leveraging these data sources, incident responders can spot irregular patterns that might signify defense evasion or execution tactics used by threat actors, aligning with MITRE ATT&CK techniques such as `T1203 
+  - Exploitation for Client Execution` and `T1070 
+  - Indicator Removal on Host`.
   ### Investigation Steps
-  - **Check Process Creation Logs:**
+  - **Review Process Creation Events:** Examine recent process creation events for `wab.exe` and `wabmig.exe`, specifically focusing on their parent and child processes, using Windows Event Logs or Sysmon logs.
     
-    Review the process creation logs in your EDR solution to identify instances of `wab.exe` and `wabmig.exe`, paying special attention to their parent processes.
-  - **Analyze Parent Process Behavior:**
-    
-    Investigate the identified parent processes (e.g., `WmiPrvSE.exe`, `svchost.exe`) for any unusual command-line parameters or execution trends that could indicate malicious intent.
-  - **Examine Child Processes:**
-    
-    Analyze any child processes created by `wab.exe` or `wabmig.exe` to identify potentially malicious activities. Look for command-line executions or script invocations that deviate from normal operations.
-  - **Utilize Network and AV Logs:**
-    
-    Cross-reference findings with network activity and antivirus logs to detect any communication with known malicious IPs or unusual file activities associated with the alert.
+  - **Correlate with Other Events:** Cross-reference findings with additional telemetry sources like EDR logs and network connection logs to check for unusual communication patterns that coincide with the detected processes.
+  - **Inspect for BumbleBee Indicators:** Search for known indicators of compromise (IOCs) related to BumbleBee activity in historical data, which can be pulled from threat intelligence feeds or previous incidents.
+  - **Assess Authorizations and Access:** Evaluate whether the accounts associated with the anomalous process activities have appropriate access levels for performing such actions, using your identity and access management systems.
+  ### Prioritization
+  The alert is categorized as high severity due to the potential implications of detecting unusual parent or child processes related to benign applications being exploited for malicious purposes. Organizations face significant risk if such activities go uninvestigated.
+  ### Blind Spots and Assumptions
+  The rule may not fire if attackers execute `wab.exe` or `wabmig.exe` in legitimate contexts that the rule does not account for, leading to potential blind spots. Additionally, if the environment heavily uses these applications normally, the detection may generate false positives. It relies on accurate logging configurations; if logging is incomplete or disabled, critical alerts may be missed. Furthermore, attackers can alter the behavior of these processes or delete logs to defeat this detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

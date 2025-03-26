@@ -31,10 +31,17 @@ falsepositives:
 - Unlikely
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule focuses on identifying modifications to the "index" value of scheduled tasks within the Windows registry. The rule specifically targets changes made to the registry keys under the path `\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\`. When an attacker alters the index value to `DWORD (0x00000000)`, it effectively hides the scheduled task from standard tools, such as the `schtasks /query` command, making it difficult for administrators to detect potentially malicious activities. The rule leverages registry set logs as the primary data source, aiming to provide early detection of evasion tactics used by threat actors to conceal their scheduled tasks.
+  This Sigma rule detects modifications to the "index" value of scheduled tasks within the Windows registry, specifically targeting the registry path `\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\`. By altering this index value to `DWORD (0x00000000)`, an attacker can effectively hide a scheduled task from standard command-line tools such as `schtasks /query`. This behavior is a form of defense evasion (MITRE ATT&CK Tactic: Defense Evasion, Technique: T1562), as it seeks to obfuscate malicious activity from security tools and analysts. The rule is designed to utilize telemetry from registry change events to identify these manipulations, alerting the SOC team to potential adversaries attempting to conceal their activities.
   ### Investigation Steps
-  - Utilize EDR solutions to examine the history of scheduled task modifications and their associated processes to identify any unusual activities.
-  - Query registry logs for recent changes to the specified task-related registry keys to verify if the modification aligns with the alert triggered by this rule.
-  - Analyze the system for any related scheduled tasks using command-line tools to confirm whether they are behaving as expected or exhibiting signs of tampering.
-  - Review network traffic logs from the NGFW and Proxy to look for any anomalous connections initiated by the suspect task, which may indicate additional malicious intent.
+  - **Review Registry Changes:** Examine Windows Event Logs for recent registry changes related to scheduled tasks. Focus on the path containing `TaskCache\Tree\` to confirm the index modification.
+    
+  - **Utilize EDR Tools:** Leverage EDR solutions to identify processes that made changes to the registry around the same timestamp as the index modification. This may provide insights into the executing method of the potential threat.
+  - **Correlate with Task List:** Cross-reference the detected modification with the current list of scheduled tasks using `schtasks` to determine if any hidden tasks are present and assess their legitimacy.
+  - **Investigate Process Activity:** Look into any suspicious process creation events around the time of the registry modification using Sysmon logs. Pay attention to command-line arguments and parent-child process relationships to uncover possible malicious activity.
+  ### Prioritization
+  Given the nature of this behavior—modifying system settings to hide malicious tasks from detection—this alert is prioritized as high severity. Scheduled tasks can persist across reboots, making them a serious threat if left unnoticed.
+  ### Blind spots and Assumptions
+  Potential blind spots include scenarios where legitimate applications may modify task settings for benign reasons, potentially leading to false positives. Additionally, if an adversary uses methods such as direct filesystem manipulation or uses legitimate system procedures, the rule may not trigger as intended. Analysts should be aware that skilled threat actors may employ evasion tactics to avoid detection, which can undermine the effectiveness of this rule.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -28,10 +28,17 @@ falsepositives:
 - Unknown
 level: low
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies potential reconnaissance activities conducted by adversaries using the Windows Management Instrumentation Command-line (WMIC) tool, specifically when it is executed with the "group" flag. The primary focus is on the execution of `wmic.exe`, which is often used in local group enumeration to gather information about user permissions and group memberships on a system. By analyzing the command line parameters for instances where "group" is present, the rule can detect attempts to uncover local system groups, including those with elevated privileges like local administrators. The rule pulls data from process creation logs to identify these executions, making it vital for incident responders to recognize such activities as a possible precursor to more aggressive attacks.
+  The Sigma rule "Local Groups Reconnaissance Via Wmic.EXE" is designed to identify potential reconnaissance activities performed by adversaries using the Windows Management Instrumentation Command-line (WMIC) tool. Specifically, this rule monitors for the execution of "wmic.exe" with command-line parameters that include the "group" flag, which is typically used to query information about local system groups and their memberships. By obtaining intelligence about local groups, attackers can assess which users have elevated privileges, such as members of the local administrators group. The rule leverages the "process creation" log source, focusing on the execution of wmic.exe, along with tracking command-line arguments to identify potentially malicious activities. This detection aligns with the MITRE ATT&CK framework under the tactic of discovery and the technique T1069.001, which specifically addresses reconnaissance of local group memberships.
   ### Investigation Steps
-  - Review EDR logs to identify the process creation events related to `wmic.exe`, paying special attention to the command line parameters used in the execution.
-  - Examine the user account that executed the `wmic` command to determine whether it possesses elevated privileges or recent suspicious activity related to privilege escalation.
-  - Check system event logs for any unusual login patterns or unauthorized access attempts that correlate with the time frame of the WMIC execution.
-  - Utilize Sysmon logs, if available, to gather additional context on the behavior and network activity of the process following the execution of `wmic.exe`.
+  - **Review Process Creation Logs**: Check the process creation logs in the EDR for any instances of "wmic.exe" execution, paying particular attention to command-line arguments that include "group."
+    
+  - **Correlate with User Accounts**: Investigate the user account that executed the wmic command to determine if it has valid administrative credentials or if it falls within typical user activity patterns.
+  - **Analyze Network Activity**: Use network detection tools to check for any unusual outbound connections following the execution of the wmic command that may indicate data exfiltration or lateral movement.
+  - **Examine Audit Logs**: Consult Windows Security event logs for any related authentication or privilege escalation events around the same time as the wmic.exe execution to further understand the context of the command.
+  ### Prioritization
+  This alert is rated as low severity, as not all usage of wmic.exe indicates malicious intent. However, it requires investigation due to its potential association with reconnaissance operations aimed at identifying users with elevated permissions.
+  ### Blind spots and Assumptions
+  There are several factors that may lead to the Sigma rule not firing or being less effective in certain environments. For instance, if an adversary executes wmic.exe with different parameters or makes use of alternative enumeration techniques, this rule will not trigger. Additionally, legitimate administrative tasks may also result in the execution of wmic with the group flag. Furthermore, if logging is not sufficiently configured on endpoints, the rule might not capture relevant events, thus limiting visibility.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

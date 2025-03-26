@@ -23,10 +23,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies potential UAC (User Account Control) bypass techniques that leverage a hidden feature within the Microsoft Windows operating system. Specifically, it targets modifications made to tokens using the MSConfig graphical user interface. The rule looks for file events where the target filename starts with "C:\Users\" and ends with "\AppData\Local\Temp\pkgmgr.exe". This pattern indicates that an executable designed to bypass UAC is being manipulated, which is a recognized technique in privilege escalation attempts. The primary technical data source for this detection is file event logs that capture file creation or modification activities on the Windows operating system.
+  This detection rule identifies potential user account control (UAC) bypass attempts through the modification of MSConfig using a malicious package manager executable (`pkgmgr.exe`). The rule focuses on the file events associated with Windows file operations, monitoring for specific patterns that indicate unauthorized access or manipulation of sensitive configuration files. By observing the target filename, the rule detects if the executable is being modified or executed from the "Temp" directory within a user's AppData. Such activities often indicate an attempt to elevate privileges and gain additional access within a system, aligning with the MITRE ATT&CK tactics of Defense Evasion and Privilege Escalation, specifically the technique T1548.002.
   ### Investigation Steps
-  - Utilize EDR tools to examine the process tree and identify any parent-child relationships involving `pkgmgr.exe`, focusing on associated processes that might indicate malicious behavior.
-  - Review command-line parameters associated with the execution of `pkgmgr.exe` to determine if they are being used in a way consistent with UAC bypass techniques.
-  - Investigate user account activities and their session tokens using logs from the Windows Event Viewer to detect any anomalies or escalations in privilege during the time of the alleged incident.
-  - Cross-reference the behavior detected with threat intelligence feeds to determine if `pkgmgr.exe` has been involved in previous UAC bypass incidents within the environment.
+  - **Check EDR Alerts:** Review EDR alerts related to the process creation of `pkgmgr.exe` for additional context on its execution and any associated processes to assess behavior and legitimacy.
+  - **Analyze File Access:** Examine file access logs to ascertain how and when `pkgmgr.exe` was created, modified, or executed, and identify any patterns of suspicious activity leading up to the alert.
+  - **Inspect System Logs:** Review Windows Security Logs for user account actions and potential unauthorized privilege escalations linked to this execution to verify if UAC was bypassed successfully.
+  - **Network Traffic Analysis:** Conduct an analysis of outbound network connections related to the execution of `pkgmgr.exe` to determine if there were any data exfiltration attempts or communication with known malicious infrastructures.
+  ### Prioritization
+  The severity level is classified as high due to the potential for significant damage stemming from privileged actions taken by adversaries, which can lead to unauthorized access to sensitive systems and data.
+  ### Blind Spots and Assumptions
+  This rule may not fire in scenarios where the attacker employs different methodologies for UAC bypass that do not involve the specific `pkgmgr.exe` file or where the Temp folder is not utilized. Additionally, if the telemetry for file events is not comprehensively monitored, legitimate usage might be missed. Adversaries can bypass detection by utilizing different file names or locations to evade this rule. Analysts should remain vigilant and consider additional indicators of compromise (IoCs) when investigating related incidents.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

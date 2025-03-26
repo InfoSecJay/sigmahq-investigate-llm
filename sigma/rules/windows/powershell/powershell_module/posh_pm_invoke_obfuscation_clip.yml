@@ -28,9 +28,19 @@ falsepositives:
 level: high
 notes: |
   ### Technical Context
-  The "Invoke-Obfuscation CLIP+ Launcher" detection rule aims to identify obfuscated PowerShell commands that utilize `clip.exe` to execute malicious payloads. This technique is often leveraged by attackers to mask their true intentions, making it difficult for traditional security mechanisms to recognize harmful activity. The rule specifically looks for certain command structures within PowerShell logs, particularly those that involve the use of `clip.exe` along with obfuscated command-line parameters. The primary data source for this detection is Windows PowerShell module logs, where the execution of suspicious commands can be monitored in real-time. By focusing on the patterns associated with the use of `cmd.exe` and `clip.exe`, this rule assists incident responders in identifying potential exploitation attempts or malware execution.
+  The "Invoke-Obfuscation CLIP+ Launcher 
+  - PowerShell Module" Sigma rule detects the obfuscated usage of the `clip.exe` utility to execute PowerShell commands. This technique is typically utilized by adversaries to obscure malicious PowerShell execution from traditional detection methods, leveraging the Windows clipboard as a payload delivery mechanism. The rule analyzes PowerShell module logs to identify patterns and strings indicative of obfuscation attempts, specifically targeting command-line syntax that employs `clip.exe` in conjunction with PowerShell command execution.
+  The core technical data sources involved in this detection include PowerShell command logging via Windows Event Logs and Sysmon logs that track command execution and observable parameters. By leveraging regular expressions, this rule identifies potential obfuscation tactics, associated directly with the MITRE ATT&CK techniques T1027 (Obfuscated Files or Information) and T1059.001 (PowerShell). Investigators can correlate these findings with other logs to understand the full context and impact of the detected behavior.
   ### Investigation Steps
-  - Review PowerShell execution logs in the EDR to identify the commands that initiated the use of `clip.exe`, paying particular attention to any obfuscated arguments.
-  - Check the event logs on the affected systems for any signs of lateral movement or additional suspicious command executions around the same time as the alert.
-  - Examine network traffic patterns using NDR tools to determine if there was any anomalous outbound traffic coinciding with the execution of the detected command.
-  - Analyze user activity and access logs in your identity management system to uncover any unusual logins or execution patterns that may correlate with the incident.
+  - **Check PowerShell Logs**: Investigate the PowerShell command logs for any instances of `clip.exe` being executed in close proximity to suspicious PowerShell commands. Pay close attention to the context of execution and user attribution.
+    
+  - **Review Sysmon Logs**: Utilize Sysmon logs to identify related process creation and network connections that might indicate a larger attack vector. Look for any additional indicators of compromise surrounding the time of detection.
+    
+  - **Analyze User Activity**: Cross-reference the user account that triggered the alert against recent user activity logs (e.g., VPN connections, file accesses) to ensure there are no anomalies in behavior that indicate compromise.
+    
+  - **Evaluate Endpoint Alerts**: Check for any endpoint detection and response (EDR) alerts related to PowerShell execution or suspicious script activity on workstations or servers where `clip.exe` was detected.
+  ### Prioritization
+  Given the high-severity level of this alert, it indicates potential evasive tactics being employed by an attacker within the environment. Such actions warrant immediate investigation due to their capability to bypass conventional security controls and establish further exploitation pathways.
+  ### Blind Spots and Assumptions
+  This rule may fail to trigger if the payload is executed without obfuscation or if the attack employs a less common method to execute PowerShell without utilizing `clip.exe`. Additionally, if logging is configured incorrectly or if users have legitimate reasons to use `clip.exe`, this may lead to false negatives or high false-positive rates. Engineers should be aware that adversaries might adapt their strategies to bypass this detection by altering payload structures or command usage patterns.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

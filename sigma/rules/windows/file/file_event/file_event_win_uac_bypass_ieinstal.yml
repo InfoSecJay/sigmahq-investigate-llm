@@ -25,11 +25,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies potential User Account Control (UAC) bypass attempts using the application `IEInstal.exe` associated with the UACMe 64 tool. UAC bypass is a technique used by attackers to gain elevated privileges without proper authorization. The rule works by monitoring file event logs specifically for instances where `IEInstal.exe` is executed and targeting files that are created or manipulated within user directories, particularly those that lead to `consent.exe` located in the Temp directory. By analyzing these file creation events, the detection rule aims to flag any suspicious behavior indicative of privilege escalation attempts that often circumvent security protocols.
-  The primary data sources involved in this detection are Windows file event logs, which record the creation and modification of files along with their paths. Responders should be aware that false positives may arise due to legitimate software behaviors or installations, necessitating further investigation.
+  The UAC Bypass Using IEInstal rule is designed to detect an attempt to bypass User Account Control (UAC) protections on Windows systems by utilizing the application `IEInstal.exe`. This rule specifically looks for scenarios where the `IEInstal.exe` process is used to create a file named `consent.exe` in a user’s local AppData Temp directory, which is a common tactic employed by attackers to escalate privileges without alerting security measures. The primary data sources involved in this detection include file event logs indicating process creation and file manipulation activities. This behavior is associated with the MITRE ATT&CK technique for "Exploitation for Client Execution" (T1548.002), falling under the broader tactics of "Defense Evasion" and "Privilege Escalation."
   ### Investigation Steps
-  - Query the EDR for recent activities involving `IEInstal.exe` and check the process tree to identify the parent process and behavior leading to its execution.
-  - Review user and application logs to trace any legitimate actions performed in conjunction with `consent.exe` within the specified Temp directory, looking for unusual patterns.
-  - Correlate findings with firewall logs to determine if any outbound connections were initiated around the same time, indicating potentially malicious activity.
-  - Consult the SIEM for alerts and historical data concerning privilege escalation attempts, especially those involving other known UAC bypass techniques across the user environment.
+  - **Review EDR Alerts:** Check for alerts related to the process creation of `IEInstal.exe` and subsequent file activities within the `C:\Users\*\AppData\Local\Temp\` directory, focusing on `consent.exe` files.
+  - **Analyze File Integrity:** Utilize file integrity monitoring to verify the legitimacy of the `IEInstal.exe` executable and the circumstances that led to the creation of any suspicious files.
+  - **Inspect User Activity:** Examine user activity logs for any unauthorized access patterns or attempts to disable UAC settings prior to the detection event. 
+  - **Investigate Network Connections:** Verify recent outbound connections from the user's machine to identify any associated command and control (C2) communications linked to this alert.
+  ### Prioritization
+  This alert is prioritized as high severity due to its association with privilege escalation tactics that can lead to significant compromise of user systems and potential access to sensitive corporate resources.
+  ### Blind Spots and Assumptions
+  This rule may not fire in environments where the `IEInstal.exe` executable is not present or allowed in normal operations. Additionally, it assumes that the file naming convention has not been altered by attackers to evade detection. A determined adversary might employ alternative methods or legitimate administrative tools to bypass UAC, which this rule does not account for.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and compliance, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

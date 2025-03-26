@@ -28,10 +28,17 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This detection rule monitors modifications to the Windows Registry, specifically targeting the settings associated with Microsoft Defender Firewall. Adversaries often disable the firewall to bypass security controls that restrict unauthorized network access, making it crucial to identify any changes to the related registry keys. The rule looks for registry changes under three specific locations in the Windows Registry: the domain, public, and standard profiles of the firewall settings. By auditing for entries that indicate the firewall is disabled (noted by a DWORD value of '0'), the SOC can detect potential evasion techniques employed by attackers.
-  The primary data sources involved in this detection include the registry set logs from Windows. Event logs related to these registry changes are essential to trace user actions or malware behavior that may suggest an attempt to disable protective measures such as firewalls.
+  This Sigma rule detects instances where an adversary attempts to disable the Microsoft Defender Firewall by modifying specific registry values. Firewalls are critical security controls, and disabling them can create a vulnerability within the system, potentially allowing unauthorized network access. The rule specifically looks for changes in the Windows Registry concerning the `EnableFirewall` setting within the firewall policies for Domain, Public, and Standard Profiles. When the value of this key is set to '0' (DWORD 0x00000000), it indicates that the firewall is disabled. The data sources involved in this detection include Windows Registry logs. This detection relates to the MITRE ATT&CK tactic of Defense Evasion, specifically under technique T1562.004, which focuses on the modification of security controls to bypass defenses.
   ### Investigation Steps
-  - Review the relevant Windows Registry changes by leveraging the EDR to track activities around the specified firewall settings and confirm any modifications made.
-  - Analyze process creation logs in the EDR to identify any suspicious executables or scripts that may correlate with the timing of the registry changes.
-  - Examine network traffic through the NDR to determine if any unusual outbound connections occur immediately after the firewall was disabled.
-  - Investigate any corresponding alerts from the NGFW for unauthorized access attempts or anomalous network behavior following the disabling of the firewall.
+  - **Query Windows Registry Logs**: Utilize Windows Security logs to inspect the registry modifications. Focus on changes related to the `EnableFirewall` setting within the defined registry paths.
+    
+  - **Analyze EDR Alerts**: Check the EDR for any alerts or related process activity that corresponds to the time of the registry modification. Look for any processes that may have performed the change, noting executable names or hashes.
+    
+  - **Review System Event Logs**: Cross-reference with Windows System logs around the same timestamp to identify if there were any system-level events, such as shutdowns or restarts, that correlate with the modification event.
+    
+  - **Check Network Connections**: Investigate any network connections or outbound traffic that occurred following the firewall disablement. This includes querying firewall logs or network connections to identify unusual behavior.
+  ### Prioritization
+  The severity level of this alert is medium, as disabling the Windows Defender Firewall can significantly increase the risk of unauthorized network access and compromise, necessitating timely investigation and remediation.
+  ### Blind spots and Assumptions
+  This rule may not fire in environments where registry auditing is not enabled or if adversaries employ sophisticated methods to manipulate the registry without triggering logs (e.g., using legitimate trusted applications with system permissions). Moreover, the rule assumes no other security controls are in place that would prevent modifications to the firewall settings. Additionally, if the registry permissions are overly permissive or previously modified by legitimate applications, it may create blind spots that allow such modifications to occur without triggering alerts.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -28,9 +28,18 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This detection rule identifies the execution of the SharpLDAPmonitor, a tool that can monitor changes in LDAP objects, which can be indicative of reconnaissance activities or malicious actions within an active directory environment. The rule looks for specific traits associated with SharpLDAPmonitor, including its executable name ('SharpLDAPmonitor.exe') and certain command-line parameters that suggest it may be used to connect to an LDAP server with specified credentials. The rule examines process creation logs to detect instances where this executable is run, capturing key elements such as the image name and its original file name, as well as any command-line parameters that include user credentials and domain controller IP addresses.
+  The Sigma rule titled "HackTool 
+  - SharpLDAPmonitor Execution" aims to detect the execution of the SharpLDAPmonitor, a tool that can monitor the creation, deletion, and changes to LDAP (Lightweight Directory Access Protocol) objects. The detection mechanism looks for specific indicators that denote the invocation of this executable, either through direct execution (process creation) or via the command line. The rule hinges on examining process creation logs to identify the launch of `SharpLDAPmonitor.exe`, where it checks for criteria such as the executable's file name and its original file name. Additionally, it monitors command line parameters that include keywords associated with user credentials and domain controllers (e.g., `/user:`, `/pass:`, `/dcip:`). This aligns with the **MITRE ATT&CK** tactic of **Discovery** (ID: TA0007) and its techniques related to acquiring information about the target environment.
   ### Investigation Steps
-  - Review process creation logs in the EDR system for any instances of `SharpLDAPmonitor.exe` execution to establish a timeline of the activity.
-  - Examine the command-line parameters used during execution, paying particular attention to any instances of `/user:`, `/pass:`, and `/dcip:` to determine if valid credentials were used and to which domain controller the connection was made.
-  - Cross-reference any identified IP addresses and user accounts with historical logs from the Proxy and AV solutions to check for previous suspicious activities or related alerts.
-  - Consult with the incident response team to analyze potential impacts on the environment, especially if the execution was tied to unauthorized access to sensitive LDAP information.
+  - **Check Process Creation Logs:** Utilize your EDR tools to investigate the process creation events related to `SharpLDAPmonitor.exe`. Note the user context and timestamp associated with the execution.
+    
+  - **Analyze Command Line Arguments:** Review command line parameters used during the execution of the tool. Assess if they include any suspicious or unauthorized access attempts involving user credentials or domain controllers.
+    
+  - **Correlate with LDAP Activity:** Query your log sources (e.g., Windows Security event logs) for any LDAP operations around the same time frame as the detected execution. Look for any anomalous creation, deletion, or manipulation of LDAP objects.
+    
+  - **Review Relevant Network Traffic:** Use NDR and NGFW logs to monitor any outbound connections made by the `SharpLDAPmonitor`. Investigate the domains and IPs being contacted to assess potential exfiltration or unauthorized communication.
+  ### Prioritization
+  This alert has been classified as medium severity due to the potential for misuse of the SharpLDAPmonitor tool, which can facilitate unauthorized monitoring of sensitive LDAP interactions. Timely investigation is essential to prevent possible credential harvesting or further exploitation of the network.
+  ### Blind spots and Assumptions
+  The detection rule may not fire in environments where SharpLDAPmonitor is a legitimate tool in use, leading to false negatives. Furthermore, if the executable is renamed or if command line flags are modified beyond what is specified in the rule, it could elude detection. An assumption is made that endpoint protections and monitoring solutions are operational and configured properly, as any disabled logging or misconfigurations could create blind spots.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

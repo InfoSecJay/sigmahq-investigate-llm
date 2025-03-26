@@ -25,10 +25,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule is designed to identify instances of the execution of the NetSupport Remote Access Trojan (RAT), specifically when the executable has been renamed from its original filename "client32.exe". The rule utilizes process creation logs to look for specific characteristics associated with the NetSupport RAT. It checks the `Product` string for the presence of "NetSupport Remote Control" and verifies the `OriginalFileName` for "client32.exe". Additionally, it employs the Imphash technique to match a specific hash (IMPHASH=A9D50692E95B79723F3E76FCF70D023E) associated with this malware. The detection is triggered when these criteria are met, and the execution is not associated with the unrenamed executable based on the controlled filter.
+  This detection rule identifies the execution of a renamed instance of the NetSupport Remote Access Tool (RAT) by monitoring process creation events on Windows systems. Specifically, the rule looks for processes with the product name "NetSupport Remote Control" and the original file name "client32.exe", while also ensuring that the imported hash matches a known signature of the RAT. The rule cross-references these parameters to prevent legitimate instances of `client32.exe` (which might be benign in nature) from triggering an alert when the executable is invoked in its expected form. By leveraging telemetry collected from Windows security logs, this rule serves as a detector for potential malicious activity aligned with the MITRE ATT&CK tactic of Defense Evasion and the associated technique of "Masquerading" (T1036).
   ### Investigation Steps
-  - Review process creation logs in the EDR to identify instances where the hash matches the Imphash specified in the rule.
-  - Investigate any associated network activity through the NDR to determine if unusual outbound connections were initiated by the detected process.
-  - Cross-reference logs from the NGFW to trace any blocked or suspicious network traffic that could indicate command and control communications from the infected host.
-  - Analyze endpoint event logs as well as AV activity for similar detections or related anomalies to gather context about the environment post-execution.
+  - **Check Process Execution Context**: Use your EDR tool to review the execution context of the detected process, focusing on the user account and any parent processes that initiated the execution.
+  - **Examine Network Activity**: Analyze outbound network connections associated with the process to identify any suspicious activity, especially connections to external or anomalous IP addresses.
+  - **Investigate Related Files**: Review file system events around the timestamp of the alert, checking for additional files created or modified by the involved process that may indicate a broader compromise.
+  - **Review Historical Logs**: Look into previous logs from Windows Event logs and Sysmon to establish if there have been other instances of process creation or modifications related to the same create or installed programs.
+  ### Prioritization
+  Due to the nature of remote access tools and their potential use in facilitating unauthorized access or other malicious activities, alerts for renamed NetSupport RAT execution should be treated as high severity, warranting immediate investigative efforts.
+  ### Blind Spots and Assumptions
+  This rule may not trigger in environments where the NetSupport RAT is not commonly used, resulting in a lack of known signatures from prior deployments. Additionally, attackers may modify the process signatures or use alternative disguises not covered by this rule, rendering it ineffective if the behavior is too varied from what is monitored. There is an assumption that process creation telemetry is enabled and properly configured across the infrastructure, which may not always be the case.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

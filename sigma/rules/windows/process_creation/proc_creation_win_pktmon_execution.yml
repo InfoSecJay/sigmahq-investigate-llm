@@ -22,10 +22,16 @@ falsepositives:
 - Legitimate use
 level: medium
 notes: |
+  n
   ### Technical Context
-  The "PktMon.EXE Execution" detection rule focuses on identifying instances of the execution of PktMon, a legitimate Windows built-in tool used for capturing and analyzing network traffic. The rule leverages process creation logs, specifically monitoring events where the process image ends with '\pktmon.exe' and ensuring that the original filename is 'PktMon.exe'. While PktMon can be used for valid monitoring purposes, its potential misuse by adversaries for credential access or network reconnaissance makes it a relevant target for detection. By correlating these metrics, the rule provides a mechanism to flag potentially suspicious activity that warrants further investigation.
+  The Sigma rule for detecting the execution of PktMon.EXE focuses on identifying when this specific network packet capturing utility is executed within a Windows environment. PktMon, a tool included with Windows, is often used for legitimate network monitoring purposes; however, adversaries can also exploit this tool to capture sensitive network traffic covertly. The detection mechanism relies on process creation logs, utilizing parameters such as the image name and original file name (acknowledging both forms to prevent evasion through renaming). This detection is categorized under the **MITRE ATT&CK framework** tactic of Credential Access, specifically technique **T1040**, which pertains to "Network Sniffing."
   ### Investigation Steps
-  - Review process creation logs in your EDR system to confirm the execution of PktMon.EXE and note the associated user account and any command-line parameters provided.
-  - Cross-check network traffic logs to determine if there is any unusual or unauthorized packet capture taking place at the time of the process execution.
-  - Assess the timeline of the event to correlate it with other alerts or anomalies that may indicate malicious activity, including credential access attempts.
-  - Utilize endpoint antivirus logs to verify if any alerts or detections match the execution of PktMon, which might indicate potential misuse of the tool.
+  - **Verify Process Creation Log:** Use your EDR solution to query process creation events for instances of `pktmon.exe` and correlate the timestamp with other activities that could indicate potential malicious use.
+  - **Check Network Activity:** Examine network connection logs through your NDR or firewall to identify any suspicious traffic patterns or unexpected data transmissions that align with the execution of PktMon.
+  - **Review User Context:** Look at the user account that executed PktMon and validate its legitimacy, especially if it was run by a service account or an unfamiliar user that doesn't typically engage in network monitoring activities.
+  - **Analyze File Integrity:** Utilize your AV or endpoint security tools to check if PktMon.exe has been modified or if there's a presence of any other suspicious binaries that could indicate further compromise.
+  ### Prioritization
+  This alert warrants a **medium severity** classification due to the dual nature of PktMon; while primarily a legitimate tool, its potential use by adversaries for capturing sensitive network data poses a significant risk in a corporate environment.
+  ### Blind Spots and Assumptions
+  This rule may not fire if PktMon is executed under a different name or if it is executed through PowerShell or other scripting methods that do not generate standard process creation logs. Additionally, legitimate administrative activity may trigger false positives, as network administrators might utilize PktMon for its intended purpose. Analysts should also consider that sophisticated adversaries could use similar tools, renaming or obfuscating them to evade detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

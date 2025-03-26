@@ -29,10 +29,18 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  This rule detects the creation of files with the `.sed` extension, indicative of Self Extraction Directive files utilized by the `iexpress.exe` utility. These files often serve as a method for bundling and distributing applications, but attackers have been observed leveraging this functionality to embed potentially harmful payloads within these seemingly innocuous files. The detection is based on file creation events logged on Windows systems, specifically focusing on executable files whose names end with `.sed`. Anomalous behavior, such as the unexpected use of the `iexpress.exe` utility to create these files, may warrant further investigation, as it could signal an attempt to execute malicious code or evade detection mechanisms.
+  This detection rule identifies the creation of files with the ".sed" extension, which are associated with the Windows utility "iexpress.exe". IExpress is commonly used for creating self-extracting packages, and attackers have been observed misusing this functionality to embed malicious payloads within PE files that reference simple INI-like configuration files. The key technical data sources involved in this rule include Windows file system logs that capture executable file creations. The rule references the MITRE ATT&CK technique T1218, which relates to the exploitation of system tools for defensive evasion.
   ### Investigation Steps
-  - Analyze process creation logs to identify instances of `iexpress.exe` execution that coincide with `.sed` file creation. Look for unusual parent-child relationships or command-line arguments.
-  - Search endpoint detection and response (EDR) tools for any unusual activities linked to the identified `.sed` files. Review any associated processes and behaviors that could indicate compromise.
-  - Utilize antivirus (AV) solutions to perform scans on the detected `.sed` files and any files that may have been created or modified in proximity to their creation.
-  - Review network traffic logs and proxy logs to assess any outbound connections made following the `.sed` file creation. This can help identify potential exfiltration or command-and-control activities related to the alert.
+  - **Review File Creation Events:** Check the file creation logs on the endpoint to confirm the details of the ".sed" file, including the timestamp and user account that initiated the creation.
+    
+  - **Analyze Related Processes:** Use your EDR tool to trace any processes spawned as a result of this file creation, specifically looking for instances of "iexpress.exe" and any parent processes that may indicate unusual behavior.
+    
+  - **Conduct Threat Hunting in Logs:** Correlate the event with other security logs, such as Windows Security and Sysmon logs, to identify any suspicious activity patterns or connections to known malicious IPs or domains.
+  - **Evaluate the Context of Supposed Usage:** Determine if the user account that created the file typically utilizes IExpress or similar tools, as this can aid in distinguishing legitimate usage from potential malicious activity.
+  ### Prioritization
+  The alert is assigned a medium severity level due to the potential for misuse of IExpress by adversaries, which may indicate a preparatory step for further malicious actions. Underlying unsanctioned activity involving self-extracting files should not be ignored as it may signify an escalation in a broader attack.
+  ### Blind Spots and Assumptions
+  This rule may not trigger in environments where the creation of ".sed" files is legitimate and common, or if the attacker utilizes alternative file extensions to obscure their activity. Additionally, if logs are misconfigured or not preserved for a sufficient duration, relevant events could be lost, leading to missed detections. The use of various obfuscation techniques or malware that does not utilize ".sed" files can also bypass this detection entirely. 
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -42,9 +42,17 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This detection rule identifies instances where the Windows Firewall is being disabled through PowerShell command-line execution. By monitoring process creation logs for specific PowerShell executables (such as `powershell.exe`, `pwsh.exe`, and `powershell_ise.exe`), the rule looks for command-line arguments indicating an attempt to alter the firewall profile settings. Particularly, it targets any usage of the `Set-NetFirewallProfile` command with parameters that denote disabling the firewall, such as `-Enabled False`. This behavior can indicate malicious intent as it is a known method used by attackers to bypass security defenses, making this rule essential for detecting potential breaches or unauthorized actions within the environment.
+  This detection rule identifies attempts to disable the Windows Firewall via PowerShell commands. The rule specifically looks for process creation logs from PowerShell executables, such as `powershell.exe`, `pwsh.exe`, and `powershell_ise.exe`, examining their command-line parameters for specific strings indicative of firewall disabling actions. The key command used to detect this activity is `Set-NetFirewallProfile -Enabled False`, which directly modifies the firewall settings across different profiles such as Domain, Private, and Public. This rule aligns with the MITRE ATT&CK tactic of Defense Evasion (T1562), where attackers may seek to disable security controls like firewalls to facilitate unauthorized activities within the network.
   ### Investigation Steps
-  - Review the alert details in your SIEM to determine the user and system context associated with the PowerShell command execution.
-  - Investigate the command history on the affected system using EDR to confirm whether similar commands were executed previously, indicating potential reconnaissance or malicious behavior.
-  - Check the logs from your network firewall and proxy to identify any unusual outbound connections made shortly after the incident, which could indicate data exfiltration attempts.
-  - Correlate findings with cloud platform logs (if applicable) to uncover any related activities or access patterns that could provide additional context around the alert.
+  - **Review Event Logs:** Check the Windows Security Event Logs for any related event IDs that indicate changes to firewall settings, specifically correlating with the PowerShell execution times.
+  - **Correlate with EDR Data:** Utilize EDR tools to examine detailed process trees for the identified PowerShell instances and confirm if any other suspicious activities occurred around the same time.
+  - **Analyze Network Traffic:** Use NDR logs to monitor outgoing connections during the time of the event for any unauthorized traffic that may suggest an attacker is exploiting disabled firewall rules.
+  - **Inspect User Context:** Validate the user context under which the PowerShell command was executed to ensure it is legitimate and not a compromised account.
+  ### Prioritization
+  This alert is categorized as medium severity due to the potential impact of disabling firewall protections, which exposes the environment to a higher risk of malicious attacks if verified as a malicious action.
+  ### Blind Spots and Assumptions
+  This rule may not fire if:
+  - The disabling command is executed through other methods outside of PowerShell, such as direct registry edits or group policy changes.
+  - The environment has legitimate use cases for disabling the firewall, which could lead to false positives if not contextually reviewed.
+  - Adversaries might obfuscate their commands or use alternative scripting methods to achieve the same goal without triggering this detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -33,10 +33,16 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  The "AspNetCompiler Execution" rule detects the execution of `aspnet_compiler.exe`, a Windows utility typically used for compiling ASP.NET applications. While this tool serves a legitimate purpose in web application deployment, its execution can be abused by malicious actors to compile and run arbitrary C# code, potentially leading to further exploitation of an environment. The rule focuses on Windows process creation events, specifically monitoring for processes initiated from paths associated with the .NET Framework that include `aspnet_compiler.exe`. This allows for the identification of suspicious executions that might indicate a compromise or unauthorized activity.
+  The Sigma rule titled "AspNetCompiler Execution" is designed to detect the execution of the `aspnet_compiler.exe` binary, which is part of the Microsoft .NET Framework. This tool can be exploited by attackers to compile and run C# code on Windows systems, thus creating potential security vulnerabilities. The detection rule specifically looks for process creation events that include paths to the .NET Framework directories and that end with the executable name `aspnet_compiler.exe`. The primary technical data sources leveraged in this detection include Windows process creation logs, which provide insights into the executable paths and parameters used during the execution of processes. The rule is associated with the MITRE ATT&CK tactic "Defense Evasion" and specifically the technique "T1127: Execution via `aspnet_compiler`".
   ### Investigation Steps
-  - Analyze the process creation logs within your EDR to identify the context in which `aspnet_compiler.exe` was executed, including parent processes and associated user accounts.
-  - Check command-line arguments provided to `aspnet_compiler.exe` for any unusual or suspicious patterns that may suggest malicious intent.
-  - Utilize your SIEM to correlate this alert with other indicators of compromise, such as failed login attempts or unusual network traffic events around the same time.
-  - Review application and web server logs in cloud platforms like AWS or Azure to identify any unauthorized changes or access attempts that coincide with the execution of the `aspnet_compiler.exe`.
+  - **Verify Process Details:** Use your EDR tool to identify the details of the `aspnet_compiler.exe` process execution, including the user context and command-line arguments.
+  - **Examine Parent Process:** Investigate the parent process that invoked `aspnet_compiler.exe` to understand the context in which it was executed and determine if it was initiated by a legitimate application.
+  - **Check for Unauthorized Modifications:** Review any suspicious file modifications or creations in directories typically associated with .NET applications, particularly in the ASP.NET and temporary directories.
+  - **Analyze Network Activity:** Assess any outbound network connections from the host where `aspnet_compiler.exe` was executed. Determine if any unauthorized or suspicious connections were established during that time.
+  ### Prioritization
+  Given that the execution of `aspnet_compiler.exe` can indicate potential unauthorized code execution on a server, it is recommended to treat this alert with medium severity, warranting immediate investigation, particularly in environments that host web applications.
+  ### Blind Spots and Assumptions
+  This rule assumes that the Windows process creation logs are enabled and can capture relevant events. There exists a possibility that legitimate applications may use `aspnet_compiler.exe` for its intended purpose, resulting in potential false positives. Additionally, if attackers operate in a highly obscured environment or employ custom methods of execution, the rule may fail to detect those activities. Understanding these limitations is critical for an effective response.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

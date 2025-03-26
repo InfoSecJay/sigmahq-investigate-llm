@@ -29,9 +29,19 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This detection rule targets incoming connections to the AnyDesk application, which is often used for remote access to computer systems. The rule monitors for specific executable names associated with AnyDesk, namely `AnyDesk.exe` and `AnyDeskMSI.exe`, and flags connections that are initiated from remote sources, indicated by the Initiated field being set to 'false'. Such connections may signify a potential command and control (C2) channel exploited by an unauthorized remote attacker. By analyzing network connection logs, the rule assists SOC analysts in identifying anomalous remote access behavior that warrants further investigation.
+  This detection rule focuses on identifying incoming network connections to AnyDesk, a popular remote access tool that can be exploited by attackers to establish remote control over an endpoint. The rule works by analyzing network connection logs to find instances of AnyDesk being executed wherein the connection is initiated from an external source (as indicated by the "Initiated" field being set to 'false'). This typically points to potential unauthorized access attempts, where an attacker might be trying to leverage the remote desktop capabilities for malicious purposes. By monitoring the `network_connection` logs in Windows, the SOC can detect these suspicious activities and respond accordingly.
+  This rule is aligned with the MITRE ATT&CK framework under the tactics of persistence and command-and-control (specifically T1219). It is crucial for SOC analysts to detect and investigate such anomalies rapidly to prevent potential data breaches or system compromises. 
   ### Investigation Steps
-  - Review EDR logs for AnyDesk process activity on the affected host to identify any suspicious behavior, including unusual command-line parameters or execution context.
-  - Check firewall logs to see if there have been other incoming connections to the same device that might indicate an ongoing attack or compromise.
-  - Analyze DNS logs to trace any potentially malicious domains that the AnyDesk application might have connected to during the detected session.
-  - Confirm with system administrators whether legitimate activities involving AnyDesk are documented, especially if the alerts coincide with routine remote support operations.
+  - **Verify AnyDesk Installation:** Check the endpoint for AnyDesk's presence via installed applications or directly on the file system to confirm that the software is legitimately installed and being used.
+  - **Review Network Connection Logs:** Utilize enterprise network monitoring tools to trace the details of the incoming connection, including the source IP address and timestamps, to determine its legitimacy.
+  - **Inspect User Activity:** Examine user activity logs through EDR or cloud services to understand if the user was performing any legitimate actions aligned with remote access functionalities at the time of detection.
+  - **Conduct a Threat Analysis:** Use threat intelligence feeds to assess the source IP address against known malicious actors or related threat behaviors that can inform the severity of the incident.
+  ### Prioritization
+  This alert is classified as medium severity as incoming connections to remote access tools like AnyDesk can be indicative of an attacker attempting to gain unauthorized control over an endpoint. Immediate investigation is essential to ascertain whether the connection is legitimate or part of a malicious action.
+  ### Blind Spots and Assumptions
+  The rule may not fire in scenarios where:
+  - AnyDesk is configured to run on unusual ports or is obfuscated, which would evade conventional detection methods.
+  - Legitimate incoming connections from known and trusted external parties (e.g., IT support teams) may trigger false positives, leading to potential misclassification.
+  - If the AnyDesk service is not installed or has been removed, or if firewalls are configured to block such connections, the detection will not activate.
+  - Analysts should recognize that adversaries may disable detection logging or manipulate traffic to conceal their activities, which could hinder visibility into actual threats.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -23,10 +23,16 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  This Sigma rule aims to detect potential misuse of `curl.exe`, a commonly used command-line tool for transferring data. Specifically, it looks for instances where `curl.exe` is executed with the `file:///` protocol, which implies that the tool is reading files from the local file system rather than making web requests. Such behavior may indicate an unauthorized attempt to access sensitive files or information within the system. The detection is based on process creation logs, focusing on two key aspects: the executable name, which must end with `curl.exe`, and the command line parameters that include the `file:///` protocol. This rule can help SOC teams identify potential data exfiltration attempts or other malicious activities involving local file access.
+  The Sigma rule titled "Local File Read Using Curl.EXE" is designed to detect instances where the `curl.exe` command-line tool is used with the `file://` protocol handler to attempt to read local files on a Windows machine. This behavior can indicate potential information disclosure or data exfiltration attempts by adversaries who leverage trusted utilities like `curl` to manipulate files discreetly. The relevant technical data sources for this rule include process creation logs which capture executions of processes like `curl.exe`, as well as their associated command-line arguments. The detection pertains to the MITRE ATT&CK tactic of Execution (specifically the technique for command and scripting interpreter, T1059).
   ### Investigation Steps
-  - Review the process creation logs in the EDR to locate instances of `curl.exe` execution, specifically focusing on those accompanied by the `file:///` protocol in the command line.
-  - Validate the context of the execution by checking the user account associated with the process to determine if it was run by a legitimate user or an unauthorized account.
-  - Cross-reference the timestamps of the `curl.exe` executions with any other suspicious activities logged during the same timeframe, including unusual file access or modifications.
-  - Consult network activity logs from the NGFW or Proxy to identify if there were any outbound connections initiated by the same user or system around the time of the detected execution.
+  - **Check Process Execution Logs:** Review your EDR solution for instances of `curl.exe` execution during the suspected timeframe, and confirm it was run with the command-line argument `file:///`.
+  - **Analyze Command-Line Parameters:** Investigate the command-line parameters used with `curl.exe`, specifically looking for any reference to local file paths which may indicate an attempt to read sensitive data.
+  - **Correlate with User Activity:** Check associated Windows event logs to understand what user executed the command and if this behavior aligns with normal user activity or patterns.
+  - **Inspect Network Activity:** Utilize NDR or firewall logs to determine if there were any outbound network connections initiated after the execution of `curl.exe`, which may suggest a data exfiltration attempt.
+  ### Prioritization
+  This alert is classified as medium severity due to the potential risk associated with local file access, especially if sensitive information is revealed or compromised. Timely investigation is necessary to determine the legitimacy of the command's purpose and the user's intentions.
+  ### Blind Spots and Assumptions
+  This rule may not fire if the attacker uses other methods to read local files that do not involve `curl.exe`, such as using PowerShell or other scripts. Additionally, legitimate uses of `curl` for file access may raise false positives, particularly in environments where `curl` is part of standard operations. The assumption is made that monitoring for `file:///` usage is comprehensive, but variations in command-line usage could lead to missed detections.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

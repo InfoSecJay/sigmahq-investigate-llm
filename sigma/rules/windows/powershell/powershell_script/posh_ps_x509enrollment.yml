@@ -28,11 +28,17 @@ falsepositives:
 - Legitimate administrative script
 level: medium
 notes: |
+  n
   ### Technical Context
-  The "Suspicious X509Enrollment 
-  - Ps Script" Sigma rule is designed to identify suspicious PowerShell script activity involving the `X509Enrollment` class, which is commonly used for certificate management. The rule specifically looks for script blocks that contain the term `X509Enrollment.CBinaryConverter` or a specific GUID associated with certificate enrollment. This detection primarily utilizes PowerShell script block logging data as a source, which must be enabled on Windows systems to capture these activities effectively. By analyzing these logs, security teams can proactively spot potential misuse of legitimate tools for malicious purposes, such as code injection or creating unauthorized certificates.
+  The Sigma rule "Suspicious X509Enrollment 
+  - Ps Script" is designed to detect potentially malicious uses of PowerShell related to X.509 certificate enrollment. It specifically looks for instances where the PowerShell script block contains references to `X509Enrollment.CBinaryConverter` or the GUID `884e2002-217d-11da-b2a4-000e7bbb2b09`. These indicators may signify attempts to programmatically enroll certificates, an action that adversaries could exploit to facilitate operations such as credential harvest or man-in-the-middle attacks. This rule leverages PowerShell script block logging within Windows environments, requiring this logging feature to be enabled for effective detection. The rule aligns with the MITRE ATT&CK tactic of Defense Evasion, specifically under the technique T1553.004, which pertains to the use of credential dumping tools and techniques to evade detection.
   ### Investigation Steps
-  - Review the PowerShell execution logs in your EDR for the detected script block content to confirm the context of the command execution.
-  - Check for any associated process creation events related to the PowerShell processes that triggered the alert to see if suspicious patterns emerge.
-  - Analyze the network activity logs, particularly from the NGFW and Proxy, to identify any unusual outbound connections initiated by the affected host around the time of the alert.
-  - Investigate related user accounts to assess for unusual behavior, privilege escalations, or unauthorized access attempts, ensuring to cross-reference with cloud access logs if applicable.
+  - **Verify PowerShell Execution Logs:** Check the PowerShell logs on the host for executed commands that correspond with the detected script block. Look for additional context around the execution time and user context.
+  - **Inspect Windows Event Logs:** Review the Windows Security Event Logs for any related events that indicate abnormal logon activities or elevated privileges during the execution of the script.
+  - **Analyze Network Traffic:** Use the EDR to analyze network connections made in conjunction with the execution of the suspicious script, identifying any external calls that may point to malicious command and control infrastructure.
+  - **Check for Additional Artifacts:** Investigate the system for any created or modified artifacts, such as newly generated certificates or associated files, which may further indicate malicious intent.
+  ### Prioritization
+  The alert is considered medium severity due to the risk associated with unauthorized certificate generation and potential facilitation of advanced attacks. While it may originate from legitimate administrative tasks, the specific context of detection warrants a closer examination to rule out malicious intent.
+  ### Blind spots and Assumptions
+  There are several blind spots in this detection rule. If Script Block Logging is not enabled, the alerts will not generate even if suspicious activity occurs. Additionally, legitimate administrative scripts that perform certificate enrollments may trigger false positives and complicate the investigation process. Adversaries might also obfuscate the use of `X509Enrollment.CBinaryConverter` or employ alternate means to generate certificates, which this rule may not capture.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

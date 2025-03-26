@@ -31,10 +31,16 @@ falsepositives:
 - Legitimate usage of ".diagcab" files
 level: medium
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect suspicious execution of the Microsoft Troubleshooter, `msdt.exe`, specifically when invoked with the `-cab` flag. This command-line flag is often associated with `.diagcab` files, which can be abused to exploit vulnerabilities such as CVE-2022-30190. These files may contain embedded answer files that, when executed by `msdt.exe`, can lead to the execution of unwanted code or malicious actions. The detection leverages process creation logs to monitor for instances where `msdt.exe` is executed in this manner, focusing on the image name and the parameters used during its invocation.
+  This Sigma rule is designed to detect potentially malicious execution of `msdt.exe` (Microsoft Support Diagnostic Tool) using the `-cab` command-line flag, which is associated with `.diagcab` files that may be exploited via CVE-2022-30190. Attackers may use this vulnerability to execute payloads packaged within a diagnostic cabinet file, evading traditional detection methods. The rule leverages process creation logs from Windows to look for instances where `msdt.exe` is executed with the specific command line parameter indicating a cabinet file execution. The detection is informed by the MITRE ATT&CK tactic of Defense Evasion (T1202), underscoring the method employed by adversaries to bypass security measures.
   ### Investigation Steps
-  - Review the process creation logs in the EDR to find instances of `msdt.exe` executing with the `-cab` command-line parameter. Identify any unusual or unexpected timestamps and parent processes.
-  - Utilize your AV solution to scan the `.diagcab` files associated with the flagged executions for any malware or indicators of compromise.
-  - Check the network logs from your NDR to see if there were any outbound connections made during or shortly after the execution of the suspicious command, which may indicate a network callback.
-  - Analyze user activity and permissions in the context of the affected systems to assess whether the execution aligns with legitimate usage or if there are signs of unauthorized access or privilege escalation.
+  - **Examine EDR Data:** Review the endpoint data for processes related to `msdt.exe` execution, focusing specifically on process creation logs to verify the command-line parameters used during execution.
+  - **Analyze Command-Line Arguments:** Investigate any instances where `msdt.exe` was initiated with the `-cab` flag and cross-reference these events against known trusted applications to identify potential false positives.
+  - **Inspect File Behavior:** Utilize file monitoring tools to analyze the behavior of any `.diagcab` files executed on the endpoints, checking for any unusual activities or connections that could indicate compromise.
+  - **Assess Network Traffic:** Review network logs for any connections spawned during the execution of `msdt.exe`, particularly those that may correspond to suspicious domains or IP addresses commonly linked with exploitation.
+  ### Prioritization
+  The alert is treated with medium severity due to the association of `msdt.exe` with a known vulnerability that could lead to successful exploitation, potentially jeopardizing sensitive corporate assets and data.
+  ### Blind Spots and Assumptions
+  This detection rule relies on legitimate usage patterns for `msdt.exe`, which may cause false positives in environments where `.diagcab` files are utilized for standard troubleshooting. Additionally, the condition may not fire if attackers use obfuscated command-line parameters or if `msdt.exe` is executed without the `-cab` flag. It is crucial for detection engineers to consider the adversary's capability to mask their use of such programs, potentially using alternative arguments or methods, thereby bypassing this specific detection mechanism.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

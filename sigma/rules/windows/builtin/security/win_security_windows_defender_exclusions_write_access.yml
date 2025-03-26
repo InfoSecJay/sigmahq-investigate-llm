@@ -35,11 +35,16 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  This Sigma rule aims to detect unauthorized access attempts to Windows Defender exclusion registry keys, specifically looking for write access requests. The rule monitors Windows security event logs, particularly Event IDs 4656 (handle requested) and 4663 (attempt to access an object). These events are triggered when an entity attempts to access or modify an object, such as registry keys. The key focus is on paths that include `\Microsoft\Windows Defender\Exclusions\`, as attackers may exploit this area to add new exclusions and bypass security measures provided by Windows Defender.
-  To determine if a potential security incident is occurring, the rule checks for specific Access Rights (WriteData and AppendData) within the access list of these registry keys. If any events match the specified criteria, they may indicate an attempt by a threat actor to disable or evade security controls, prompting an investigation.
+  This detection rule monitors for write access requests to the Windows Defender exclusions registry keys, specifically looking for Event IDs 4656 and 4663. These events are generated when a handle is requested to an object or an attempt is made to access an object, respectively. The rule focuses on registry access to the path `\Microsoft\Windows Defender\Exclusions\`, checking for specific access rights such as WriteData or AppendData. This type of activity is closely associated with the MITRE ATT&CK tactic of Defense Evasion (T1562.001), as attackers may attempt to manipulate Windows Defender settings to create exclusions that allow malicious software to operate undetected.
   ### Investigation Steps
-  - Review the Windows security event logs for Event IDs 4656 and 4663 to identify any suspicious write attempts to the Defender exclusions registry keys.
-  - Analyze the EDR logs for related processes that may have initiated these registry write requests, particularly focusing on any unfamiliar or unauthorized applications.
-  - Correlate the events with proxy and VPN logs to ensure there are no unusual or unexpected external connections corresponding to the access attempts.
-  - Check for other related security alerts, such as those from your AV or NGFW, to gain additional context on the activities surrounding the write access requests.
+  - **Check Event Logs:** Review Security Event Logs for Event ID 4656 and 4663 related to write access on the Windows Defender exclusions registry keys to understand the context of the access request.
+  - **Assess User Activity:** Investigate the user account that initiated the access request by correlating the event with recent user activity to determine if the actions appear suspicious or out of the ordinary.
+  - **Analyze Process Behavior:** Use EDR tools to trace processes associated with the user's actions, specifically looking for any potentially malicious activity or processes that may have attempted to modify the registry settings.
+  - **Consult with Threat Intelligence:** Cross-reference the alert with threat intelligence feeds that might highlight known malware or persistent threats that utilize similar registry manipulation techniques.
+  ### Prioritization
+  This alert is assigned a medium severity level due to the potential for attackers to bypass security mechanisms by modifying registry keys, which could lead to an increased attack surface within the enterprise environment.
+  ### Blind Spots and Assumptions
+  This rule may not fire if auditing of the relevant registry actions is not configured properly or if the necessary auditing policies are disabled. Additionally, legitimate administrative tasks could potentially trigger false positives, complicating investigations. Adversaries may also utilize legitimate tools or processes under the guise of normal operations, making detection more challenging when proper logging and alerting are not in place.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

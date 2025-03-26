@@ -44,10 +44,18 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  The Sigma rule titled "Operator Bloopers Cobalt Strike Commands" aims to detect instances where operators inadvertently execute Cobalt Strike commands through the Windows Command Prompt (`cmd.exe`). This can occur when malicious actors misuse these powerful commands, potentially leading to unauthorized actions within a system. To identify these occurrences, the rule analyzes process creation logs specifically targeting commands initiated from `cmd.exe`. Key indicators include command lines that both start with basic command prompts and contain specific Cobalt Strike-related keywords, such as `psinject`, `make_token`, and `logonpasswords`. By focusing on these unique command patterns, the detection rule enables timely identification of potentially harmful activities that could signify compromise or misuse of the environment.
+  The "Operator Bloopers Cobalt Strike Commands" detection rule is designed to identify the misuse of specific Cobalt Strike commands that an operator may accidentally enter in the Windows command line interface (CMD). This rule captures activities by monitoring process creation logs, particularly for the `cmd.exe` process, and analyzes the command line parameters used during its execution. It looks for command lines that start with `cmd` and contain keywords associated with Cobalt Strike functionalities, such as 'psinject', 'dcsync', and 'make_token'. These commands can indicate an attacker attempting to exploit the environment or misuse administrative capabilities.
+  This rule aligns with the MITRE ATT&CK framework, specifically targeting the Execution tactic (TA0002) and the Command-Line Interface (T1059.003) technique. Detecting these command invocations allows security operations teams to scrutinize potentially malicious activities, addressing unauthorized access or misuse by both internal users and external adversaries.
   ### Investigation Steps
-  - Query EDR logs for any recent process executions involving `cmd.exe`, filtering for command lines that include any of the specified Cobalt Strike commands.
-  - Review user activity in the Proxy logs to detect any unusual web requests or connections made by the user associated with the `cmd.exe` execution.
-  - Examine network activity logs using NDR tools for any external connections correlating with the timestamps of the identified command invocations.
-  - Investigate any endpoint alerts from AV or EDR solutions that may provide insights into previous attempts or patterns of exploitation relating to the detected commands.
+  - **Review the Command Line Usage:** Examine the command line parameters associated with any instances of `cmd.exe` that triggered the alert to determine the context and intent behind the command execution.
+    
+  - **Correlate with EDR Events:** Utilize endpoint detection and response (EDR) tools to track the behavior of the associated process, checking for any unusual actions or further commands executed after the detection event.
+  - **Analyze User Activity Logs:** Investigate user activity around the time of the command execution by reviewing related user logs to assess if the command was executed as part of routine operations or if it's suspicious in nature.
+  - **Check for Malware Indicators:** Perform a scan of the endpoint in question using antivirus and threat detection tools to identify any related malware or threats that might have been dropped or executed as a result of the command use.
+  ### Prioritization
+  This alert is classified as high severity due to the potential for exploitation of critical system functions via Cobalt Strike commands, which may indicate a significant security threat requiring immediate investigation.
+  ### Blind Spots and Assumptions
+  This detection rule may not trigger if an adversary bypasses command line monitoring or utilizes alternative methods to execute the commands (e.g., through compiled binaries or scripts). Additionally, the rule assumes that command-line logging is enabled and operational in the environment, and that the specific Cobalt Strike commands have not been modified or disguised. There could also be false positives due to legitimate tasks performed by users with administrative privileges.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

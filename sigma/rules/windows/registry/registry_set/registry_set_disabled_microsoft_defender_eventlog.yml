@@ -25,10 +25,17 @@ falsepositives:
   (unknown)
 level: high
 notes: |
+  n
   ### Technical Context
-  This rule is designed to detect the disabling of the Windows Defender event log, a critical component in monitoring and threat detection within the Windows environment. Specifically, it looks for modifications to the Windows registry that indicate the event logging for Windows Defender has been turned off. The rule triggers when it detects an entry where the target object corresponds to the Windows Defender Operational event log and reports a value of `DWORD (0x00000000)`, signifying that event logging has been disabled. Such an action is commonly associated with malicious activities, particularly in the context of ransomware, including known strains like LockBit 3.0. The primary data source leveraged for this detection includes the registry modification logs that capture changes to the Windows operating system's settings.
+  This Sigma rule focuses on detecting the disabling of the Windows Defender event log, which is a critical security feature that can indicate potential malicious activities. Specifically, it looks for modifications to the registry key associated with Windows Defender's operational channels, where the value of the key is set to zero (DWORD: 0x00000000). Such a change is often a tactic used in defense evasion by adversaries, particularly in relation to malware families like Lockbit 3.0 that aim to avoid detection by disabling security features. In this case, the relevant technical data sources include Windows Registry events, specifically those related to registry modifications. This aligns with the MITRE ATT&CK tactic of Defense Evasion and the technique T1562.001: Disable or Modify Tools.
   ### Investigation Steps
-  - Review the relevant registry modifications via your EDR solution to identify the source and timing of the changes to the Windows Defender event log.
-  - Correlate the timeline of the Windows Defender event log disablement with any other suspicious activities or alerts in the environment to determine if it relates to a broader attack.
-  - Check the system for additional artifacts or behaviors associated with ransomware, such as unusual process creations or file modifications, using EDR tools.
-  - Investigate network traffic patterns in your NDR solution to identify any anomalous command and control communications or data exfiltration attempts that could indicate a compromised host.
+  - **Review Registry Changes:** Use your EDR solution to inspect registry modification logs for changes to `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-Windows Defender/Operational`.
+    
+  - **Correlate with Event Logs:** Check Windows Event Logs, focusing on Security and System logs, to identify actions taken around the time the event log was disabled, such as process creation or administrative access.
+  - **Analyze Running Processes:** Identify any processes that may have been running at the time of the registry modification by querying your EDR tool for active processes and their associated command-line arguments.
+  - **Check for Other AV Interference:** Investigate if other antivirus applications are installed or running on the endpoint, as they could potentially cause false positives related to changes in Windows Defender logs.
+  ### Prioritization
+  This alert is deemed high severity due to its potential association with sophisticated threat actors attempting to evade detection mechanisms, suggesting that immediate investigation is necessary to ensure no compromise has occurred.
+  ### Blind Spots and Assumptions
+  This rule may not fire in environments where group policies or other management tools disable Windows Defender in a controlled manner, leading to legitimate changes that fall outside the scope of this detection. Additionally, if other antimalware solutions are deployed, they might manage the Windows Defender settings in a way that prevents logging activity related to disabling operations. Engineers should consider the operating environment's control measures and possible variations in how other organizations configure their endpoint security.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

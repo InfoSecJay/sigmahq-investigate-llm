@@ -26,10 +26,19 @@ falsepositives:
 - Legitimate usage by an administrator
 level: medium
 notes: |
-  ### Technical Context
-  This detection rule focuses on the execution of `lodctr.exe`, a Windows utility that rebuilds performance counter registry values. While this tool can have legitimate administrative uses, it can also be exploited by attackers to manipulate performance counter configurations. By supplying a tampered configuration file, malicious actors may use `lodctr.exe` to obscure their activities and evade detection mechanisms. The rule monitors process creation events, specifically filtering for instances where `lodctr.exe` is executed with a command-line argument that includes "-r". Relevant data sources include process creation logs, which capture details like the executable image, command-line parameters, and additional metadata linked to the process execution.
-  ### Investigation Steps
-  - Check the process creation logs in your EDR solution for instances of `lodctr.exe` being executed and note the associated command-line arguments. 
-  - Review system and application logs to determine if legitimate administrative actions correlate with the use of `lodctr.exe` and its parameters.
-  - Analyze the configuration files used with `lodctr.exe` to assess whether they contain any suspicious or unexpected settings.
-  - Perform a network traffic analysis through NDR tools or proxy logs to ascertain if any exfiltration or unusual communication occurred around the time of the execution.
+  n
+  ### Technical Context:
+  The detection rule "Rebuild Performance Counter Values Via Lodctr.EXE" focuses on identifying the execution of the `lodctr.exe` process, which is a legitimate Windows tool used to rebuild performance counter registry values. Attackers can misuse this functionality by supplying a malicious configuration file that falsely alters performance counter settings, potentially evading monitoring tools and other security mechanisms. By looking for specific behavior—such as the invocation of `lodctr.exe` with the command-line parameter `-r`—this rule helps to identify potential misuse. This rule is associated with the MITRE ATT&CK technique TA0002 (Execution). The relevant telemetry sources include process creation logs, which capture when and how `lodctr.exe` is executed.
+  ### Investigation Steps:
+  - **Review Process Creation Logs**: Check the Windows Security or Sysmon logs for any instances of `lodctr.exe` execution around the time of the alert. Focus on the command-line parameters to confirm if `-r` is present.
+    
+  - **Analyze Parent Process**: Investigate the parent process of the `lodctr.exe` execution to determine if it originates from a legitimate source or a potentially suspicious application. Look for any abnormal behaviors associated with the parent process.
+    
+  - **Compare Registry Changes**: After confirming `lodctr.exe` execution, examine the performance counter registry values to identify any unauthorized changes. Use Windows Registry auditing tools or scripts to facilitate this process.
+    
+  - **Check for Malicious Config Files**: Investigate any configuration files that were supplied alongside `lodctr.exe`, ensuring they are not tampered with or pointing to suspicious paths. Ensure they originate from trusted sources.
+  ### Prioritization:
+  This alert is marked as medium severity due to its potential to indicate malicious activity, particularly if the execution of `lodctr.exe` disrupts monitoring solutions. Investigations should be prioritized to understand the context and impact of the action taken.
+  ### Blind Spots and Assumptions:
+  This rule may not trigger if legitimate administrative activity occurs; therefore, it is essential to differentiate between normal and suspicious usage. Additionally, if an attacker finds a way to obscure their command-line arguments or execute it through a legitimate process, the detection may fail. Adversaries may exploit system misconfigurations or permissions, making it critical for engineers to remain vigilant about environment-specific anomalies.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and relevance, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

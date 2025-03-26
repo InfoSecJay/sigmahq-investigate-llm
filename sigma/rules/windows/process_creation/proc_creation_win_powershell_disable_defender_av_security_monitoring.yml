@@ -51,10 +51,19 @@ falsepositives:
 level: high
 notes: |
   ### Technical Context
-  This detection rule identifies potential attempts by attackers to disable Windows Defender Antivirus (AV) security monitoring through PowerShell and Service Control (sc) commands. It focuses on specific characteristics of process execution, looking for instances where PowerShell is invoked with command line parameters aimed at disabling behavior and runtime monitoring of Windows Defender, as well as commands issued through sc.exe that manipulate the service state of Windows Defender (WinDefend). 
-  The technical data sources involved primarily include process creation logs, which capture details of each executed command, including the name of the binary and the command line parameters used. By analyzing these logs for specific patterns associated with tampering commands (such as stopping or disabling the WinDefend service) and unauthorized PowerShell usage, the rule effectively highlights potential malicious activity aimed at circumventing endpoint defenses.
+  This detection rule is designed to identify attempts by adversaries to disable Windows Defender Antivirus (AV) using PowerShell or the Service Control (sc) command. The rule specifically looks for indicators that suggest malicious behavior, such as command-line arguments that disable behavior and runtime monitoring in PowerShell (`-DisableBehaviorMonitoring $true` and `-DisableRuntimeMonitoring $true`). The rule also targets the Service Control command (`sc.exe`) for commands aimed at stopping, deleting, or disabling Windows Defender service (`WinDefend`). 
+  By monitoring process creation events that log these command-line activities, the rule effectively flags potential defense-evasion tactics as outlined in the MITRE ATT&CK framework under the tactics of **Defense Evasion** and the technique **T1562.001: Disable or Modify Security Tools**. This aligns with the intent of many malware strains that seek to disable security mechanisms to avoid detection while executing malicious activities.
   ### Investigation Steps
-  - Use EDR tools to review the related process creation logs, focusing on timestamps, command lines used, and the context of PowerShell or sc.exe executions to determine if malicious activity occurred.
-  - Check endpoint logs for any previous notifications or alerts about PowerShell or service manipulation, as these could provide additional insight into the timeline of events before and after the detection.
-  - Analyze logs from the Anti-Virus solutions to identify whether Windows Defender recorded any attempts to disable, stop, or modify its own services, which may corroborate or refute the findings from the SOC alert.
-  - Consult proxy server logs for any outbound connections or suspicious downloads that may have occurred around the same timeframe, which can help in assessing the intent and impact of the activity detected by this rule.
+  - **Check PowerShell Activity:** Use EDR tools to review PowerShell command execution logs for recent activity, particularly focusing on command lines that include parameters to disable Windows Defender.
+  - **Examine Service Control Logs:** Investigate event logs related to `sc.exe` to verify if there have been any recent attempts to stop or disable the Windows Defender service, paying close attention to the precise command-line arguments.
+  - **Review Process Creation Logs:** Audit Windows event logs for process creation events that correlate with the identified PowerShell and service control commands. Look for any unusual patterns or timing that coincide with other potential malicious activities.
+  - **Assess Endpoint Defender Status:** Use the AV management console or endpoint detection tools to ensure that Windows Defender is running as expected and has not been altered or disabled on endpoints triggering this alert.
+  ### Prioritization
+  The alert is categorized as high severity because disabling antivirus solutions significantly increases the risk of successful malware infections or data breaches within the enterprise environment.
+  ### Blind Spots and Assumptions
+  This rule may not fire under several circumstances: 
+  - If an adversary uses obfuscation techniques or legitimate applications that do not trigger the rule's conditions.
+  - If security monitoring or logging is not enabled for PowerShell or service control events on endpoints, which could lead to missed detection of disabling attempts.
+  - It assumes that the standard paths for `powershell.exe` and `sc.exe` remain unchanged; any deviations could lead to the rule's ineffective function. 
+  ### Disclaimer
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

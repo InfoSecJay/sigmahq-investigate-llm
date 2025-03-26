@@ -24,10 +24,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies potential attempts to bypass User Account Control (UAC) by exploiting NTFS reparse points, specifically focusing on DLL hijacking via the `wusa.exe` process. The rule looks for file events that indicate a DLL file ending with `api-ms-win-core-kernel32-legacy-l1.DLL` being created or modified in the `C:\Users\<username>\AppData\Local\Temp` directory. An attacker may utilize this technique to elevate privileges and execute malicious code while attempting to evade detection mechanisms. The primary data sources utilized here are Windows file event logs, which record changes in the file system, including the creation and modification of files that can indicate malicious activity.
+  This Sigma rule is designed to detect attempts to bypass User Account Control (UAC) in Windows using NTFS reparse points and DLL hijacking via the `wusa.exe` process. The rule specifically looks for file events where the target filename starts with `C:\Users\` and ends with `\AppData\Local\Temp\api-ms-win-core-kernel32-legacy-l1.DLL`. The targeted use of this malicious DLL in the Local Temp directory is indicative of an attacker trying to exploit the way Windows loads dynamic link libraries, allowing them to execute arbitrary code with elevated privileges. The technical data sources involved in this detection include file system events logged by Windows, particularly those captured in the context of the file access by the `wusa.exe` process. This detection corresponds to the MITRE ATT&CK techniques focused on defense evasion and privilege escalation, specifically T1548.002.
   ### Investigation Steps
-  - Review the EDR logs for any suspicious activity related to `wusa.exe` execution, particularly around the time the alert was triggered, to establish the context of the file event.
-  - Cross-reference the file creation or modification events with the system’s process logs to identify any anomalous processes that may have interacted with the DLL file in question.
-  - Utilize Microsoft Defender Antivirus or other AV solution logs to assess whether the flagged DLL has been previously identified as malicious or suspicious.
-  - Inspect user activity logs and recent command histories in the proxy and VPN logs to determine if there were any unauthorized or unusual access patterns leading up to the UAC bypass attempt.
+  - **Review File Events:** Check the file event logs in your SIEM to identify access attempts to the specified DLL within the `C:\Users\<username>\AppData\Local\Temp` directory.
+  - **Analyze Process Creation Logs:** Utilize EDR tools to search for instances of `wusa.exe` running around the same time as the detected file events, which may indicate an attempted UAC bypass.
+  - **Correlate Network Activity:** Examine network connection logs, especially if there were any external connections made by `wusa.exe` that could indicate command and control activity.
+  - **Check for Other Indicators:** Review Sysmon logs, looking particularly for unusual process tree executions or other anomalous behaviors associated with user account modifications or privilege escalations.
+  ### Prioritization
+  This alert is marked as high severity due to the potential for severe impact to the enterprise environment, enabling unauthorized access to sensitive data or systems through privilege escalation.
+  ### Blind Spots and Assumptions
+  This rule may not fire if the malicious DLL is renamed or if the UAC bypass is executed through a different method or without using the `wusa.exe` process. Additionally, if the file access logging is misconfigured or not capturing the relevant events, the detection may fail. Analysts should also consider the possibility of legitimate applications that could inadvertently generate similar file events, leading to false positives.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and applicability, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

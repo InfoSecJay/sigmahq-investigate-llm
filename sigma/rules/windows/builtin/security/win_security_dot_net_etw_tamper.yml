@@ -44,10 +44,17 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This Sigma rule detects the disabling of ETW (Event Tracing for Windows) logging in .NET processes, which can indicate an attempt by adversaries to obfuscate their actions. The rule monitors specific registry changes related to the .NET Framework that set ETW logging values to 0, effectively stopping the logging of loaded .NET assemblies. When a process or application attempts to disable ETW, it modifies registry keys under the `SOFTWARE\Microsoft\.NETFramework` path or the `Environment` key with names such as `ETWEnabled`, `COMPlus_ETWEnabled`, and `COMPlus_ETWFlags`. This behavior is often a tactic employed by threat actors to evade detection mechanisms and may warrant immediate investigation by security teams in affected environments.
+  The Sigma rule ETW Logging Disabled In .NET Processes 
+  - Registry detects potential adversary actions aimed at diminishing the observability of .NET applications. This is achieved by monitoring Windows Security Event Log entries, specifically Event ID 4657, which indicate modifications to the registry. The rule looks for the disabling of Event Tracing for Windows (ETW) for .NET applications, either by checking the `ETWEnabled` flag in the .NET Framework registry path or the `COMPlus_ETWEnabled` and `COMPlus_ETWFlags` settings. By setting these registry values to 0, an attacker can stop ETW providers from recording loaded assemblies, effectively evading detection mechanisms. This behavior is associated with the MITRE ATT&CK Tactic of Defense Evasion and the technique T1112 (Modification of Registry).
   ### Investigation Steps
-  - Review recent registry activity by correlating the detected event (Event ID 4657) with the timeline of the affected .NET processes using EDR tools, focusing on the specific keys mentioned.
-  - Analyze process creation logs to identify the parent processes responsible for invoking the registry change, which can indicate whether the change was made by legitimate software or potential malware.
-  - Check for any abnormal network behavior related to the affected processes using NDR tools to assess if there are connections to known malicious IPs or suspicious domains.
-  - Investigate surrounding event logs in the SIEM for other security incidents or signs of compromise that align with the timeframe of the ETW logging disablement to build a comprehensive understanding of the threat landscape.
+  - **Verify Registry Changes:** Use PowerShell or a registry monitoring tool to confirm whether the values of `ETWEnabled`, `COMPlus_ETWEnabled`, and `COMPlus_ETWFlags` have been modified recently.
+  - **Review Process Activity:** Utilize your EDR solution to check for any relevant process creation events that occurred around the same time as the registry changes to identify any potentially malicious activities.
+  - **Check Correlated Logs:** Investigate related logs from Windows Event Logs, including logs for service starts and stops, to identify if any legitimate applications were manipulated or restarted post-registry changes.
+  - **Analyze Network Activity:** Explore network connections in your NDR or firewall logs that may be associated with the potentially affected applications to assess if anomalous communications occurred.
+  ### Prioritization
+  The high severity of this alert signifies a critical risk where an adversary might be attempting to disable a key logging feature, which can significantly hamper detection capabilities and may indicate preparation for further malicious actions.
+  ### Blind spots and Assumptions
+  This rule may not trigger if an adversary uses other methods to disable ETW logging without modifying the registry, such as leveraging system policies or other application configurations. Additionally, legitimate application behavior or administrative changes may also lead to false positives if they coincide with registry modifications. It is assumed that your environment maintains standard application behavior and registry configurations; if custom configurations exist, they may lead to rule efficacy challenges.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

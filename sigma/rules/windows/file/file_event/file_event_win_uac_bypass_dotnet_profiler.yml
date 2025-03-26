@@ -24,10 +24,17 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect potential User Account Control (UAC) bypass attempts that leverage a .NET code profiler in conjunction with the Microsoft Management Console (mmc.exe). The detection focuses on identifying file events where a target filename starts with “C:\Users\” and ends with “\AppData\Local\Temp\pe386.dll”, suggesting a likely DLL hijacking exploit utilized to execute malicious code while bypassing security controls. With specific attention to the imposition of a code profiler, this rule highlights scenarios typical of privilege escalation tactics used by attackers. The primary data source for this detection is Windows file event logs, which provide insights into file creation and modification activities that can indicate suspicious behavior.
+  This Sigma rule aims to detect UAC (User Account Control) bypass attempts using a technique that involves a .NET Code Profiler in combination with the Microsoft Management Console (MMC). The specific behavior observed is DLL hijacking related to the loading of a malicious Dynamic Link Library (DLL) named `pe386.dll` from a user's temporary application data directory. The rule focuses on file event logs that capture actions performed on files in specific directories, particularly targeting filenames that start with `C:\Users\` and end with `\AppData\Local\Temp\pe386.dll`. This technique is associated with the MITRE ATT&CK framework under the tactic of Defenses Evading and the technique T1548.002, which outlines methods adversaries use to bypass security controls.
   ### Investigation Steps
-  - Review EDR alerts for processes that reference `mmc.exe` and check their command-line parameters for signs of unusual activity, particularly those involving the `pe386.dll` file.
-  - Analyze Windows event logs for any file event messages related to `C:\Users\*\AppData\Local\Temp\pe386.dll`, looking for patterns of repeated access or unusual creation timestamps.
-  - Correlate findings with endpoint security tools to assess if any known indicators of compromise are associated with `pe386.dll` or related malicious activities.
-  - Inspect network traffic logs from the NGFW and Proxy for any data exfiltration or communications originating from processes identified in your previous steps, focusing on unusual outbound connections.
+  - **Review EDR Logs:** Check endpoint detection and response (EDR) logs on the affected host for any suspicious process execution related to `mmc.exe` or `pe386.dll`, particularly any irregular patterns or unexpected parent-child relationships.
+    
+  - **Analyze Process Creation Events:** Use Windows Event Logs to review process creation events that show the execution of `mmc.exe` and trace it back to any DLL loading that could indicate an attempted UAC bypass.
+  - **Inspect File Activity:** Query file event logs to identify any recent access or modification timestamps pertaining to `pe386.dll`, particularly focusing on the `C:\Users\<username>\AppData\Local\Temp\` directory.
+  - **Review User Account Changes:** Verify any changes to user account privileges or access rights on the system, especially if there are indications of attempts to escalate privileges or disable security features.
+  ### Prioritization
+  This alert is categorized as high severity because the detection of a UAC bypass technique suggests a potential escalation of privileges by an adversary, which can lead to greater access and control over targeted systems.
+  ### Blind Spots and Assumptions
+  The rule may not fire if the adversary uses alternate techniques for UAC bypass or employs a different naming convention for the DLLs. Furthermore, false negatives can occur if temp files are cleared before detection, or if the attack uses legitimate system files. Analysts should assume that not all DLL hijacking attempts will follow the patterns outlined in this rule, and monitoring should be coupled with threat intelligence or anomaly detection for comprehensive coverage.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

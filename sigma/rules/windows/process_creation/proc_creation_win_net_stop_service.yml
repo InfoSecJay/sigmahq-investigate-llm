@@ -32,10 +32,17 @@ falsepositives:
 level: low
 notes: |
   ### Technical Context
-  This detection rule targets the stopping of Windows services using the "net" utility. Specifically, it looks for the execution of the `net.exe` or `net1.exe` process with command-line arguments that include the word "stop." The rule examines process creation logs, which capture details such as the executable's name and the command-line parameters used during execution. 
-  By focusing on the `net` utility, which is a legitimate Windows command-line tool, this rule enables the identification of potentially malicious activity where an attacker may attempt to disrupt services to evade detection or carry out further malicious actions. Furthermore, although stopping a service can be legitimate, the prevalence of such activity necessitates careful review of context surrounding each alert.
+  This Sigma rule is designed to detect when a Windows service is stopped using the `net.exe` utility, a command-line tool often used for service management in Windows environments. The rule specifically looks for the creation of processes related to `net.exe` or `net1.exe`, coupled with command-line arguments that include the term "stop". By monitoring process creation events, the detection focuses on identifying potentially unauthorized attempts to disrupt services, which falls under the MITRE ATT&CK tactic of "Impact" (T1489). Data sources involved in this detection include process creation logs, which provide details about executable file names and command-line parameters.
   ### Investigation Steps
-  - Review the process creation logs in your EDR solution to identify the timestamp and context of the detected `net.exe` command execution.
-  - Analyze the command-line parameters associated with the `net` command to determine which specific service was stopped and whether this action aligns with normal operational procedures.
-  - Correlate other security events from the same timeframe, utilizing logs from the SIEM, to gather additional context around user activity and potential unauthorized access.
-  - Examine related network traffic logs (NDR and Proxy) to identify any unusual connections or data flows that could indicate further malicious activity following the service stoppage.
+  - **Review Process Creation Logs:** Examine the process creation logs in your EDR for any instances of `net.exe` or `net1.exe` being executed, filtering by the specific command "stop" to identify potentially suspicious activity.
+    
+  - **Correlate with User Activity:** Investigate user activity around the time of the service stop command. Look for any anomalous or unauthorized user behavior in activity logs from Windows Security or EDR.
+    
+  - **Analyze Service Impact:** Determine which service was stopped and evaluate the potential impact on business operations. Check if this action correlates with known scheduled maintenance or any legitimate changes.
+    
+  - **Consult Network Logs:** Use logs from the firewall (NGFW) or proxy to assess whether any external actions were involved. This can help identify if the service stop was initiated as part of an external attack or simply a legitimate request.
+  ### Prioritization
+  The alert is set to low severity as there are numerous legitimate reasons for stopping a Windows service. However, it should still be treated with caution to ensure that any unauthorized modifications to critical services are addressed.
+  ### Blind Spots and Assumptions
+  This rule may not fire under various circumstances, such as when a threat actor uses a different method to stop services (e.g., using PowerShell or another script) or if the system policies prevent logging of process creation events. Analysts should also assume that not every instance of `net.exe` usage indicates malicious activity, warranting thorough investigation to filter out legitimate uses.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

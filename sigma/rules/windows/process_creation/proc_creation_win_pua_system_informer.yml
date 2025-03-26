@@ -41,11 +41,17 @@ falsepositives:
   Apply additional filters accordingly
 level: medium
 notes: |
+  n
   ### Technical Context
-  The Sigma rule titled "PUA 
-  - System Informer Execution" is designed to detect the execution of the System Informer application, which is a task manager tool used to view and manipulate processes and system settings at a low level. This application may be misused by attackers for persistence and privilege escalation, which could lead to unauthorized control of systems and sensitive information. The detection leverages process creation logs, specifically searching for instances where the image name ends with `SystemInformer.exe`, alongside specific file attributes such as the original filename, description, product name, and unique hash values. By monitoring these details, the rule helps identify suspicious use of the application, guiding analysts in assessing whether the execution is legitimate or part of a potential attack vector.
+  The Sigma rule "PUA 
+  - System Informer Execution" aims to identify the unauthorized execution of "System Informer," a tool that allows users to view and manipulate system processes and kernel options. This rule focuses on detecting specific characteristics of the application, such as its file name ("SystemInformer.exe"), original file name, description, and hash values associated with known versions of the software. The technical data sources used for this detection primarily include process creation logs, which provide critical information on processes executed in the environment. By monitoring these logs, the rule can flag instances of System Informer that may indicate malicious use, especially in contexts where it’s typically restricted. The rule aligns with several MITRE ATT&CK techniques, particularly T1082 (System Information Discovery) and T1543 (Create or Modify System Process), highlighting its relevance for detecting potential privilege escalation and defense evasion tactics.
   ### Investigation Steps
-  - Review recent process creation logs in the EDR platform to identify the execution context of `SystemInformer.exe`, including user accounts and parent processes.
-  - Cross-reference the time of detection with log entries from the firewall or proxy to identify any unusual outbound connections or unusual data transfers initiated by the host.
-  - Check the system's scheduled tasks and startup programs to determine if `SystemInformer.exe` has been set to run automatically, indicating potential persistence mechanisms.
-  - Validate the identified file hashes against known benign or malicious software to determine the legitimacy of the version of System Informer being executed.
+  - **Review Process Creation Logs:** Examine the process creation logs in your EDR for instances of "SystemInformer.exe" being executed. Look for any unusual user accounts or context that may suggest malicious intent.
+  - **Analyze Command Line Parameters:** Check the command line parameters associated with the execution of System Informer. Legitimate usage often includes standard parameters, while unusual arguments may indicate improper use.
+  - **Correlate with Network Activity:** Utilize NDR to see if there are network connections initiated by the process. Analyze if these connections are to known malicious domains or unusual endpoints.
+  - **Check for Known Hashes:** Reference your file integrity monitoring or AV logs for any matches against the known hashes listed in the rule. This helps confirm if the detected instance is indeed a malicious variant.
+  ### Prioritization
+  The alert is categorized as medium severity because the execution of System Informer could indicate potentially unauthorized activities that may facilitate further exploitation or discovery by an attacker in the environment.
+  ### Blind spots and Assumptions
+  This rule may not trigger in environments where System Informer is used legitimately and recognized among system administrators, leading to potential false positives. Additionally, if the executable is renamed or modified in a way that alters its hash or file characteristics, detection may fail. Adversaries may attempt to disguise their activity by using similar tools or by altering the execution environment to avoid detection, which could also lead to missed alerts.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -1,0 +1,103 @@
+title: Tamper Windows Defender - ScriptBlockLogging
+id: 14c71865-6cd3-44ae-adaa-1db923fae5f2
+related:
+- id: ec19ebab-72dc-40e1-9728-4c0b805d722c
+  type: derived
+status: test
+description: Detects PowerShell scripts attempting to disable scheduled scanning and
+  other parts of Windows Defender ATP or set default actions to allow.
+references:
+- https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1562.001/T1562.001.md
+- https://learn.microsoft.com/en-us/powershell/module/defender/set-mppreference?view=windowsserver2022-ps
+- https://bidouillesecurity.com/disable-windows-defender-in-powershell/
+author: frack113, elhoim, Tim Shelton (fps, alias support), Swachchhanda Shrawan Poudel,
+  Nasreddine Bencherchali (Nextron Systems)
+date: 2022-01-16
+modified: 2024-01-02
+tags:
+- attack.defense-evasion
+- attack.t1562.001
+logsource:
+  product: windows
+  category: ps_script
+  definition: 'Requirements: Script Block Logging must be enabled'
+detection:
+  selection_options_disabling_preference:
+    ScriptBlockText|contains: 'Set-MpPreference'
+  selection_options_disabling_function:
+    ScriptBlockText|contains:
+    - '-dbaf $true'
+    - '-dbaf 1'
+    - '-dbm $true'
+    - '-dbm 1'
+    - '-dips $true'
+    - '-dips 1'
+    - '-DisableArchiveScanning $true'
+    - '-DisableArchiveScanning 1'
+    - '-DisableBehaviorMonitoring $true'
+    - '-DisableBehaviorMonitoring 1'
+    - '-DisableBlockAtFirstSeen $true'
+    - '-DisableBlockAtFirstSeen 1'
+    - '-DisableCatchupFullScan $true'
+    - '-DisableCatchupFullScan 1'
+    - '-DisableCatchupQuickScan $true'
+    - '-DisableCatchupQuickScan 1'
+    - '-DisableIntrusionPreventionSystem $true'
+    - '-DisableIntrusionPreventionSystem 1'
+    - '-DisableIOAVProtection $true'
+    - '-DisableIOAVProtection 1'
+    - '-DisableRealtimeMonitoring $true'
+    - '-DisableRealtimeMonitoring 1'
+    - '-DisableRemovableDriveScanning $true'
+    - '-DisableRemovableDriveScanning 1'
+    - '-DisableScanningMappedNetworkDrivesForFullScan $true'
+    - '-DisableScanningMappedNetworkDrivesForFullScan 1'
+    - '-DisableScanningNetworkFiles $true'
+    - '-DisableScanningNetworkFiles 1'
+    - '-DisableScriptScanning $true'
+    - '-DisableScriptScanning 1'
+    - '-MAPSReporting $false'
+    - '-MAPSReporting 0'
+    - '-drdsc $true'
+    - '-drdsc 1'
+    - '-drtm $true'
+    - '-drtm 1'
+    - '-dscrptsc $true'
+    - '-dscrptsc 1'
+    - '-dsmndf $true'
+    - '-dsmndf 1'
+    - '-dsnf $true'
+    - '-dsnf 1'
+    - '-dss $true'
+    - '-dss 1'
+  selection_other_default_actions_allow:
+    ScriptBlockText|contains: 'Set-MpPreference'
+  selection_other_default_actions_func:
+    ScriptBlockText|contains:
+    - 'HighThreatDefaultAction Allow'
+    - 'htdefac Allow'
+    - 'LowThreatDefaultAction Allow'
+    - 'ltdefac Allow'
+    - 'ModerateThreatDefaultAction Allow'
+    - 'mtdefac Allow'
+    - 'SevereThreatDefaultAction Allow'
+    - 'stdefac Allow'
+  condition: all of selection_options_disabling_* or all of selection_other_default_actions_*
+falsepositives:
+- Legitimate PowerShell scripts that disable Windows Defender for troubleshooting
+  purposes. Must be investigated.
+level: high
+notes: |
+  n
+  ### Technical Context
+  This Sigma rule detects the use of PowerShell scripts that are attempting to modify or disable security features of Windows Defender. Specifically, it looks for command strings that include the `Set-MpPreference` cmdlet, which is used to adjust various security preferences within Windows Defender, such as disabling scheduled scanning and real-time monitoring. The rules also check for specific parameters that convey actions to allow or disable critical protective features. The logs that are leveraged for this detection are Windows Event Logs that capture PowerShell script executions with Script Block Logging enabled. This rule correlates to the MITRE ATT&CK tactic of Defense Evasion and technique T1562.001, as it seeks to uncover attempts by adversaries to undermine the security posture of a system.
+  ### Investigation Steps
+  - **Review PowerShell Logs:** Start by examining the collected PowerShell logs using your EDR or SIEM tools for any instances of the cmdlet `Set-MpPreference` along with the associated parameters that indicate malicious behavior.
+  - **Correlate Events:** Cross-reference the timestamps of the detected scripts with user activity logs or other system events to establish the context and legitimacy of the action.
+  - **Check for Known Threats:** Utilize your AV and threat intelligence platforms to determine if the executed PowerShell script is recognized as malicious or if similar behavior has been reported in the past.
+  - **Assess System State:** Verify the current settings of Windows Defender on the affected system to identify changes made by the potentially malicious script and take corrective action if necessary.
+  ### Prioritization
+  The alert is categorized as high severity because any modification to Windows Defender settings could expose the system to potential threats, making it critical for immediate investigation to ensure the integrity of the enterprise's security framework.
+  ### Blind Spots and Assumptions
+  This detection may not trigger in environments where Script Block Logging is not enabled, which is a prerequisite for monitoring PowerShell scripts effectively. Additionally, legitimate administrative activities that involve disabling security features for troubleshooting may result in false positives. Adversaries could potentially mask their activities by modifying PowerShell execution policies or using obfuscation techniques, which might circumvent the detection mechanisms.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

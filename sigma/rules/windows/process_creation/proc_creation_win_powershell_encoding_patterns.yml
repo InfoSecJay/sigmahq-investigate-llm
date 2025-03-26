@@ -53,11 +53,19 @@ falsepositives:
 - Unknown
 level: low
 notes: |
+  n
   ### Technical Context
-  This detection rule is designed to identify potentially malicious use of PowerShell by analyzing command-line parameters for specific encoding patterns. The rule focuses on command-line strings associated with PowerShell executions (i.e., `powershell.exe` and `pwsh.exe`) that utilize particular functions or methods such as `ToInt`, `ToChar`, and `split`. These functions can be indicative of encoded commands, commonly used for obfuscating malicious scripts and evading detection mechanisms.
-  The primary data sources involved in this detection include process creation logs that capture the details of executed commands, along with their corresponding parameters. By focusing on how the command is constructed, the rule aims to detect suspicious patterns that may suggest an attempt to perform actions such as payload decoding or data manipulation, which are characteristic of adversarial tactics.
+  This Sigma rule is designed to detect potentially malicious PowerShell activity by identifying specific patterns in command-line arguments used with PowerShell (powershell.exe or pwsh.exe). The rule focuses on the presence of encoded command signatures that could indicate an attempt to obfuscate malicious code execution or evade detection. It looks for command strings containing common PowerShell encoding methods (e.g., ToInt, ToDecimal) or patterns indicating data manipulation (e.g., char, split, join). The primary data sources involved are process creation logs, particularly those capturing the command-line parameters that illustrate how PowerShell is invoked. This detection aligns with the MITRE ATT&CK tactics of Defense Evasion (T1027) and Execution (T1059.001).
   ### Investigation Steps
-  - Review recent PowerShell execution logs within the EDR to determine the context and source of the command line that triggered the alert.
-  - Analyze command-line arguments for patterns indicative of encoding techniques, and check for any associated file paths that could reveal the origin of the executed scripts.
-  - Correlate findings with network traffic logs from NDR to identify any outbound connections that may have been initiated following the suspicious command execution.
-  - Utilize the SIEM to investigate alerts related to anomalies from user accounts or devices that executed the flagged PowerShell commands, ensuring to look for previously established baselines.
+  - **Check EDR for Process Details:** Examine the process creation logs in your EDR solution to identify the full command-line input of the reported PowerShell instance. Look for additional context related to parent processes that may indicate how the PowerShell command was initiated.
+    
+  - **Analyze Command-Line Arguments:** Focus on the specific arguments highlighted in the alert. Assess whether these arguments match common PowerShell encoding or obfuscation techniques that could indicate malicious intent or misuse.
+    
+  - **Review Related System Logs:** Investigate Windows Event Logs, especially Security logs, to determine if other suspicious activities correlated with the time of the PowerShell execution. This could include unusual logins or access permissions.
+    
+  - **Utilize Threat Intelligence:** Cross-reference the involved processes and command-line patterns against known threat intelligence databases to identify whether the behavior is linked to known malicious actors or campaigns.
+  ### Prioritization
+  The alert is categorized as low severity due to the potential for legitimate use of PowerShell encoding methods in administrative scripts. However, it warrants investigation as it may serve as an initial indicator of a more significant security incident.
+  ### Blind Spots and Assumptions
+  This rule may not fire if the malicious PowerShell commands do not utilize the specified encoding methods or if alternative obfuscation techniques are employed that do not match the defined patterns. Additionally, this initial detection assumes that PowerShell is being executed in the expected context, and it may be bypassed if an adversary uses legitimate scheduled tasks, alternative scripting languages, or direct API calls to execute malicious code without invoking PowerShell.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

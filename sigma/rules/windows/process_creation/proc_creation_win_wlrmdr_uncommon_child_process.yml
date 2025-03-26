@@ -44,10 +44,19 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This detection rule identifies potentially malicious activity involving the execution of the binary `Wlrmdr.exe` with the `-u` command line argument, which can enable attackers to use the ShellExecute API for launching arbitrary executables. The rule closely monitors process creation events and looks for instances where `Wlrmdr.exe` spawns either directly or through uncommon child processes with specific command-line parameters indicative of potential misuse. The relevant data sources for this rule include process creation logs, which provide details on command-line arguments and parent-child process relationships, primarily focusing on Windows environments.
-  In essence, the rule will trigger when a process is launched from `Wlrmdr.exe` with the `-u` flag, or when `Wlrmdr.exe` spawns any uncommon child processes, effectively flagging potentially harmful behaviors that may evade standard detection mechanisms.
+  The Sigma rule titled **Wlrmdr.EXE Uncommon Argument Or Child Process** detects the execution of the `Wlrmdr.exe` process with the `-u` command-line argument, which is a significant indicator of potential abuse. The `-u` flag allows any arguments passed to `Wlrmdr.exe` to be executed through the ShellExecute API, creating a vector for adversaries to launch arbitrary binaries without raising immediate suspicion. This detection rule also examines any uncommon child processes spawned by `Wlrmdr.exe`, focusing on those that may not have standard parent relationships, signifying potential misuse or compromise. 
+  The primary data sources for this detection include process creation logs, specifically monitoring for processes with command line parameters that include uncommon flags like `-s`, `-f`, `-t`, `-m`, `-a`, and `-u`. The rule aligns with the MITRE ATT&CK framework, particularly the tactic of **Defense Evasion** (TA0022) and the technique of **Application Layer Protocol** (T1218), highlighting the possibility that attackers may leverage legitimate applications for malicious purposes.
   ### Investigation Steps
-  - Use the EDR tool to examine the process tree starting from `Wlrmdr.exe`. Ensure you note any suspicious child processes and their associated command-line arguments.
-  - Review command-line arguments captured in process creation logs to determine if any unusual parameters were used alongside the `-u` flag.
-  - Check for network activity related to the child processes using NDR or firewall logs to identify any outbound connections, especially those that appear unusual or unauthorized.
-  - Investigate user activity context around the time of the alert using log data from VPN or Azure, confirming whether legitimate users were running any unusual commands.
+  - **Review Process Creation Logs:** 
+    Analyze the process creation logs in your EDR for instances of `Wlrmdr.exe` running with the `-u` argument, focusing on associated child processes and their command line arguments.
+  - **Inspect Child Processes:**
+    Identify any child processes spawned from `Wlrmdr.exe` to determine if their command-line arguments are typical for the given environment or if they exhibit unusual behavior.
+  - **Cross-Reference with Other Data Sources:**
+    Utilize additional logs from Windows Security and Sysmon to enrich the investigation by linking the identified processes with potential anomalies in registry or network connections.
+  - **Check for Additional Context:**
+    Review proxy and VPN logs to ascertain if there are unusual outbound connections associated with the flagged processes, as this could indicate data exfiltration or further malicious activity.
+  ### Prioritization
+  This alert should be treated with medium severity. The use of `Wlrmdr.exe` with uncommon flags carries a level of risk that may indicate potential exploitation or malware behavior, necessitating timely investigation and response to mitigate any potential compromise.
+  ### Blind Spots and Assumptions
+  This rule may not fire in scenarios where `Wlrmdr.exe` is executed without the specified command-line arguments or when it operates as expected within a benign context. Additionally, if an adversary employs process injection techniques or renames the executable, the detection may fail. The rule assumes that the `Wlrmdr.exe` process is monitored adequately across all endpoints, which may not be the case in environments with inconsistent Sysmon deployment or where the executable is not present.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and security, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -28,10 +28,17 @@ falsepositives:
 level: high
 notes: |
   ### Technical Context
-  The Sigma rule titled "PUA 
-  - CsExec Execution" is designed to detect the use of a lesser-known remote execution tool called CsExec, a competitor to Microsoft's PsExec. This tool is often employed for executing processes on remote systems and can be exploited by threat actors to perform unauthorized actions across a network. The rule leverages process creation logs to monitor for instances where the CsExec executable (`csexec.exe`) is invoked. By setting specific conditions based on the executable's image path and its description, the rule identifies potentially malicious attempts to use CsExec for unauthorized remote execution. Responders should note that due to CsExec’s nature, this could signify a risk of lateral movement or data compromise within the enterprise environment.
+  This Sigma rule detects the execution of `csexec.exe`, a lesser-known remote execution tool that serves as an alternative to PsExec. CsExec can be used to execute commands on remote systems, which is commonly leveraged by threat actors for lateral movement within networks. The primary focus of this detection rule is on process creation logs, specifically targeting entries that indicate the execution of the `csexec.exe` process on Windows environments. Successful alerts will signify potential unauthorized remote execution attempts that may be linked to malicious activities, aligning with MITRE ATT&CK Tactic: Execution (T1569.002) and Resource Development (T1587.001). The rule utilizes logs from Windows Sysmon to monitor process creation events, ensuring timely detection of these potential security incidents.
   ### Investigation Steps
-  - Review process creation logs in your EDR solution to identify instances of `csexec.exe` execution and correlate with user and system activities around that timeframe.
-  - Check network logs using NDR tools for unusual outbound connections initiated by the system where CsExec was detected, which may indicate data exfiltration or callback to a command-and-control server.
-  - Query the logs from endpoint protection solutions to determine if there are any known detections or alerts related to the utilization of CsExec, as it could help validate the legitimacy of the request.
-  - Analyze proxy logs for any suspicious URL access or downloads that occurred before or after the `csexec.exe` execution, looking for potential indicators of compromise (IOCs) associated with the tool.
+  - **Check Process Creation Logs:** Review the Sysmon process creation logs for occurrences of `csexec.exe`. Pay close attention to the command-line arguments used and the parent process IDs to assess the legitimacy of the execution.
+    
+  - **Correlate with EDR Data:** Use an Endpoint Detection and Response (EDR) tool to analyze the behavior of the host where `csexec.exe` was executed. Look for any abnormal network connections or changes in process behavior post-execution.
+    
+  - **Analyze Network Connections:** Investigate network logs for unusual outbound connections initiated by the system in question during or after the execution of `csexec.exe`. Use NGFW and NDR tools for deeper insights into the traffic patterns.
+    
+  - **Review User Activity and Permissions:** Examine the user context under which `csexec.exe` was executed. Confirm whether the executing user had the necessary permissions and check for any signs of credential theft or misuse.
+  ### Prioritization
+  This alert is classified as high severity because the unauthorized execution of remote execution tools like CsExec can signify a potential security breach, lateral movement, or compromise of system integrity. Rapid response is essential to mitigate any potential damage.
+  ### Blind spots and Assumptions
+  There may be blind spots in environments where monitoring configurations are not adequately set up to catch all process execution events or when systems are not running Sysmon. Additionally, if CsExec is run with different file names or obfuscation techniques, the rule may not trigger. It is assumed that adversaries could potentially alter their tactics to prevent detection, possibly by using legitimate administrative tools or other remote execution capabilities.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

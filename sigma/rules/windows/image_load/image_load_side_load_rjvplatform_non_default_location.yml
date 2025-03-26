@@ -26,10 +26,16 @@ falsepositives:
 - Unlikely
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies potential DLL sideloading of `RjvPlatform.dll` by `SystemResetPlatform.exe` when this process loads the DLL from a non-default location. Typically, legitimate DLLs, such as `RjvPlatform.dll`, should reside in their standard directories, which helps in preventing malicious exploitation. This rule monitors `image_load` logs, specifically looking for instances where `RjvPlatform.dll` is loaded by `SystemResetPlatform.exe`, while ensuring the process source isn’t from its legitimate path (typically `C:\Windows\System32\SystemResetPlatform\`). If it detects a load from any other location, it flags it as a potentially malicious action indicative of an attack technique used for defense evasion and privilege escalation.
+  The Sigma rule for detecting potential DLL sideloading of "RjvPlatform.dll" targets the process "SystemResetPlatform.exe" when it loads the DLL from a non-standard directory. The rule specifically monitors image load events on Windows systems, identifying instances where the specified DLL is loaded during the execution of the executable. The key technical data sources involved in this detection are process creation logs and image load logs, collected through Windows Sysmon. The rule is aligned with the MITRE ATT&CK tactics of Defense Evasion (T1574) and Privilege Escalation (T1574.001, T1574.002), which involve evading detection mechanisms by manipulating legitimate software and executing code from unexpected locations.
   ### Investigation Steps
-  - Examine the EDR logs for details on the process `SystemResetPlatform.exe`, focusing on its execution context, parent processes, and any unusual command-line parameters.
-  - Review application logs in the cloud or on-premises that might reference the `RjvPlatform.dll` loading activity to determine if there are any correlated events with known malicious activity.
-  - Utilize the SIEM to query for any alerts or anomalies related to DLL loading events around the same time frame as the detected instance to identify potential lateral movement.
-  - Cross-check the integrity and digital signature of `RjvPlatform.dll` to determine its legitimacy and investigate its path to confirm if the behavior is indeed unexpected.
+  - **Review the Process Creation Logs:** Investigate the creation of `SystemResetPlatform.exe` through EDR solutions to ascertain its origin and verify whether it has been launched from a legitimate context or not.
+  - **Check Image Load Events:** Utilize Sysmon logs to examine recent image load events for `RjvPlatform.dll`, confirming whether it has been loaded from the expected or an unusual directory.
+  - **Inspect File Attributes:** Analyze the file properties of both `RjvPlatform.dll` and `SystemResetPlatform.exe`, particularly focusing on the file paths, signatures, and timestamps to determine their legitimacy.
+  - **Correlate with Network Logs:** Look into network connection logs for behavioral anomalies that may indicate external command and control (C2) activities associated with the suspicious process.
+  ### Prioritization
+  This alert is classified as high severity due to the potential for privilege escalation and evasion tactics that can compromise system integrity and security. Immediate investigation is necessary to determine the legitimacy of the file execution and associated network behavior.
+  ### Blind Spots and Assumptions
+  One recognized issue is that legitimate applications may occasionally load DLLs from non-default directories without malicious intent, leading to potential false positives. Additionally, if sufficient logging is not enabled on the endpoint or if the file is pre-existently whitelisted, the rule may not fire. Adversaries may also utilize various techniques to hide their actions, such as using different process names or obfuscating file paths to evade detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -38,9 +38,18 @@ falsepositives:
 level: low
 notes: |
   ### Technical Context
-  This Sigma rule is designed to detect suspicious attempts to query local group information on Windows systems, which can indicate reconnaissance by adversaries. It specifically looks for commands that involve the PowerShell cmdlets `Get-LocalGroup` and `Get-LocalGroupMember`, as well as the WMI class `Win32_Group`. Adversaries often utilize this information to identify users with elevated permissions, such as those within the local administrators group, to plan further attacks. The rule analyzes logs related to PowerShell module activity, where both the command payloads and associated context information are inspected for indicative strings, signaling potential unauthorized inquiries about local user and group configurations.
+  This Sigma rule is designed to detect suspicious activities related to the retrieval of local group information within Windows environments. Specifically, it monitors for the execution of the PowerShell commands `get-localgroup` and `Get-LocalGroupMember`, which adversaries often use to gather intelligence about user groups and their permissions on a system. Understanding local groups can help attackers identify users with elevated privileges, particularly if they spot users in privileged groups such as local administrators. The rule leverages Windows PowerShell module logs for its detection, particularly focusing on command payloads and contextual information to pinpoint these queries.
+  This behavior corresponds to the MITRE ATT&CK framework's Discovery tactic, under the technique T1069.001 (Permission Groups Enumeration), highlighting the importance of monitoring access to user group information as a potential precursor to further malicious activities.
   ### Investigation Steps
-  - Review recent PowerShell execution logs in your EDR solution to identify the source of the suspicious commands related to `get-localgroup` and `Get-LocalGroupMember`.
-  - Correlate findings with process creation logs to track any parent processes that invoked the PowerShell commands to ascertain if they stem from a legitimate or anomalous application.
-  - Check user access rights and group memberships using Active Directory logs to identify if any user credentials associated with the query are compromised or if unusual accounts were involved.
-  - Utilize network logs from the NGFW or NDR to determine if there is any suspicious outbound traffic from the affected host following the execution of these commands, which could indicate exfiltration or further malicious activity.
+  - **Validate the Alert**: Use EDR tools to check the specific user, timestamp, and system that triggered the alert. Look for patterns of behavior leading up to the command execution.
+  - **Review Logs**: Examine Windows Event logs (Security, System) to cross-reference the PowerShell command with user activity. Determine if the command was executed by an authorized process or user.
+  - **Check for Other Indicators**: Investigate logs from other sources such as AV and NGFW to see if there were any other suspicious activities around the same time, indicating a larger potential threat.
+  - **User Context Review**: Assess the user’s role and permissions within the organization. Determine if the user should be executing such commands or if this behavior is unexpected.
+  ### Prioritization
+  This alert is categorized as "low" severity, indicating that while this behavior could signify reconnaissance efforts by an adversary, it may also stem from legitimate administrative actions or scripts by administrators. Each case should be assessed contextually.
+  ### Blind Spots and Assumptions
+  This rule may not trigger if:
+  - The PowerShell command is obfuscated or executed in a way that does not match the defined patterns.
+  - Users are executing this command from a non-standard environment where logging is not as comprehensive, such as through a scheduled task or a remote session without proper logging.
+  - Frequent legitimate use by administrators may lead to numerous false positives, making it crucial to correlate user behavior and role context.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

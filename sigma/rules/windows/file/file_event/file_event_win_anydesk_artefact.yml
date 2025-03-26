@@ -26,10 +26,19 @@ falsepositives:
 - Legitimate use
 level: medium
 notes: |
+  n
   ### Technical Context
-  The "Anydesk Temporary Artefact" Sigma rule is designed to detect the presence of configuration files associated with the AnyDesk remote access software on Windows systems. Specifically, it identifies file events that include `user.conf` and `system.conf` located within the `AppData\Roaming\AnyDesk` directory. These files may signify that an adversary is using AnyDesk as a remote access tool to establish a command-and-control channel. Remote access software is often blended within a network environment for legitimate purposes, but its misuse can indicate nefarious activity. Detection of these artifacts can trigger an investigation into whether AnyDesk is being employed maliciously, particularly if it deviates from normal operational patterns.
+  The "Anydesk Temporary Artefact" detection rule aims to identify potential misuse of AnyDesk, a remote desktop application often leveraged for legitimate remote support. Adversaries may exploit such software to establish control over target systems while masquerading as legitimate users. This Sigma rule focuses on detecting the presence of specific configuration files—`user.conf` and `system.conf`—which are typically located in the AppData Roaming directory of Windows systems. Monitoring file events related to these artifacts aids in identifying instances where this remote access tool may be improperly employed, serving as an indicator of potential command-and-control (C2) activity as outlined in MITRE ATT&CK technique T1219 (Remote Access Software).
+  The rule utilizes data sources that record events related to file creation and modification, significantly enhancing visibility into unauthorized use of remote access tools. By focusing on configuration files that signal the setup of AnyDesk, this detection provides a specific lens through which incident responders can identify and investigate potentially malicious activity in real-time.
   ### Investigation Steps
-  - Examine recent file event logs within the EDR to identify when the AnyDesk configuration files were created or modified, along with the associated user account.
-  - Use process creation logs to determine if AnyDesk has been executed from the detected file paths, noting any abnormal command-line parameters that could signify exploitation.
-  - Review firewall and proxy logs for outbound connections from AnyDesk applications to external IP addresses that may not correspond to known or legitimate services.
-  - Correlate findings with user activity from internal VPN logs to detect any anomalous remote access patterns that might indicate unauthorized access.
+  - **Review File Events:** Check the Windows file event logs for any entries regarding access or changes to `user.conf` and `system.conf` files. Note the timestamps and associated user accounts for any unexpected patterns.
+    
+  - **Utilize EDR Tools:** Use EDR solutions to trace the process lineage and behavior associated with AnyDesk's execution. Pay attention to any unusual network connections or process interactions that may indicate malicious activity.
+    
+  - **Cross-Reference User Accounts:** Investigate user accounts associated with the detected events to ensure they correspond to familiar legitimate users. Check for any accounts that may not conform to established naming conventions or security practices.
+  - **Network Traffic Analysis:** Analyze network traffic logs for any outbound connections originating from devices running AnyDesk, particularly to abnormal or non-business-related destinations. Assess whether this traffic aligns with legitimate use or suggests unauthorized access.
+  ### Prioritization
+  The alert is categorized as medium severity due to the potential for unauthorized remote access that could lead to data breaches or system compromise. Given the commonality of legitimate usage in many IT support environments, it requires careful examination to distinguish between normal and suspicious actions.
+  ### Blind Spots and Assumptions
+  This detection rule may not fire under several circumstances, such as when adversaries delete or modify the targeted configuration files before it's logged, or when users employ obfuscation techniques to hide unauthorized installations. Additionally, systems where AnyDesk is legitimately used might lead to false positives, complicating investigation efforts. It is also assumed that appropriate logging settings are configured on endpoint devices to capture relevant file events effectively. 
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

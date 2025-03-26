@@ -57,9 +57,17 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This detection rule identifies suspicious file creation involving Windows shortcut files (LNK) that possess an additional extension (e.g., .doc.lnk or .pdf.lnk). Attackers often exploit the fact that Windows conceals file extensions by default to trick users into executing malicious files disguised as legitimate documents or images. The rule specifically targets files that are created within the user’s Recent Items directories, including those for Microsoft Office applications and common document formats. By analyzing logs generated from file events, the detection engine looks for instances where files that end in ".lnk" also contain potential document extensions in their names, while ensuring they are not typical usage by filtering out legitimate directories.
+  This Sigma rule identifies the suspicious creation of files that have double extensions ending with ".lnk", which is commonly used by threat actors to conceal malicious files. The primary data sources for this detection come from Windows File Event logs, specifically monitoring the "TargetFilename" for anomalies where the second extension is ".lnk". Attackers may exploit the fact that Windows often hides file extensions, making these files appear benign to users. The detection is particularly focused on files created within the user’s Recent Files directory and also includes specific checks for file creation events associated with Microsoft Office applications. This behavior aligns with MITRE ATT&CK technique T1036.007 (Masquerading: Match Legitimate Name or Location) under the tactic of Defense Evasion.
   ### Investigation Steps
-  - Review EDR logs to identify the creation event of the suspicious LNK files and check the process that created them for any anomalies.
-  - Analyze the command-line parameters associated with the process creation to determine if they indicate malicious intent or unusual behavior.
-  - Inspect proxy logs to track any outbound connections that may have originated from the executing process, which can help identify data exfiltration efforts.
-  - Utilize AV logs to see if the identified files or associated processes were flagged for any malicious activity, providing further insight into the potential threat.
+  - **Verify the Creation Event:** Use EDR tools to examine the process that created the suspicious LNK file. Look for the parent process and any command-line arguments that may indicate malicious intent.
+    
+  - **Assess Recent Activity:** Check Windows Event Logs, specifically the System and Security logs, to identify any recent user activity leading to the creation of the file. Look for any unusual user logins or other file creations around the same time.
+    
+  - **Analyze the LNK File:** If possible, analyze the contents of the LNK file. Use tools to confirm whether the file points to suspicious or unexpected targets, such as executable files, scripts, or other questionable resources.
+    
+  - **Review User and Network Activity:** Check Proxy and VPN logs for any unusual network connections made by the user around the time the file was created. Analyze traffic patterns to identify any connections to known malicious IP addresses or domains.
+  ### Prioritization
+  This alert is classified as medium severity because the presence of LNK files with suspicious double extensions often indicates an attempt to evade detection and could signify a precursor to further malicious activity, warranting immediate investigation.
+  ### Blind Spots and Assumptions
+  There are certain limitations to this rule. For instance, it may not trigger if the malicious actor uses non-standard directories or if they delete the LNK files quickly after creation. Additionally, if users regularly create files with legitimate double extensions or if third-party applications manipulate files in a manner similar to the criteria set in this detection, then false positives may occur. Engineers should consider these scenarios and adjust the detection parameters as necessary to minimize noise while ensuring security.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

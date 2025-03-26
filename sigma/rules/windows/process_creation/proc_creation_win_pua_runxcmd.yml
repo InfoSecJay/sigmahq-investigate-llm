@@ -32,9 +32,17 @@ falsepositives:
 level: high
 notes: |
   ### Technical Context
-  This detection rule is designed to identify the execution of the RunXCmd tool, a utility used to run programs as the System or TrustedInstaller accounts on Windows systems. The rule monitors process creation logs, specifically looking for command-line parameters that include `/account=system` or `/account=ti`, alongside the `/exec=` parameter. By capturing these specific command line inputs, the rule facilitates the detection of potential misuse of RunXCmd, which may indicate malicious activities or attempts to execute unauthorized commands with elevated privileges. It is critical for incident responders to recognize these patterns, as they may signify a security risk within the environment.
+  The Sigma rule titled "PUA 
+  - RunXCmd Execution" is designed to detect the execution of the RunXCmd tool, which allows users to execute commands using the System or TrustedInstaller accounts on Windows systems. This detection relies on process creation event logs which capture command-line arguments used during the execution of processes. Specifically, the rule watches for command lines that include flags indicating the execution under the System account (`/account=system`) and TrustedInstaller account (`/account=ti`), paired with the presence of the `/exec=` parameter, which indicates a command execution. This rule relates to the MITRE ATT&CK technique "T1569.002 
+  - Container Utilization" under the tactic of Execution. It is crucial for SOC analysts to understand that misuse of this tool can indicate potential privilege escalation or execution of unauthorized commands, necessitating thorough investigation.
   ### Investigation Steps
-  - Review process creation logs in your EDR tool to identify instances of RunXCmd execution, paying special attention to the CommandLine parameters that indicate elevated privileges.
-  - Correlate alerts from the SIEM to find if there are any related high-risk activities or lateral movement patterns that coincide with the timing of the RunXCmd execution.
-  - Examine the ParentCommandLine in the execution logs to determine the parent process that initiated the RunXCmd command, as this could reveal the context or intent behind the execution.
-  - Utilize AV and NDR tools to check for additional signs of compromise or unusual behavior on the affected systems, as these logs may provide further insights into potential exploitation attempts.
+  - **Verify Execution Context:** Check the process creation logs in the EDR for the RunXCmd tool (or any related parent processes) to establish the context of its execution and whether it was invoked by a legitimate user account.
+    
+  - **Analyze Command-Line Parameters:** Inspect the specific command-line parameters passed during the execution of RunXCmd using Sysmon logs to determine the nature of the executed commands and assess their potential impact.
+  - **Review Process Parentage:** Investigate the parent process of the detected RunXCmd execution to establish how it was called and whether it was spawned from an administrative tool or potentially malicious software.
+  - **Cross-reference with User Activity Logs:** Correlate the timing of the RunXCmd execution with logs from Windows Security and other relevant sources to identify any preceding events that may raise suspicions of malicious intent or unauthorized activities.
+  ### Prioritization
+  The severity level of this alert is categorized as high due to the potential for significant risk associated with executing commands as higher-privileged accounts, which could lead to unauthorized system modifications or further exploitation.
+  ### Blind Spots and Assumptions
+  This rule may not fire in environments where the RunXCmd tool is not utilized or properly monitored, leading to a blind spot in detection. Further, legitimate administrative uses may lead to false positives. Adversaries might also employ alternative execution methods or tools that do not trigger this specific rule, complicating detection efforts. Additionally, if command-line logging is disabled or not configured correctly, processes may go undetected.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

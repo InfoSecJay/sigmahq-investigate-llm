@@ -64,10 +64,17 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  The "Suspicious Scheduled Task Update" detection rule is designed to identify potentially malicious changes to scheduled tasks in Windows environments. Scheduled tasks are often used by attackers to maintain persistence or execute malicious commands at specified intervals or system restarts. This Sigma rule detects Event ID 4702, which pertains to modifications of existing scheduled tasks. It specifically looks for changes that involve certain suspicious file paths (e.g., AppData, Temp folders) and command-line executables often associated with malicious activity (e.g., `cmd.exe`, `powershell`, `wmic`). The rule pulls from security logs configured to fully audit object access in Windows, ensuring that any pertinent details about task updates are captured for analysis.
+  The "Suspicious Scheduled Task Update" detection rule monitors Windows Security event logs for updates to scheduled tasks that are associated with potentially malicious activity. Specifically, it looks for Event ID 4702, which signals the modification of scheduled tasks, and scans the task's content for suspicious keywords or paths typically associated with exploitation attempts. This includes examining command-line arguments for known triggering executables like `powershell`, `cmd.exe`, or `regsvr32`, as well as directories like `Temp`, `Roaming`, and `Public`. These enhancements are important for typical strategies adversaries may employ in persistence and privilege escalation, in line with the MITRE ATT&CK technique T1053.005 — Scheduled Task/Job.
   ### Investigation Steps
-  - Review EDR logs to identify recent modifications to scheduled tasks, paying close attention to any tasks that have been altered with suspicious parameters or paths.
-  - Query command execution logs for the processes flagged by the rule, such as `cmd.exe` or `powershell`, to track any related user actions preceding the scheduled task update.
-  - Analyze Windows security logs for Event ID 4702 to gather contextual information, such as the user account that made the change and the exact command that was executed.
-  - Cross-reference findings with AV and NDR alerts that may indicate further signs of compromise, looking for correlated indicators or adversarial behaviors.
+  - **Verify Task Modifications:** Use EDR tools to examine the configured tasks for the event in question. Compare the task settings with baseline configurations or known-good states to identify anomalies.
+    
+  - **Command Execution Review:** Analyze the command execution parameters from the task's content through the Security logs or Sysmon data. Look for execution of suspicious commands or scripts related to known exploits.
+  - **Path Analysis:** Investigate the file system paths associated with the scheduled tasks. Check if the paths are legitimate locations or if they redirect to temporary or public directories that could be synonymous with malicious activities.
+  - **Cross-Reference Alerts:** Utilize correlation features within the SIEM or EDR to check if this alert aligns with other suspicious activities, such as failed logins or known malware signatures, to assess the broader context of the incident.
+  ### Prioritization
+  Given the potential for privilege escalation and persistence that may accompany suspicious scheduled task modifications, alerts from this rule are classified as high severity. Quick identification and response are imperative to prevent further exploitation.
+  ### Blind Spots and Assumptions
+  This rule presumes that the environment has adequate logging configured for Event ID 4702 and may fail to trigger if the Advanced Audit Policy settings are not correctly implemented. Additionally, if an attacker has sufficient access, they may create or modify tasks without triggering alerts, especially if they utilize legitimate tools or scripts that do not meet the identified criteria. This means that continued vigilance and proactive configurations are necessary to maintain security posture.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

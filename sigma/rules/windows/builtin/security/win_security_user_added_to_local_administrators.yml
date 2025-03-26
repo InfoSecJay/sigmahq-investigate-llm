@@ -31,13 +31,20 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This Sigma rule is designed to detect activities related to the addition of a user to the local administrator group on a Windows system, specifically identifying when an account is granted elevated privileges. The rule monitors for specific event ID 4732, which logs changes to user group memberships within the local Windows security context. The key attributes analyzed include the target username, which must begin with "Administr" to indicate it pertains to the local administrator group, and the SID (Security Identifier) which matches the identifier for the local administrators group (S-1-5-32-544). Additionally, the rule filters out entries where the subject username ends with a dollar sign, thus ignoring automated system accounts typically involved in legitimate administrative activities.
-  Detecting unauthorized changes to the local admin group is critical as it could indicate potential privilege escalation, where unauthorized users may be gaining elevated rights for malicious purposes. This alert serves as an important signal for SOC analysts to investigate further to ensure that additions to the administrator group are valid and authorized.
+  The rule "User Added to Local Administrator Group" is designed to detect instances when a new user is added to the local administrator group on Windows systems, which is an important event for monitoring changes in user privilege levels. The rule focuses on Windows Security Event ID 4732, which logs the addition of a member to a security group. Specifically, it looks for users being added to the local administrator group (identified by the Security Identifier (SID) S-1-5-32-544) while filtering out potential noise from service accounts (accounts ending with '$'). 
+  This detection rule aligns with the MITRE ATT&CK framework, specifically under the tactics of Privilege Escalation (T1055) and Persistence (T1098), as unauthorized privilege escalation can lead to significant security risks. By monitoring these events, security teams can identify both legitimate administrative actions and potentially malicious activities aimed at compromising system integrity.
   ### Investigation Steps
-  Check the EDR for recent process activity linked to the user account that was added to the local administrator group to identify any suspicious behavior.
-    
-  Review security logs in the SIEM to trace back the history of changes made to the user group memberships, focusing on the specific event ID 4732.
-    
-  Examine the context of the addition using the Proxy logs to see if there were any related web activities or downloads occurring around the same timeframe.
-    
-  Validate the legitimacy of the addition by comparing it against known administrative activities and policies within the organization.
+  - **Validate the Source of Change:** Check the Security logs in Windows Event Viewer for Event ID 4732 and identify who initiated the action. Determine if the subject user was authorized to make such changes.
+  - **Evaluate User Context:** Cross-reference the logged user with your identity management system to confirm if their role justifies being added to the local administrator group.
+  - **Correlate with Other Data Sources:** Review EDR logs for any unusual activities associated with the user before and after the change, such as unusual process creations or access to sensitive files.
+  - **Monitor for Follow-Up Actions:** After this event, monitor for any subsequent actions taken by the newly added administrator, such as process creation or changes in system configurations that could indicate potential malicious intent.
+  ### Prioritization 
+  The severity of this alert is categorized as medium because, while the addition of a user to the local administrator group can be legitimate, it may also signal unauthorized privilege escalation. Quick investigation is crucial to ascertain the legitimacy of such changes, as they can lead to further security incidents.
+  ### Blind Spots and Assumptions
+  This rule may not fire in scenarios where:
+  - The relevant event logging is not enabled or sufficiently configured for the host.
+  - Legitimate administrative users may routinely add themselves or others to the admin group, creating false positives.
+  - Attackers can utilize tarnished accounts to make these changes without generating alerts, leading to potential evasion.
+  - Actions taken via different methods (e.g., direct manipulation of group membership through scripts not invoking the security log) may be missed.
+  Assume there are technical barriers such as logging level configurations that may not capture all events related to user privilege changes.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

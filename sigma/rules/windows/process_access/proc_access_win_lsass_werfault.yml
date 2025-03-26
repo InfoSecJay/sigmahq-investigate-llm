@@ -27,10 +27,17 @@ falsepositives:
 - Unknown cases in which WerFault accesses lsass.exe
 level: high
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect attempts to dump credentials from the Local Security Authority Subsystem Service (LSASS) process using the WerFault.exe process in Windows, which is typically associated with handling application errors. The rule monitors for specific characteristics indicative of credential dumping tools such as Mimikatz, NanoDump, and others that may use WerFault to access LSASS memory. When the WerFault.exe process is detected accessing LSASS.exe with high privilege access (indicated by the GrantedAccess flag), this may signal a credential dumping attempt. The detection leverages process access logs, specifically focusing on interactions involving the ntdll.dll, dbghelp.dll, or dbgcore.dll libraries for Windows 10 and Server 2016 and later.
+  This detection rule is designed to identify potential credential dumping attempts by monitoring access to the Local Security Authority Subsystem Service (LSASS) process via the `WerFault.exe` service. Specifically, it looks for instances where `WerFault.exe`, a Windows error reporting tool, processes memory dumps of `lsass.exe`, which could indicate the use of tools like Mimikatz, NanoDump, or Procdump to extract clear-text credentials from memory. The detection leverages process access logs to look for events where `WerFault.exe` attempts to access `lsass.exe` with maximum privileges (as indicated by the `GrantedAccess` parameter set to `0x1FFFFF`). This rule is aligned with the MITRE ATT&CK framework under the Credential Access tactic (T1003.001 
+  - OS Credential Dumping: LSASS Memory).
   ### Investigation Steps
-  - Utilize your EDR platform to identify instances of WerFault.exe accessing LSASS.exe. Look for elevated permissions and any associated process trees.
-  - Review historical logs from the SIEM to check for anomalies related to credential dumping events, particularly around the time of the alert generation.
-  - Correlate data from AV solutions to determine if any known credential-dumping tools were detected during the time frame of the suspicious activity.
-  - Analyze Windows Event Logs for any process creation events or failures that correspond with the LSASS access, paying close attention to unusual command-line arguments and parent-child process relationships.
+  - **Review Process Access Logs**: Utilize EDR tools to examine the process access logs around the time of the alert, focusing on `WerFault.exe` accessing `lsass.exe` to understand the context of the activity.
+  - **Correlate with Event Logs**: Check Windows Security and Sysmon logs for any abnormal behavior or associated processes that may indicate an ongoing credential dumping attempt.
+  - **Analyze Network Connections**: Use NDR tools to investigate any unusual outbound network connections from the host involved, which might suggest exfiltration of credentials or interaction with known malicious infrastructure.
+  - **Verify System Integrity**: Utilize antivirus or EDR solutions to run scans on the affected systems for known tools (like Mimikatz) and ensure that system integrity is intact, looking for any signs of compromise.
+  ### Prioritization
+  The alert has a high severity level due to the critical nature of the LSASS process in maintaining security on Windows systems. Successful credential dumping can lead to unauthorized access and potential lateral movement in the network, making timely investigation crucial.
+  ### Blind Spots and Assumptions
+  This rule may not fire in scenarios where legitimate error reporting occurs, causing a valid `WerFault.exe` interaction with `lsass.exe`. Additionally, it assumes that `WerFault.exe` has not been modified or abused by an adversary to mask their activities. False negatives may occur if an attacker uses alternative methods or processes not captured by this rule to access LSASS memory.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

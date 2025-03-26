@@ -42,10 +42,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  # Deletion of Volume Shadow Copies via WMI with PowerShell
   ### Technical Context
-  This detection rule identifies potential malicious activity involving the deletion of Windows Volume Shadow Copies using PowerShell commands and WMI (Windows Management Instrumentation). The rule specifically looks for patterns in process creation logs where command-line arguments include references to `Get-WmiObject`, `Get-CimInstance`, and related functions such as `Remove-WmiObject` or `.Delete()`. Volume Shadow Copies are often targeted by ransomware families, including Sodinokibi/REvil, to eliminate restore points and hinder recovery efforts after an attack. By capturing these specific command-line patterns, the rule aims to notify security analysts of potentially harmful actions that could compromise the integrity of the data and systems in the enterprise environment.
+  This detection rule targets the deletion of Windows Volume Shadow Copies, a technique often used by ransomware families like Sodinokibi/REvil to hinder recovery efforts. The rule operates by monitoring process creation events, specifically focusing on command line arguments indicative of malicious activity. Key terms searched include `Get-WmiObject`, `Get-CimInstance`, and `Win32_ShadowCopy`, which are typical commands used within PowerShell scripts to interact with Volume Shadow Copies. By assessing the command line execution for deletive actions (e.g., `.Delete()` or `Remove-WmiObject`), the rule aims to identify nefarious attempts to manipulate these system resources. This technique relates to the MITRE ATT&CK framework under the Impact tactic (ATT&CK ID T1490).
   ### Investigation Steps
-  - Review EDR logs to track the execution of the identified PowerShell commands, specifically focusing on the timestamps and the associated parent processes.
-  - Investigate command-line parameters within process creation logs to confirm the use of `Get-WmiObject` and related WMI functions, ensuring the context is analyzed for malicious intent.
-  - Check for related events in the SIEM that may indicate lateral movement or other suspicious activity leading up to the shadow copy deletion.
-  - Correlate findings with any alerts from AV or NDR tools that may have flagged abnormal behavior on the affected endpoints or networks.
+  - **Review Process Creation Logs:** Examine the Windows Security Event Logs for process creation events that match the identified command-line parameters, paying close attention to unusual parent processes.
+  - **Analyze EDR Alerts:** Use your EDR tool to track any associated alerts that may indicate lateral movement or persistence mechanisms related to the identified command.
+  - **Check for Ransomware Indicators:** Investigate the environment for any signs of ransomware activity, such as abnormal file access patterns or encryption behaviors following the alert.
+  - **Correlate with Network Logs:** Inspect network traffic logs for any outgoing connections from the affected host that may point to command and control (C2) servers or data exfiltration attempts.
+  ### Prioritization
+  Given the high severity level assigned to this alert, it indicates a strong possibility of ransomware activity which can severely compromise data integrity and availability in the enterprise environment. Prompt investigation is vital to mitigate potential impacts.
+  ### Blind Spots and Assumptions
+  This rule may not trigger in scenarios where the attackers obfuscate command-line arguments or utilize alternative methods for deleting shadow copies beyond those detected. Additionally, if an adversary has legitimate administrative access, the visibility into their activities could be limited. Furthermore, the rule relies on the presence of WMI events and PowerShell scripting; if these components are disabled or heavily restricted in your environment, the capability to detect such deletions may be compromised.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

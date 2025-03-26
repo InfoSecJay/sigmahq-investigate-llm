@@ -52,11 +52,20 @@ falsepositives:
 - Rare programs that contain the word dump in their name and access lsass
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies potentially malicious activity targeting the LSASS (Local Security Authority Subsystem Service) process in Windows systems. Specifically, it looks for processes whose image names contain the keyword "dump" that attempt to access LSASS memory. The rule is focused on monitoring process access events where the granted access levels correspond to reading memory or obtaining sensitive information, which can indicate an attempt to extract sensitive credentials from LSASS. The primary data sources for this detection are process access logs that capture details such as the source image attempting the access and the access rights granted.
-  By analyzing the detected patterns, incident responders can assess whether the access attempts were legitimate or part of a broader tactic to compromise credentials. Such behavior is often associated with tools used for credential dumping, making early detection crucial for remediation and minimizing potential security breaches.
+  This Sigma rule is designed to detect suspicious access requests to the LSASS process (Local Security Authority Subsystem Service), which is vital for managing user credentials and security policies in Windows environments. The rule specifically targets processes that contain the keyword "dump" in their image name, indicating potential malicious intent to extract credentials from LSASS. The detection leverages process access logs where it looks for access rights typically associated with memory read operations, such as `PROCESS_VM_READ`, `PROCESS_QUERY_INFORMATION`, and `PROCESS_QUERY_LIMITED_INFORMATION`. This aligns with the MITRE ATT&CK framework's Tactic of Credential Access and Technique T1003.001, which focuses on credential dumping from LSASS.
+  To effectively identify unauthorized access attempts, the rule monitors various granted access rights codes that correspond to memory reading capabilities. These access rights are crucial indicators that alert analysts to potentially malicious behavior, enabling timely investigations to mitigate credential theft risks.
   ### Investigation Steps
-  - Review EDR logs to investigate the process attempting to access LSASS. Check the source image name for the presence of the keyword "dump" and assess its legitimacy.
-  - Correlate the time of the detected access event with other security logs across the environment. Use SIEM tools to identify any abnormal activities by the same source process during that timeframe.
-  - Analyze the granted access levels associated with the LSASS memory access attempt. Look specifically for elevated privileges, which could indicate malicious intent.
-  - If available, query proxy logs and any recent authentication events to see if this process has made external connections or queried credential stores, which could suggest the results of a successful credential dump.
+  - **Review Process Access Logs**: Investigate the specific access attempts to the LSASS process. Check the event logs for the process initiating the access and note the timestamp and user context.
+    
+  - **Analyze Source Process**: Determine the origin of the source process containing "dump" in its name by checking file path and application legitimacy in the EDR tool. Assess whether the process is a known legitimate tool or indicative of adversary behavior.
+    
+  - **Correlate with Other Security Tools**: Use the SIEM and threat intelligence feeds to see if the source process matches any known malicious indicators or techniques used for credential dumping.
+    
+  - **Check for Additional Indicators**: Look for other related indicators such as unusual network connections or active sessions during the same timeframe to assess the broader impact of the detected event.
+  ### Prioritization
+  Given the high-level severity of the alert, this rule indicates a significant risk to enterprise security, as unauthorized access to LSASS could lead to credential theft and lateral movement within the environment. Immediate investigation is warranted to prevent unauthorized access to sensitive data.
+  ### Blind Spots and Assumptions
+  This rule may not trigger in scenarios where legitimate applications misused or poorly named processes have "dump" in their names, leading to false positives. There is an assumption that all relevant access events are being recorded correctly, and environmental configurations are compliant with the logging requirements. Additionally, advanced adversaries may employ tactics to obfuscate malicious activity, potentially bypassing this detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

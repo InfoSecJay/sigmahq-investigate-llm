@@ -28,10 +28,19 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  This Sigma rule aims to identify suspicious access attempts to sensitive Microsoft Teams files—specifically the "Cookies" file and "leveldb" storage—by processes that are not typically associated with Microsoft Teams. Microsoft Teams stores authentication tokens in these files in plain text, which makes them highly sensitive in regard to maintaining user security. The rule focuses on Windows file access logs, looking for file access events that coincide with the specific paths of these sensitive files while filtering out legitimate access from the Teams application itself. By detecting uncommon processes attempting to access these files, security teams can highlight potential credential theft or misuse scenarios.
+  This detection rule monitors for unauthorized file access attempts to sensitive Microsoft Teams files, specifically "Cookies" and "Local Storage" leveldb files. It focuses on identifying these access attempts when initiated by processes that are not the legitimate Teams application (Teams.exe). The rule checks the file access logs from the Windows kernel to flag any unusual processes accessing these sensitive files, which could indicate credential theft tactics utilized by adversaries to extract authentication tokens or other sensitive information stored by Teams. This rule is associated with the MITRE ATT&CK tactic for Credential Access (T1528), which highlights the risk of unauthorized entities gaining access to user credentials through file exploitation.
   ### Investigation Steps
-  - Utilize EDR tools to analyze the behavior of the uncommon processes and gather information about their origin, including the legitimacy and reputation of the process.
-  - Review file access logs from Microsoft Teams to correlate the time of the suspicious activity with user actions or other security incidents.
-  - Check the network traffic logs via the NGFW or NDR to investigate if any unusual external communications occurred around the same time as the file access attempt.
-  - Conduct a review of user activity within Microsoft Teams to identify any unauthorized changes or access, focusing on users whose tokens may have been compromised.
+  - **Check Process Origin:** Investigate the process attempting the file access using EDR. Confirm whether the process is part of the legitimate Teams application or an uncommon application that should not typically access these files.
+    
+  - **Review File Access Logs:** Utilize Windows Event Logs to examine detailed file access events around the time of the alert. Look for patterns of repeated access or unusual access times that could indicate malicious behavior.
+    
+  - **Validate User Activity:** Cross-reference user actions in Microsoft Teams to determine if the incident correlates with legitimate user activity or if it appears to be an unauthorized attempt to access sensitive data.
+    
+  - **Analyze Network Connections:** If applicable, check for any unexpected network connections or data exfiltration attempts using NDR and proxy logs that could accompany the suspicious file access attempt.
+  ### Prioritization
+  The alert is classified as medium severity due to the potential risk of credential exposure through unauthorized application access to sensitive Microsoft Teams data. The impact can lead to significant security breaches if not addressed promptly.
+  ### Blind Spots and Assumptions
+  This rule may not trigger if a legitimate process is modified or if attackers use known, benign applications to access sensitive files, thus evading detection. Additionally, the rule assumes that the only business-critical app accessing these files is the Microsoft Teams application. Misconfigurations or changes in file paths could prevent detection as well.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -44,9 +44,21 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This detection rule is designed to identify potential malicious activity involving the PowerShell `Get-ADComputer` cmdlet, commonly used for gathering information about computers in an Active Directory environment. The rule focuses specifically on cases where this cmdlet is executed with a command-line that indicates the output is redirected to a file. By monitoring process creation logs for instances of PowerShell (either `powershell.exe` or `pwsh.exe`), the rule checks if the command line includes specific strings related to `Get-ADComputer` and output redirection, such as `Out-File`, `Set-Content`, or `Add-Content`. Such behavior may indicate an attempt by an attacker to harvest sensitive information regarding network computers, often used as a preliminary step before more malicious actions are executed.
+  The Sigma rule "Computer Discovery And Export Via Get-ADComputer Cmdlet" is designed to detect suspicious use of the PowerShell cmdlet `Get-ADComputer`, which can be employed by attackers to gather information about computers in a domain. This cmdlet is often used in conjunction with various output redirection commands such as `Out-File`, `Set-Content`, or `Add-Content`, indicating intent to export the gathered data to a file. The detection focuses on monitoring process creation events specifically for PowerShell (`powershell.exe` or `pwsh.exe`), capturing command-line arguments that involve querying Active Directory for computers, and writing those outputs to files.
+  By leveraging Windows process creation logs as the primary telemetry source, the rule looks for specific patterns in command-line execution that may signify malicious intent, linking it to the MITRE ATT&CK tactics of Discovery, particularly technique T1033 (System Owner/User Discovery). As malicious actors may utilize this cmdlet during initial reconnaissance or post-compromise stages, effective detection will allow incident responders to investigate potential unauthorized information gathering within their environments.
   ### Investigation Steps
-  - Review the EDR logs for any recent instances of PowerShell processes executing the `Get-ADComputer` cmdlet with the specified command-line patterns, focusing on the user context under which these commands were run.
-  - Investigate any identified processes by checking additional logs, such as process creation timelines, to determine whether this activity aligns with typical administrative operations or signifies potential malicious intent.
-  - Analyze network traffic logs from the NGFW and Proxy to check for any unusual outbound communications related to the time of the PowerShell activity, looking for data exfiltration or connections to known malicious IP addresses.
-  - Consult Active Directory logs to identify if the user or service account executing the command has a history of legitimate administrative tasks or if this usage is anomalous, which could indicate account compromise.
+  - **Review EDR Activity:** Check the EDR logs for alerts related to PowerShell execution and gather contextual information on the originating user and machine, ensuring that the activity is not part of a legitimate operation.
+    
+  - **Analyze Command-Line Parameters:** Investigate recent PowerShell command-line logs for any executions of `Get-ADComputer` alongside redirection commands to archive files, confirming if any potentially sensitive computer information was exported.
+    
+  - **Correlate Security Logs:** Cross-reference Windows Security, System, and Application logs to identify any related activities, such as account logins or machine access that occurred around the time of the suspicious PowerShell execution.
+    
+  - **Check for Legitimate Use:** Consult with system administrators or the user associated with the detection to ascertain if the execution was part of standard administrative scripts or if further investigation into malicious intent is warranted.
+  ### Prioritization
+  The alert is classified as medium severity due to the potential risk of an unauthorized user collecting sensitive information about the organization's computer infrastructure, which could facilitate further attacks.
+  ### Blind Spots and Assumptions
+  This detection rule may not fire if:
+  - The PowerShell execution is obfuscated or if anti-detection techniques are employed by the adversary, altering the command-line arguments.
+  - Legitimate administrative tasks frequently involve the use of the same cmdlet, potentially leading to false positives without adequate filtering for known good user activity.
+  - Systems lacking proper logging may not capture the relevant process execution data, resulting in missed detections in environments with disabled Windows logging settings.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

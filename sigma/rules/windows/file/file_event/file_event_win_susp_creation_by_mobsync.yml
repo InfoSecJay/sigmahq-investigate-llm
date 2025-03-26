@@ -28,10 +28,16 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This Sigma rule is designed to detect suspicious file creation activities initiated by Microsoft Sync Center, specifically the executable `mobsync.exe`. The rule focuses on monitoring file events where files created by this process have specific extensions, particularly those that could indicate malicious intent, such as `.dll` and `.exe`. By tracking the creation of these file types, this rule can help identify potential threats, as attackers may leverage legitimate applications to deploy harmful files while evading detection.
-  To effectively trigger alerts, the rule analyzes log data from Windows file event sources, specifically targeting events that track file creation activities associated with `mobsync.exe`. By correlating the process name with the file types being created, the detection logic aims to reveal behaviors consistent with tactics utilized in defense evasion and execution phase attack methods, enabling a more proactive security posture.
+  This Sigma rule is designed to detect potentially malicious activities associated with Microsoft Sync Center (mobsync.exe), specifically monitoring for the creation of suspicious file types, such as `.dll` and `.exe`. The rule works by analyzing file event logs generated within Windows environments, focusing on instances where the mobsync.exe process creates files that may indicate malicious behavior. The motivation behind monitoring mobsync.exe stems from its potential misuse for executing harmful payloads or evading security controls, as attackers might leverage legitimate system processes to blend in with normal operations. This rule aligns with MITRE ATT&CK techniques T1055 (Process Injection) and T1218 (Signed Binary Proxy Execution), indicating it addresses tactics related to execution and defense evasion.
   ### Investigation Steps
-  - Verify the instance of `mobsync.exe` running on the affected endpoint using the EDR tool to assess its legitimacy and corresponding process hierarchy.
-  - Utilize file integrity monitoring tools to examine the properties and metadata of the suspicious files created, noting creation times and any unusual attributes.
-  - Review the contextual logs from the Proxy to identify any unusual outbound connections or behaviors linked to the files created by `mobsync.exe`.
-  - Check cloud storage logs (if applicable) for any syncing activities that correlate with the times the suspicious files were created, assessing potential data exfiltration risks.
+  - **Verify Process Activity:** Confirm that mobsync.exe was indeed the process responsible for creating the detected files by examining your EDR tool for process creation events corresponding to the timestamp of the alert.
+    
+  - **Analyze Created Files:** Check the properties of the created files (e.g., hashes, digital signatures) to determine their legitimacy by comparing them against known good signatures in your AV/EDR system.
+    
+  - **Review System Context:** Investigate the system context in which the creation occurred by examining related logs from Windows Security or Sysmon to identify any suspicious commands or unusual user behavior associated with the process.
+  - **Evaluate Network Activity:** Utilize network connection logs to determine whether mobsync.exe initiated any external connections or communicated with known malicious IP addresses or domains that could indicate command and control activity.
+  ### Prioritization
+  The severity level of this alert is set to medium due to the potential for legitimate tools to be misused by adversaries for executing malicious code; however, further contextual investigation is required to assess the true nature of the alert.
+  ### Blind Spots and Assumptions
+  This rule may not fire in environments where Microsoft Sync Center is disabled or where mobsync.exe is absent. Additionally, the rule relies on the standard behavior of system processes, assuming that file creation is unusual within the context of mobsync.exe activities. Adversaries may utilize techniques to disable or spoof the behavior of this process, leading to missed detections.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

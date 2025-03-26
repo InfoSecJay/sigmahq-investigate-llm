@@ -23,15 +23,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect instances where the `OpenWith.exe` process executes a specified binary with a command-line argument containing the `/c` option. `OpenWith.exe` is a Windows utility typically used to open files with a specified application; however, its misuse can indicate evasion tactics or suspicious activity by attackers attempting to execute arbitrary commands without raising immediate flags. The rule specifically focuses on process creation logs from Windows systems, capturing relevant information such as the image name and command-line parameters to identify potential abuse of this executable.
-  By monitoring for the `OpenWith.exe` process with the `/c` argument, this rule serves as an indicator of potential defense evasion techniques, allowing security teams to detect and initiate investigations into unusual usage patterns that could signify malicious activity. The logs sourced for this detection typically include details about process initiation, including timestamps, parent processes, and command-line arguments.
+  The Sigma rule titled "OpenWith.exe Executes Specified Binary" is designed to detect the execution of potentially malicious binaries using a benign Windows utility, `OpenWith.exe`. This executable is commonly associated with the Windows feature that allows users to select an application to open files. In this context, an adversary might leverage `OpenWith.exe` to execute malicious commands hidden behind legitimate processes, thereby evading detection. The rule specifically examines process creation logs for instances where `OpenWith.exe` is being invoked with certain command-line arguments, particularly those containing '/c', which is commonly used in command-line executions to run specified commands in the context of a shell. The technique maps to MITRE ATT&CK's Defense Evasion tactic (T1218), where attackers seek to conceal their activities by utilizing legitimate system tools.
   ### Investigation Steps
-    
-  - Review process creation logs in your EDR to determine the context of the `OpenWith.exe` execution, checking for parent-child relationships that may indicate how the process was initiated.
-    
-  - Analyze the command-line arguments associated with `OpenWith.exe` to assess which binaries are being executed, correlating this information with known good applications to identify anomalies.
-    
-  - Utilize threat intelligence sources to validate any binaries executed via `OpenWith.exe` to determine if they are linked to known malicious behaviors or activities.
-    
-  - Check network logs in your NGFW or Proxy to uncover any external communications initiated as a result of the `OpenWith.exe` execution, which may reveal additional malicious intent or follow-on actions.
+  - **Check Process Creation Logs:** Review the process creation logs from your EDR solution for instances where `OpenWith.exe` was launched and detail the command-line parameters used along with the parent process ID.
+  - **Correlate with Sysmon Logs:** Use Sysmon to track additional parameters like the process tree, network connections, or other related activities around the time of the alert to assess any suspicious behavior.
+  - **Analyze File and Command History:** Investigate recently modified files or associated binaries accessed or executed alongside the alert timeframe, focusing on any known malicious indicators or unusual access patterns.
+  - **Review Recent Security Events:** Scan Windows Security logs for any relevant alerts related to file or process integrity, ensuring that there are no coinciding security alerts that may provide further evidence of malicious activity.
+  ### Prioritization
+  The alert is categorized as high severity due to the potential for significant impact from misuse of `OpenWith.exe`, which may be exploited to execute harmful payloads or commands masquerading as legitimate activity.
+  ### Blind Spots and Assumptions
+  There are several assumptions and known blind spots with this rule. For instance, this rule may not trigger if `OpenWith.exe` is utilized with benign command-line arguments that do not contain '/c'. Additionally, if an attacker uses alternative legitimate processes to execute their commands, or if the command line is obfuscated (e.g., using encoded or hidden commands), this detection may fail. Similarly, instances where traditional endpoint protection tools are disabled or misconfigured may also impede detection capabilities. 
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

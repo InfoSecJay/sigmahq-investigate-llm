@@ -43,10 +43,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule focuses on the use of the Windows service control utility, `sc.exe`, and its potential abuse by threat actors. Specifically, it identifies instances where `sc.exe` is used to create or modify services with unique security descriptors that make them hidden and removable only by the creator. The rule detects command-line parameters associated with the `sdset` command, which sets security descriptors using a specific syntax that can conceal services from normal administrative views. The primary data sources for this rule include process creation logs that capture the execution of `sc.exe`, along with the associated command-line arguments that indicate misuse and the presence of unusual security permissions.
+  This Sigma rule is designed to detect a potentially malicious use of the Windows service control utility, `sc.exe`. Specifically, it focuses on instances where threat actors modify a service's Discretionary Access Control List (DACL) to hide services from standard user queries. By examining process creation logs that specifically include `sc.exe`, the rule looks for command-line invocations that include the appropriate flags to set an abnormal DACL using the substring `sdset` followed by permission codes indicative of the service being hidden (e.g., `DCLCWPDTSD`). In the context of MITRE ATT&CK, this behavior falls under the tactics of Persistence, Defense Evasion, and Privilege Escalation, particularly identified as technique T1574.011 – "Service DACL Abuse". 
   ### Investigation Steps
-  - Utilize EDR tools to query process creation logs for any recent instances of `sc.exe` being executed, particularly those with the `sdset` command-line option.
-  - Review the command-line parameters captured in the process logs to identify any service creation commands that include unusual security descriptors (e.g., `DCLCWPDTSD`).
-  - Check the affected services through Windows Service Manager or equivalent tools to verify whether any unknown or suspicious services have been created or hidden.
-  - Consult SIEM logs for any related alerts, anomalies, or user accounts that may have triggered with elevated privileges around the time of the `sc.exe` execution.
+  - **Inspect Process Creation Logs**: Utilize EDR tools to query for any recent process creation logs that involve `sc.exe`, specifically looking for events that match the detection criteria of the rule.
+  - **Review Service Configuration**: Analyze the configuration of newly created or modified services in the Windows Services console or via PowerShell cmdlets to ensure they align with expected settings and permissions.
+  - **Correlate with User Activity**: Check logins and actions of users around the time of the detection to identify any suspicious behavior that may have led to service manipulation or unauthorized DACL modifications.
+  - **Monitor Network Activity**: Use NDR or firewall logs to look for unusual outbound connections that may be initiated by the suspicious service, which could indicate nefarious activity.
+  ### Prioritization
+  Given the high severity level assigned to this alert, its presence indicates a crucial detection of potentially malicious modification of service permissions, which can allow attackers to maintain persistence and evade detection, thus warranting immediate investigation.
+  ### Blind spots and Assumptions
+  The rule relies on `sc.exe` usage, meaning it may not detect other methods of service manipulation that utilize different tools or scripts. Additionally, if an adversary uses an alternate method to hide services that does not invoke `sc.exe`, the detection may not trigger. It is also assumed that standard logging is enabled, and sysmon or other monitoring is adequately set up to capture this activity; if not, it may fail to fire properly.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

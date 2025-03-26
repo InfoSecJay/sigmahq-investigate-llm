@@ -30,12 +30,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  The Sigma rule "Invoke-Obfuscation Obfuscated IEX Invocation 
-  - PowerShell" is designed to detect and alert on obfuscated PowerShell commands that leverage the Invoke-Obfuscation framework, specifically focusing on the use of the `IEX` (Invoke-Expression) cmdlet. This detection works by analyzing script block logging, capturing script content executed in PowerShell environments. The rule identifies various obfuscation patterns commonly found in malicious scripts, including those that manipulate built-in variables and environment settings. By utilizing regular expressions to match specific characteristics of obfuscation, the rule provides insight into potential attacks aimed at evading security mechanisms and executing code stealthily.
-  To enable effective detection, script block logging must be enabled on the Windows systems being monitored. This allows the SIEM or EDR tools to analyze the content of PowerShell scripts executed within the environment, facilitating the identification of suspicious activities indicative of malicious intent.
+  This detection rule identifies obfuscated PowerShell `Invoke-Expression` (IEX) commands that have been generated using the Invoke-Obfuscation framework. The rule specifically looks for script blocks containing specific patterns that are indicative of obfuscation techniques, such as the manipulation of PowerShell variables and environment settings. For this to work effectively, Script Block Logging must be enabled, allowing the capture of PowerShell command execution and the text of the scripts being executed. This detection aligns with the MITRE ATT&CK tactics of "Defense Evasion" (T1027) and "Execution" (T1059.001), showcasing an adversary's attempts to hide their activities using obfuscation techniques.
   ### Investigation Steps
-  - Review the PowerShell script block logs through your EDR tool to identify any occurrences of obfuscated IEX commands that match the specified regex patterns. Pay special attention to the context of their execution.
-  - Investigate the source of the PowerShell invocation by checking user activity logs and identifying any potentially unauthorized users or accounts initiating the scripts.
-  - Cross-reference any identified obfuscated commands with threat intelligence sources to determine if they are known malicious indicators associated with recent attacks.
-  - Examine firewall and proxy logs for any outbound connections made during the period of the detected obfuscated invocation to assess if data exfiltration or further malicious activities may have occurred.
+  - **Review PowerShell Logs:** Examine the PowerShell script block logs for the relevant event IDs that match the detected patterns of obfuscation. Look for the context of the execution to determine if it aligns with known malicious behavior.
+  - **Correlate with EDR:** Utilize your Endpoint Detection and Response (EDR) tool to check the host's activity logs around the time of the alert. Investigate any unusual process creation, especially those involving PowerShell, to identify potential malicious executions.
+  - **Network Analysis:** Use Network Detection and Response (NDR) tools to monitor any outbound connections initiated by the process. Obfuscated PowerShell commands may attempt to connect to external command-and-control servers or exfiltrate data.
+  - **Examine Related User Activity:** Check for any associated user activity in Security logs, including logon events to see if there was a pattern of access prior to the alert, potentially indicating a compromised user account.
+  ### Prioritization
+  Due to the high severity level assigned to this rule, any alert triggered indicates a significant concern for possible active security threats utilizing obfuscation techniques to bypass security controls, which necessitates immediate investigation. 
+  ### Blind spots and Assumptions
+  This rule relies on the assumption that Script Block Logging is enabled, which may not be the case in all environments. Additionally, some legitimate administrative tasks or maintenance operations may trigger false positives if they use obfuscation. It may also not catch obfuscation tactics that do not use the patterns specified in the detection logic, leaving room for advanced adversarial methods to escape detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

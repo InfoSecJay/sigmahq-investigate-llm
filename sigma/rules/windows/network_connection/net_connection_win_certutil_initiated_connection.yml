@@ -29,11 +29,19 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  The detection rule identifies unusual network connections initiated by the `certutil.exe` utility, a built-in Windows command-line tool primarily used for managing certificates. Attackers may exploit this utility to covertly download malware or additional payloads from the internet, making it crucial to monitor its network activity. This rule focuses on connections where `certutil.exe` is the initiating process, specifically tracking outbound traffic on common service ports like 80 (HTTP), 443 (HTTPS), and others. Key technical data sources involved in this detection include network connection logs that capture details about process initiations, process images, and destination ports.
-  By flagging these suspicious outbound connections, incident responders can investigate potential command-and-control (C2) activities, allowing for quicker identification and mitigation of security threats associated with malware distribution.
+  The Sigma rule for detecting "Uncommon Network Connection Initiated By Certutil.EXE" is designed to identify potentially malicious activities where the legitimate Windows utility `certutil.exe` is used to establish network connections. This utility can be abused by attackers for various malicious tasks such as downloading malware or executing additional payloads. The detection is based on the monitoring of network connections initiated by this executable, focusing specifically on suspicious destination ports commonly associated with command-and-control (C2) communications (such as ports 80, 135, 443, and 445). The relevant technical data sources for this rule include network connection logs that record details about processes establishing outgoing connections. This rule aligns with the MITRE ATT&CK technique T1105, which focuses on the use of external remote services for command-and-control purposes.
   ### Investigation Steps
-  - Utilize EDR solutions to search for instances of `certutil.exe` running on endpoints during the time frame of the alert and analyze the associated command-line parameters for suspicious file downloads.
-  - Review network logs in the SIEM to identify other processes that may have communicated with the same IP addresses or domains as reported by the alert to understand the full scope of the potential threat.
-  - Check firewall and proxy logs to see if the common ports (80, 443, etc.) were used for outbound traffic and whether there were any associated anomalies, such as unexpected domains or frequent requests.
-  - Cross-reference affected endpoints with AV and endpoint logs to determine if any security solutions flagged malicious activity or detections around the time the `certutil.exe` connections occurred.
+  - **Check Network Connection Logs:** Use your network detection and response (NDR) solutions to review network connection logs and identify the source IP addresses and destination endpoints associated with the alert.
+    
+  - **Examine EDR Alerts:** Investigate any corresponding endpoint detection and response (EDR) alerts related to `certutil.exe` on affected systems, focusing on the execution context and command-line parameters.
+    
+  - **Review Process Tree:** Analyze the process tree on the system where `certutil.exe` was executed to determine if there are any suspicious parent processes or other related activities that could indicate malicious behavior.
+    
+  - **Analyze Proxy Logs:** Inspect the proxy logs to find any outbound requests from the affected system to the identified destination hosts, especially for unexpected connections or file downloads.
+  ### Prioritization
+  This alert is categorized as high severity due to the potential misuse of a built-in Windows tool to establish unauthorized communications, signaling possible malicious activities such as data exfiltration or malware download.
+  ### Blind Spots and Assumptions
+  This rule may not fire if `certutil.exe` is used in a benign context or if an adversary employs obfuscation techniques to mask their activities. Additionally, it assumes that network connection telemetry is being captured effectively. There is also a risk of false negatives if legitimate network activities involving `certutil.exe` occur over the specified ports without raising alarms.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

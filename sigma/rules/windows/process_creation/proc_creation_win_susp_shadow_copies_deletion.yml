@@ -70,10 +70,18 @@ falsepositives:
 - LANDesk LDClient Ivanti-PSModule (PS EncodedCommand)
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies potentially malicious activities related to the deletion of shadow copies in Windows environments. Shadow copies are backups of data that are critical for recovery from ransomware attacks and other data-loss incidents. The rule specifically scans for process creations involving key utilities like PowerShell, WMIC, VSSAdmin, DiskShadow, and WBAdmin, which can be misused by threat actors to destroy shadow copies. It looks for command-line parameters indicative of deletion commands, such as those containing the keywords "delete" and "shadow" across the specified utilities. By capturing this activity, we aim to prompt further investigation into whether the deletions are part of a legitimate administrative task or an attack on data integrity.
+  This Sigma rule is designed to detect attempts to delete Windows Shadow Copies using various operating system utilities. Specifically, it monitors process creation events to capture executions of tools such as `powershell.exe`, `wmic.exe`, `vssadmin.exe`, `diskshadow.exe`, and `wbadmin.exe`, when they include command-line arguments indicating a deletion action (e.g., "delete shadows", "shadowstorage", "resize shadowstorage"). The rule effectively highlights activities that could signify a malicious actor’s intent to erase backup copies of data, which is a common tactic used in ransomware attacks. By leveraging Windows process creation logs, analysts can identify and investigate instances of these command-line executions.
+  This detection is associated with the MITRE ATT&CK framework under the tactic of "Defense Evasion" (T1070) and "Impact" (T1490), which denotes actions taken by adversaries to erase or modify backup mechanisms to impede recovery efforts.
   ### Investigation Steps
-  - Review the process creation logs from your EDR to identify the user and context under which the shadow copy deletion commands were executed.
-  - Check the Command Line parameters associated with the detected processes to ascertain if there were any unusual flags or arguments.
-  - Utilize your SIEM to correlate related events, like file creation or modification around the same timeframe, that may indicate suspicious activity.
-  - Consult cloud logs, if applicable, to determine if any recent changes to backup or restore configurations were made that could explain the legitimate use of shadow copy deletion utilities.
+  - **Review Process Creation Logs:** Examine process creation logs for entries matching the specified image names and command lines that indicate shadow copy deletions from Sysmon or Windows Event Logs.
+    
+  - **Correlate with EDR Alerts:** Utilize EDR tools to query the endpoint for any unusual or unauthorized executions of the identified utilities, particularly focusing on the parent commands to trace the origin of the command.
+  - **Analyze User Context:** Investigate the user account associated with the relevant process execution to determine if it was a legitimate administrative action or if it was initiated by a potentially compromised account.
+  - **Check for Ransomware Indicators:** Conduct a search for associated suspicious indicators or related alerts in other security layers such as AV logs or network traffic to identify broader attack patterns.
+  ### Prioritization
+  Given the potential for severe data loss and disruption of business operations, the alert is categorized as high severity. Immediate investigation is warranted, as the deletion of Shadow Copies can significantly hinder data recovery efforts during a ransomware incident.
+  ### Blind Spots and Assumptions
+  This rule may not fire if legitimate shadow copy deletions are made by authorized personnel, which could lead to false positives. Additionally, if an adversary uses obfuscation techniques or runs the commands through other non-monitored scripts or interfaces, detection may be evaded. It's also assumed that the telemetry from Sysmon is properly implemented and functioning on all relevant hosts. If Sysmon is not consistently deployed across the environment, detection capabilities will be limited.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

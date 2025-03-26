@@ -47,10 +47,17 @@ falsepositives:
 - WindowsApps installing updates via the quiet flag
 level: medium
 notes: |
+  n
   ### Technical Context
-  The Sigma rule "Msiexec Quiet Installation" is designed to detect malicious usage of `msiexec.exe`, the command-line utility for Windows Installer. Adversaries often exploit `msiexec.exe` to execute installation packages with stealth, particularly using the quiet installation flag (`-q`) to avoid user interaction and enable background execution of malicious payloads. The rule identifies specific command-line patterns commonly associated with such abusive executions, focusing on crucial parameters like `-i`, `-package`, and other related flags. The detection relies on process creation logs, specifically evaluating attributes such as the command line parameters utilized when invoking `msiexec.exe`, the parent image locations that indicate common temporary folder usage, and the integrity level of the process to differentiate between legitimate and potentially harmful execution contexts.
+  The Sigma rule "Msiexec Quiet Installation" identifies potentially malicious use of the Windows Installer utility, msiexec.exe, that adversaries could exploit to execute unauthorized installation packages. It specifically looks for process creation events where msiexec.exe is invoked with command-line parameters associated with quiet installation modes (for example, `-q` for quiet). The rule considers the context in which msiexec runs, filtering out legitimate scenarios such as software updates. Data sources utilized include Windows Process Creation Logs that reveal details about executed processes, command-line parameters, and the parent process context. This detection aligns with the MITRE ATT&CK technique T1218.007 (Signed Binary Proxy Execution).
   ### Investigation Steps
-  - Utilize EDR tools to review process creation logs for instances of `msiexec.exe` executed with the `-q` flag alongside other suspicious command-line parameters.
-  - Examine the parent process of any detected `msiexec.exe` instances to determine if it originated from unusual locations, especially checking `C:\Users\*\AppData\Local\Temp\` and `C:\Windows\Temp\`.
-  - Assess the integrity level of the execution context by checking if the process was run with System-level permissions or assemblies that are often associated with malicious intent.
-  - Correlate findings with historical logs from the AV and NGFW to identify any previous alerts related to the same binaries or command-line parameters used in the detected execution.
+  - **Check EDR alerts:** Investigate any alerts from the EDR system related to msiexec.exe, focusing on command-line arguments and parent processes that might indicate suspicious activity.
+    
+  - **Review System Event Logs:** Analyze the Windows Security event logs for any unusual logon events that coincide with the msiexec activity, particularly for accounts with elevated privileges.
+  - **Perform File Integrity Checks:** Examine the integrity of files and directories affected by msiexec.exe usage, especially if installations target commonly exploited locations like `%temp%` or `%programdata%`.
+  - **Cross-reference with Proxy Logs:** Look into proxy server logs for any outbound connections made by msiexec.exe during the timeframe of detection, as this may indicate communication with untrusted sources.
+  ### Prioritization
+  This alert has a medium severity level as it may indicate evasion tactics by adversaries attempting to execute malicious payloads through legitimate processes, which could lead to a compromise if the activity is confirmed as unauthorized.
+  ### Blind spots and Assumptions
+  This rule may not trigger in environments where legitimate software installations occur frequently with quiet parameters, such as automated updates from trusted sources. Additionally, if an adversary obfuscates their command through different means (e.g., invoking msiexec.exe from a different path), the rule may fail to detect it. It assumes that environment settings will not excessively deviate from typical configurations which could lead to false negatives.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -38,10 +38,17 @@ falsepositives:
   activity
 level: low
 notes: |
+  n
   ### Technical Context
-  This detection rule monitors for the execution of file deletion commands, specifically the built-in `del` and `erase` commands in Windows. The rule activates when a process is initiated via `cmd.exe` and includes command-line arguments indicative of file deletion operations. It specifically looks for keywords such as "del " and "erase " within the command line, along with flags like `-f`, `-s`, and `-q`, which modify the behavior of these deletion commands. By analyzing process creation logs, this rule identifies potential attempts by adversaries to remove files left behind during a compromise, thereby attempting to conceal their presence or operations within the network.
+  This detection rule targets the execution of built-in Windows commands "del" and "erase," which are commonly used to delete files. Adversaries may leverage these commands to remove traces of their activity, thereby attempting to obscure their presence on compromised systems. 
+  The rule identifies instances where `cmd.exe` is invoked with command-line arguments indicative of file deletion activities (`del` or `erase`), particularly when accompanied by flags that suggest a more aggressive deletion approach, such as `-f` (force), `-s` (subdirectories), or `-q` (quiet mode). The primary data source analyzed to trigger this rule is the process creation logs, specifically monitoring command-line parameters used when executing commands via the Windows command shell. This behavior aligns with the MITRE ATT&CK technique T1070.004: File Deletion, falling under the tactic of Defense Evasion.
   ### Investigation Steps
-  - Review the process creation logs in your EDR solution to identify instances of `cmd.exe` running with the deletion commands in the command-line arguments.
-  - Cross-check the parent processes and images to assess whether the invocation of deletion commands correlates with known legitimate activities or applications.
-  - Search for relevant file activity logs (e.g., file access and deletion logs) to determine the specific files targeted for deletion and their importance to ongoing investigations.
-  - Analyze network activity logs, particularly proxy and VPN logs, to check for any related external communications that might correlate with the suspicious command usage.
+  - **Check Process Creation Logs:** Review the process creation logs for instances of `cmd.exe` executed with the `del` or `erase` commands, particularly focusing on the command-line arguments used.
+  - **Analyze Parent Process:** Correlate the parent process of detected `cmd.exe` instances to identify potential malicious activity or legitimate processes that may justify file deletion.
+  - **Inspect File Operations:** Utilize EDR solutions to audit the file system changes made during the time window of the detected activity, ensuring suspicious deletions are adequately scoped.
+  - **Review User Activity:** Consult user activity logs to determine whether the commands were executed by authorized users and whether they align with normal operational behavior.
+  ### Prioritization
+  Given that this alert pertains to potential malicious file deletion, which may indicate an attempt to cover tracks following an intrusion, it is prioritized as low severity. However, context must be applied based on the environment and the known behavior of users.
+  ### Blind Spots and Assumptions
+  This rule may not detect deletions performed by users through graphical interfaces or other methods not involving the command line. Furthermore, legitimate administrative activities that include file cleanup may generate false positives; filtering based on context and user role is essential. Adversaries could also employ alternate methods or scripts that bypass this detection, such as using native application functionality for deletion without invoking the command line.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

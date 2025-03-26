@@ -33,10 +33,17 @@ falsepositives:
 - Unknown
 level: high
 notes: |
-  ### Technical Context
-  This Sigma rule is designed to detect suspicious modifications to the "DsrmAdminLogonBehavior" registry value on Windows Domain Controllers (DCs). The DSRM is critical for Active Directory recovery, and attackers may manipulate its settings to gain persistent administrative access. The rule specifically targets changes made to the registry key located at `\Control\Lsa\DsrmAdminLogonBehavior`. Manipulations of this key can affect how the DSRM local administrator account operates, potentially allowing unauthorized access if misconfigured. The detection is based on registry set logs, especially observing changes from the default value (0x00000000) to more permissive settings (1 or 2), indicating potential tampering.
+  n
+  ### Technical Context 
+  The "Directory Service Restore Mode (DSRM) Registry Value Tampering" Sigma rule is designed to identify unauthorized modifications to the "DsrmAdminLogonBehavior" registry value within a Windows Domain Controller environment. This registry value controls the access permissions of the DSRM local administrator account, which is critical for maintaining the security and integrity of Active Directory during recovery processes. Changes to this value can significantly affect the security posture of a domain environment; for example, setting this value to "2" allows unrestricted access to the DSRM account, potentially enabling attackers to maintain persistence even after a breach. 
+  The technical monitoring focuses on registry set events, particularly those that target the `\Control\Lsa\DsrmAdminLogonBehavior` path. By analyzing such registry modifications, this rule helps SOC analysts detect changes that could indicate malicious activity. The rule aligns with the MITRE ATT&CK Framework under the persistence tactic, specifically technique T1556 (Credentials From Password Manager).
   ### Investigation Steps
-  - Review the Windows Event Logs for recent actions pertaining to registry modifications, focusing on the creation and modification of the `DsrmAdminLogonBehavior` key.
-  - Utilize your EDR tool to track process execution logs around the time of the registry change to identify potentially malicious processes that performed the modification.
-  - Check for anomalous logins or access patterns associated with the DSRM account, particularly around the time of the detected registry change, using Active Directory logs.
-  - Investigate any related alerts in the SIEM that indicate unusual behavior or access attempts that may correlate with the modification of the DSRM settings.
+  - **Check Registry Value**: Use Windows Event Logs to confirm the current setting of the "DsrmAdminLogonBehavior" registry value and determine if any unusual changes have occurred.
+  - **Correlate with User Activity**: Examine process creation logs and user account activity within the EDR to identify any unauthorized access attempts related to the DSRM account.
+  - **Assess Security Logs**: Review Windows Security logs for any failed or successful login events associated with the DSRM account, especially around the time of the registry change.
+  - **Conduct Network Analysis**: Utilize network logs from the NGFW and EDR to check for unusual outbound connections that may originate from the domain controller following the registry modification.
+  ### Prioritization
+  This alert is given a high severity level due to the potential risk it poses to Active Directory integrity and security. Unauthorized changes to the DSRM configuration can allow attackers to regain access and escalate privileges within the domain environment.
+  ### Blind Spots and Assumptions
+  One of the primary blind spots for this rule is the assumption that all registry modifications are appropriately logged in Windows Event Logs. If an attacker obtains administrative privileges, they might disable logging or use other techniques to obscure their activities, leading to potential missed detections. Moreover, environments with stringent administrative policies could have strict access controls, which might limit visibility or result in false negatives if changes are made by legitimate processes during maintenance operations.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

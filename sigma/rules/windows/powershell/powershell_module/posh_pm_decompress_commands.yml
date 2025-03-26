@@ -27,10 +27,16 @@ falsepositives:
 - Unknown
 level: informational
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies the use of PowerShell commands associated with decompressing files, specifically searching for the `Expand-Archive` command in PowerShell logs. Decompressing files can be a legitimate administrative action; however, it can also indicate potentially malicious behavior, such as an attacker extracting payloads or tools for further exploitation within the environment. The rule relies on data from Windows PowerShell module logs, which capture the execution of PowerShell commands and any relevant parameters passed during that execution. By monitoring for these specific commands, security teams can flag suspicious activity for review, enhancing their ability to respond to potential threats.
+  The PowerShell Decompress Commands detection rule aims to identify the use of decompression commands within PowerShell that can indicate potential adversary behavior, such as decompressing malicious payloads or archives. Specifically, this rule is focused on the usage of the `Expand-Archive` command, which is commonly employed to extract files from ZIP archives. The detection utilizes Windows PowerShell logs, particularly looking for command invocations that indicate the execution of the `Expand-Archive` command line. This aligns with the MITRE ATT&CK framework's Defense Evasion tactic (technique T1140), where attackers may utilize decompression techniques to obfuscate their actions and hide malicious content within legitimate-looking archives.
   ### Investigation Steps
-  - Review PowerShell execution logs in the EDR to identify the context of the `Expand-Archive` command, including timestamps and user accounts that executed the commands.
-  - Monitor for any associated file activity, such as newly created or modified files in the directories where decompression was performed, using file system logging tools or alerts.
-  - Check the historical activity of the user account involved to ascertain if there are patterns indicative of malicious behavior or anomaly, cross-referencing with user access logs.
-  - Analyze the network traffic for any unusual outbound connections that might correlate with the decompression event, utilizing NDR or firewall logs to identify potential data exfiltration or command and control communications.
+  - **Check PowerShell Execution Logs**: Investigate PowerShell logs for the instance of `Expand-Archive` usage to identify when and how this command was executed.
+  - **Review Process Creation Events**: Analyze Windows Event Logs specifically for process creation events around the same timeframe as the PowerShell commands to detect any associated potentially malicious processes.
+  - **Correlate with Network Traffic**: Use EDR and NDR tools to examine network traffic associated with the host running PowerShell to determine if any unusual or unauthorized communications occurred post-decompression.
+  - **Investigate File Changes**: Look into any newly created or modified files that may have resulted from the decompression process, scrutinizing them for malware or other malicious indicators.
+  ### Prioritization
+  This alert holds an informational severity level because while the use of `Expand-Archive` can indicate legitimate tasks, it may warrant further investigation in the context of other suspicious activities within the environment.
+  ### Blind Spots and Assumptions
+  The rule may not fire in instances where the decompression commands are executed using methods that bypass logging, or if logging levels are insufficient to capture PowerShell executions. Additionally, if an adversary uses alternative decompression utilities or scripts that do not trigger Windows PowerShell logs, this detection may fail to highlight those activities. It assumes that PowerShell script block logging is enabled and appropriately configured.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

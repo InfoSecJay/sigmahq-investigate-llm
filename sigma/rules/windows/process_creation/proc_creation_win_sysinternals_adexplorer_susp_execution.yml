@@ -36,10 +36,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule targets the execution of Sysinternals ADExplorer with a specific command-line flag that indicates an attempt to create a local snapshot of the Active Directory database. The rule specifically identifies instances where the ADExplorer executable (`ADExplorer.exe`) is run with the `-snapshot` parameter, which can indicate potentially malicious activity if it attempts to save the database to commonly abused directories like Downloads, Public, AppData, or Windows Temp folders. By monitoring process creation logs for these specific command-line patterns, security teams can detect unauthorized access to sensitive Active Directory information, which is critical for maintaining the integrity and security of an organization’s identity management.
+  This Sigma rule detects the execution of Sysinternals ADExplorer with the "-snapshot" flag. The rule aims to identify when this tool is utilized to create a copy of the Active Directory database and save it in potentially suspicious directories, such as Downloads, Public, AppData, and Windows Temp. The log sources leveraged for this detection include process creation logs, specifically focusing on attributes like the executable name (ADExplorer.exe) and command-line arguments. When an attacker seeks unauthorized access to sensitive directory data, this technique is documented under the MITRE ATT&CK tactic for credential access (Attack ID: T1552.001).
   ### Investigation Steps
-  - Check the process creation logs in your EDR to confirm the execution of `ADExplorer.exe` with the `-snapshot` flag, paying close attention to the timestamps and originating user accounts.
-  - Review the command line parameters in conjunction with the user account running the process to determine if the activity aligns with legitimate administrative work or indicates potential abuse.
-  - Investigate the destination directory specified in the command-line arguments to identify if the Active Directory snapshot was saved in a suspicious or unexpected location that could indicate malicious intent.
-  - Cross-reference any related log sources, such as VPN, AV, and Proxy logs, to determine if there were any other anomalous activities or connections made by the user around the time of the alleged snapshot creation.
+  - **Check EDR Logs**: Review the endpoint detection logs to track the execution of ADExplorer.exe, including the command-line arguments and the user account that executed the process.
+  - **Analyze Process Tree**: Investigate the process tree related to the ADExplorer execution to determine any parent or sibling processes that may indicate malicious behavior or lateral movement.
+  - **Verify Directory Content**: Inspect the specified directories (Downloads, Public, AppData, Windows Temp) for newly created files that originated from the ADExplorer execution, especially any that appear to be database snapshots.
+  - **Cross-Reference User Activity**: Correlate the alert findings with user access logs to check if the user has legitimate privileges to execute such tasks against the Active Directory and if the timing aligns with any known malicious activity.
+  ### Prioritization
+  This alert is classified as high severity as it indicates a potentially unauthorized attempt to access sensitive data within the Active Directory, which may lead to further credential theft or network compromise.
+  ### Blind Spots and Assumptions
+  The rule may not fire if the execution of ADExplorer occurs without the "-snapshot" flag or if the tool is run from unmonitored directories. Additionally, legitimate administrative use of ADExplorer by authorized personnel could lead to false positives. It's also important to recognize that advanced adversaries may utilize different methods or obfuscate their activities, potentially evading detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

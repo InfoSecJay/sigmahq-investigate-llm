@@ -24,10 +24,16 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies attempts to execute Windows binaries from within the Windows Subsystem for Linux (WSL). It specifically looks for process creation events where the executed binary is located in a typical Windows file system path (indicated by the presence of "C:\" or similar) while the current working directory is set to a WSL environment (denoted by "\\wsl.localhost"). This behavior may indicate malicious activities, such as an attacker trying to leverage WSL for executing Windows binaries to obfuscate parent-child process relationships. Monitoring this activity is crucial for understanding potentially evasive tactics employed by threat actors who exploit the interoperable capabilities of WSL.
+  This detection rule identifies the execution of Windows binaries within the Windows Subsystem for Linux (WSL). When an application running in WSL calls a Windows executable, it can obscure the parent-child process relationship, potentially evading traditional security measures and allowing for malicious activity while appearing benign. The rule specifically looks for process creation logs where the `Image` path conforms to a Windows path format (e.g., `C:\Program Files\...`) and the `CurrentDirectory` contains the WSL-specific directory (`\\wsl.localhost`). By monitoring these elements, the rule correlates the execution context with a known exploitation technique under the MITRE ATT&CK framework, specifically T1202 (Execution via Microsoft Excel).
   ### Investigation Steps
-  - Utilize EDR (Endpoint Detection and Response) tools to examine process creation logs for any instances where Windows binaries are executed from a WSL instance.
-  - Investigate the command-line parameters associated with the executed binaries to determine the nature of the execution and whether any suspicious patterns are present.
-  - Search network logs for any unusual outbound connections initiated shortly after the suspicious process execution, as this may indicate exfiltration attempts or command-and-control communications.
-  - Review user activity logs via cloud platforms (if applicable) to correlate user behavior with the observed malicious executions, helping to identify potential insider threats or compromised accounts.
+  - **Verify Process Details:** Check the process creation logs in your EDR for any binary executed from `\\wsl.localhost`, including command-line arguments that might indicate suspicious behavior.
+  - **Analyze Parent-Child Relationships:** Utilize EDR tools to examine the parent process of the detected binary to understand the execution chain and determine potential anomalies.
+  - **Cross-reference with Threat Intelligence:** Look up the hash and signature of the executed binary against threat intelligence databases for any known malicious activity.
+  - **Review Network Activity:** Inspect network connection logs for the same process to identify if the binary made connections to untrusted domains or IP addresses.
+  ### Prioritization
+  The alert is categorized as medium severity due to the potential misuse of WSL for executing malicious binaries, which could bypass traditional security controls, necessitating further investigation.
+  ### Blind spots and Assumptions
+  This rule may not trigger if the executed binaries do not use a Windows path format or if WSL is configured incorrectly, leading to discrepancies in the `CurrentDirectory`. Additionally, there is an assumption that all relevant Windows executables are logged by the process creation source, which may not be the case if logging levels are set too low. Adversaries may manipulate their WSL configurations to avoid detection, such as running executables directly from non-Windows file systems.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

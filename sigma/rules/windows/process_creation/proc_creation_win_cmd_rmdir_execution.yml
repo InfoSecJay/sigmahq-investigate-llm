@@ -33,10 +33,16 @@ falsepositives:
 - Unknown
 level: low
 notes: |
+  n
   ### Technical Context
-  The "Directory Removal Via Rmdir" detection rule is designed to identify the execution of the command-line utility `rmdir`, which is used to remove directories in Windows environments. This is particularly relevant to security operations as adversaries may use this command to delete files or directories that they created or accessed during their intrusion activities, potentially erasing traces of their actions. The rule looks for process creation events where `cmd.exe` is invoked with command-line arguments that include `rmdir`, especially with flags such as `/s` (to remove directories and their contents recursively) and `/q` (to suppress confirmation prompts). By analyzing these parameters within process creation logs, the rule aims to detect suspicious directory deletions that could indicate an attempt to cover tracks or eliminate evidence post-intrusion.
+  This detection rule is designed to identify the execution of the built-in "rmdir" command, which is used to remove directories in Windows environments. The rule focuses on process creation logs, specifically looking for instances where the command line of `cmd.exe` indicates the use of "rmdir" with specific flags such as "/s" for recursive deletion and "/q" for quiet mode, which suppresses confirmation prompts. This behavior is often associated with adversaries attempting to cleanse traces of their activities or remove files left behind after a compromise, aligning with the MITRE ATT&CK tactic of Defense Evasion (T1070.004). The detection hinges on monitoring process creation events to capture the context and parameters used in command executions.
   ### Investigation Steps
-  - Check EDR logs for recent executions of `cmd.exe` that involved the `rmdir` command, focusing on the specific command-line parameters used.
-  - Review process creation logs for the associated user context and the timing of the command execution to identify any anomalous user behavior.
-  - Analyze file system logs to determine what directories or files were deleted and whether they were associated with known unauthorized activities.
-  - Consult cloud logs from any connected services (AWS, GCP, Azure) for alerts or anomalies that correspond with the timeline of the detected `rmdir` execution.
+  - **Check Process Creation Logs:** Review the Windows Security Event Logs for entries related to the execution of `cmd.exe` to confirm the occurrence of the "rmdir" command.
+  - **Analyze Command-Line Arguments:** Examine the command-line parameters used in conjunction with the "rmdir" command to understand the intent (e.g., whether the deletion was recursive or forced).
+  - **Correlate with File Activity:** Use EDR tools to correlate the execution of the "rmdir" command with file operations to identify what directories or files may have been deleted.
+  - **Review User and Process Context:** Investigate the user account and process context under which the command was executed to determine if the operation was authorized or indicative of malicious activity.
+  ### Prioritization
+  The severity of this alert is categorized as low because while the use of "rmdir" can be benign in normal administrative tasks, it may also indicate an attempt to erase traces of malicious activity which warrants further investigation.
+  ### Blind Spots and Assumptions
+  This rule may not fire under certain conditions, such as if an adversary uses alternative methods to delete directories (e.g., using PowerShell cmdlets or other scripting languages) or employs elevated privileges to execute commands without the use of `cmd.exe`. Additionally, if command-line logging is not enabled or if logging is inadequate, this detection may fail to trigger. Analysts should assume that sophisticated adversaries might utilize various techniques to remain stealthy and may avoid using common commands that are easily monitored.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

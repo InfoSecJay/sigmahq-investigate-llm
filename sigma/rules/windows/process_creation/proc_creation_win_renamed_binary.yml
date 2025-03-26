@@ -49,10 +49,17 @@ falsepositives:
   this is easy to spot and add to whitelist
 level: medium
 notes: |
+  n
   ### Technical Context
-  The detection rule titled "Potential Defense Evasion Via Binary Rename" identifies instances where commonly recognized Windows binaries are executed with their filenames altered. Attackers often rename standard system executables such as `cmd.exe`, `conhost.exe`, or `netsh.exe` to obscure their actions and evade security controls. This rule leverages Sysmon's `OriginalFileName` field, which retains the original name of the binary even if the file has been renamed. By monitoring for this parameter alongside the executed image paths, the rule can detect potentially malicious activities where legitimate tools are misused. The primary data sources involved in this detection include process creation logs and Sysmon logs that document executable actions within the Windows operating system.
+  The "Potential Defense Evasion Via Binary Rename" Sigma rule is designed to identify instances where commonly used Windows binaries are executed with a different name than what is expected. This detection mechanism revolves around the `OriginalFileName` Sysmon datapoint, capturing the original name of the process being executed. By analyzing Windows Process Creation logs, the rule checks if processes that are typically associated with legitimate system operations (such as `cmd.exe`, `conhost.exe`, `7z.exe`, etc.) are run under these altered names. Such behavior is often exploited by attackers for defense evasion purposes (MITRE ATT&CK Tactic: Defense Evasion; Technique: T1036.003 
+  - Masquerading). Investigating this alert may help uncover malicious activities or unauthorized changes made by actors looking to obscure their actions.
   ### Investigation Steps
-  - Review the EDR logs for the alerts triggered by this rule, focusing on process creation events that include the mentioned binaries with altered names.
-  - Examine the command-line parameters associated with the executed processes to identify any suspicious behavior or unusual arguments that might indicate malicious intent.
-  - Check for lateral movement or unauthorized access attempts originating from the affected machines in your network traffic logs.
-  - Correlate the findings with AV logs to see if any detected threats or malware signatures were associated with these renamed binaries during the investigation.
+  - **Check Process Creation Logs:** Examine the Windows event logs focused on process creation to confirm the alert and view details about the renamed binary’s execution.
+  - **Validate Binary Integrity:** Use an endpoint detection and response (EDR) tool to analyze the file's attributes and ensure its legitimacy, comparing hash values against known good binaries.
+  - **Monitor Network Activity:** Assess network connection logs from EDR and firewall to understand if there was any suspicious activity related to the process during its execution.
+  - **Conduct Malware Scanning:** Execute antivirus checks on the affected system to identify any potential malware hiding under the renamed binary’s guise.
+  ### Prioritization
+  The severity of this alert is categorized as medium due to the potential for legitimate processes to be abused by malware. Any execution of a system binary with a renamed signature necessitates immediate investigation to ascertain the intent and legitimacy of the action.
+  ### Blind Spots and Assumptions
+  This rule may not fire in environments with legitimate applications that use renamed binaries, which can trigger false positives. Additionally, skilled adversaries might employ techniques to disguise their presence further, such as modifying their execution patterns to align closer to normal system behavior. Analysts should remain aware that not every alternate execution of a standard binary implies malicious intent and corroboration with additional telemetry is crucial.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

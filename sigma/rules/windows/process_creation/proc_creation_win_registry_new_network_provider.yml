@@ -34,11 +34,16 @@ falsepositives:
 - Other legitimate network providers used and not filtred in this rule
 level: high
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect potential credential dumping attempts by monitoring process creation events on Windows systems. Specifically, it looks for instances where a command line contains references to adding new network providers within the Windows Services directory. Attackers may exploit this functionality, similar to tools like NPPSpy, to retrieve clear text credentials from systems. The key technical data sources involved in this detection include process creation logs that capture command-line parameters—making it possible to identify suspicious activity that may indicate credential theft.
-  By specifically filtering for command line entries that include paths to `\System\CurrentControlSet\Services\` and `\NetworkProvider`, the rule can isolate attempts that deviate from normal process behavior. This focused approach helps minimize false positives by excluding known legitimate network providers, ensuring that security teams can respond effectively to genuine threats.
+  This detection rule focuses on identifying potential credential dumping attempts that leverage new network providers in a Windows environment. Specifically, it looks for process creation events where the command line contains paths indicative of network provider services. By monitoring these command lines, the rule aims to catch suspicious activities reminiscent of utility tools like NPPSpy, which can manipulate network provider settings to access clear-text credentials. The primary data sources utilized in this detection are Windows Security event logs, specifically those related to process creation. This rule corresponds to the MITRE ATT&CK tactic "Credential Access" and the technique "T1003: Credential Dumping".
   ### Investigation Steps
-  - Review the process creation logs in your EDR to identify the specific instances where the alert was triggered, focusing on the command line arguments used.
-  - Correlate the alerts with other logs from your AV and NGFW to identify any concurrent suspicious activities or known indicators of compromise.
-  - Check for any unusual network traffic patterns or connections originating from the affected systems by analyzing NDR and Proxy logs.
-  - Investigate user account activity in the cloud environments for any unauthorized access attempts or other credential-related anomalies that may correspond with the alert timeframe.
+  - **Check Process Creation Logs:** Review Windows Security event logs for process creation events that match the rule's conditions and correlate timestamps with related security alerts.
+  - **Examine Command Line Arguments:** Analyze the command line arguments of the identified processes for any suspicious or anomalous patterns that deviate from typical legitimate network provider activity.
+  - **Assess EDR Alerts:** Utilize endpoint detection and response (EDR) tools to gain deeper insights into the behavior of the flagged processes, including memory analysis and network activity during their runtime.
+  - **Cross-Reference with Blessing Lists:** If filtering has been applied based on known legitimate network providers, compare flagged activities with established approval lists to rule out false positives.
+  ### Prioritization
+  The alert is prioritized as high severity due to the potential risk of credential theft, which can lead to unauthorized access to sensitive systems and data within the enterprise. Prompt investigation is critical to mitigating any associated threats.
+  ### Blind Spots and Assumptions
+  This rule may not trigger if an attacker uses less common or custom-built network provider services not included in the paths monitored. Additionally, legitimate administrative actions or configuration changes by IT staff could inadvertently generate alerts, leading to false positives. It's assumed that all network providers in the environment are accurately accounted for and that no legitimate software conflicts with the detection mechanism.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

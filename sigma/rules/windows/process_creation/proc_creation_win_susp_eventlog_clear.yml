@@ -60,10 +60,18 @@ falsepositives:
 - Maintenance activity
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies potentially malicious activity involving the clearing or tampering of Windows Event Logs. Threat actors, including some ransomware variants, often use utilities like `wevtutil`, `PowerShell`, and `WMIC` to hide their tracks after compromising a system. The rule focuses on specific command-line patterns associated with these tools, such as `clear-log`, `Clear-EventLog`, and various short forms or related functions that could indicate attempts to modify or clear event logs. By monitoring process creation logs for the execution of these commands, the SOC can detect attempts to obfuscate malicious actions, which is often a precursor to further exploits or data exfiltration.
+  This detection rule identifies potential malicious activity related to the clearing or modification of Windows Event Logs. Threat actors often utilize commands issued through tools like `wevtutil`, `PowerShell`, and `WMIC` to erase or alter log entries, thereby evading detection mechanisms that rely on these logs for incident response and threat detection. The rule monitors for specific command-line arguments associated with log clearing and configuration changes, capturing instances where logs may be redirected or reconfigured to limit their retention or visibility. This behavior falls under the MITRE ATT&CK tactics of **Defense Evasion** (T1070.001 
+  - Indicator Removal on Host; T1562.002 
+  - Impair Defenses), highlighting the importance of vigilance against such tactics in an enterprise environment.
   ### Investigation Steps
-  - Use EDR tools to review the process execution timeline and identify any instances of `wevtutil`, `PowerShell`, or `WMIC` being executed alongside suspicious command-line arguments.
-  - Search through the Event Logs on the affected system to identify any recent entries that correlate with the times of detected command executions, noting any significant gaps or deletions in logs.
-  - Investigate parent processes using the command line pattern observed, especially for any context involving `msiexec.exe`, which might indicate legitimate administrative tasks being misused.
-  - Consult proxy logs and network traffic data to see if there are any connections to known malicious IPs or URLs during or shortly after the suspicious actions, helping to establish the context of the activity.
+  - **Check Process Creation Logs:** Review process creation logs in Windows Event Logs (especially Sysmon) to identify the context and execution details of the `wevtutil`, `powershell`, or `wmic` commands associated with the alert.
+  - **Examine Command-Line Arguments:** Analyze the command-line parameters included in the alerts to understand the specific log manipulation actions attempted and assess any associated parent processes for malicious behavior.
+  - **Validate with EDR and AV Tools:** Utilize the EDR solution to further investigate the timestamps and execution paths of the involved processes, especially looking for any indicators of compromise (IoCs) or anomalies linked to the alert.
+  - **Analyze Network Activity:** Inspect necessary network traffic records via the NDR or NGFW to determine if there were any outgoing connections corresponding with the time of the potentially malicious event log modifications, which could indicate exfiltration attempts or command-and-control callbacks.
+  ### Prioritization
+  The severity level for this alert is high due to the critical role of Event Logs in tracking system activity and potential malicious actions; any unauthorized clearing or alteration of these logs can severely hinder incident detection and response efforts in an enterprise environment.
+  ### Blind Spots and Assumptions
+  This rule assumes that the telemetry sources are properly configured and that logging is enabled at a sufficient level to capture the necessary events. It may not fire if an adversary utilizes legitimate administrative tools for task automation or if an anomaly detection system is inadvertently set to ignore scripted administrative activity. Additionally, if any malicious command executions are wrapped within an authorized application, this rule could fail to detect the illicit actions.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

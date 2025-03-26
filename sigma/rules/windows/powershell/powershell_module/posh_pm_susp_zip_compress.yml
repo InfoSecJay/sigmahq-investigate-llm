@@ -36,9 +36,18 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This detection rule identifies potentially malicious use of PowerShell's `Compress-Archive` cmdlet when it is utilized to compress folders and files, particularly when the output is directed to common temporary locations like the Windows Temp directory or a user's AppData local Temp directory. Adversaries often use this technique to package sensitive data for exfiltration, as compressing files minimizes the size and makes it easier to transfer over the network. The rule analyzes process creation logs for specific command-line parameters that indicate this activity, highlighting the use of the `$env:TEMP` variable and other similar paths that could signify an attempt to conceal the exfiltration process.
+  This detection rule identifies the use of the PowerShell `Compress-Archive` cmdlet in contexts where output files are directed to temporary or suspicious locations, specifically within system and user temporary directories (like `%TEMP%` or `C:\Windows\Temp`). The primary goal is to uncover instances where an adversary may be compressing sensitive data (e.g., files or documents) in preparation for exfiltration. Such actions indicate a potential data collection and exfiltration tactic identified as **T1074.001 
+  - Data Staged**, according to the MITRE ATT&CK framework. The rule relies on telemetry captured from Windows PowerShell logs and looks for command invocations that involve specific parameters indicative of suspicious behavior.
   ### Investigation Steps
-  - Review recent PowerShell command execution logs for instances of the `Compress-Archive` cmdlet being used, particularly targeting temporary directories.
-  - Utilize EDR tools to assess the processes that executed these PowerShell commands and correlate with any other associated suspicious activity.
-  - Inspect network logs for outbound connections that coincide with the timing of the use of the `Compress-Archive` cmdlet to identify possible data exfiltration attempts.
-  - Analyze file creation and modification timestamps in the specified Temp directories to look for unusual patterns or bulk file changes that might suggest preparatory actions before data theft.
+  - **Check PowerShell Logs:** Review the Windows PowerShell event logs for additional context regarding the execution of the `Compress-Archive` cmdlet, including user IDs and timestamps to understand the attacker's movements.
+    
+  - **Correlate with EDR Data:** Use Endpoint Detection and Response (EDR) tools to investigate any network connections or file access patterns that occurred around the time of the ZIP file creation, which may reveal lateral movement or exfiltration attempts.
+  - **Analyze Temporary Files:** Investigate the contents of the specified temporary folders, looking for recently created or modified ZIP files and cross-reference them with known sensitive data types to assess the risk of data compromise.
+  - **Review User Activity:** Conduct user behavior analysis on the account that executed the cmdlet to ensure the activity aligns with standard practices and check for any signs of compromised credentials.
+  ### Prioritization
+  This alert has been assigned a medium severity level due to the potential implications of sensitive data being compressed and possibly exfiltrated by adversaries. In an enterprise environment, such actions can signify a precursor to larger data breaches.
+  ### Blind spots and Assumptions
+  - This rule may not trigger if `Compress-Archive` is used in a legitimate context by trusted users or applications. Adversaries may employ obfuscation techniques or run PowerShell scripts from different directories that are not monitored.
+  - The detection is limited to the PowerShell cmdlet itself and may fail to identify similar activities performed through alternative means or those that target files outside specified temporary folders.
+  - The effectiveness of this rule assumes that PowerShell logging is properly configured and that telemetry for PowerShell process creation events is being captured accurately.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and completeness, we recommend validating the content and adapting it to suit specific environments and operational needs. Please communicate any changes to the detection engineering team.

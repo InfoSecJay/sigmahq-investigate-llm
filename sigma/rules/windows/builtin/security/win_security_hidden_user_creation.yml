@@ -25,10 +25,17 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  The "Hidden Local User Creation" Sigma rule is designed to detect the unauthorized creation of local user accounts on Windows systems, specifically those that are hidden from typical account listings. It focuses on monitoring Windows Security Event ID 4720, which is triggered whenever a new user account is created. The rule looks for user accounts with usernames that end with a dollar sign (`$`), a common suffix indicating a hidden or service account, and specifically excludes the legitimate "HomeGroupUser$" account. By filtering out known safe accounts, this rule helps analysts identify potentially malicious activity aimed at establishing persistence on a system by creating covert accounts that evade detection. 
+  The "Hidden Local User Creation" detection rule identifies the unauthorized creation of local hidden user accounts in Windows environments. Specifically, it triggers on Event ID 4720, which indicates that a new account has been created. The rule focuses on account names ending with a dollar sign (`$`), a common convention used for hidden accounts like computer groups or services. Hidden user accounts are typically not intended for human interaction, and their creation could represent a tactic utilized by adversaries as part of their persistence strategy. This alert is mapped to the MITRE ATT&CK tactic of persistence, specifically the technique T1136.001, which refers to the creation of a local account.
+  Data sources involved in this detection include Windows Security event logs, focusing on account creation events that may indicate potential misuse of administrative privileges or malicious activity. Incident responders should closely examine the context of such events, as legitimate administrative actions may occasionally generate similar logs.
   ### Investigation Steps
-  Investigate the originating system by analyzing the Windows Security logs for Event ID 4720 to confirm the creation of the hidden user account.
-  Check the EDR for any recent processes that correlate with the time of the account creation event, looking for suspicious executables or scripts that may indicate malicious activity.
-  Review authentication logs from the NGFW or VPN to identify any login attempts using the newly created account, as this may shed light on further unauthorized access.
-  Consult AV logs for any actions taken against malicious software that could have led to the account's creation, focusing on potential threats that were detected around the same timeframe.
+  - **Review Security Logs:** Check the Windows Security event logs for Event ID 4720 to confirm the account creation details, including the timestamp and the user account that initiated the action.
+  - **Assess User Creation Context:** Investigate the creation of this account by examining the user context (username, SID) and whether it corresponds with known administrative accounts. 
+  - **Cross-reference with Other Events:** Analyze related events (e.g., Event ID 4768 for account logon) to determine if there were any sessions or authentications associated with the newly created account following its creation.
+  - **Consult EDR for Activity Monitoring:** Utilize EDR tools to search for any suspicious activity linked to the created account, including processes started under the new user's context or network connections established.
+  ### Prioritization
+  This alert is categorized as high severity due to the potential implications of hidden user accounts in maintaining unauthorized access, which can facilitate further malicious activities and lateral movement within the network.
+  ### Blind Spots and Assumptions
+  This rule may not fire in scenarios where the account creation event is logged but lacks the dollar sign naming convention. Additionally, if there are legitimate administrative changes to account privileges that include creating hidden users, these will not trigger the alert, resulting in potential blind spots. It assumes that monitoring captures all relevant security events without filtering out legitimate administrative actions.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

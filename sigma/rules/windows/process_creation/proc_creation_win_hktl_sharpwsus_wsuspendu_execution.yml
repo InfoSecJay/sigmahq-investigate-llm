@@ -42,10 +42,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This Sigma rule detects the execution of SharpWSUS and WSUSpendu, tools commonly used for lateral movement within a network through Windows Server Update Services (WSUS). These utilities enable attackers to manipulate and manage update installations on targeted machines without raising conventional network alerts. The rule monitors process creation events for specific command-line arguments typically associated with these tools, including commands related to payloads and update approvals. Key technical data sources involved in this detection include process creation logs that capture command-line parameters utilized during execution, enabling security analysts to identify potential misuse of these utilities.
+  This detection rule identifies the execution of two specific tools: SharpWSUS and WSUSpendu, both of which facilitate lateral movement within networks through Windows Server Update Services (WSUS). These tools can be used by attackers to manipulate the update services, potentially allowing unauthorized access to systems or distribution of malicious payloads. The rule focuses on process creation logs, looking for specific command-line arguments that are indicative of these tools being executed – such as ' -Inject ', ' -PayloadArgs ', and various commands associated with SharpWSUS. The relevant MITRE ATT&CK tactics include execution (T1203) and lateral movement (T1210), highlighting the potential malicious activity that could arise from their usage.
   ### Investigation Steps
-  - Review the alert in your SIEM to identify the specific process execution details, including the user account associated with the command execution.
-  - Use EDR tools to analyze process creation logs on the affected system for further suspicious activity or lateral movement indicative of a potential compromise.
-  - Investigate the network traffic using NDR tools to examine any abnormal connections or data exfiltration attempts originating from the compromised system.
-  - Check logs from Windows Event Viewer and proxy servers for signs of unusual update approvals or any interactions with WSUS that coincide with the alert timeframe.
+  - **Check Process Activity**: Use your EDR to investigate the process activity logs around the time the alert was generated, paying attention to the parent processes and any unusual command-line arguments.
+  - **Analyze Network Connections**: Review the network connection logs to identify any connections that correlate with the execution of SharpWSUS or WSUSpendu, particularly to internal or unexpected endpoints.
+  - **Review WSUS Logs**: Access the Windows Event Logs for WSUS to verify any unauthorized changes or interactions with the update system that may suggest misuse of the tools.
+  - **Look for Other Indicators**: Search across Sysmon logs for additional suspicious activities linked to the same process, such as file creation or network communications that deviate from normal operational behavior.
+  ### Prioritization
+  The severity level for this alert is high due to the potential for significant impact on the organization’s security posture through unauthorized lateral movement and manipulation of critical system services. Immediate investigation is warranted to prevent data breaches or system compromises.
+  ### Blind Spots and Assumptions
+  This rule may fail to fire if an attacker uses obfuscated command-line arguments or alternative methods for executing these tools, potentially bypassing detection. Additionally, if the tools are executed without the identified command-line flags or if they're hidden via processes that do not invoke Sysmon tracking, detection may be ineffective. It's important for engineers to understand the nuances of environment configuration and adversary techniques that could lead to detection evasion.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

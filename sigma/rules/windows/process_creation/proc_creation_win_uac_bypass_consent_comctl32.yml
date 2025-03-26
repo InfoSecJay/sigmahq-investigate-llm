@@ -30,9 +30,18 @@ falsepositives:
 level: high
 notes: |
   ### Technical Context
-  This detection rule identifies potential User Account Control (UAC) bypass attempts on Windows systems through the manipulation of the consent.exe and comctl32.dll components. It specifically looks for instances where the parent process is consent.exe, which is responsible for showing UAC prompts, while the child process should be werfault.exe, typically used for error reporting in Windows. The rule focuses on processes launched with high integrity levels, indicating elevated permissions or system-level access. By monitoring the relationships between these processes, the rule helps uncover suspicious behavior commonly associated with privilege escalation techniques that adversaries may employ to circumvent security measures. The data sources involved primarily include process creation logs which provide information on the execution context of applications.
+  This Sigma rule is designed to detect a specific technique of User Account Control (UAC) bypass via the use of `consent.exe` and `comctl32.dll`. UAC is a Windows security feature that helps prevent unauthorized changes to the operating system. The detection rule focuses on monitoring process creation events, specifically looking for instances where `consent.exe` runs as a parent process to `werfault.exe`—indicating that a potential UAC bypass is being attempted. The rule checks for high or system integrity levels, which are critical indicators of privilege escalation. By monitoring the `ParentImage`, `Image`, and `IntegrityLevel`, the SOC can identify potentially malicious behavior that correlates with the MITRE ATT&CK tactics of **Defense Evasion (T1548.002)** and **Privilege Escalation (T1548.002)**, leading to unauthorized access elevation.
   ### Investigation Steps
-  - Utilize your EDR solution to filter and review process creation events that match the characteristics defined in the rule, focusing on the identified parent and child processes.
-  - Check the integrity levels of the processes involved to confirm if they are set to 'High' or 'System', as this indicates elevated permissions that could suggest malicious intent.
-  - Review the associated command-line arguments for the processes detected to identify unusual patterns that may indicate exploitation techniques.
-  - Cross-reference logs with AV and NGFW solutions to detect any related malware signatures or anomalous outbound connections that may corroborate the alert findings.
+  - **Validate the Alert:**
+    Check the alert in your EDR tool to corroborate the details about the `parent` and `child` process related to `consent.exe` and `werfault.exe`. Review the execution timestamps and integrity levels associated with the processes.
+  - **Review Command-Line Parameters:**
+    Utilize your SIEM or Sysmon logs to examine the command-line parameters used by `werfault.exe`. Look for any suspicious arguments or scripts that may indicate unauthorized actions.
+  - **Correlate with Event Logs:**
+    Analyze Windows Security Event Logs for other events indicating privilege escalation or unauthorized access around the time of the alert. Pay special attention to logon events and account privileges.
+  - **Investigate Network Connections:**
+    Explore whether `werfault.exe` initiated any outbound network connections via your firewall or proxy logs. Determine if any of these connections are to suspicious or known malicious IP addresses.
+  ### Prioritization
+  Given the nature of UAC bypass techniques, this alert suggests a high-severity threat due to the potential for privilege escalation, which could lead to unauthorized access to sensitive systems and data, necessitating immediate investigation.
+  ### Blind Spots and Assumptions
+  One limitation of this rule is that it relies on the accurate logging of process creations and integrity levels; if logging is misconfigured or if an adversary employs anti-forensic techniques, the rule may fail to trigger. Additionally, false positives could arise in legitimate scenarios where `werfault.exe` operates under `consent.exe`. Analysts should evaluate the context surrounding any alerts, as benign processes may inadvertently match the detection criteria set forth in the rule.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

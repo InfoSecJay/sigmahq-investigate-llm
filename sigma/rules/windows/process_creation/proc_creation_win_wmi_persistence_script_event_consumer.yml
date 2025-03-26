@@ -25,12 +25,17 @@ falsepositives:
   false positives when brightness is changed by the corresponding keyboard button
 level: medium
 notes: |
+  n
   ### Technical Context
-  The WMI Persistence 
-  - Script Event Consumer rule is designed to detect unauthorized persistence mechanisms utilizing Windows Management Instrumentation (WMI). Specifically, it looks for instances of the `scrcons.exe` process, which is a script event consumer, launched from `svchost.exe`. This can indicate a potential backdoor or adversary activity, as malicious actors often use WMI event consumers to maintain persistent access to a system. The detection is focused on process creation logs, particularly monitoring the properties of the processes involved (e.g., image paths and parent-child relationships) to identify any suspicious behavior.
-  WMI event consumers can be legitimately used in many enterprise environments, which is why this rule may generate false positives. For instance, known legitimate event consumers may appear in normal operations, while certain Dell computer configurations can also trigger this detection when adjusting screen brightness through specific keyboard inputs.
+  The Sigma rule "WMI Persistence 
+  - Script Event Consumer" aims to detect the creation of WMI Script Event Consumers, a technique sometimes exploited by threat actors to maintain persistence on a system. This rule specifically monitors the process creation logs for instances where `scrcons.exe`, located in the `C:\WINDOWS\system32\wbem\` directory, is spawned with a parent process of `svchost.exe`. The WMI (Windows Management Instrumentation) framework can be misused for various malicious activities, including privilege escalation and persistent malware deployment, as outlined in the MITRE ATT&CK techniques T1546.003 (Event Triggered Execution). By focusing on the interplay between these processes, the rule seeks to identify potential backdoors that may have been introduced by an attacker.
   ### Investigation Steps
-  - Review process creation logs using your EDR solution to identify the last executed instances of `scrcons.exe` and check their parent processes. 
-  - Investigate the command-line parameters associated with `scrcons.exe` to determine if they match expected usage or suggest malicious activity.
-  - Cross-reference any detected instances with your organization's inventory to identify any legitimate uses of WMI consumers that may have triggered the alert.
-  - Analyze network traffic logs from your NDR or Proxy tools to see if there were any suspicious outbound connections associated with the detected process, indicating possible command-and-control communications.
+  - **Verify Process Origin:** Use your EDR tool to gather detailed information about the `scrcons.exe` process, including its start time, user context, and any associated command-line parameters to determine legitimacy.
+  - **Examine Parentage:** Investigate the `svchost.exe` parent process through Windows Event Logs to review its associated services and check for any unauthorized behavior or misconfigurations.
+  - **Inspect WMI Events:** Query the WMI repository for existing script event consumers to determine if any have been created in unexpected contexts, as this could indicate persistence measures taken by malicious actors.
+  - **Cross-Reference Logs:** Analyze related logs such as firewall, proxy, and DNS to identify any suspicious outbound connections or unusual traffic patterns that may correlate with the execution of `scrcons.exe`.
+  ### Prioritization
+  The detection of WMI Script Event Consumers is considered a medium severity alert due to the potential for abuse in maintaining persistence within the environment. While legitimate use cases exist, the presence of this process combined with specific parent-child relationships warrants further investigation to rule out malicious activity.
+  ### Blind Spots and Assumptions
+  This rule may not fire in environments where legitimate applications or system activities also create WMI script event consumers, leading to possible false positives. Additionally, some systems, like Dell computers, may trigger known benign behaviors that could lead to alerts. It assumes that the corresponding telemetry sources (e.g., process creation logs) are adequately collected and monitored. Adversaries may attempt to disable or tamper with the detection mechanisms, or they may use alternative persistence techniques not captured by this rule.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

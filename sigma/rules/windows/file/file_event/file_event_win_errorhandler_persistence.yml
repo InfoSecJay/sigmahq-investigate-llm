@@ -23,10 +23,16 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect potential persistence attempts through the creation of a file named "ErrorHandler.cmd" in the "C:\WINDOWS\Setup\Scripts\" directory on Windows systems. The presence of this file can indicate malicious intent, as it is executed by certain tools (like Setup.exe) under the "C:\WINDOWS\System32\oobe\" directory whenever those tools encounter an error. Attackers may leverage this method to maintain persistence on a system, allowing them to execute arbitrary commands or scripts when the operating system encounters failures. The primary data source involved in this detection is file event logging, which captures file creation and modification activities.
+  This detection rule is designed to identify potential persistence mechanisms by monitoring the creation of a file named "ErrorHandler.cmd" in the "C:\WINDOWS\Setup\Scripts\" directory. Adversaries may leverage this file to maintain persistence on Windows systems, as its content can be executed whenever specific tools, such as Setup.exe, from the “C:\WINDOWS\System32\oobe\” path encounter errors. The rule primarily analyzes Windows file event logs to track the creation of this specific file. This activity is categorized under the MITRE ATT&CK tactic of **Persistence** (T1547.001), which highlights various methods attackers may use to maintain access to compromised systems.
   ### Investigation Steps
-  - Investigate file event logs for the creation of "C:\WINDOWS\Setup\Scripts\ErrorHandler.cmd" to ascertain the timestamp and user account associated with this event.
-  - Review EDR logs for any related process execution, particularly those originating from "C:\WINDOWS\System32\oobe\", to identify any suspicious activity around the time the file was created.
-  - Utilize AV solutions to scan the "ErrorHandler.cmd" file and its contents for any known malicious signatures or suspicious behaviors.
-  - Check Windows event logs to examine any recent failures or errors logged by tools in the oobe directory, which may help correlate the creation of "ErrorHandler.cmd" with potential exploit attempts.
+  - **Review File Creation Metadata:** Utilize your EDR to investigate the creation event of "ErrorHandler.cmd" by checking the timestamp, user account, and associated processes to determine the context of the file’s creation.
+  - **Inspect File Content:** Examine the contents of "ErrorHandler.cmd" to ascertain its purpose and whether it contains potentially malicious commands or scripts that could affect system integrity.
+  - **Check for Related Events:** Correlate events from Windows Security and Sysmon logs to identify any suspicious activities that coincide with the file creation, such as unusual process executions or access attempts.
+  - **Analyze User Activity:** Investigate the user account under which the file was created to see if it has any prior suspicious activity or if it aligns with expected administrative behavior.
+  ### Prioritization
+  The severity level is set to medium due to the potential implications of an established persistence mechanism. While the file could be benign, its presence indicates a method that adversaries might exploit, necessitating further investigation before conclusions can be drawn.
+  ### Blind Spots and Assumptions
+  This rule assumes that there is no legitimate use for the "ErrorHandler.cmd" file in the monitored environment. It may not trigger if the file is created remotely or via a different execution context that does not pass through the monitored file event logs. Additionally, adversaries could employ techniques to obfuscate or delete the file shortly after creation, which may lead to missed detections.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and relevance, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

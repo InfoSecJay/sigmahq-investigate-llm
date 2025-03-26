@@ -32,9 +32,18 @@ falsepositives:
 level: low
 notes: |
   ### Technical Context
-  This Sigma rule identifies the use of the PowerShell cmdlet `Get-AdComputer`, which is commonly leveraged to enumerate computer objects and their properties within an Active Directory (AD) environment. Once attackers gain access to a network, they may utilize this command to gather information about available computers, which can assist in further attacks or lateral movement. The rule specifically looks for instances where the command is called with significant parameters such as `-Filter`, `-LDAPFilter`, or `-Properties`, suggesting a deeper inquiry into the AD structure. It is critical for script block logging to be enabled on Windows systems for this detection to work effectively, as the command details are logged under the 'ps_script' category.
+  The Sigma rule "Active Directory Computers Enumeration With Get-AdComputer" is designed to detect the use of the PowerShell cmdlet `Get-AdComputer` to enumerate computers within an Active Directory environment. This action is often a precursor to further malicious activity, such as reconnaissance or lateral movement within a network. The rule monitors the PowerShell command execution specifically for strings indicative of enumeration, such as `Get-AdComputer` along with typical parameters like `-Filter`, `-LDAPFilter`, and `-Properties`. The primary data sources for this detection include Windows PowerShell logs, specifically focusing on script block logging, which captures the execution context of PowerShell scripts and commandlets. The rule is aligned with the MITRE ATT&CK framework, specifically under the tactics of “Discovery” (Tactic ID: TA0007) and techniques including T1018 (Remote System Discovery) and T1087.002 (Account Discovery 
+  - Local Group).
   ### Investigation Steps
-  - Review recent PowerShell logs in your EDR tool to identify the context and user account associated with the execution of the `Get-AdComputer` cmdlet.
-  - Investigate the command-line parameters used with `Get-AdComputer`, particularly any filters or properties specified, to assess the intent and scope of the query.
-  - Cross-reference the user account executing the command with Active Directory logs to check for any unusual or unauthorized access patterns.
-  - Conduct a network analysis via AV or NDR solutions to determine if any suspicious network communications occurred following the execution of the command.
+  - **Review PowerShell Logs:** Check PowerShell script logs to identify the specific execution of the `Get-AdComputer` cmdlet, including timestamp, user context, and any associated parameters to gauge the scope of enumeration activity.
+    
+  - **Cross-Reference Active Directory Changes:** Examine Active Directory logs to see if the enumeration coincides with any unauthorized attempts to modify or access computer objects, looking for suspicious account activities or changes in group memberships.
+    
+  - **Analyze Network Traffic:** Utilize the EDR's network connection logs to identify any outbound network activity that may correlate with PowerShell events, indicating possible exfiltration or further tooling being downloaded after enumeration.
+    
+  - **Investigate User Context:** Review the account context from which the `Get-AdComputer` command was executed to determine if it aligns with normal user behavior, and assess whether it may be a compromised account or a rogue insider.
+  ### Prioritization
+  The alert is categorized as low severity given that while enumeration may indicate reconnaissance, it does not independently confirm malicious activity. However, the presence of this behavior alongside other alerts warrants closer examination, especially in high-risk environments.
+  ### Blind Spots and Assumptions
+  This rule assumes that Script Block Logging is enabled in the PowerShell logging schema; without it, the rule may not function effectively as certain activities could go undetected. Additionally, legitimate administrative activities can trigger false positives, especially in environments where system administrators frequently utilize PowerShell for Active Directory management. Adversaries may also employ obfuscation techniques to bypass detection, making it essential to combine this detection with other indicators of compromise for a more comprehensive analysis.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

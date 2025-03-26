@@ -38,10 +38,16 @@ falsepositives:
 - IPv4-to-IPv6 mapped IPs
 level: medium
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies failed logon attempts (Event ID 4625) originating from public IP addresses on Windows systems. The significance of detecting failed logins from public IPs lies in the indication of potential security misconfigurations, such as improperly set firewalls or network boundaries that expose the system to external threats. The rule is designed to filter out common local IP ranges, such as those used within private networks (e.g., 10.0.0.0/8 and 192.168.0.0/16) as well as local IPv6 addresses, ensuring that alerts are generated for only external, potentially malicious login attempts. Responders should note that legitimate login attempts from the internet may still occur in some environments.
+  The "Failed Logon From Public IP" rule detects instances of failed logon attempts originating from public IP addresses, which might indicate potential unauthorized access attempts or misconfigurations in firewall settings. It specifically looks for Windows Security Event Log entries where EventID 4625 is recorded, indicating a failed logon. To filter out legitimate internal traffic, the rule employs conditions to exclude known private IP address ranges, such as local loopback and various internal address groups, from the detection. This aligns with the MITRE ATT&CK tactics of Initial Access (T1078) and Persistence (T1190), focusing on unauthorized logins that could be an entry point for an attacker.
   ### Investigation Steps
-  - Utilize the EDR tool to search for additional context surrounding the failed logon events, including any associated process creation or user behavior to determine if the attempt was likely malicious.
-  - Review firewall and VPN logs to identify any corresponding connections that may reveal patterns of unauthorized access attempts from the public IP in question.
-  - Cross-reference the failed logon attempts with user account activation and authentication logs to verify if the behavior correlates with known user activity or if it indicates a potential compromise.
-  - Investigate the public IP address through threat intelligence platforms to check for previous associations with malicious activities or known threat actors.
+  - **Verify Failed Logon Attempts:** Review EventID 4625 logs in the Windows Security log for the specific timestamp of the alert to gather details about the account and the originating IP address.
+  - **Check Public IP Lookup:** Utilize an IP lookup service to confirm the public nature of the IP address associated with the failed logon attempt, which helps in determining if the source is indeed suspicious.
+  - **Review Firewall Configurations:** Assess the network firewall and access control list configurations to ensure proper permissions are set for logins from public IPs, mitigating potential exposures.
+  - **Monitor for Follow-Up Activity:** After addressing the alert, monitor for any subsequent successful login attempts or anomalous activity on the affected accounts, enabling detection of potential further intrusion.
+  ### Prioritization
+  This alert is categorized as medium severity because while failed logon attempts can signify basic reconnaissance efforts by potential attackers, they may also stem from legitimate users or misconfigurations, warranting timely investigation but not an immediate escalation.
+  ### Blind spots and Assumptions
+  A notable blind spot for this rule is the potential for legitimate users to attempt logins from public networks inadvertently; this may lead to false positives. Additionally, if attackers employ techniques to obfuscate their IP addresses or exploit IPv4-to-IPv6 mappings, the rule may fail to trigger. Engineers should acknowledge that misconfigured firewall settings or VPN use may also contribute to legitimate users being flagged by this detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -32,10 +32,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect potential privilege escalation attempts via a Kerberos relay attack on a Windows system. It focuses on successful logon events (EventID 4624) where the authentication package is Kerberos, the remote address is set to localhost (127.0.0.1), and the target user is specifically the built-in local Administrator account (SID ending in '-500'). Instances of this pattern may indicate that an attacker is attempting to exploit a local vulnerability to elevate privileges from a standard user account to that of the local system administrator, which can lead to significant security risks. The primary data source for this detection is Windows Security Event Logs, specifically those pertaining to logon activities.
+  This detection rule analyzes Windows Security log events to identify a potential privilege escalation technique leveraging Kerberos in a local context. The rule specifically targets successful logon events (Event ID 4624) where the logon type is set to 3 (network logon), and the authentication package is Kerberos. It also filters for logins originating from the localhost (IP address 127.0.0.1) and checks if the target user is the built-in local Administrator account (SID ending in -500). This combination of parameters may indicate a Kerberos relay attack, which raises the risk of unauthorized elevation to system-level privileges from a domain-joined user with limited rights. The rule is aligned with the MITRE ATT&CK tactic of privilege escalation (T1548) and credential access.
   ### Investigation Steps
-  - Review the relevant Windows Security Event Logs to confirm the EventID 4624 related to the suspicious logon to identify the user and time of the event.
-  - Utilize EDR tools to examine the process tree and any commands executed by the user account at the time of the logon to uncover any malicious activity.
-  - Check for anomalous network activity or outbound connections from the affected host using NDR tools, as this may provide insight into further exploitation or lateral movement.
-  - Investigate the target user account history in Active Directory using logs from your cloud platform and examine if there have been unauthorized changes to user permissions or group memberships.
+  - **Validate Logon Event:** Use Windows Security logs to locate Event ID 4624 and confirm the logon details match the parameters defined in the alert (specifically `LogonType: 3` and `AuthenticationPackageName: 'Kerberos'`).
+  - **Check User Context:** Investigate the context of the user who triggered the alert, reviewing their recent activities, access levels, and any strange logon attempts leading up to the event.
+  - **Review Network Activity:** Use EDR tools to inspect the actions taken by the local Administrator account following the suspicious logon, focusing on process creations and network connections for anomalies.
+  - **Examine Audit Logs:** Search through Windows audit logs and Sysmon logs to identify other related activities or patterns that may have occurred around the time of the suspicious logon.
+  ### Prioritization
+  The severity level is categorized as high because local privilege escalation can lead to significant security breaches, enabling attackers to gain extensive access and control over sensitive systems and data.
+  ### Blind spots and Assumptions
+  This rule may not fire in scenarios where local logon events occur from non-local addresses or when the logon type differs from the specified criteria. It assumes that the logging level is adequately set to capture security events, and if logging is inadequate or disabled, the detection might fail. Additionally, adversaries could use methods to spoof logon events or tamper with logs, potentially causing this detection to be bypassed.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

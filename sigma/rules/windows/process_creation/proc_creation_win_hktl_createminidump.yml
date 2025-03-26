@@ -23,11 +23,18 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  The Sigma rule titled "HackTool 
-  - CreateMiniDump Execution" is designed to detect the execution of the CreateMiniDump tool, which is often used by attackers to extract sensitive credential information stored in the LSASS process on Windows systems. This rule identifies instances where the CreateMiniDump executable is launched, specifically focusing on its unique hash for targeted detection. By monitoring process creation logs, particularly the command line, this rule helps in identifying when an attacker attempts to use this tool for unauthorized credential access. The presence of the specified hash within the logs serves as a strong indicator of malicious intent, as CreateMiniDump is not commonly used for legitimate processes. 
+  The Sigma rule "HackTool 
+  - CreateMiniDump Execution" is designed to detect the execution of a specific tool, `CreateMiniDump.exe`, which is often used for illegal credential dumping from the LSASS process in Windows environments. By monitoring process creation events, this rule focuses on identifying instances where this tool is executed, specifically filtering for cases where the image name ends with `CreateMiniDump.exe` and matches a known hash (IMPHASH). This data is primarily sourced from Windows Sysmon logs that capture detailed process creation events. The rule maps to the MITRE ATT&CK framework under the tactic of **Credential Access** and the technique **T1003.001**, targeting one of the key methods attackers use to extract sensitive information like credentials from the LSASS memory.
   ### Investigation Steps
-  - Review the EDR logs to identify the process creation event related to CreateMiniDump.exe, focusing on the timestamp and the user account under which it was executed.
-  - Check the command-line parameters used in the process creation event to see if any standard flags or arguments were modified, which may indicate unusual usage.
-  - Investigate the associated network activity in the NDR logs to assess any outbound connections made by the system after the execution, as this may reveal attempts to exfiltrate stolen credentials.
-  - Analyze event logs from the SIEM for any unexpected user behavior or access patterns around the time of the CreateMiniDump event to identify potential lateral movement or additional exploit attempts.
+  - **Check Process Execution Context**: Use EDR tools to review the execution context of the detected process. Check parent-child relationships and user context to understand how and under which account the tool was launched.
+    
+  - **Analyze Event Logs**: Review Windows Sysmon and Security logs for any related events around the same timestamp. Focus on additional process creations or unusual access patterns that may indicate lateral movement or privilege escalation.
+  - **Search for Related Artifacts**: Look for other files or tools commonly associated with the execution of `CreateMiniDump.exe`. This may include the presence of known credential dumping tools or other binaries running in a suspicious manner.
+  - **Investigate Network Traffic**: Utilize NDR tools to analyze outbound connections that may coincide with the alert. Specifically, check for any unexpected external communications that could indicate data exfiltration.
+  ### Prioritization
+  The severity of this alert is classified as high because the execution of `CreateMiniDump.exe` typically indicates a deliberate attempt to access and extract potentially sensitive credentials, which can lead to further compromises within the network.
+  ### Blind Spots and Assumptions
+  This detection rule relies on the correct installation and configuration of Sysmon for effective logging of process creations. It may fail to trigger if the tool is renamed or if system protections (such as application whitelisting) are in effect to block its execution. Moreover, attackers may utilize other methods or tools for credential dumping that are not captured by this specific rule, leaving potential gaps in detection capabilities.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

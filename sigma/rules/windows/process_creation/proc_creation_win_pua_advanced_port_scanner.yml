@@ -29,10 +29,16 @@ falsepositives:
 - Tools with similar commandline (very rare)
 level: medium
 notes: |
+  n
   ### Technical Context
-  This Sigma rule detects the execution of the Advanced Port Scanner tool, a utility often used for network mapping and vulnerability scanning. The rule identifies instances where the tool's executable is run and examines specific conditions in the command-line parameters associated with the execution. It specifically looks for indicators such as the presence of "advanced_port_scanner" in the image name or original file name, or mentions of "Advanced Port Scanner" in the file description. Moreover, it checks for specific command-line flags like `/portable` and `/lng`, which indicate its typical usage patterns. By monitoring these data sources, particularly process creation logs, the rule aims to flag potential unauthorized use of the tool, which could indicate malicious intent in network reconnaissance activities.
+  This detection rule identifies the execution of the Advanced Port Scanner application, which can be utilized by adversaries for reconnaissance to identify open ports on networked systems. The rule scrutinizes process creation logs, particularly the image name and associated command-line parameters, to spot instances of the Advanced Port Scanner. By focusing on specific characteristics, such as the executable name containing "advanced_port_scanner" and particular command-line options like '/portable' and '/lng', the rule aligns with the MITRE ATT&CK techniques for Discovery (T1046) and Scanning (T1135). This proactive detection helps in identifying unauthorized scanning activities within the network.
   ### Investigation Steps
-  - Check EDR logs to identify the user context under which the Advanced Port Scanner was executed, including account type and permissions.
-  - Review recent process creation events and correlate them with known network scanning activity timestamps to determine scope and intent.
-  - Utilize network traffic data from your NDR solution to identify any subsequent scans or connections initiated by the detected instance of the scanner.
-  - Analyze firewall and proxy logs for external connections made by the scanner to assess whether there was any unauthorized information gathering from outside the organization.
+  - **Review Process Creation Logs:** Inspect Windows Security event logs for suspicious process creation events associated with the Advanced Port Scanner, ensuring you note the parent process and user context.
+  - **Analyze Command-Line Arguments:** Evaluate command-line arguments in the Windows event logs to confirm if they contain any of the specified flags (e.g., '/portable', '/lng') indicative of the advanced scanning operations.
+  - **Cross-Reference Network Traffic:** Utilize EDR or NDR tools to scrutinize any resulting network connections for unusual port scans or elevated activity that corresponds with the execution time of the identified port scanner.
+  - **Inspect User Behavior:** Check for patterns of legitimate use in your organization. Validate whether the user has the necessary administration rights and if the tool was utilized for regular administrative activities.
+  ### Prioritization
+  The severity level of this alert is considered medium due to the potential risk advanced port scanning poses. While it may sometimes indicate legitimate administrative practices, it can also signify an adversary preparing for further exploitation.
+  ### Blind Spots and Assumptions
+  There may be scenarios where this rule might not trigger an alert, such as when port scanning tools are operated in ways that do not match the defined criteria or if the application has been renamed. Additionally, some legitimate administrative actions might trigger false positives due to administrative use of similar command-line tools. Analysts must remain aware that sophisticated adversaries could employ custom scripts or obfuscate their tools to evade detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

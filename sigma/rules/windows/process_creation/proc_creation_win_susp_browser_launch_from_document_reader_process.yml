@@ -37,11 +37,20 @@ falsepositives:
   of the browser process to determine the context of the URL accessed.
 level: medium
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies instances where a web browser is launched from commonly used document reader processes, such as Adobe Acrobat Reader or Microsoft Office applications. By analyzing process creation logs, the rule looks for events where these document handling applications serve as the parent process for a browser (like Chrome, Firefox, or Edge) as the child process, specifically when the command line contains 'http'. This behavior is suspicious and could indicate potential phishing attempts or other malicious activity as it suggests an unexpected interaction between file documents and web applications. 
-  Technical data sources involved include process creation logs, which provide critical details about the parent and child processes, and command-line parameters that show what actions the browser is executing upon launch. Analysts should note that while this detection signal may indicate suspicious activity, further examination is necessary to confirm malicious intent.
+  This detection rule is designed to identify potentially malicious activity when a web browser is launched from a document-handling application such as Adobe Acrobat or Microsoft Office. The rule monitors process creation events, specifically looking for instances where a browser process—like Chrome or Firefox—is spawned by document reader applications. This behavior could indicate a phishing attempt if the browser is directed to a suspicious URL (identified by the command line containing 'http'). The rule correlates with the MITRE ATT&CK tactic `Execution` and the technique `T1204.002`, which involves user execution of malicious content.
+  The data sources leveraged for this detection include Windows Sysmon's process creation logs, focusing on the `ParentImage`, `Image`, and `CommandLine` parameters to spot suspicious relationships between document readers and web browsers. If a browser opens as a result of a document reading application process, especially with a command line that includes 'http', it raises a flag for further examination.
   ### Investigation Steps
-  - Review the EDR logs to identify the specific browser process that was launched and the command-line parameters associated with it for context regarding the URL accessed.
-  - Check for any abnormal behavior or patterns in the network traffic using the NDR tool to see if the launched browser accessed suspicious or known phishing domains.
-  - Utilize the SIEM to correlate any alerts regarding the parent document readers (such as Acrobat or Microsoft Office) to determine if there were any previous security events related to those applications.
-  - Examine historical proxy logs for any prior traffic to the URL accessed by the browser during this event to assess whether it has been reported for phishing or malicious activity.
+  - **Check Process Chain:** Verify the process tree using EDR tools to confirm that the suspicious browser process originated from a legitimate document reader. Look for any anomalies in the parent-child relationship.
+  - **Analyze Command Line Arguments:** Inspect the command line used to launch the browser from the process creation logs. Pay close attention to the URLs being accessed and any flags that may indicate abnormal behavior.
+  - **Review Web Traffic:** Utilize proxy or network logs to investigate the destination of the URL accessed via the browser. Assess if the endpoint is known, trusted, or potentially malicious.
+  - **Cross-Reference User Activity:** Check if the user interacted with any attachment or document at the time of the alert using Security or Application logs. Correlate this with the document file types they were handling.
+  ### Prioritization
+  This alert is classified as medium severity due to the potential of indicating a phishing attempt, which can lead to credential theft or malware infection. While it does not confirm malicious intent outright, it warrants immediate review to assess the risk to the organization.
+  ### Blind Spots and Assumptions
+  The rule may not trigger in cases where:
+  - The document reader application doesn't spawn a browser directly or uses a different method (e.g., opening in a non-standard browser).
+  - Users have legitimate reasons for opening browsers from document applications, such as accessing specific links in PDF or Office documents.
+  Additionally, if the browser is configured to suppress command-line arguments, critical indicators may be missed.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

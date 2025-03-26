@@ -44,11 +44,17 @@ falsepositives:
 - Unlikely
 level: high
 notes: |
+  n
   ### Technical Context
-  The Sigma rule titled "HackTool 
-  - PCHunter Execution" is designed to detect the execution of PCHunter, a tool commonly used for inspecting and manipulating system processes and kernel options. This rule identifies instances where PCHunter is launched either by monitoring the process creation activity on Windows systems or by checking specific file characteristics such as its name, description, or hash values. The rule focuses on process creation logs, targeting filenames that match PCHunter executables (`PCHunter64.exe` and `PCHunter32.exe`) and hashes associated with known variants of this tool. Given its potential use in malicious activities such as bypassing security mechanisms, the detection of PCHunter is critical for monitoring execution in environments where such tools should not be present.
+  The Sigma rule "HackTool 
+  - PCHunter Execution" is designed to identify the execution of PCHunter, a tool often utilized by attackers to explore and manipulate system processes and memory. This rule focuses on detecting process creation events specifically for PCHunter executables, which include both 64-bit and 32-bit versions. The rule utilizes data sources such as process creation logs where it inspects the image names and checks for specific file hashes associated with PCHunter. The identified techniques correspond to the MITRE ATT&CK framework under tactics like Execution (T1082), Discovery (T1057), and others, which focus on the use of tools that provide low-level system interaction, often employed by adversaries during their operations.
   ### Investigation Steps
-  - Utilize EDR tools to investigate the endpoint from which the PCHunter process was executed. Look for any recent suspicious activities or anomalies in the process tree.
-  - Review process creation logs to identify any command-line parameters passed to PCHunter during its execution. This can provide insight into its use and any additional malicious commands that may have been executed.
-  - Check for network activity related to the execution of PCHunter using NDR or firewall logs. Look for unusual outbound connections that may indicate data exfiltration or communication with command and control servers.
-  - Examine AV logs for any detections of PCHunter or other associated tools. Ensure that no other security measures were bypassed during the execution of this tool, which may signal a more significant incident.
+  - **Check Process Creation Logs**: Use EDR tools to examine logs for any recent process creation events related to PCHunter, focusing on timestamps around the alert and the user context.
+  - **Review Command-Line Parameters**: Analyze command-line arguments passed to the detected PCHunter processes to identify any suspicious operations or flags that may suggest malicious intent.
+  - **Correlate with User Behavior**: Investigate user account activity surrounding the alert, including login patterns and other executed applications to determine if there are anomalies indicative of compromise.
+  - **Network Traffic Analysis**: Utilize NDR to monitor for any related outbound connections made by the PCHunter process that may indicate data exfiltration or command and control communications.
+  ### Prioritization
+  This alert has been classified as high severity due to the potential risk associated with the use of hacking tools like PCHunter, which can facilitate further malicious activities against enterprise systems.
+  ### Blind Spots and Assumptions
+  This rule may not fire if the PCHunter executables are renamed or modified in a way that circumvents detection, as the rule relies on specific image names and hashes. Additionally, if defense mechanisms are in place that block or log the execution of such tools prior to process creation, the rule will not trigger. It is assumed that environments with robust endpoint controls might have less exposure to the execution of known hacking tools.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and relevance, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -25,10 +25,17 @@ falsepositives:
 level: high
 notes: |
   ### Technical Context
-  The Sigma rule titled "HackTool 
-  - SILENTTRINITY Stager DLL Load" is designed to detect the loading of the SILENTTRINITY stager DLL, which is associated with command and control (C2) activities used by threat actors for remote exploitation. This rule specifically looks for DLL load events on Windows systems where the description of the loaded DLL contains the string 'st2stager'. The primary data source for this detection is image load logs, which track when dynamic link libraries (DLLs) are loaded into processes. By monitoring for this specific description, the rule aims to identify potential indicators of compromise associated with SILENTTRINITY, a known hacking tool that facilitates stealthy attacks.
+  The rule titled "HackTool 
+  - SILENTTRINITY Stager DLL Load" focuses on detecting the loading of a DLL associated with the SILENTTRINITY tool, which is a post-exploitation utility often used for command-and-control (C2) purposes. The detection mechanism works by inspecting image load events on Windows systems, specifically looking for any instance where the Description of the loaded image contains the string 'st2stager.' This particular string is characteristic of malicious activities related to SILENTTRINITY, which utilizes stagers as a means to establish a command and control channel. 
+  The relevant data sources for this rule include Windows Event Logs that capture image load events, specifically Sysmon logs related to DLL loading activities. This rule aligns with the MITRE ATT&CK technique T1071, which pertains to the use of applications to facilitate command-and-control communication. The detection of such activity is critical for incident responders to mitigate potential breaches stemming from sophisticated attack methods.
   ### Investigation Steps
-  - Query EDR tools to identify the process that loaded the DLL and any associated commands or parameters used during its execution. Pay attention to the parent process for context.
-  - Review firewall logs from the NGFW for any unusual outbound connections originating from the affected host around the time of the alert. Look specifically for connections to known malicious IP addresses or domains.
-  - Check AV logs to determine if any alerts or detections were triggered around the time of the event. This may provide additional context about the nature of the loaded DLL.
-  - Analyze user activity logs in cloud platforms (if applicable) for any unauthorized access or suspicious activities that correlate with the detected DLL load. Focus on activities by users with elevated privileges.
+  - **Check Sysmon Logs**: Search Sysmon logs for image load events around the time the alert was triggered, specifically looking for entries containing the 'st2stager' description.
+    
+  - **Correlate with Process Creation**: Utilize EDR tools to correlate the alerts with process creation logs to track down any processes that spawned the malicious DLL, ensuring to review parent-child process relationships.
+  - **Review Network Connections**: Examine any established network connections during the time of the event to identify potential C2 infrastructure being contacted, using both EDR and NDR tools to facilitate this analysis.
+  - **Analyze File and Registry Changes**: Investigate any associated file modifications or registry changes that may indicate further compromise or persistence mechanisms tied to SILENTTRINITY activity.
+  ### Prioritization
+  Given the high severity level of this alert, the presence of the SILENTTRINITY stager DLL loading activity suggests a significant risk of ongoing compromise within the enterprise environment, potentially leading to data exfiltration or further lateral movement within the network.
+  ### Blind Spots and Assumptions
+  This detection rule may not fire in scenarios where the attack tools are modified to avoid the specific string 'st2stager' or if the logging of image load events in Sysmon is not properly enabled. Additionally, false negatives may occur due to the obfuscation techniques employed by adversaries. Incident responders should assume that sophisticated attackers might employ alternative methods to load the DLL or erase logs to evade detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

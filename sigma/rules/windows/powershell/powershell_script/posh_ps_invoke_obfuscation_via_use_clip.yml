@@ -24,10 +24,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This Sigma rule detects the use of obfuscated PowerShell scripts that leverage `Clip.exe`, a command-line utility for manipulating the clipboard, to potentially exfiltrate data or execute malicious commands. The detection mechanism is based on the analysis of PowerShell script block logs, specifically looking for script block text that includes the terms "echo" and "clip" in combination with either "Clipboard" or "invoke". The regular expression pattern employed is case-insensitive, which allows it to capture various obfuscation techniques that attackers might use to disguise their activity. This rule requires that Script Block Logging is enabled in Windows environments to capture and analyze PowerShell execution logs effectively for relevant patterns.
+  This Sigma rule detects obfuscated PowerShell commands that utilize the `clip.exe` utility in scripts. The rule is designed to identify script blocks where the command includes the term "clip" in conjunction with "echo," often used in conjunction for copying data to the clipboard, and is indicative of potential malicious activities such as data exfiltration or command obfuscation. The primary data source for this detection is Windows PowerShell script block logging, which captures execution details of scripts. The rule aligns with the MITRE ATT&CK framework, specifically the tactics of **Defense Evasion** (Tactic: ATT&CK Tactic ID: T1070) and **Execution** (Tactic: ATT&CK Tactic ID: T1059.001).
   ### Investigation Steps
-  - Review the relevant PowerShell script block logs in the EDR platform to identify instances of the detected script execution, focusing on timestamps and associated user accounts.
-  - Analyze any associated network traffic in the NDR system to determine if there are outbound connections made at the time of the alert, especially to unusual or suspicious destinations.
-  - Investigate the endpoints where the alert was triggered using AV and EDR for additional indicators of compromise, such as unknown processes, abnormal network patterns, or containment actions.
-  - Check proxy logs to trace any web requests or downloads that occurred just before or after the alert, particularly those related to known malicious sources or unexpected changes in user behavior.
+  - **Review PowerShell Event Logs:** Examine PowerShell script block logs to identify instances of the detected command, focusing on the capturing of related execution context details, such as user account and timestamp.
+  - **Correlate with Network Traffic:** Investigate related network connections in the EDR and NDR systems to detect any unusual outbound traffic that might indicate data exfiltration following the PowerShell execution.
+  - **Check for Anomalies in Clipboard Usage:** Analyze user activities around the time of the incident to see if there are any abnormal patterns involving clipboard usage, especially for sensitive data.
+  - **Assess Endpoint Security Alerts:** Review alerts from endpoint detection and response (EDR) solutions to check for any associated suspicious activities that coincide with the detected script execution.
+  ### Prioritization
+  This alert is classified as high severity because it may indicate an attempt to evade detection while executing potentially malicious PowerShell commands, which could lead to data theft or malware installation if not addressed promptly.
+  ### Blind Spots and Assumptions
+  The rule assumes that PowerShell script block logging is enabled and properly configured on the monitored systems; if it is not, the rule will fail to trigger. Additionally, the detection may miss obfuscated commands that do not conform to the expected patterns or employ different means of execution. Adversaries may also employ alternate methods to manipulate the clipboard without triggering this detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and relevance, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

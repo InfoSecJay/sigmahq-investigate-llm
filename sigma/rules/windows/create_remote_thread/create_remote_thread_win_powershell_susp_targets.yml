@@ -33,10 +33,18 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies instances of remote thread creation initiated by PowerShell processes targeting uncommon or suspicious processes such as `rundll32.exe` or `regsvr32.exe`. Remote thread creation is a technique often utilized by attackers to execute malicious code within the context of another process, thereby evading security measures and potentially carrying out unauthorized actions. The rule monitors Windows event logs specifically related to the creation of remote threads, allowing the SOC team to identify and respond to potentially malicious behavior. By focusing on PowerShell, a common tool in both legitimate administrative activity and adversarial exploitation, this rule helps detect possible abuse of PowerShell in executing malware or performing lateral movement within the enterprise environment.
+  This Sigma rule is designed to detect instances of remote thread creation initiated by PowerShell processes targeting uncommon executables, such as `rundll32.exe` and `regsvr32.exe`. The rule focuses on identifying the specific behavior where PowerShell creates a remote thread in another process, which is a technique often used by attackers to execute malicious code within the context of another process without raising immediate alarms. The detection relies on telemetry from Windows Sysmon, specifically monitoring the `create_remote_thread` event. This behavior falls under the MITRE ATT&CK tactics of Execution (T1059.001 
+  - PowerShell) and Defense Evasion (T1218.011 
+  - Remote Thread Injection).
   ### Investigation Steps
-  - Review the related PowerShell execution logs from the EDR solution to confirm the legitimacy of the PowerShell command that initiated the remote thread creation.
-  - Analyze the context of the target processes (`rundll32.exe` and `regsvr32.exe`) using process trees in the endpoint monitoring tool to understand their activity leading up to the detected event.
-  - Check Network Firewall logs to identify any unusual outbound connections that coincide with the timing of the remote thread creation, which may indicate exfiltration or communication with a command and control server.
-  - Consult the Antivirus (AV) logs for any detections or alerts related to the PowerShell process or the target processes to potentially corroborate malicious behavior or infection.
+  - **Check EDR Alerts**: Review the EDR console for alerts related to remote thread creations associated with PowerShell processes, focusing on the timestamps and involved processes.
+  - **Examine PowerShell Logs**: Investigate PowerShell execution logs to determine if any suspicious commands or scripts were run at the identified times, correlating with the remote thread creation events.
+  - **Analyze Affected Process Behavior**: Utilize process monitoring tools to inspect the behavior of the target processes (e.g., `rundll32.exe`, `regsvr32.exe`) to identify unusual activity or indicators of compromise.
+  - **Correlate with Network Traffic**: Look at network logs for any outbound connections or data exfiltration attempts linked to the time frame of the remote thread creation events to assess potential data breaches.
+  ### Prioritization
+  The alert is assigned a medium severity level due to the potential presence of malicious activity masquerading as legitimate process behavior. While this activity may not be indicative of a confirmed breach, it warrants further investigation to assess the risk to the organization.
+  ### Blind Spots and Assumptions
+  This detection rule may not trigger if an adversary employs less common PowerShell script names or utilizes process names not captured in the rule's conditions. Additionally, if the organization has highly customized or less typical execution environments where uncommon processes are frequently used for legitimate purposes, false negatives could occur. It's assumed that all PowerShell activity is monitored adequately; any gaps in PowerShell logging or Sysmon configuration may result in undetected behavior.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -56,10 +56,18 @@ falsepositives:
 - Other legitimate processes loading those DLLs in your environment.
 level: medium
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies the loading of the "credui.dll" and "wincredui.dll" by processes that are not commonly associated with these critical Windows components. The rule targets potential malicious activities where attackers may exploit these DLLs using functions such as "CredUIPromptForCredentials" to capture user credentials or manipulate authentication processes. It primarily analyzes image load events, focusing on the original file names to ensure that potential abuse is not coming from known legitimate processes like `explorer.exe` or `regedit.exe`. By filtering out commonly benign process paths, this rule enhances its accuracy in detecting suspicious activity while minimizing false positives.
+  The detection rule "CredUI.DLL Loaded By Uncommon Process" aims to identify instances where `credui.dll` or its related libraries (`wincredui.dll`) are loaded by processes that are not typically associated with these operations. This rule leverages Windows image load telemetry to monitor whether the DLL is invoked by uncommon and potentially malicious processes. An adversary may exploit these DLLs for credential harvesting using functions like `CredUIPromptForCredentials` or `CredUnPackAuthenticationBufferW`, which can facilitate unauthorized access to user credentials.
+  The rule focuses on processes that are uncommon in the context of loading these specific DLLs, while filtering out legitimate processes like `explorer.exe`, `SystemSettings.exe`, `regedit.exe`, and others that might access these libraries during normal operations. This detection closely aligns with the MITRE ATT&CK technique for credential access (T1056.002).
   ### Investigation Steps
-  - Utilize EDR tools to perform a detailed analysis of the alert, reviewing the process tree and confirming the parent-child relationships of the involved processes.
-  - Check Windows Event Logs and process creation logs for additional context around the execution of the uncommon process that loaded the DLL, noting the execution time and any related user activity.
-  - Investigate network traffic through the NGFW and Proxy logs to determine if there were any outbound connections initiated by the uncommon process that may indicate data exfiltration or command-and-control communications.
-  - Review user account logs and authentication events within Windows and any cloud logs to identify if the affected user has reported issues or if there are any indicators of unauthorized access attempts.
+  - **Verify the Source of the Alert:** Utilize EDR to examine the process that triggered this alert. Review the command-line arguments and context of the associated process for indicators of malicious behavior.
+    
+  - **Check Process Parentage:** Look into the parent process of the triggering process using EDR tools. Understanding the lineage of the process can reveal whether it was spawned by a legitimate application or a potentially malicious script.
+  - **Examine User Context:** Review Windows Security logs to identify the user account that initiated the process. Pay attention to known user behavior patterns or any anomalies that may suggest compromise.
+  - **Analyze Network Activity:** Cross-reference network connections associated with the process using your NDR tools. Unexpected outbound connections could indicate data exfiltration or communication with a command-and-control server.
+  ### Prioritization
+  This rule's medium severity implies a recognition that while the invocation of `credui.dll` by uncommon processes can be benign in some cases, it poses a significant risk of credential theft and potential account compromise, warranting prompt investigation.
+  ### Blind spots and Assumptions
+  This rule assumes that most legitimate processes that load `credui.dll` will be filtered out through the specified conditions. However, it may not detect malicious activity if an adversary uses a legitimate process that is not excluded in the filters. Furthermore, some benign processes in certain environments might also trigger false positives, which can dilute the effectiveness of the rule. Lastly, the rule may not fire if the DLL is loaded in unusual ways or through custom methods that evade standard telemetry.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

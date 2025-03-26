@@ -33,11 +33,17 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect instances of obfuscated PowerShell scripts executed via the Microsoft HTML Application Host (MSHTA). The focus of the detection is on identifying specific payloads in PowerShell commands that contain keywords commonly associated with malicious activities, such as 'set', 'mshta', and 'vbscript:createobject'. When attackers utilize obfuscation techniques, they often rely on MSHTA to execute scripts in a way that bypasses traditional security measures. The rule specifically targets process creation logs where such PowerShell commands may be logged, enabling the identification of potential threats before they can cause harm.
-  To effectively detect these types of attacks, the rule analyzes PowerShell module logs for specific keywords within the payloads of execution commands. A match indicates a potentially malicious use of scripts intended to evade security controls. The presence of these keywords suggests that the command may have been crafted to obfuscate the intent of the operations being performed.
+  The Sigma rule titled "Invoke-Obfuscation Via Use MSHTA 
+  - PowerShell Module" is designed to detect obfuscated PowerShell scripts that employ MSHTA (Microsoft HTML Application Host) as a method of execution. This technique is often utilized by attackers to bypass security defenses by executing code indirectly through HTML applications. The rule looks for specific keywords and patterns in PowerShell command payloads, including 'set', '&&', 'mshta', 'vbscript:createobject', '.run', and '(window.close)'. The detection leverages data sources such as PowerShell command logs and Sysmon logs to identify malicious or suspicious behavior. This tactic aligns with MITRE ATT&CK's defense evasion techniques (T1027) and execution techniques (T1059.001).
   ### Investigation Steps
-  - Review recent PowerShell execution logs in the EDR to identify instances where MSHTA has been invoked with obfuscated commands.
-  - Investigate the command-line parameters of suspicious processes to assess for the presence of the flagged terms such as 'vbscript:createobject' or 'window.close'.
-  - Utilize the Antivirus (AV) logs to check for any detections or anomalies corresponding to the time of the identified execution events.
-  - Cross-reference with proxy and network traffic logs for any outgoing connections initiated by the processes associated with the detected suspicious PowerShell scripts.
+  - **Review EDR Alerts:** Check the EDR system for any recent alerts related to PowerShell processes that match the criteria outlined in this rule. Pay attention to the timestamp and source of the alerts.
+  - **Analyze PowerShell Command History:** Access the PowerShell command logs to find instances of the suspicious commands listed in the detection, including context about how and when they were executed.
+  - **Examine Sysmon Logs:** Query Sysmon logs for process creation events related to 'mshta.exe' and track the parent-child process relationships to understand potential attack chains.
+  - **Inspect Network Traffic:** Utilize the NDR tool to analyze outbound connections made by the MSHTA process to identify any communication with known malicious domains or IP addresses.
+  ### Prioritization
+  This alert is classified as high severity due to the potential for significant impact from obfuscated PowerShell execution via MSHTA, which can enable various malicious activities, including data exfiltration or lateral movement within an environment.
+  ### Blind Spots and Assumptions
+  A key assumption is that the logs being monitored are adequately capturing PowerShell activities and that the environments do not have specific configurations that suppress legitimate logging. Additionally, obfuscation techniques are constantly evolving, which means that some variants may evade detection. The rule may fail to fire in scenarios where the command structure is altered or where the usage of harmless scripts coincidentally includes some of the monitored keywords without malicious intent.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -23,11 +23,17 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  The "KrbRelayUp Service Installation" detection rule focuses on identifying the creation of a malicious service associated with the KrbRelayUp tool, which is known to facilitate privilege escalation in Windows domain environments. This rule specifically looks for the event with ID 7045, indicating that a new service has been installed on the system, with the service name 'KrbSCM', a trademark of the KrbRelayUp tool's operations. The detection relies on Windows system event logs, pinpointing anomalies in service creation that may indicate an ill-intended attempt to escalate privileges in environments that lack enforced LDAP signing.
-  This rule is particularly important in environments where security configurations might be lax, allowing unauthorized tools like KrbRelayUp to operate undetected. By monitoring for these specific indicators, the rule helps to proactively identify potential misuse of legitimate Windows service mechanisms by attackers seeking to compromise sensitive resources.
+  The "KrbRelayUp Service Installation" detection rule identifies the creation of services associated with the KrbRelayUp tool, which is used for privilege escalation within Windows domain environments. This malicious tool exploits vulnerabilities where LDAP signing is not enforced, allowing an attacker to manipulate service configurations to gain elevated privileges. The rule operates by monitoring Windows System logs, specifically focusing on Event ID 7045, which tracks the creation of new services. The core data points examined include the service name 'KrbSCM', indicating potential misuse of system resources for malicious activities. This rule is aligned with the MITRE ATT&CK technique "T1543 
+  - Create or Modify System Process," which highlights the method of manipulating system processes to escalate privileges.
   ### Investigation Steps
-  - Review the EDR logs for any recent occurrences of EventID 7045, focusing specifically on the creation of the 'KrbSCM' service to confirm the alert's validity.
-  - Cross-examine command-line parameters and parent processes associated with the service creation to understand the context and potential source of the threat.
-  - Analyze user account activity and permissions, checking for unusual access patterns or relationships with privileged accounts that may indicate compromise.
-  - Investigate Windows security event logs surrounding the time of the service installation for any preceding logins or authentication attempts that could indicate an attack vector prior to the installation.
+  - **Review Event Logs:** Check Windows Event Logs for Event ID 7045 and any other related events that occurred around the same time to identify the context and rationale behind the service creation.
+  - **Analyze Service Configuration:** Utilize EDR tools to investigate the configuration of the 'KrbSCM' service, looking for unusual parameters or settings that may indicate malicious intent.
+  - **Inspect Process Activity:** Use process monitoring tools to view any active processes tied to the newly created service and trace their origins to determine if they correlate with known malicious operations.
+  - **Correlate with Network Activity:** Analyze network logs from the NGFW or NDR to see if any suspicious connections or communications have been established that align with the the service installation events.
+  ### Prioritization
+  This alert carries a high severity level as service creation within a Windows environment, especially when tied to known privilege escalation tools, poses a significant risk to enterprise security. Quick response and investigation are essential to prevent potential unauthorized access and lateral movement within the network.
+  ### Blind Spots and Assumptions
+  Potential blind spots include environments where LDAP signing has been correctly enforced or where the KrbRelayUp tool has been modified or packaged differently to evade detection. Additionally, the rule may not fire if service installations occur outside the expected logging parameters or if there are issues with log retention settings that prevent historical logs from being retained. It's also assumed that the Alert will fire in a typical configuration, but variations in environment setup or detection rules may lead to false negatives.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

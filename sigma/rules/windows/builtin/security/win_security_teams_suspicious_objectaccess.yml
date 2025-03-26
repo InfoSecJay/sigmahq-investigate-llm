@@ -27,10 +27,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule is designed to identify suspicious access events related to the Microsoft Teams application, specifically targeting the authentication tokens and account-related data stored by Teams. It looks for security events logged with Event ID 4663, indicating an access attempt to sensitive objects like cookies and local storage associated with Teams. The rule filters these events to focus only on accesses performed by the Teams executable, ensuring that potential malicious activities are highlighted. By monitoring these interactions, organizations can detect attempts to compromise user credentials or manipulate Teams account data, which can lead to broader security breaches.
+  This detection rule is designed to identify potentially malicious access to authentication tokens and accounts associated with the Microsoft Teams desktop application. Specifically, it focuses on security event ID 4663, which captures access attempts to the Microsoft Teams data directories, such as 'Cookies' and 'Local Storage', where sensitive cleartext information might be stored. The rule filters for access attempts originating from the Teams executable, ensuring that only anomalous activities targeting these critical data stores are flagged for investigation. This aligns with the MITRE ATT&CK framework under the tactic "Credential Access" and technique T1528, which addresses the acquisition of credentials and access tokens.
   ### Investigation Steps
-  - Review the EDR logs to identify when the suspicious access attempt occurred, and correlate this timestamp with other system activities to contextualize the event.
-  - Analyze the process tree for the Teams application to ensure that the access event was legitimate or part of expected user behavior.
-  - Cross-reference the affected user account with authentication logs from the identity provider to check for any unusual login attempts or activity.
-  - Inspect network connections associated with the Teams application during the timeframe of the event to identify any unusual or unauthorized data exfiltration attempts.
+  - **Verify Event Details:** Use SIEM tools to view the detailed logs of the triggered event, focusing on timestamps, user identities, and source processes to contextualize the alert further.
+  - **Analyze Process Behavior:** Leverage EDR solutions to investigate the behavior of the Teams application and any related processes during the timeframe of the alert, looking for unusual patterns or subprocesses.
+  - **Assess User Accounts:** Check whether the user associated with the alert has reported any recent account compromise or unusual activity, which could help determine the legitimacy of the access attempt.
+  - **Review Network Activity:** Use network detection tools to analyze outbound connections made by Teams during the time of the suspicious activity. Look for unusual data transmissions that could indicate token misuse or unauthorized access.
+  ### Prioritization
+  This alert is categorized as high severity due to the sensitive nature of authentication tokens being accessed, which could indicate potential credential theft or malicious activity, necessitating prompt investigation to protect user accounts and sensitive information.
+  ### Blind Spots and Assumptions
+  This rule assumes that monitoring and logging for Windows Event ID 4663 are properly configured and that the Teams application is used within the enterprise environment. It may not fire for legitimate access by system administrators or automated processes. Additionally, the effectiveness of the rule may be limited in scenarios where attackers deploy techniques to obfuscate their activity, such as running Teams in non-standard environments or using system impersonation.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

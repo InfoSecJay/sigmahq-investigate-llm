@@ -31,10 +31,17 @@ falsepositives:
 - Unikely
 level: high
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect instances where the Windows utility `cmstp.exe` (the Connection Manager Profile Installer) loads dynamic link libraries (DLLs) or ActiveX controls (OCX files) from suspicious locations, often indicative of a defense evasion tactic used in malicious software execution. The rule monitors for the loading of these files from specific paths that are commonly exploited, such as `C:\PerfLogs\`, `C:\ProgramData\`, and temporary directories, where unauthorized DLLs might be stored to bypass traditional defenses. By focusing on the image load events associated with `cmstp.exe`, this rule helps identify anomalous behavior linked to potential attacks, allowing for a proactive response to threats that leverage this legitimate tool for nefarious purposes.
+  This Sigma rule is designed to detect the use of cmstp.exe, a Microsoft utility for installing and managing Connection Manager profiles, when it loads dynamic link library (DLL) or ActiveX (OCX) files from suspicious locations. Adversaries often exploit legitimate tools to evade detection and execute malicious code, leveraging common file types like DLL and OCX files to compromise systems. This rule focuses on identifying these threats by monitoring the image load events associated with cmstp.exe, specifically checking for suspicious paths commonly used for temporary storage or user data, such as '\PerfLogs\', '\ProgramData\', and '\Windows\Temp\'. The relevant technical data sources include image load logs, which capture events when a process loads executable files and their associated libraries. This rule is mapped to the MITRE ATT&CK technique T1218.003 
+  - Signed Binary Proxy Execution, highlighting its relevance in the context of defense evasion.
   ### Investigation Steps
-  - Review process creation logs to identify the execution chain leading to `cmstp.exe`, including the parent process and command-line parameters used.
-  - Examine EDR alerts related to `cmstp.exe` to gather additional context on file interactions and other potential malicious activity within the system.
-  - Analyze file attributes and behaviors of the loaded DLLs or OCX files to determine any known associations or anomalies that raise concerns.
-  - Inspect network logs from NGFW or Proxy to identify any suspicious outbound connections initiated by `cmstp.exe` or the loaded DLLs, which could indicate further compromise.
+  - **Check EDR Alerts:** Investigate alerts related to cmstp.exe using your EDR tool to track any associated process activities, parent-child relationships, or command-line usage that may indicate malicious intent.
+  - **Analyze Process Creation Events:** Review Windows Security logs for any suspicious process creation events that involve cmstp.exe, particularly those originating from unusual user accounts or during odd hours.
+  - **Examine Network Traffic:** Utilize NDR data to identify any outbound connections made by cmstp.exe, especially those heading to known malicious IP addresses or tied to unusual domains related to file downloads.
+  - **Investigate File Integrity:** On the affected endpoints, check for the presence of the loaded DLL or OCX files in the specified suspicious paths by conducting a file integrity check through your security tooling.
+  ### Prioritization
+  The high severity level of this alert suggests that loading DLLs or OCXs from suspicious locations via a legitimate utility poses a substantial risk for potential exploitation or compromise within the enterprise environment.
+  ### Blind Spots and Assumptions
+  This rule may not detect all malicious activities. For instance, legitimate use of cmstp.exe to load files from these paths could result in false negatives. Additionally, if an attacker chooses to obfuscate their actions by altering the paths or using different legitimate tools, detection may fail. Analysts should remain vigilant for emerging techniques that could bypass this detection method.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -94,10 +94,18 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect potentially suspicious file downloads initiated using `wget.exe` from file-sharing domains. The rule inspects process creation logs, focusing on the command-line parameters utilized when `wget.exe` is executed. Specifically, it looks for command lines that point to known file-sharing websites and includes certain flags and file extensions associated with executable or script files, such as `.ps1`, `.exe`, and `.vbs`. By identifying these patterns, security analysts can raise alerts on potentially malicious file downloads that could pose a risk to organizational assets or facilitate further exploitation.
+  This Sigma rule is designed to detect potentially suspicious file downloads initiated through the `wget.exe` utility from known file-sharing domains. The detection mechanism utilizes process creation logs to analyze the command line arguments passed to `wget.exe`. It specifically looks for instances of the executable downloading files with extensions commonly used in scripts and executables, such as `.ps1`, `.exe`, and `.bat`, from domains associated with file sharing (e.g., `pastebin.com`, `mediafire.com`). The rule relates to the MITRE ATT&CK technique of Execution (T1203 
+  - Exploitation for Client Execution). 
+  The critical data sources involved in this detection include command-line parameters from process creation logs, which can reveal what is being downloaded, the source URL, and any associated flags used in the command invocation of `wget.exe`. By cross-referencing with the domains of interest, this rule enhances detection capabilities for malicious file downloads that could lead to further exploitation or incidents within the network.
   ### Investigation Steps
-  - Examine the command-line arguments associated with the detected `wget.exe` execution in your EDR tool to identify the specific file being downloaded and its source URL.
-  - Check file reputation using your AV or threat intelligence services to determine if the downloaded file has been flagged or associated with malicious activity.
-  - Review historical Proxy or Network logs to see if there was any previous connection to the same file-sharing domain or if similar downloads were initiated from the same host.
-  - Investigate the endpoint's activity and behavior surrounding the time of the alert to ascertain whether there were any related suspicious processes or network connections established.
+  - **Analyze the alert context**: Review the alert details in your SIEM, focusing on the command-line parameters and the associated process creation logs for `wget.exe` to confirm the potential malicious nature of the file downloaded.
+  - **Cross-reference the download source**: Inspect the domain from which the file was downloaded. Use threat intelligence services or internal resources to verify if the domain is historically linked to malicious activity.
+  - **Investigate file characteristics**: Check the attributes of the downloaded file if available, using EDR for file metadata analysis and determining whether the file matches known suspicious hashes or signatures.
+  - **Monitor subsequent activity**: Look for any subsequent processes spawned from `wget.exe` or downloaded files, as this could indicate further exploitation attempts or lateral movement within the network.
+  ### Prioritization
+  The alert is classified as high severity due to the potential for significant risk associated with executing malicious files that may be downloaded from untrusted sources, indicating a possible breach or compromise of sensitive environments.
+  ### Blind spots and Assumptions
+  This rule may not fire if `wget.exe` is invoked without recognizable command-line arguments or if the malicious file is downloaded using different means (e.g., other download managers, powershell). Additionally, if the attacker utilizes custom or obscured domains that are not included in the detection criteria, the rule may fail to trigger. It is assumed that the appropriate logging is properly configured to capture all relevant process creation events; any misconfigurations could impact detection efficacy.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and relevance, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

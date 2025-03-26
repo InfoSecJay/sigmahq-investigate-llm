@@ -30,10 +30,16 @@ falsepositives:
 - Some false positives may occur with admin scripts that set WT settings.
 level: medium
 notes: |
+  n
   ### Technical Context
-  This rule detects suspicious modifications to the Windows Terminal's profile settings file, `settings.json`, which is critical for user configuration. The rule specifically identifies when this file is created or altered by processes that are not commonly associated with such changes, including `cmd.exe`, `cscript.exe`, `mshta.exe`, `powershell.exe`, `pwsh.exe`, and `wscript.exe`. The presence of these uncommon processes making changes can indicate malicious behavior, such as an attempt to persistently modify terminal settings for nefarious purposes. The detection operates on file event logs that detail when files are created or modified, specifically targeting the path where Windows Terminal settings are stored.
+  This Sigma rule is designed to detect the modification of the Windows Terminal profile settings file, specifically `settings.json`, by processes that are not commonly associated with regular Windows Terminal usage. The detection is achieved by monitoring file events for changes made to the designated settings file located within the `AppData` folder. It specifically looks for the `Image` paths to end with certain executable names, such as `cmd.exe`, `powershell.exe`, and others that are often employed in automation scripts. This behavior aligns with the MITRE ATT&CK tactic of Persistence (Technique T1547.015), which involves adversaries attempting to maintain access or modify system settings to their advantage.
   ### Investigation Steps
-  - Review EDR logs to identify the process that initiated the modification of `settings.json`, paying special attention to the command-line arguments used during execution.
-  - Check for other related file events in the same directory to understand if this modification is part of a broader manipulation of terminal settings or configurations.
-  - Use the AV tool to scan the uncommon process and its parent processes for known malware signatures or behaviors.
-  - Examine proxy logs for any unusual outbound connections made by the modifying process, which may reveal attempts to communicate with external command and control infrastructure.
+  - **Review process activity:** Examine the EDR logs to identify the process that executed the modification. Pay close attention to the command-line arguments and parent-child relationships of the involved processes.
+  - **Correlate user behavior:** Check Windows Security event logs to determine if the modifying process was initiated by an account with appropriate permissions or if this behavior is anomalous.
+  - **Inspect system settings:** Verify if there are any legitimate scripts or tools that could have modified the settings file, which might account for false positives.
+  - **Analyze historical changes:** Use version control for system files, if available, to compare previous states of the `settings.json` file against the current version to identify what changes were made.
+  ### Prioritization
+  This alert is categorized as medium severity due to the potential for persistent unauthorized modifications to user terminal settings, which could lead to further exploitation by an adversary. It necessitates a timely investigation to ascertain the legitimacy of the modifications.
+  ### Blind Spots and Assumptions
+  This rule may not trigger under certain conditions, such as if the modification is performed by processes that are commonly used in the environment but aren't currently included in the detection list. Additionally, if policies or scripts regularly adjust `settings.json`, this could lead to routine false positives. Engineers should be aware that sophisticated attackers may attempt to mask their activities by using these common processes, potentially evading detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

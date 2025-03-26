@@ -24,10 +24,17 @@ falsepositives:
 - Diagnostics
 level: high
 notes: |
+  n
   ### Technical Context
-  The "Live Memory Dump Using PowerShell" detection rule aims to identify potentially malicious usage of PowerShell commands that could signify an attempt to extract sensitive data from a Windows machine's memory. Specifically, it looks for the execution of the `Get-StorageDiagnosticInfo` command with the `-IncludeLiveDump` parameter, which can be used to create a live memory dump. This command can enable attackers to capture information stored in memory, such as passwords, encryption keys, or other sensitive data, making it a significant point of interest in threat detection. Effective detection relies on the collection of PowerShell script block logs, which must be enabled for this rule to function properly, as they provide the necessary context for script execution.
+  This detection rule is designed to identify the use of PowerShell commands that initiate a live memory dump on a Windows machine. Specifically, it looks for the execution of the `Get-StorageDiagnosticInfo` command with the `-IncludeLiveDump` parameter, which indicates that a memory dump is being requested. The primary data sources for this detection are Windows PowerShell logs, particularly focusing on script block logging. It is crucial for organizations to monitor such activities as they may indicate the presence of a malicious actor attempting to extract sensitive information from system memory. This alert aligns with the MITRE ATT&CK technique T1003 (Credential Dumping).
   ### Investigation Steps
-  - Review PowerShell logs from the EDR tool to find instances of the `Get-StorageDiagnosticInfo` command with the `-IncludeLiveDump` parameter. Correlate these actions with user activity to determine if they are legitimate or suspicious.
-  - Check for associated process creation events to identify the parent processes related to the PowerShell command execution. Investigating the lineage of processes can provide insight into possible exploitation.
-  - Utilize the SIEM to analyze timeline data and identify any related alerts or indicators of compromise (IOCs) that may suggest a broader attack pattern. Look for unusual behavior around the time the script was executed.
-  - Examine the output of any memory dumps created to assess for the presence of sensitive information or signs of intrusion. If located, escalate the findings immediately for further analysis by the incident response team.
+  - **Verify Script Block Logging**: Check if script block logging is enabled on the affected system to ensure relevant PowerShell activity is being recorded.
+    
+  - **Examine PowerShell Logs**: Use EDR tools to review PowerShell execution logs around the time of the alert to identify any unusual command execution or patterns.
+  - **Analyze System Memory**: Utilize forensic tools to check for unauthorized memory dumps on the system, which can indicate potential data exfiltration.
+  - **Investigate User Activity**: Review the user account activity associated with the execution, checking for any accounts that should not typically perform such actions.
+  ### Prioritization
+  This alert is categorized as high severity because the capability to dump live memory can be leveraged by an attacker to extract sensitive data, including credentials and other confidential information, posing a significant threat to the organization's security posture.
+  ### Blind Spots and Assumptions
+  This rule relies on the assumption that script block logging is enabled. If it is not, the detection may fail to trigger. Additionally, legitimate administrative activities or diagnostics may result in false positives, necessitating careful evaluation during investigation. Attackers may also use obfuscation techniques to mask their commands, leading to missed detections.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

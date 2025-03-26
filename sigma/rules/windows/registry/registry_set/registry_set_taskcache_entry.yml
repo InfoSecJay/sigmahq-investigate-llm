@@ -58,12 +58,14 @@ falsepositives:
 level: high
 notes: |
   ### Technical Context
-  This Sigma rule monitors for suspicious modifications to the Windows Task Scheduler's TaskCache. Specifically, it triggers alerts when a new registry key is created under the TaskCache path (i.e., `SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\`) by a process that is not recognized as a legitimate Windows component, such as `svchost.exe`. This activity can indicate potential malicious behavior, such as the presence of ransomware or unauthorized scheduled tasks used for persistence purposes. The rule examines process execution logs to identify the source processes that initiate these registry changes, filtering out known benign applications and common system services to focus on uncommon executables.
+  The "Scheduled TaskCache Change by Uncommon Program" rule monitors the Windows registry for the creation of new keys under `TaskCache`, specifically when a new scheduled task is registered by processes other than the commonly trusted `svchost.exe`. Scheduled tasks can be a legitimate mechanism for automating functions in Windows; however, adversaries often exploit this feature to maintain persistence or execute malicious payloads. The rule utilizes Windows registry logs as its primary data source, particularly focusing on registry operations that manipulate scheduled tasks. By checking for the `TaskCache` registry path, it captures potentially suspicious activity that might be indicative of unauthorized task creation, in alignment with the persistence tactics outlined in the MITRE ATT&CK framework, notably T1053 and T1053.005.
   ### Investigation Steps
-  Investigate the alert by confirming the process associated with the registry change using the EDR tool to trace process creation events and the corresponding command-line parameters. 
-    
-  Cross-reference the task creation with Windows Event Logs focusing on Task Scheduler events to ascertain the legitimacy of the scheduled task registrations.
-    
-  Examine registry access logs to track any unauthorized access attempts or changes made by unexpected processes, which may lead to further insights on malicious activity.
-    
-  Utilize antivirus and endpoint protection logs to check if any flagged threats or anomalies are associated with the detected process and its actions during the timeframe of the alert.
+  - **Verify Process Source:** Utilize EDR tools to investigate the process that created the registry key. Check its reputation and history for any known malicious activity or anomalies.
+  - **Analyze Registry Changes:** Review the specific task that was registered by examining the newly created keys in `TaskCache`. Determine the legitimacy of the task by looking into its intended function and target systems.
+  - **Inspect Other Logs:** Correlate with Sysmon logs to see if the unusual process executed any other suspicious actions, such as process creation or network connections around the same time.
+  - **Check for Additional Indicators:** Query network logs (NDR/NGFW) for any outbound connections made by the identified process, as well as related user activity in proxy and VPN logs to further assess potential compromise.
+  ### Prioritization
+  The high severity level assigned to this alert is due to the potential for unauthorized modifications to scheduled tasks which can serve as a persistent backdoor for an attacker, making this a critical indicator of compromise that warrants immediate investigation.
+  ### Blind Spots and Assumptions
+  This rule may not fire in environments where uncommon programs legitimately create scheduled tasks, leading to potential blind spots in detection. Additionally, if an attacker uses a whitelisted application that meets the filter criteria, it could evade detection. Adversaries may also exploit legitimate system processes in forms that do not create clear registry indicators, thereby bypassing this particular rule. 
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

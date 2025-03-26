@@ -42,10 +42,17 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  The "Potential Persistence Via Outlook Today Page" Sigma rule is designed to identify potential malicious persistence mechanisms that leverage Microsoft Outlook's Today page feature. This method can be exploited by attackers who modify registry values related to Outlook to execute arbitrary code every time Outlook is launched. The rule specifically looks for changes in registry keys associated with Outlook, particularly under `Software\Microsoft\Office\Outlook\Today\`. It tracks the existence of specific subkeys like `URL` or `UserDefinedUrl`, which can point to external resources invoked during Outlook's startup process. The rule uses data from Windows registry set logs, which detail any alterations made to registry keys that could indicate potential malicious activity.
+  The "Potential Persistence Via Outlook Today Page" detection rule identifies potentially malicious persistence mechanisms that leverage Microsoft Outlook's functionality. Attackers may manipulate registry keys related to Outlook, specifically those pointing to custom pages, to execute arbitrary code each time Outlook is launched. The rule monitors for changes to registry values under the path `Software\Microsoft\Office\Outlook\Today\`, looking for entries that define URLs (`UserDefinedUrl` and `URL`) and specific settings (`Stamp`). These registry modifications trigger alerts, indicating potential misuse as a command-and-control (C2) mechanism. The associated MITRE ATT&CK technique for this rule is **T1112 
+  - Modify Registry** under the **Persistence** tactic.
   ### Investigation Steps
-  - Review the relevant registry changes by leveraging EDR tools to examine the recent modifications in the `Software\Microsoft\Office\Outlook\Today\` keys and note any unexpected values.
-  - Utilize the SIEM to correlate the timestamps of the detected registry modifications with user login activities and Outlook process launches for any anomalous patterns.
-  - Check process execution logs to verify if `OfficeClickToRun.exe` was launched around the same time as the registry changes, noting any deviations from expected behavior.
-  - Analyze network traffic and proxy logs for outbound connections initiated by Outlook around the time of the registry change, focusing on suspicious URLs or endpoints that align with known malicious indicators.
+  - **Verify Registry Changes**: Use a registry viewer to confirm modifications to `HKEY_CURRENT_USER\Software\Microsoft\Office\Outlook\Today\` for any suspicious entries.
+  - **Correlate Process Logs**: Check EDR logs for process creation events involving `OUTLOOK.EXE` to establish context around when the malicious registry entries were modified.
+  - **Analyze Network Activity**: Inspect outbound traffic logs for connections initiated by Outlook (e.g., HTTP or HTTPS) to see if any unusual or unauthorized servers were contacted post-exploitation.
+  - **Review User Activity**: Examine user activity logs and behaviors around the alert timeframe to identify any anomalous actions that may suggest compromises in account usage.
+  ### Prioritization
+  This alert is classified as high severity due to the inherent risk of unauthorized code execution and the potential for prolonged persistence in the environment, allowing an attacker continued access to the system.
+  ### Blind spots and Assumptions
+  The rule may not fire if an attacker uses alternate methods to achieve persistence without modifying the specified registry keys, such as employing different Office components or utilizing direct applications without registry interactions. Additionally, if registry changes are made in a manner not captured by the selection criteria (e.g., non-standard registry paths), the rule may fail to detect the activity. It's assumed that monitoring is effective across all user accounts and that users have minimal legitimate use of custom Outlook pages, which may lead to false positives in certain environments.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

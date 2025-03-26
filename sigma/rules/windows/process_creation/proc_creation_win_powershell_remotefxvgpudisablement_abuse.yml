@@ -33,10 +33,17 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  The Sigma rule "RemoteFXvGPUDisablement Abuse Via AtomicTestHarnesses" is designed to detect malicious attempts to abuse the `RemoteFXvGPUDisablement.exe` binary through specific PowerShell commands. It specifically looks for calls to the `Invoke-ATHRemoteFXvGPUDisablementCommand`, which is part of the Atomic Test Harnesses framework. This technique exploits module load-order hijacking to run unauthorized scripts, circumventing standard security measures. By capturing process creation logs, particularly the command-line parameters, the rule identifies instances where adversaries may leverage this method for defense evasion and malicious PowerShell execution.
+  This detection rule is designed to identify potential abuse of the RemoteFXvGPUDisablement binary, specifically through the misuse of PowerShell command `Invoke-ATHRemoteFXvGPUDisablementCommand`. The tactic at play is "Defense Evasion" as categorized by the MITRE ATT&CK framework under technique T1218. The rule focuses on process creation logs and inspects the command line of processes that include specific keywords associated with the Atomic Test Harnesses. By detecting these unconventional command invocations, the SOC can flag behavior that may indicate an attempt to manipulate or evade security controls through unauthorized execution of PowerShell commands.
+  The key logs involved are primarily sourced from Sysmon process creation events, which capture detailed information about the command line arguments used when starting processes. Analysts can also work alongside other logs—such as those from EDR solutions and PowerShell transcripts—to corroborate findings and perform deeper investigations into potential unauthorized activities.
   ### Investigation Steps
-  - Utilize EDR tools to review process creation logs and identify instances of `RemoteFXvGPUDisablement.exe` being executed, paying attention to the command-line parameters.
-  - Check for any abnormal PowerShell activity surrounding the detected command; use PowerShell logs to trace any preceding or succeeding commands.
-  - Investigate the presence of the Atomic Test Harnesses package in the environment to determine whether it has been installed or manipulated.
-  - Examine user account activity in conjunction with VPN or cloud identity services to validate whether the commands originated from legitimate user actions or compromised accounts.
+  - **Check EDR Alerts**: Investigate the corresponding EDR alerts to identify any related suspicious process activities around the time the alert was triggered.
+  - **Analyze Process Creation Logs**: Review the Sysmon process creation logs for any unusual parent-child process relationships leading up to the alert, especially focusing on the command line details.
+  - **Correlate with PowerShell Logs**: Inspect PowerShell logs for additional context, such as script executed, module imports, or potentially obfuscated commands executed around the same timestamp.
+  - **Review Network Logs**: Look for unusual network connections initiated by the process in question, which may indicate further malicious intent or remote communication by the adversary.
+  ### Prioritization
+  This alert is classified as high severity due to the potential for significant security implications arising from attempts to exploit trusted binaries. Any unauthorized execution of commands through such manipulation could signify a strong indication of a breach or advanced persistent threat.
+  ### Blind Spots and Assumptions
+  This rule may not fire if the adversary employs tactics to obfuscate the command line, or if they utilize alternate methods to execute the same commands outside of Sysmon's visibility. Additionally, standard user activities that innocently utilize PowerShell and the RemoteFX binary may lead to false positives. It is crucial for detection engineers to continuously refine detection parameters and review baseline behavior for legitimate uses of this command to avoid alert fatigue.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

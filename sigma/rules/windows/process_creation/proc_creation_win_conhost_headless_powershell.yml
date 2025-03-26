@@ -32,9 +32,17 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This Sigma rule detects the execution of PowerShell commands from a headless instance of the Console Host (ConHost) process, which is identifiable by the `--headless` flag. The rule targets the execution of PowerShell scripts or commands in environments where the ConHost is usually visible to the user, thereby trying to evade detection and make the execution less noticeable. The detection relies on process creation logs that specifically look for ConHost (`conhost.exe`) and analyzes the command-line parameters to identify instances where both 'powershell' and '--headless' are present. This combination is often associated with malicious activity, as threat actors may use headless instances to run scripts quietly in the background without drawing user attention.
+  This detection rule identifies malicious activity involving PowerShell processes that are executed from a headless Console Host (ConHost) window. It specifically looks for instances where the `conhost.exe` process is initiated with the `--headless` flag alongside a PowerShell command. The headless execution mode conceals the command window from user interaction, which can be used by adversaries to carry out nefarious activities without alerting the user. This behavior aligns with the MITRE ATT&CK techniques under the tactics of "Defense Evasion" (T1059.001 
+  - Scripting and T1059.003 
+  - Windows Command Shell). By leveraging Windows event logs related to process creation, the rule can effectively flag untrusted PowerShell executions in environments where visibility to user activities is crucial.
   ### Investigation Steps
-  - Review the detailed process creation logs in your EDR to identify instances of `conhost.exe` being initiated with the `--headless` flag along with executing PowerShell commands.
-  - Utilize your SIEM to correlate these events with known malicious indicators or behaviors to establish if this activity is part of a larger attack scenario.
-  - Investigate user activity and system behavior around the time of the alert to determine if this execution aligns with legitimate administrative activities or if it seems suspicious.
-  - Cross-reference network traffic logs on your NGFW or NDR to ascertain if there was any unusual outbound communication from the host executing the headless PowerShell commands.
+  - **Review Process Creation Logs:** Examine Windows Security logs to verify the presence of `conhost.exe` process creation events that include the `--headless` flag with PowerShell command-line arguments.
+    
+  - **Analyze Command-Line Arguments:** Utilize EDR solutions to further inspect the specific command-line arguments used, along with parent process information, to assess the legitimacy of the command.
+  - **Check for Anomalous Activity:** Cross-reference with known-good baselines for PowerShell usage in the environment, focusing on any deviations or unexpected execution patterns.
+  - **Investigate Network Connections:** Use network detection tools (e.g., NDR) to analyze any outbound connections made by the PowerShell process to identify potentially malicious communications.
+  ### Prioritization
+  This alert is considered medium severity because while the execution of PowerShell commands from a hidden context may indicate malicious intent, it requires further investigation to distinguish between legitimate administrative tasks and potential attacks.
+  ### Blind Spots and Assumptions
+  The rule may not fire if an attacker uses legitimate system processes to execute PowerShell or if they obfuscate their command-line arguments to avoid typical detection patterns. Additionally, environments where users frequently utilize headless execution for legitimate purposes could generate false positives. Other potential blind spots include the impact of system performance or timing which could lead to missed detections if the `conhost.exe` process is not logged as expected or if logging is misconfigured.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

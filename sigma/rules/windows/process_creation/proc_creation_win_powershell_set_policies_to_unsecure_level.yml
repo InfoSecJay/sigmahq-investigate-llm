@@ -46,10 +46,17 @@ falsepositives:
 - Administrator scripts
 level: medium
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect attempts to change the PowerShell script execution policy to a less secure setting, which could facilitate the execution of malicious scripts. Specifically, the rule monitors for the use of the `-ExecutionPolicy` parameter commonly passed to PowerShell and PowerShell Core (`pwsh`) executables. It captures relevant process creation logs, focusing on instances where the command line arguments include flags like `Bypass` or `Unrestricted`, both of which can lower protections against potentially harmful scripts. Sources for this detection primarily include Windows process creation logs, which provide insights into command-line executions that could indicate unauthorized or malignant activity.
+  This Sigma rule detects modifications to the PowerShell execution policy that could set it to an insecure level, enabling potentially malicious scripts to run on the system. The rule specifically looks for the use of the `-ExecutionPolicy` flag in the PowerShell process creation logs, particularly when values such as `Bypass` or `Unrestricted` are included in the command line. The telemetry sources involved in this detection include Windows process creation logs, which capture relevant command-line parameters, and information about the image associated with the PowerShell executable. This behavior is associated with the MITRE ATT&CK tactic of Execution (TA0002) and technique T1059.001 (PowerShell).
   ### Investigation Steps
-  - Utilize the EDR tool to search for recent instances of `PowerShell.exe` or `pwsh.exe` being executed with the `-ExecutionPolicy` flag, focusing on those that use `Bypass` or `Unrestricted`.
-  - Check for additional suspicious command lines or parent processes that may provide context as to why these policy changes were initiated and identify potential escalation paths.
-  - Review related logs from the SIEM for abnormal patterns of PowerShell usage within the same time frame to correlate any suspicious behaviors that align with the execution policy changes.
-  - Conduct a thorough investigation into the environment to ensure that legitimate administrator scripts haven't been misconfigured or exploited, minimizing false positives during the analysis.
+  - **Verify PowerShell Execution Policy Change:** Utilize Windows Security logs or PowerShell logs to confirm that the execution policy has indeed been altered. Look for timestamps matching the alert and capture the user context in which the change occurred.
+    
+  - **Examine Process Creation Timeline:** Leverage EDR tools to review process creation events surrounding the time of the alert, focusing on PowerShell process instances and their parent processes to trace potential anomalous activity.
+  - **Correlate with Other Alerts:** Check the SIEM for other related alerts (e.g., execution of suspicious scripts or unusual command-line arguments) that may indicate a compromise or misuse in conjunction with the policy change.
+  - **Review User and System Activity:** Analyze logs for the user account that initiated the change to understand their typical behavior, checking for any signs of lateral movement, unauthorized access, or discrepancies indicating possible credential compromise.
+  ### Prioritization
+  The alert severity is set to medium due to the potential risks associated with setting the PowerShell execution policy to an insecure level, which may allow for the execution of unauthorized scripts that could compromise the system or lead to further attacks.
+  ### Blind Spots and Assumptions
+  This rule may not fire if PowerShell command execution does not clearly use the `-ExecutionPolicy` flag, or if the policy change is executed through Group Policy, which would bypass individual process logging. Additionally, it assumes familiarity with PowerShell and typical administrative tasks. If administrative users execute scripts to change the execution policy legitimately, those activities may not trigger an alert, necessitating context from security teams on routine operations.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

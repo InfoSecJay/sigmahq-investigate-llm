@@ -30,10 +30,17 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to identify potential arbitrary DLL loading through the Microsoft Word application (`WINWORD.exe`) using the command line argument `/l`. The detection is focused on monitoring process creation events where the command line for `WINWORD.exe` includes both the `/l` flag and a reference to a `.dll` file. An attacker might exploit this functionality to sideload malicious DLLs under the cover of a legitimate Word process, thereby evading certain security measures. The primary technical data sources for this detection are Windows process creation logs, which provide insights into the execution and command line parameters of running processes.
+  This Sigma rule is designed to detect potential arbitrary Dynamic Link Library (DLL) sideloading attempts using Microsoft Word (WINWORD.exe) by monitoring specific command-line parameters. The rule focuses on identifying instances where the WINWORD process is initiated with the '/l' flag followed by a '.dll' file, which indicates a possible attempt to load an external DLL. This behavior aligns with the MITRE ATT&CK technique T1202 
+  - "Potential Arbitrary DLL Load," which categorizes arbitrary DLL loading as a defense evasion tactic. The primary data sources utilized in this rule include process creation logs, particularly monitoring the command-line arguments used during the execution of the WINWORD.exe process to identify suspicious patterns.
   ### Investigation Steps
-  - Review the process creation logs in your EDR to confirm the presence of `WINWORD.exe` and check the associated command line for parameters including `/l` and any referenced `.dll` files.
-  - Correlate the details gathered from the EDR with your SIEM to check for any other processes or events that occurred around the same time, which may indicate a broader malicious campaign.
-  - Use antivirus and endpoint protection tools to scan the identified DLLs for known malware signatures and behaviors, as well as to determine if any have been flagged previously.
-  - Investigate any outbound connections made by `WINWORD.exe` during the timeframe of the alert, using NDR or firewall logs to identify suspicious network traffic that may indicate data exfiltration or command-and-control activity.
+  - **Verify Process Execution:** Use your EDR to check the timeline of the WINWORD.exe process creation and examine its command-line arguments for the use of '/l' and any associated DLL files.
+  - **Analyze DLL Source:** Investigate the origin and integrity of any DLL files referenced in the command line by cross-referencing against known good files and consulting application logs or file repositories.
+  - **Network Activity Review:** Monitor network connections initiated by WINWORD.exe to determine if there is unusual outbound activity correlating with the DLL loading attempt that may indicate further compromise.
+  - **Review User Context:** Check the user account that executed WINWORD.exe for unusual behavior patterns or historical issues and assess whether this account has the privileges necessary for such actions.
+  ### Prioritization
+  The severity level of this alert is classified as medium due to the potential for misuse by malicious actors to load unauthorized code into a trusted application, which could be indicative of broader compromise attempts.
+  ### Blind spots and Assumptions
+  Depending on the specific configurations of the Microsoft Office installation and user behavior, this rule may not fire if users have legitimate reasons for loading external DLLs or if the monitoring of the command-line parameters is not enabled in all environments. Additionally, adversaries could defeat this detection by using non-standard or obfuscated command-line arguments, or by leveraging alternative methods of executing unauthorized code. It is crucial to ensure comprehensive process creation logging is in place to minimize potential detection gaps.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

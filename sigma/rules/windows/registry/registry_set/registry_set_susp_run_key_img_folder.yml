@@ -48,10 +48,17 @@ falsepositives:
 - Software using weird folders for updates
 level: high
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect suspicious modifications to the Windows Registry, specifically additions to the RUN or RUNOnce keys. These keys are used to execute programs automatically when a user logs in to the system. The detection looks for entries pointing to executables located in directories typically associated with malicious behavior, such as temporary folders or the Recycle Bin, indicating potential persistence mechanisms. The rule inspects the details of the registry entry to catch common scripting engines like `wscript` or `cscript` that could signify an attacker's attempt to execute malware silently. By leveraging data from registry set logs, the rule provides a focused approach to identify possible threats in a Windows environment.
+  This detection rule identifies the creation of new entries in the Windows registry's RUN and RUNOnce keys that point to executables located in suspicious and commonly abused directories such as Temp or Recycle Bin. By monitoring for these registry changes, the rule aims to flag potential persistence mechanisms that may indicate malicious activity according to the MITRE ATT&CK technique T1547.001 
+  - Registry Run Keys / Startup Folder. The relevant telemetry includes Windows registry logs, specifically focusing on `TargetObject` that points to the mentioned paths, along with details that might indicate the path or properties of the executable.
   ### Investigation Steps
-  - Review recent registry changes in the EDR to pinpoint any new or modified entries in the RUN and RUNOnce keys, focusing on those linked to the suspicious paths indicated by the alert.
-  - Utilize the SIEM to correlate the identified registry changes with any related process creation logs, which may provide context on what executable was run and its command-line arguments.
-  - Check for alerts or logs from the AV tool regarding any executable that was executed from the paths mentioned, looking for any known malicious signatures or behaviors.
-  - Examine network traffic logs via the NDR and Proxy tools for any outbound connections that align with the identified executable, which could help determine if data exfiltration or further command and control activity is occurring.
+  - **Use EDR for Process Analysis:** Review the process tree in your EDR tool to understand what process created the suspicious RUN key entry and whether it invoked any unusual or unauthorized executables.
+  - **Examine Registry Logs:** Search for recent registry modifications to `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` and `HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce` using the relevant logs to identify other potential persistence mechanisms.
+  - **Check File Locations:** Inspect the folder referenced in the RUN key entry for any suspicious files or executables, especially in the paths like Temp or Recycle Bin, and analyze their behavior with your antivirus or malware analysis tools.
+  - **Network Traffic Review:** Investigate related network connections from the executing processes to check for any outbound communication to known malicious IP addresses or domains.
+  ### Prioritization
+  The alert is classified as high severity due to the potential association with persistent malware that can re-establish itself after a reboot, making it crucial for timely remediation efforts.
+  ### Blind Spots and Assumptions
+  This rule may not fire if malicious actors utilize legitimate processes or if they obfuscate their executable locations using common application folders that are not typically scrutinized. Additionally, it assumes that system monitoring of registry changes is enabled and functioning correctly. There is also a possibility of false positives from legitimate software applications that use unusual folders for updates or configurations.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

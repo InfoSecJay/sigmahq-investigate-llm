@@ -23,10 +23,17 @@ falsepositives:
 - Access to badly maintained internal or development systems
 level: medium
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies the execution of `curl.exe` with the `--insecure` flag, which indicates that the user is willing to accept connections to SSL sites without verifying the server's certificate. This flag is commonly used by attackers to bypass SSL verification when transferring data, potentially leading to data exfiltration or man-in-the-middle attacks. The rule analyzes process creation logs on Windows systems, focusing on entries where `curl.exe` is executed with the flag present in the command-line arguments. The detection leverages the combination of process name checking, original file naming, and specific command-line pattern matching to identify potentially malicious activity.
+  The Sigma rule "Insecure Transfer Via Curl.EXE" is designed to detect instances where the command-line utility `curl.exe` is executed with the `--insecure` flag. This flag instructs `curl` to bypass SSL certificate validation, presenting a significant security risk as it may expose sensitive data to man-in-the-middle attacks. The rule leverages Windows process creation logs to monitor for specific attributes such as the image name (i.e., `curl.exe`) and command-line arguments that include the insecure option. The identification of such a command is crucial as it indicates a potential attempt to transfer data insecurely, which could align with malicious activity. This detection relates to the MITRE ATT&CK tactic of `Execution` (T1203 
+  - Exploitation for Client Execution), highlighting the need for vigilance around tools that handle data transfers.
   ### Investigation Steps
-  - Review the process creation logs for instances of `curl.exe` invoked with the `--insecure` flag to identify the user and system involved in the execution.
-  - Utilize the EDR tool to analyze the execution context, including parent process relationships and user behavior leading up to the `curl.exe` execution.
-  - Examine any associated network activity using NDR or firewall logs to determine if any suspicious or unauthorized outbound connections were established.
-  - Check for sensitive data exposure by querying cloud storage or file-sharing services to ascertain if files were transferred during the `curl` execution.
+  - **Review EDR Logs**: Use Endpoint Detection and Response (EDR) solutions to check for recent executions of `curl.exe`, particularly focusing on timestamps that correspond with the alert and examining associated process trees.
+  - **Analyze Command-Line Arguments**: Validate the command-line arguments used in the execution of the `curl.exe` process; look for the presence of the `--insecure` flag and note any suspicious or unfamiliar URLs being accessed.
+  - **Examine Network Connections**: Inspect network logs for any activity initiated by the `curl.exe` process, especially outbound connections to unexpected or known malicious domains.
+  - **Correlate with User Behavior**: Assess the user account associated with the execution of `curl.exe` to determine if it aligns with expected behavior, including checking for past legitimate use or access to development environments.
+  ### Prioritization
+  The severity of this alert is categorized as medium due to the potential risk of data exposure and unauthorized transfers. Situations where `curl.exe` is executed with the `--insecure` flag warrant prompt investigation, especially if the context or destination of the data is not justifiable.
+  ### Blind Spots and Assumptions
+  One primary blind spot is the possibility of legitimate use cases for `curl.exe` in internal or development environments where insecure connections may be necessary. Additionally, the rule may not fire if the executable is renamed or if scripts invoke `curl` through indirect means without matching the specific criteria outlined. Analysts should assume that advanced adversaries may employ custom tools or scripts to bypass such detections, making it essential to continually refine detection strategies.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

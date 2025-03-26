@@ -31,11 +31,18 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This Sigma rule is designed to detect the enumeration of directories via PowerShell, which is a technique commonly associated with MAZE ransomware. It specifically looks for the use of certain commands and parameters indicative of directory enumeration scripts, including `foreach` combined with `Get-ChildItem` and error handling flags like `-ErrorAction SilentlyContinue`. For this detection to work, Script Block Logging must be enabled on Windows systems, ensuring that all PowerShell script execution is logged. The rule identifies potentially malicious actions that, when executed by an attacker, can lead to data reconnaissance before further exploitation.
-  The primary data sources utilized by this rule include PowerShell script logs, which capture the execution of commands and their arguments. By focusing on specific command patterns often used in directory enumeration, the rule helps analysts identify unusual or suspicious activity that may indicate a larger compromise or ransomware operation.
+  The "Powershell Directory Enumeration" rule is designed to detect the use of a specific PowerShell command sequence that is common in directory enumeration attacks, particularly those employed by the MAZE ransomware. This rule focuses on identifying the execution of PowerShell scripts that contain a combination of command parameters indicative of directory scanning activities, such as `foreach`, `Get-ChildItem` with the `-Path` option, error handling parameters like `-ErrorAction`, and output commands like `Out-File`. The primary data sources leveraged for this detection include PowerShell script block logs, which must be enabled within the Windows environment to provide the necessary telemetry. 
+  By monitoring these script block logs, the detection rule can trigger alerts when potentially malicious enumeration scripts are executed. This activity is mapped to the MITRE ATT&CK framework under Tactic: Discovery and Technique: T1083 (File and Directory Discovery), which highlights its relevance to understanding and mitigating threats associated with file system reconnaissance.
   ### Investigation Steps
-  - Check the EDR for recent PowerShell processes that matched the rule's signature. Review the process tree for any parent processes that may indicate suspicious activity.
-  - Analyze the command line parameters and script content associated with the PowerShell execution. Look for additional patterns or flags that might suggest malicious intent beyond simple directory enumeration.
-  - Query the AV logs to find any detections or alerts triggered during the timeframe of the PowerShell execution. Pay attention to any security incidents that correlate with this activity.
-  - Investigate any recent changes to user permissions or access logs within the affected systems. Suspicious changes in directory permissions may indicate pre
-  - or post-compromise actions taken by an attacker.
+  - **Review PowerShell Logs:** Examine the PowerShell script block logs for the specific commands listed in the rule's detection criteria. Look for common indicators such as `Get-ChildItem` and any use of `Out-File`.
+    
+  - **Correlate with Process Creation Events:** Utilize EDR tools to correlate the identified PowerShell script execution with process creation events, checking for suspicious parent processes or unusual execution contexts.
+    
+  - **Assess User Activity:** Investigate the user who initiated the PowerShell command to determine if the user had appropriate permissions and access rights, and whether this behavior aligns with their usual activities.
+    
+  - **Check for Related Network Activity:** Use network logs to identify any outgoing communications from the infected host to external IP addresses or domains after the PowerShell enumeration command was executed, as this could suggest further malicious activity.
+  ### Prioritization
+  This alert is rated as medium severity because while directory enumeration can be a precursor to more damaging actions, it may also be part of legitimate administrative tasks. Contextual investigation is crucial to determining the intent behind the activity.
+  ### Blind spots and Assumptions
+  One potential blind spot is the assumption that all legitimate PowerShell scripts will be completely benign; thus, false positives from routine administrative activities may occur. Moreover, if script block logging is not enabled, this detection rule will not fire, resulting in missed malicious activity. Adversaries may also use obfuscation techniques to hide their command intent, which could lead to the rule failing to capture the malicious actions effectively.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and relevancy, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

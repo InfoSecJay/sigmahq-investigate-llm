@@ -31,9 +31,20 @@ falsepositives:
 level: high
 notes: |
   ### Technical Context
-  The Sigma rule "Tamper Windows Defender Remove-MpPreference" is designed to detect unauthorized attempts to modify Windows Defender settings using the `Remove-MpPreference` cmdlet. It focuses on identifying process creation events that include this specific command line or variations that indicate the tampering of security configurations, such as adjustments to Controlled Folder Access or Attack Surface Reduction rules. The rule aggregates data from Windows process creation logs, leveraging the command line parameters associated with PowerShell executions to flag potential security incidents. This functionality is crucial to maintaining endpoint protections, as attackers may employ such tactics to disable or bypass security controls that Windows Defender provides.
+  The Sigma rule titled "Tamper Windows Defender Remove-MpPreference" is designed to detect suspicious activity where an adversary may attempt to tamper with Windows Defender configurations using the PowerShell cmdlet `Remove-MpPreference`. Specifically, the rule looks for process creation events that contain certain command lines indicative of attempts to modify security settings that protect the system from malware, such as Controlled Folder Access protections and Attack Surface Reduction rules. By monitoring the `CommandLine` parameter within process creation logs, the rule aims to identify the potential misuse of administrative tools that could be leveraged by attackers to evade detection or disable critical security mechanisms. This activity is aligned with the MITRE ATT&CK framework under the tactic of "Defense Evasion" and technique "T1562.001: Disable or Adjust Security Tools."
   ### Investigation Steps
-  - Query the EDR for the specific endpoints involved when the alert was triggered, examining the associated PowerShell activities around the time of the incident.
-  - Review process creation logs for the detected command line entry to identify any patterns or recurring source processes that may indicate malicious activity.
-  - Check the AV logs to determine if any attempts have been made to disable or modify Windows Defender settings, correlating this with the timestamp of the alert.
-  - Analyze the organization's Proxy and firewall logs to see if there were any unusual outbound connections made by the processes implicated, which could signify further malicious behavior.
+  - **Review Process Creation Events:** Utilize EDR solutions to filter process creation logs for instances of `Remove-MpPreference`. Pay close attention to the timestamp and user context to determine whether this action is authorized.
+    
+  - **Correlate with User Activity Logs:** Investigate related user activities around the time of the alert using Windows Security logs. Determine if the user has the appropriate administrative rights and whether their account was subject to any anomalies or potential compromise.
+    
+  - **Analyze PowerShell Command Usage:** Check for any recent or unusual use of PowerShell, particularly commands involving security configurations, by utilizing Sysmon logs. Look for patterns indicating automated scripts or repeated executions.
+    
+  - **Examine Endpoint Security Settings:** Verify the current Windows Defender configuration to see if any settings have been modified by the detected command. Cross-reference with documented security policies to assess compliance.
+  ### Prioritization
+  The severity level is high due to the potential impact of tampering with Windows Defender settings, which could allow malware or unauthorized software to operate undetected. Quick response is essential to mitigate risks associated with security tool manipulation.
+  ### Blind Spots and Assumptions
+  This rule might not trigger in the following scenarios: 
+  - If the `Remove-MpPreference` command is run with different parameters or within legitimate administrative contexts, it may not raise an alert.
+  - Legitimate administrative actions that result in the same command execution could lead to false positives, especially in environments where PowerShell is widely used for standard operations.
+  - If logging is improperly configured or certain administrative actions are excluded from telemetry, the rule may fail to fire altogether.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

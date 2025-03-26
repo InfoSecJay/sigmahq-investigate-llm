@@ -49,10 +49,19 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  The detection rule for SharpDPAPI focuses on identifying potentially malicious executions of the SharpDPAPI tool, a C# implementation designed to manipulate DPAPI secrets, which can be leveraged for privilege escalation and evading security controls. This rule specifically looks for the execution of the `SharpDPAPI.exe` file by examining both the image name and the command-line parameters used during its execution. Indicators of interest include specific command-line flags that are commonly associated with sensitive operations, such as retrieving credentials or manipulating secure blobs. Data sources involved in this detection include Windows process creation logs, which capture the execution details needed to analyze potentially unauthorized or suspicious activities related to this tool.
+  The Sigma rule titled "HackTool 
+  - SharpDPAPI Execution" detects the execution of the SharpDPAPI executable, which is a C# port of certain DPAPI functionalities originally from Mimikatz, a well-known post-exploitation framework. This rule operates by analyzing process creation logs for indicators that suggest SharpDPAPI is being executed. The detection criteria focus on specific attributes of the process such as the image name being "SharpDPAPI.exe" and particular command-line arguments commonly used with the tool (e.g., "backupkey," "credentials," "vaults"). By monitoring for these attributes in Windows process creation events, the rule aims to identify potential unauthorized attempts to access sensitive data, aligned with the MITRE ATT&CK techniques T1134.001 (Access Token Manipulation) and T1134.003 (Secondary Token).
   ### Investigation Steps
-  - Review the process creation logs within the EDR system to confirm the execution of `SharpDPAPI.exe` and assess the command-line arguments used during its invocation.
-  - Utilize endpoint detection tools to analyze the behavior of the process and check for any signs of lateral movement or abnormal access patterns following its execution.
-  - Cross-reference logged network connections in your NDR to identify if the tool communicated with any external or anomalous endpoints that could indicate data exfiltration.
-  - Investigate any associated user accounts in the identity management system to determine if the process was executed by a legitimate user or if credentials were compromised, leading to unauthorized execution.
+  - **Review Alert Context:** Examine the alert details in the SIEM for timestamps, user accounts, and any related events to understand the potential impact and context of the execution.
+  - **Analyze Process Creation Logs:** Utilize Windows Event Logs, particularly focusing on the Security logs, to trace the process creation events and examine the command-line arguments used with SharpDPAPI.
+  - **Correlate with EDR Data:** Check the endpoint detection and response (EDR) tool for any anomalous activities or behavioral indicators associated with the user account and the system where SharpDPAPI was executed.
+  - **Investigate Network Activity:** If applicable, review network connection logs to identify any suspicious outbound connections made after the execution of SharpDPAPI that could indicate data exfiltration or further exploitation.
+  ### Prioritization
+  This alert has a high severity level as the execution of SharpDPAPI is indicative of potential privilege escalation or sensitive data manipulation by an unauthorized user, warranting immediate investigation in an enterprise environment.
+  ### Blind Spots and Assumptions
+  - The rule may not fire if SharpDPAPI is executed with arguments that do not match any specified patterns in the detection logic or if the executable is renamed or altered.
+  - It is assumed that other processes calling SharpDPAPI are benign; hence, additional context is essential to avoid false positives and assess the legitimacy of the execution.
+  - Adversaries may employ obfuscation techniques or use other tools capable of achieving similar objectives without relying on SharpDPAPI, which the rule would not capture.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and completeness, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

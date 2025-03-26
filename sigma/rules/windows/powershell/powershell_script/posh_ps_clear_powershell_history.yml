@@ -41,9 +41,19 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This detection rule identifies potential attempts to clear PowerShell command history within a Windows environment. It searches for specific keywords and commands commonly associated with the clearing of logs, such as `Remove-Item`, `Set-PSReadlineOption`, and other variations of these commands. The presence of strings like `-HistorySaveStyle SaveNothing` indicates an intent to prevent PowerShell from saving command history, which can signify defense evasion techniques often used by attackers. To function effectively, this rule relies on PowerShell script block logging, which must be enabled to capture relevant events from the PowerShell execution context. By monitoring the ScriptBlockText for these indicators, the rule seeks to flag unauthorized or suspicious activity in real-time.
+  This Sigma rule is designed to detect suspicious activity related to the clearing of PowerShell command history, which is a tactic often employed by attackers to obfuscate their actions and avoid detection. The rule looks for specific PowerShell command syntax, including keystrokes that reference clearing or modifying historical command data, such as the use of `Remove-Item` (alias `rm`), and settings adjustments via `Set-PSReadlineOption`. For detection, the rule relies on telemetry data from PowerShell Script Block Logging, which records the commands executed in PowerShell sessions. 
+  The alert falls under MITRE ATT&CK technique T1070.003, "Clear Command History," which highlights the importance of recognizing how adversaries may attempt to hide their tracks during an attack. By monitoring for these specific patterns in script blocks, security teams can gain insight into potential malicious activity that aims to remove traces of executed commands.
   ### Investigation Steps
-  - Review the relevant PowerShell script block logs in your EDR solution to identify the context and origin of the suspicious commands that triggered the alert. Pay particular attention to the user account and machine involved.
-  - Check the logs for any other activities from the same user or system around the time the alert was generated. Look for additional unusual command executions that might indicate malicious intent.
-  - Examine network traffic logs, if applicable, for any connections to external hosts around the time of the detection. This could reveal if the endpoint was communicating with a command-and-control server.
-  - Verify the configuration of PowerShell logging within your environment to ensure compliance and confirm if this was an anomaly or a legitimate script execution by an authorized user.
+  - **Review the PowerShell Script Logs**: Utilize the SIEM to filter PowerShell logs that capture script block execution and search for occurrences of the keywords identified in the rule, paying close attention to timestamps and involved users.
+    
+  - **Cross-Reference User Activity**: Check the EDR for user activity around the time of the alert to determine if there are any other suspicious behaviors or anomalies associated with the user account.
+  - **Analyze System Changes**: Inspect Windows Security logs to ascertain if any changes were made to security settings, particularly those associated with Script Block Logging.
+  - **Consult Additional Logs**: Examine proxy and VPN logs for any external connections made by the user, as this may provide context on whether the behavior was related to an external command or threat actor. 
+  ### Prioritization
+  The alert is categorized as medium severity since clearing PowerShell history can indicate an attempt to cover malicious activities. It is critical for incident responders to evaluate the context, as legitimate administrative actions can also trigger similar alerts.
+  ### Blind Spots and Assumptions
+  This rule may not fire under several conditions: 
+  - If Script Block Logging is not enabled on affected systems, the key activities will not be recorded. 
+  - Legitimate scripts employed by system administrators to manage PowerShell history may falsely trigger the rule, leading to potential false positives. 
+  - Adversaries could employ obfuscation techniques to bypass detection, such as using encoded commands or altering standard PowerShell workflows, thus evading the scrutiny of these specific keywords.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

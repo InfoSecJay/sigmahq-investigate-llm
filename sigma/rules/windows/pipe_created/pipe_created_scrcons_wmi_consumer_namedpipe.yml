@@ -27,10 +27,16 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  This detection rule is designed to monitor the creation of named pipes by the WMI Event Consumer service, specifically focusing on the executable `scrcons.exe`. Named pipes are often used in Windows for inter-process communication, but their creation by certain services can indicate malicious or unauthorized activity, particularly in the context of attacks such as Cobalt Strike or other malicious frameworks leveraging WMI for persistence and communication. The rule specifically checks for log entries from Windows that are captured by Sysmon, requiring appropriate configurations to log named pipe events (Event IDs 17 and 18). When `scrcons.exe` is detected creating a named pipe, it may indicate an attempt to execute malicious actions, warranting further investigation.
+  This Sigma rule detects the creation of named pipes by the WMI Event Consumer service, specifically the executable `scrcons.exe`. Named pipes are a form of inter-process communication that can be exploited by adversaries to facilitate command and control (C2) communications, especially by malware such as Cobalt Strike. The detection is based on monitoring telemetry logs from Windows Sysmon, specifically focusing on events generated when named pipes are created (Event ID 17 and Event ID 18). This rule aligns with the MITRE ATT&CK technique T1047 (Windows Management Instrumentation), as it identifies suspicious utilization of WMI for potentially malicious activities.
   ### Investigation Steps
-  - Verify the Sysmon configuration by ensuring that named pipe event logging (Event IDs 17 and 18) is enabled to capture relevant data.
-  - Utilize EDR tools to review the behavior of `scrcons.exe`, checking for any unusual parent-child relationships or command-line executions that could indicate suspicious activity.
-  - Analyze historical network activity through logs from proxies or firewalls to identify any anomalous connections initiated by the system running `scrcons.exe`.
-  - Correlate findings with threat intelligence feeds to determine if the behavior aligns with known tactics, techniques, and procedures (TTPs) related to WMI usage in cyber threats.
+  - **Review Sysmon Logs**: Check Windows Sysmon logs for Event ID 17 and Event ID 18 to confirm the creation of named pipes by `scrcons.exe`. Ensure that logging for named pipe events is properly configured.
+  - **Correlate with EDR Alerts**: Utilize Endpoint Detection and Response (EDR) tools to investigate the endpoint associated with the alert. Look for any other suspicious processes or anomalies in recent activity.
+  - **Inspect Process Behavior**: Analyze the behavior of `scrcons.exe` and any related processes using process creation logs. Check command-line parameters and other events indicating unusual activity around the time of the named pipe creation.
+  - **Analyze Network Connections**: Look for any network connection attempts made by `scrcons.exe` or its children processes to identify potential command and control (C2) communications. Utilize network logs from the NGFW and NDR to correlate findings.
+  ### Prioritization
+  The severity level rated as "medium" indicates that while the use of `scrcons.exe` creating named pipes is not uncommon for legitimate administrative tasks, its association with potential malicious activity warrants prompt investigation to rule out any security incidents.
+  ### Blind spots and Assumptions
+  There are several potential blind spots with this detection rule. The rule may not fire if Sysmon is not configured to log named pipe events correctly, as required by the specified event IDs. Additionally, legitimate use of `scrcons.exe` by system administrators could lead to false positives if not contextualized. An adversary might also defeat this detection by using a different executable name or leveraging alternative methods for inter-process communication that do not utilize named pipes.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

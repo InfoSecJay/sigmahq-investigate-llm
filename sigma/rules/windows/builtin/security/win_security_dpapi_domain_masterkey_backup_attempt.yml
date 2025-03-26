@@ -27,11 +27,16 @@ falsepositives:
   of the data. Which will trigger this event.
 level: medium
 notes: |
-  ### Technical Context
-  This detection rule focuses on identifying unauthorized attempts to create backups of the Data Protection API (DPAPI) Master Key, a sensitive operation related to credential access. The rule triggers when an event with EventID 4692 is logged, indicating a backup operation has occurred. The data source for this detection is the Windows Security log, specifically monitoring for user actions that involve the backup of sensitive cryptographic material. Since DPAPI is used for the protection of sensitive data, monitoring for such operations helps to identify potential credential theft or misuse by adversaries. 
-  The rule helps incident responders understand when a backup operation is initiated, allowing them to assess the legitimacy of the request and determine whether any unauthorized access to critical data has occurred.
-  ### Investigation Steps
-  - Use the EDR platform to review the user activities associated with the EventID 4692 logs, focusing on the user account and the time of the backup attempt.
-  - Cross-reference the affected computer name with your asset management system to validate its domain membership and assess whether the action is expected for that environment.
-  - Check for any suspicious processes or command-line arguments used during the time of the backup attempt by reviewing process creation logs in your EDR.
-  - Examine network logs, specifically looking for unusual outbound connections from the system where the backup was attempted, which may indicate data exfiltration or remote access.
+  ### Technical Context:
+  The "DPAPI Domain Master Key Backup Attempt" detection rule is designed to monitor and alert on attempts to backup the Data Protection API (DPAPI) Master Key, an essential component used for data encryption in Windows environments. This rule is particularly focused on Event ID 4692, which captures events related to DPAPI key operations. The significance of monitoring this event lies in its value for maintaining credential security: an unauthorized backup of the DPAPI Master Key may indicate malicious intent, as it could facilitate various types of credential access techniques outlined in the MITRE ATT&CK framework under the tactic of Credential Access (ATT&CK ID: T1003.004).
+  This detection leverages Windows Security logs to capture relevant activities, specifically the creation of a backup for the DPAPI Master Key. By scrutinizing the attributes associated with this event, such as `ComputerName`, `SubjectDomainName`, and `SubjectUserName`, SOC analysts can identify potentially unauthorized actions and ensure that appropriate measures are taken to protect sensitive information.
+  ### Investigation Steps:
+  - **Verify User Authorization:** Check the `SubjectUserName` and `SubjectDomainName` against your organization's user access policies to determine if the user had legitimate reasons to perform a backup.
+  - **Review Event Context:** Utilize Windows Security event log search to review the surrounding events for additional context, such as repeated attempts or other suspicious behavior by the user.
+  - **Cross-Reference Systems:** Use EDR tools to correlate the specific machine (`ComputerName`) with known authorized backup processes and other logs that may indicate legitimate use versus potential compromise.
+  - **Coordinate with the User:** If unauthorized access is suspected, reach out to the identified user to verify their actions and intentions, documenting findings for further analysis.
+  ### Prioritization:
+  The severity level for this alert is set to medium because unauthorized DPAPI Master Key backup attempts can indicate a serious security breach, potentially exposing encrypted credentials. Rapid response and investigation are crucial to mitigate risks associated with credential theft.
+  ### Blind Spots and Assumptions:
+  One of the key assumptions in this rule is that not all legitimate uses of DPAPI backups will be identifiable as threats; users with admin privileges might perform necessary backups, leading to false positives. Additionally, if the environment has specific security policies allowing for regular backup processes, this rule may not trigger as expected. Adversaries could also employ tactics to mask their actions by ensuring backups occur under legitimate user accounts or during established maintenance windows, thus evading detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and relevance, we recommend validating the content and adapting it to suit specific environments and operational needs. Please communicate any changes to the detection engineering team.

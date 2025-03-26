@@ -27,10 +27,16 @@ falsepositives:
 - Unknown
 level: low
 notes: |
+  n
   ### Technical Context
-  This Sigma rule detects the creation of a Windows service file named "PSEXESVC.exe", which is associated with PsExec, a tool often exploited by attackers for remote execution of commands and processes. When PsExec is used, it typically installs a service named "PSEXESVC" on the target machine. The rule primarily examines file event logs to identify instances where a file with this specific name is created, indicating potential misuse of the PsExec tool. Detection relies on monitoring data from Windows file event logs, particularly focusing on file creation events that have notations matching the specified filename.
+  The "PsExec Service File Creation" detection rule is designed to identify the creation of the PsExec service executable file, specifically targeting the filename `PSEXESVC.exe`. PsExec, developed by Sysinternals, allows remote execution of commands on Windows systems, which can be leveraged by attackers for lateral movement and privilege escalation. This rule works by monitoring specific file events for the creation of `PSEXESVC.exe`, a default name associated with the PsExec service installation. The primary data sources involved in this detection are file event logs from Windows, specifically focusing on the creation of files in the system. This rule is aligned with the MITRE ATT&CK tactic for Execution (T1202) and the detailed technique of "Command and Scripting Interpreter: Windows Command Shell" (T1569.002), highlighting the potential for misuse of legitimate tools to execute malicious actions on the network.
   ### Investigation Steps
-  - Review recent process creation logs from the EDR to identify any instances where PsExec has been executed or any suspicious commands run in conjunction with the created service.
-  - Utilize antivirus (AV) logs to check for any alerts or blocks related to "PSEXESVC.exe" to determine if it has been flagged as malicious.
-  - Investigate firewall (NGFW) logs to assess if there has been any unauthorized outbound or inbound traffic associated with the machine that created the service, which could indicate further malicious activity.
-  - Analyze Windows event logs for logged service creation events and correlate these with user login patterns and administrative access to determine legitimacy.
+  - **Check File Creation Logs:** Use EDR or Windows Event Logs to search for file creation events associated with `PSEXESVC.exe` to confirm an occurrence.
+  - **Identify Process Relationships:** Analyze the parent-child process relationship for the creation event using process creation logs to determine if it was spawned by a legitimate program or a potential threat.
+  - **Review Network Connections:** Investigate any network activity associated with `PSEXESVC.exe` using Network Detection and Response (NDR) tools to check for unauthorized outbound connections or data exfiltration attempts.
+  - **Examine Related PowerShell Activity:** Search PowerShell logs for any commands that may have invoked PsExec or similar tools to provide context to the execution and potential misuse.
+  ### Prioritization
+  This alert is marked with a low severity level, suggesting that while the creation of the PsExec service file is suspicious, it may be a common occurrence in environments where legitimate administrative tasks are performed remotely. However, additional context surrounding the file creation can elevate the level of concern.
+  ### Blind Spots and Assumptions
+  This rule may not fire in environments where PsExec is not commonly used or where its execution is closely monitored and controlled. It also assumes that the monitoring of file creation events is configured correctly across endpoints. An adversary could defeat this detection by renaming the executable or using alternative tools to achieve similar execution capabilities, making detection through filename alone insufficient.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

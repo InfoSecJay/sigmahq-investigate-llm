@@ -38,10 +38,17 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect suspicious activity related to the Windows Remote Management (WinRM) infrastructure, specifically focusing on the use of the WSMan COM provider without the legitimate PowerShell host application. The rule targets logs associated with `powershell-classic`, searching for instances where the `Data` field indicates the presence of `ProviderName=WSMan`. It then applies filters to exclude entries where the host application is identified as PowerShell.exe, whether invoked directly or through its various paths. By doing so, the rule aims to identify potential lateral movement attempts by attacker tools or scripts that exploit WinRM while masquerading as legitimate activity, thus raising the alert level for such behaviors.
+  This Sigma rule is designed to detect suspicious usage of the Windows Management Instrumentation (WSMAN) COM provider without PowerShell being the host application. The rule checks system logs for occurrences where WSMAN is invoked, particularly focusing on the absence of the legitimate PowerShell host application. Instead, it identifies any other process that attempts to use the WSMAN provider, indicating potential lateral movement or malicious execution, which is addressed in the MITRE ATT&CK framework under the "Execution" tactic (T1059.001) and "Lateral Movement" technique (T1021.003). The detection leverages Windows Security Log data, specifically looking for relevant parameters in log messages that indicate how WSMAN is being utilized.
   ### Investigation Steps
-  - Review recent process creation logs using EDR tools to determine if any unusual or unauthorized applications were initiated around the time of the alert.
-  - Examine command-line parameters associated with processes that invoked the WSMan provider to identify any irregularities or non-standard usage.
-  - Analyze network logs (NDR) for any suspicious outgoing or incoming WinRM traffic that may correlate with the timeframe of the detected activity.
-  - Validate the legitimacy of the applications making requests to the WSMan provider by cross-referencing the `HostId` against known system hosts and user activity logs in cloud platforms.
+  - **Review Event Logs:** Check the Windows Event Logs, specifically the Security and Sysmon logs, for events related to the detected WSMAN usage. Pay particular attention to the user account and the originating system to assess the context of the activity.
+    
+  - **Correlate Process Information:** Utilize an EDR solution to analyze the processes associated with the suspicious WSMAN calls. Determine if any other known malicious processes or behaviors are linked to the system and user.
+  - **Examine Remote Connections:** Utilize logs from VPN and network firewalls to review any remote connections made to the system where the alert was triggered. Look for unusual IP addresses or connection attempts during the timeframe of the alerts.
+  - **Verify with Threat Intelligence:** Cross-reference the activity against known indicators of compromise (IoCs) using threat intelligence platforms to assess if the observed behavior is related to any documented threats or vulnerabilities.
+  ### Prioritization
+  This alert is classified as medium severity due to the potential implications of unauthorized lateral movement or malicious execution attempts in the environment. Immediate investigation is warranted to determine if this behavior is benign or represents an emerging threat.
+  ### Blind spots and Assumptions
+  This rule may not fire if the adversary attempts to obfuscate their use of the WSMAN provider by using legitimate PowerShell instances or if they employ custom or less common scripting tools that do not trigger logging for WSMAN usage. Additionally, environments not thoroughly mapping necessary fields in security logs may miss such events entirely. It is assumed that users actively utilizing WSMAN for benign purposes are sufficiently covered by communication and training policies.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and reliability, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

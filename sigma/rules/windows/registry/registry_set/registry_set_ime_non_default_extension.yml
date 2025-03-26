@@ -31,10 +31,17 @@ falsepositives:
   on a standard keyboard, such as Chinese, Japanese, and Korean.
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies potential misuse of the Windows Input Method Editor (IME) by monitoring registry modifications related to IME configurations. Specifically, it looks for the addition of a DLL path to the "Ime File" registry value under the `\Control\Keyboard Layouts\` path, which could indicate the use of non-standard extensions in IME files. Attackers may exploit this legitimate functionality to load malicious DLLs by sending a `WM_INPUTLANGCHANGEREQUEST` message, which alters the input language and can execute arbitrary code without triggering typical security controls. The detection leverages registry set logs as the data source to highlight unusual extensions that may signify malicious intent.
+  This detection rule is designed to identify potentially malicious activity involving the Windows Input Method Editor (IME) by monitoring specific registry changes. IMEs allow for a DLL to be loaded into a process through the manipulation of keyboard layouts, which can be exploited by attackers to execute arbitrary code. The rule focuses on any registry keys related to IME settings, particularly those that reference the "Ime File" value expected to point to a DLL path. Specifically, it looks at keys under `\Control\Keyboard Layouts\` to see if they are associated with uncommon or suspicious file extensions (".ime"), which are not typically used for legitimate applications. This aligns with the MITRE ATT&CK technique T1562.001, which focuses on defense evasion techniques by exploiting system features like IMEs to run unauthorized code.
   ### Investigation Steps
-  - Check for any recent changes in the registry pertaining to `\Control\Keyboard Layouts\` using EDR tools to correlate with the alert timestamp.
-  - Investigate the specified DLL paths registered under "Ime File" for known malicious signatures or behaviors using AV and threat intelligence sources.
-  - Review process creation logs around the time of the alert to identify any processes that may have executed the IME or related DLLs.
-  - Conduct a thorough analysis of user access logs through the proxy or cloud platforms to detect any unusual user activity that might correlate with the use of malicious IMEs.
+  - **Examine Registry Modifications:** Use tools like Windows Registry Editor or PowerShell to investigate the registry entries under `\Control\Keyboard Layouts\`. Check for newly added "Ime File" values that point to suspicious DLLs.
+    
+  - **Review Process Activity:** Utilize EDR solutions to track process creation events following registry modifications. Investigate any unexpected processes that may have leveraged the IME to load the detected DLLs into memory.
+  - **Analyze Network Connections:** Inspect network connections for any outbound traffic from newly initiated processes. This can identify communication with external command and control servers that may result from the execution of the malicious DLL.
+  - **Check for Associated Alerts:** Correlate with existing alerts in your SIEM for related activities, including unusual process behavior or multi-step attack patterns that might point to wider exploitation of system components like IMEs.
+  ### Prioritization
+  This alert is categorized with high severity due to the potential for significant impact from unauthorized DLL execution, which could lead to system compromise or data exfiltration in an enterprise environment.
+  ### Blind Spots and Assumptions
+  This rule may not fire in environments where legitimate IME usage is common since many business applications require these functionalities for users speaking languages that employ complex characters. Additionally, attackers might obfuscate or rename their DLL files to features less likely to trigger this alert. The rule also assumes that any legitimate registry entries for IMEs using common extensions are benign, which could lead to false negatives if an attacker compromises an existing valid IME.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -39,9 +39,19 @@ falsepositives:
 level: high
 notes: |
   ### Technical Context
-  This detection rule identifies potential tampering with the boot configuration on Windows systems using the `bcdedit.exe` utility. This command-line tool is often exploited by malicious actors to manipulate the Boot Configuration Data (BCD), compromising system recovery options or making it difficult to initiate safe modes—a technique frequently associated with pre-ransomware activities. The rule looks for specific conditions in process creation logs, targeting instances where `bcdedit.exe` is executed with command-line parameters that could indicate malicious intent, such as `bootstatuspolicy ignoreallfailures` or `recoveryenabled no`. By scrutinizing the command-line usage of the executable, the rule increases the likelihood of detecting attempts to alter the boot configuration without authorization.
+  This Sigma rule detects potentially malicious activity involving the `bcdedit.exe` utility, which is used to manipulate the Boot Configuration Data (BCD) in Windows environments. Adversaries often leverage this command-line tool to corrupt or alter boot settings as a preparatory step before deploying ransomware or to disrupt system recovery features. The detection logic specifically monitors for process creation events where `bcdedit.exe` is executed, focusing on command-line arguments that indicate tampering with boot policies, such as enabling boot status policies or disabling recovery options. This functionality utilizes Windows Event Logs as the primary data source, particularly monitoring the process creation logs originating from the Sysmon and Windows Event Log formats.
+  In terms of the MITRE ATT&CK framework, this detection relates to the **Impact** tactic (TA0040) and specifically addresses the technique **T1490: Inhibit System Recovery**, indicating that the activity could lead to significant operational impact.
   ### Investigation Steps
-  - Utilize EDR tools to investigate the process creation logs for any instances of `bcdedit.exe` being executed, focusing on the respective command-line arguments.
-  - Check for any suspicious user accounts associated with the command execution and analyze their login history using logs from Active Directory or similar directories.
-  - Review alert details in the SIEM, correlating the time of the `bcdedit.exe` execution with other security events to identify potential lateral movement or escalation of privileges.
-  - If applicable, examine endpoints for any recent installation of fileless malware or anomalous behavioral patterns that could be linked to the identified command usage in the logs.
+  - **Verify the Alert Source:** Check the EDR solution for the presence of the `bcdedit.exe` execution and its associated command-line arguments, correlating the events with the alert timestamp.
+  - **User Context Review:** Examine the user account executing the command to determine if the context is legitimate (e.g., administrative access) or suspicious. Investigate recent logins and activities by this user across the network.
+  - **Assess System Integrity:** Utilize Windows Security logs to evaluate any recent alterations to system policies or recovery settings, along with other process creation logs around the same time for anomalous behavior.
+  - **Threat Intelligence Correlation:** Cross-reference the identified user and machine with threat intelligence feeds to check for known malicious IPs, hashes, or behaviors related to ransomware or other malware obfuscation methods.
+  ### Prioritization
+  The alert is classified as **high severity** because modification of boot configuration can severely impact system recovery capabilities, indicating a potential prelude to a ransomware attack that could result in significant operational disruption and data loss.
+  ### Blind Spots and Assumptions
+  This rule may not fire in scenarios where:
+  - The `bcdedit.exe` utility is obfuscated under a different name or executed with elevated privileges that evade monitoring.
+  - The command is executed in a non-standard environment that does not log process creation events effectively.
+  - Adversaries may leverage scripts or automation tools that execute `bcdedit.exe` without standard monitoring being triggered.
+  Additionally, it assumes the environmental logging settings are correctly configured to capture the required process creation events adequately.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and relevance, we recommend validating the content and adapting it to suit specific environments and operational needs. Please communicate any changes to the detection engineering team.

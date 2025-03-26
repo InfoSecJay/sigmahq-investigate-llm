@@ -30,9 +30,18 @@ falsepositives:
 level: high
 notes: |
   ### Technical Context
-  This detection rule is designed to identify the loading of the WinRing0 driver, a signed kernel-mode driver frequently exploited by threat actors for privilege escalation, particularly in the context of cryptocurrency mining (e.g., XMRIG) and other malicious activities. The rule works by examining the system's driver load events and looking for specific characteristics, such as the presence of a unique hash signature (`IMPHASH=D41FA95D4642DC981F10DE36F4DC8CD7`) associated with the WinRing0 driver and the filenames typically used for this driver (`WinRing0x64.sys`, `WinRing0.sys`, and their variants). Effective detection relies on monitoring Windows driver loading activities, which can be sourced through system logs that capture driver interactions and related process creation events.
+  This Sigma rule is designed to detect the loading of the WinRing0 driver, which has been associated with various malicious activities, including privilege escalation and the operation of cryptomining software like XMRIG. The rule specifically looks for the presence of a specific hash ("D41FA95D4642DC981F10DE36F4DC8CD7") that signifies a known variant of the WinRing0 driver, and it also checks if certain file names traditionally associated with this driver are being loaded into the system, such as `WinRing0x64.sys`, `WinRing0.dll`, and their variants. The primary data sources involved in this detection include Windows Security and System logs (specifically focusing on driver load events), which allow monitoring of drivers that are being dynamically loaded onto the operating system. This detection aligns with the MITRE ATT&CK tactic of privilege escalation (T1543.003), highlighting its relevance in reacting to potential security threats.
   ### Investigation Steps
-  - Review EDR logs for any recent driver load events associated with `WinRing0x64.sys` or similar filenames to confirm the occurrence of the event.
-  - Analyze process creation logs to identify any parent processes that loaded the WinRing0 driver, which may indicate the origin of the potentially malicious activity.
-  - Check for any associated network traffic through the NDR or proxy logs, especially looking for unusual connections that may correlate with known threat actor behavior.
-  - Investigate the system for any known indicators of compromise related to XMRIG or other malware leveraging the WinRing0 driver, using threat intelligence databases and AV solutions.
+  - **Verify Driver Load:**
+    Check Windows Event Logs under the System category for the driver load events that correspond to the identified WinRing0 driver filenames. Look for anomalies in timestamps and any associated processes.
+  - **Cross-Reference SHA256 Hash:**
+    Utilize EDR solutions to verify the hash of the loaded driver against known malware signatures and threat intelligence databases. This can help confirm whether the execution is legitimate or potentially malicious.
+  - **Analyze Parent Processes:**
+    Investigate the parent processes that initiated the loading of the driver. Pay attention to any obscured or unexpected execution paths that could indicate malicious activities.
+  - **Check for Subsequent Activity:**
+    Review recent network connections, file system activity, or other logs from the EDR and SIEM to identify any follow-up actions taken after the driver load, which may indicate compromise or intended misuse.
+  ### Prioritization
+  The alert has been assigned a high severity level due to the association of the WinRing0 driver with known threats and its capability to enable privilege escalation, allowing unauthorized access and increased risk to the organization's information assets.
+  ### Blind Spots and Assumptions
+  This detection assumes that the monitoring of driver load events is fully operational and that the hash databases are up-to-date. There may be situations where an adversary modifies the driver in ways that evade detection or where legitimate applications use similar file names, possibly leading to false positives. Additionally, if the system does not generate driver load events in line with expected behavior or if there's a lack of visibility into the relevant logs, this rule may fail to trigger.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -73,9 +73,17 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This detection rule identifies potential direct system calls to the `NtOpenProcess` function from `ntdll.dll` in Windows environments. Direct system calls can be indicative of nefarious activities, especially in scenarios where legitimate processes are misused, such as in advanced malware techniques. The rule is structured to observe specific call traces where the process access logs show a call trace beginning with 'UNKNOWN', suggesting that a non-standard execution path is being taken. The rule leverages a variety of filters to exclude known safe processes and contexts, such as certain applications and system tools, that are typically observed in benign scenarios. This helps in reducing false positives and improving the signal-to-noise ratio for incident responders.
+  This Sigma rule is designed to detect potential direct system calls to the `NtOpenProcess` function from the NTDLL. This function is crucial for accessing a process's handle and is often used in legitimate applications. However, its use in conjunction with suspicious behavior may indicate malicious intent, particularly when it is invoked by process images typically associated with benign operations. The primary data sources leveraged by this rule are process access logs, which capture details about process handle requests, including the calling context of these requests. The rule is associated with the MITRE ATT&CK technique T1106 (Execution through API). The detection logic specifically looks for call traces marked as "UNKNOWN," suggesting that the source of the call cannot be easily determined, thus necessitating further investigation.
   ### Investigation Steps
-  - Review process creation logs in the EDR for any suspicious parent-child relationships, focusing on processes that initiated the `NtOpenProcess` call.
-  - Utilize the SIEM to correlate alerts with other logs, such as network traffic from NDR, to identify potentially malicious outbound connections related to affected processes.
-  - Check for anomalies in command-line parameters or execution patterns using the command history logs stored in the EDR, particularly for processes like `vcredist_x64.exe`, `systeminfo.exe`, and others identified in the detection filters.
-  - Analyze user activity logs and authentication events from the SIEM to assess whether the alerts coincide with any unauthorized user behavior or access during the alert timeframe.
+  - **Review Process Access Logs:** Analyze the process access logs through your EDR solution to identify occurrences of `NtOpenProcess` invoked by suspicious or unexpected source images.
+    
+  - **Cross-reference Source and Target Images:** Use Windows Event Logs to verify the legitimacy of the source and target images involved. Look for matches with known software paths and evaluate if any images show unusual or unexpected behavior.
+    
+  - **Correlate with Other Security Tools:** Check alerts from AV, NGFW, and NDR tools to see if similar activities were flagged, potentially pointing to a broader attack pattern or additional context for the alert.
+    
+  - **Examine Call Trace Context:** Investigate the call trace context further using Sysmon logs or similar logging tools to ascertain if this event fits within known malicious patterns or behaviors.
+  ### Prioritization
+  The alert is set to a medium severity level because direct syscall interactions may signify underlying malicious activities, but they can also stem from legitimate software operations. This requires contextual investigation to determine the appropriate response.
+  ### Blind Spots and Assumptions
+  This rule may not fire in scenarios where legitimate applications utilize the `NtOpenProcess` function benignly, leading to potential false negatives. Additionally, if an adversary takes steps to obfuscate such calls or utilizes custom applications that bypass standard logging practices, the detection may fail. The reliance on specific source and target images could also result in missed detections if the attacking software does not match these known patterns.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -27,10 +27,16 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  The "Uncommon Sigverif.EXE Child Process" detection rule is designed to identify unusual child processes spawned from the Windows utility `sigverif.exe`, which is typically used for verifying digital signatures of system files. The underlying premise is that malicious actors may exploit `sigverif.exe` as a "living off the land" binary to facilitate unauthorized actions on a system. This rule analyzes process creation logs specifically looking for instances where `sigverif.exe` is the parent process and filters out commonly associated child processes—specifically `WerFault.exe`, which is a standard Windows error reporting tool. By scrutinizing these relationships, the rule targets potentially malicious behavior that might otherwise blend in with normal operational traffic.
+  This detection rule identifies uncommon child processes that are spawned from "sigverif.exe", a legitimate Microsoft tool that verifies digital signatures on Windows files. The rule targets process creation events (monitored via Windows Sysmon logs), specifically looking for any child processes initiated by "sigverif.exe" as a parent. The behavior of concern is that threat actors may misuse "sigverif.exe" as a "living off the land" binary to evade standard security controls and proxy execution of malicious activities. The detection aligns with the MITRE ATT&CK technique T1216 (Script Proxying) under the defense evasion tactic, as it leverages legitimate tools for malicious purposes.
   ### Investigation Steps
-  - Utilize EDR tools to investigate the specific instance of `sigverif.exe` and its child processes. Focus on the timestamp and user accounts associated with these processes to identify any anomalies.
-  - Review the command-line parameters used by `sigverif.exe` in the process creation logs to determine if there are any unusual flags or configurations indicative of malicious intent.
-  - Check endpoint AV logs to see if any detection events correlate with the execution of the identified child processes. This can provide insights into potential threats or known malicious behavior.
-  - Examine proxy logs or network traffic for any outbound connections initiated by the child processes for contextual information about their activities. Look for unusual destinations or data exfiltration attempts linked to the alert.
+  - **Examine Process Creation Logs:** Review Sysmon logs for any unusual child processes spawned by "sigverif.exe." Pay attention to command-line arguments that could indicate suspicious activity.
+  - **Analyze Parent-Child Process Relationships:** Use EDR tools to visualize the process tree, determining if the triggered alert involves known malicious processes or benign tools being misused.
+  - **Check for Known Signatures:** Verify if the child processes match known malicious signatures via your enterprise AV or threat intelligence capabilities across environment endpoints.
+  - **Review User Activity Logs:** Look into user accounts that initiated "sigverif.exe" to ascertain if they follow standard operating procedures or exhibit anomalous behavior relative to typical work patterns.
+  ### Prioritization
+  Alerts triggered by this rule should be considered medium severity. This is due to the risk posed by the potential misuse of a legitimate executable that may facilitate other malicious actions while easing detection by conventional security monitoring systems.
+  ### Blind Spots and Assumptions
+  This rule may not fire if "sigverif.exe" is not present on a system or if the child processes created do not match the specific conditions of the rule. It operates under the assumption that the monitoring for process creation using Sysmon is fully operational and logs are intact. Threat actors may also attempt to evade detection by modifying the signature of child processes or by using alternative execution methods that do not involve "sigverif.exe". 
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

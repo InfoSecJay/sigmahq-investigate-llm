@@ -23,10 +23,16 @@ falsepositives:
 - Legitimate Rclone usage
 level: medium
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies the creation of configuration files for Rclone, a command-line tool that is often used for file synchronization and cloud storage. The rule looks for file events in Windows logs, specifically targeting paths that indicate the creation of config files in the user's directory under `.config\rclone`. The presence of such files can indicate potential unauthorized data exfiltration activities, as Rclone can be leveraged to move large amounts of data to various cloud destinations. Analysts should be aware that while this detection is aimed at identifying possibly malicious activities, there can be legitimate use cases for Rclone that may lead to false positives.
+  The "Rclone Config File Creation" detection rule aims to identify the creation of Rclone configuration files on Windows systems. Rclone is a command-line utility commonly used for managing cloud storage, and it can potentially be exploited for data exfiltration. This rule specifically looks for file creation events where the filename contains the specified paths related to user directories (`:\Users\`) and the Rclone configuration directory (`\.config\rclone\`). By monitoring these conditions, the rule leverages Windows file event logs to detect suspicious activities that indicate possible misuse of Rclone for confidential data transfer, thereby linking to the MITRE ATT&CK tactic of Exfiltration and technique T1567.002 (Exfiltration Over Web Service).
   ### Investigation Steps
-  - Review recent file creation events from EDR to identify Rclone config files that have been created and the associated user accounts.
-  - Collect related process creation logs around the time of the config file creation to determine if there was any suspicious command-line usage indicative of data exfiltration.
-  - Check network traffic logs from NDR or proxy systems to see if any Rclone-related outbound connections were made to unauthorized cloud storage services.
-  - Search for any alerts triggered by AV solutions that may have flagged Rclone activity, particularly focusing on unusual file transfers or data movement patterns.
+  - **Verify File Creation Logs:** Use the EDR tool to analyze recent file creation logs and confirm if the creation of the Rclone configuration file aligns with any legitimate user activity.
+  - **Review User Context:** Check Windows Security logs for user authentication and access logs around the time of the event to ascertain if the user is authorized to perform such actions.
+  - **Analyze Network Connections:** Utilize network traffic logs from the NDR solution to identify any outbound connections made by processes associated with Rclone, which could indicate data exfiltration attempts.
+  - **Assess Rclone Usage History:** Query the PowerShell logs to determine if any recent commands or scripts executed Rclone, and cross-reference with the Proxy logs to review any potential data transferred through web services.
+  ### Prioritization
+  The alert is categorized as medium severity since the creation of Rclone configuration files could indicate a legitimate operation but may also pose a risk of unauthorized data transfers. It is essential to assess the context and intent behind the file creation to evaluate the potential impact.
+  ### Blind Spots and Assumptions
+  This rule may not fire if Rclone is installed in a non-standard directory or if users access Rclone files without creating new configuration files. Additionally, legitimate Rclone usage could lead to false positives, so analysts should consider the context of user behavior and determine if the Rclone activity was pre-approved or atypical. Adversaries could also rename or obfuscate their usage of Rclone to avoid detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

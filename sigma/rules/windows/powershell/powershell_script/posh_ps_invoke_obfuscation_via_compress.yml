@@ -30,10 +30,17 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  The Sigma rule "Invoke-Obfuscation COMPRESS OBFUSCATION" is designed to detect obfuscated PowerShell scripts that utilize compression techniques to evade detection. This rule focuses specifically on identifying script blocks that include specific PowerShell commands associated with the use of `System.IO.Compression.DeflateStream` for data compression, as well as critical methods like `New-Object`, `Text.Encoding]::ASCII`, and `ReadToEnd`. The primary data source for this rule is the PowerShell Script Block Logging feature, which must be enabled on monitored systems to capture the contents of executed scripts and detect patterns of obfuscation that may indicate malicious intent.
+  The Sigma rule titled "Invoke-Obfuscation COMPRESS OBFUSCATION 
+  - PowerShell" is designed to detect attempts to obfuscate PowerShell scripts utilizing compression methods. The rule specifically looks for script blocks that include the creation of objects related to text encoding and stream reading, commonly used by attackers to mask their intentions while executing potentially harmful code. The rule focuses on identifying specific patterns found within the `ScriptBlockText` logs, including keywords like `new-object`, `text.encoding]::ascii`, along with components from the .NET framework that handle data compression. Implementing this detection requires that Script Block Logging in PowerShell is enabled to collect relevant telemetry. This rule corresponds with the MITRE ATT&CK technique T1027 (Obfuscated Files or Information) and T1059.001 (PowerShell).
   ### Investigation Steps
-  - Review recent PowerShell execution logs within the EDR to identify the source and execution context of the detected obfuscated scripts. 
-  - Analyze any associated command-line parameters and arguments in the logs to assess the exact payload being executed and its intent.
-  - Check the user account associated with the execution for unusual behavior or patterns of activity, using the SIEM to correlate with other events.
-  - Utilize network logs from the NGFW or Proxy to identify any outbound connections attempted by the PowerShell script, indicating potential data exfiltration or contact with known malicious domains.
+  - **Review PowerShell Logs:** Examine the Windows Event Logs related to PowerShell script execution for the identified script block, looking for additional context around the execution time and user accounts involved.
+  - **Analyze Network Connections:** Utilize the EDR to investigate any outbound network connections initiated by the PowerShell process, especially connections to known command-and-control servers.
+  - **Inspect File Access:** Leveraging the file monitoring capabilities, check for any downloaded or executed files during the time frame of the PowerShell invocation to determine if malicious behavior occurred.
+  - **Evaluate Endpoint Behavior:** Use behavioral analysis tools within the EDR to assess whether any suspicious processes followed the PowerShell execution or if other anomalies were recorded on the endpoint.
+  ### Prioritization
+  This alert is assigned a medium severity level, as obfuscation techniques may suggest sophisticated adversarial tactics aimed at evading initial detection, warranting further investigation into potential compromise.
+  ### Blind Spots and Assumptions
+  The rule may not fire if PowerShell script block logging is not enabled, which is a prerequisite for capturing the necessary telemetry. Additionally, sophisticated attackers may deploy alternative obfuscation methods or utilize different encoding techniques that do not match the specified criteria. The effectiveness of this detection rule could also be compromised if legitimate scripts running similar patterns are common in the environment, leading to potential false positives.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

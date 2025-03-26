@@ -34,10 +34,18 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This detection rule identifies potential misuse of the `ssh.exe` binary as a proxy to execute other programs, leveraging the functionality available through SSH configurations. Specifically, the rule looks for instances where `ssh.exe` is invoked via its parent process `sshd.exe`, particularly when command-line arguments indicate the use of `ProxyCommand` or `LocalCommand`. This could suggest an attempt to bypass security measures or conduct unauthorized actions within the environment. Data sources involved include process creation logs that capture details such as the parent image, command-line parameters, and the exact sequence of executed commands.
-  Monitoring for this behavior is crucial, as attackers might use SSH in a similar way to establish covert communication channels or execute malware on a target system. However, it is important to note that legitimate administrative tasks may also trigger this rule, and thus further investigation is necessary to discern intent.
+  This detection rule identifies usages of the SSH client (`ssh.exe`) as a potential proxy for launching other applications, often referred to as a 'local command' or utilizing 'ProxyCommand' configurations in SSH. The rule specifically looks for instances where `ssh.exe` is executed with command-line parameters that include `ProxyCommand` and `LocalCommand`, indicating that the binary is being misused as a proxy to facilitate the execution of additional processes. The primary data sources monitored are Windows process creation logs, notably focusing on the parent process being `sshd.exe`, which hints at a legitimate SSH daemon being leveraged inappropriately. This detection aligns with the MITRE ATT&CK technique T1218 (Signed Binary Proxy Execution), which caters to scenarios where adversaries might conceal their activities by utilizing trusted binaries as a means to execute malicious code.
   ### Investigation Steps
-  - Utilize EDR tools to examine the process tree and identify other processes spawned by `ssh.exe` to determine if unauthorized activities are occurring.
-  - Review command-line arguments captured in process creation logs and look for any unusual or suspicious commands being executed alongside legitimate SSH operations.
-  - Check network traffic logs and proxy logs to identify any unexpected destinations being accessed or communications that could indicate data exfiltration.
-  - Investigate user account activity associated with the execution of `ssh.exe` to establish the legitimacy of the session and whether it aligns with expected administrative behaviors.
+  - **Verify the Command Execution Context:** Examine the command line arguments associated with the `ssh.exe` process execution. Check if the command flag `ProxyCommand=` or `LocalCommand` was indeed used in conjunction with execution.
+    
+  - **Inspect Parent Processes:** Look into logs for instances where `sshd.exe` acted as the parent process for `ssh.exe`. This relationship could suggest legitimate or inappropriate use, depending on organizational policy and the context of the SSH activity.
+  - **Cross-reference with EDR:** Use endpoint detection and response (EDR) tools to determine if additional suspicious or unauthorized process executions followed `ssh.exe`, which might indicate an attempted local command execution that deviates from normal usage.
+  - **Review Network Connections:** Analyze network logs through NDR (Network Detection Response) to trace any outbound connections initiated by `ssh.exe` to external hosts that may not align with typical operational patterns.
+  ### Prioritization
+  This alert has a medium severity level as it may represent a significant security risk if adversaries are using SSH to proxy commands for malicious activities. However, it is essential to assess each case within the context of legitimate administrative actions that might also trigger the rule.
+  ### Blind Spots and Assumptions
+  There are several assumptions associated with this detection rule: 
+  - It assumes that `ssh.exe` is always a potential attack vector when used with the specified command-line parameters. In practice, legitimate administrative use may obscure true threats.
+  - The rule may not fire if the command flags utilized are obfuscated or altered from expected patterns, allowing adversaries to bypass detection. 
+  - If `ssh.exe` is executed without a parent process of `sshd.exe`, the rule will not trigger, potentially missing significant misuse scenarios.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

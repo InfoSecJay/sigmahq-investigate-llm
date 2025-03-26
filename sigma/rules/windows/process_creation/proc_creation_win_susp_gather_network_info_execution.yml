@@ -33,10 +33,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies the execution of the built-in Windows script `gatherNetworkInfo.vbs`, located in `C:\Windows\System32`. The script can collect various information about the network configuration and interfaces on a target machine, making it a potential tool for reconnaissance by malicious actors. The rule specifically looks for the script being run via Windows script host executables, namely `cscript.exe` or `wscript.exe`, by analyzing process creation logs that capture command-line arguments. By identifying instances where this script is executed outside of expected operating parameters, the rule helps uncover potentially malicious reconnaissance activities.
+  The Sigma rule "Suspicious Reconnaissance Activity Via GatherNetworkInfo.VBS" detects the execution of the built-in Windows script located at "C:\Windows\System32\gatherNetworkInfo.vbs." This script can potentially be leveraged by malicious actors to gather sensitive information about the target machine, such as network configurations, connection information, and active systems. The rule monitors process creation events specifically looking for command-line arguments that include 'gatherNetworkInfo.vbs', while filtering out legitimate invocations by confirming that the parent process is either `cscript.exe` or `wscript.exe`. This detection relates to the MITRE ATT&CK techniques T1615 (Information from Network Share) and T1059.005 (Command and Scripting Interpreter: Windows Command Shell).
   ### Investigation Steps
-  - Review the EDR process creation logs for instances of `gatherNetworkInfo.vbs` being executed, focusing on the parent process and user context.
-  - Investigate any related command-line parameters passed to `cscript.exe` or `wscript.exe` to assess the intent and potential severity of the execution.
-  - Check for any associated network activity logged by NDR or firewall tools that might indicate data exfiltration or additional reconnaissance efforts on other systems.
-  - Examine user accounts and permissions to ensure that the execution of this script is in line with authorized administrative activities, looking for anomalies or unauthorized access patterns.
+  - **Verify Process Details:** Check the EDR for process creation logs relevant to the alert, specifically focusing on the `gatherNetworkInfo.vbs` execution and its command-line parameters used in the invocation.
+  - **Analyze Parent Process:** Investigate the parent process (either `cscript.exe` or `wscript.exe`) associated with the script execution to determine if it was invoked in a legitimate context or as part of a malicious activity.
+  - **Review Network Activity:** Utilize NDR to analyze outbound network connections initiated during or after the execution of `gatherNetworkInfo.vbs` to identify any unusual or unauthorized data exfiltration attempts.
+  - **Check for Related Artifacts:** Search through Windows Event Logs for any anomalies or related security events that correspond with the timestamp of the alert, and look for patterns that might indicate reconnaissance or lateral movement.
+  ### Prioritization
+  Given the potential for `gatherNetworkInfo.vbs` to be used in a reconnaissance phase of an attack, the alert is classified as high severity. Immediate investigation is warranted as it could indicate that an adversary is preparing for further exploitation.
+  ### Blind Spots and Assumptions
+  This rule may not trigger in environments where the `gatherNetworkInfo.vbs` script is executed in a legitimate context by authorized users, thus leading to false negatives. Additionally, if an attacker uses other methods or custom scripts to gather network information that do not utilize this built-in script, the rule will not detect such activity. It is assumed that no other script or method employed by an attacker mimics the characteristics of the monitored execution.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

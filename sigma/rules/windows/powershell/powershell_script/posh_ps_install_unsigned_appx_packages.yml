@@ -31,12 +31,16 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This detection rule focuses on identifying attempts to install unsigned AppX packages on Windows systems using PowerShell commands. Specifically, it looks for the execution of the `Add-AppxPackage` cmdlet or its alias `Add-AppPackage`, particularly when accompanied by the `-AllowUnsigned` flag, which enables the installation of packages that do not have a valid signature. By monitoring Script Block Logging, the rule captures the relevant PowerShell command executions, enabling visibility into potential unauthorized software installations that could be indicative of malicious activity or circumvention of security measures. Analysts should prioritize reviewing instances related to this rule due to its implications on system integrity and security.
+  The Sigma rule titled "Unsigned AppX Installation Attempt Using Add-AppxPackage 
+  - PsScript" is designed to detect the use of PowerShell commands associated with the installation of unsigned AppX packages. Specifically, it looks for occurrences of the `Add-AppxPackage` and its alias `Add-AppPackage` commands in PowerShell script logs, especially when these commands include the `-AllowUnsigned` flag, which allows the installation of packages that are not digitally signed. 
+  This detection leverages PowerShell script block logging, which must be enabled on the monitored systems, to capture relevant script execution details. The command text is examined for specific keywords that indicate an attempt to bypass normal security checks often implemented to mitigate the installation of potentially malicious or unverified software. The rule aligns with the MITRE ATT&CK tactics of persistence (T1547) and defense evasion (T1203) since adversaries may leverage unsigned AppX installations to maintain access or disguise malicious software in enterprise environments.
   ### Investigation Steps
-  - Review the PowerShell execution logs in the EDR to confirm the usage of `Add-AppxPackage` or `Add-AppPackage`, including the parameters used during the execution.
-    
-  - Check for any associated process execution by analyzing command-line arguments in the EDR to identify if the source of the invocation is legitimate or suspicious.
-    
-  - Investigate the endpoints for any recently installed AppX applications by querying the application inventory in the system, paying special attention to unsigned packages.
-    
-  - Assess any other security logs (e.g., Windows Security logs) for additional anomalies or alerts around the time the installation was attempted, which could indicate broader malicious actor activity.
+  - **Review PowerShell Logs:** Analyze the PowerShell script block logs to identify instances of the `Add-AppxPackage` or `Add-AppPackage` commands, particularly those executed with the `-AllowUnsigned` flag.
+  - **Cross-reference EDR Alerts:** Use your Endpoint Detection and Response (EDR) tools to correlate the detected PowerShell events with any alerts for potentially associated malicious behavior.
+  - **Inspect File Integrity:** Check for newly installed AppX packages and verify their authenticity and source, ensuring that no unauthorized software has been introduced onto the system.
+  - **Monitor System Changes:** Observe system environment changes post-execution, using Windows Event Logs to track any alterations in application or security settings that may suggest a larger breach.
+  ### Prioritization
+  This alert is classified as medium severity because the installation of unsigned AppX packages could indicate attempts to introduce potentially harmful software, and thus necessitates quick validation and examination to ensure that no malware is inadvertently deployed within the environment.
+  ### Blind Spots and Assumptions
+  The detection rule assumes that PowerShell script block logging is enabled, which may not be the case in all environments, potentially leading to missed detection of these activities. Additionally, it may fail to trigger if adversaries use alternative methods for package installation or obfuscate their commands to evade detection. It’s also possible that legitimate use of unsigned packages for testing or development purposes could generate false positives if not adequately contextualized.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

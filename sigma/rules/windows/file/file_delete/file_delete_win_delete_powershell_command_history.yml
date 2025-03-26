@@ -21,10 +21,17 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect the deletion of the PowerShell console history logs, specifically targeting the file `ConsoleHost_history.txt`, which is used by PowerShell to store command history. When an attacker seeks to cover their tracks or eliminate forensic evidence of their activities, they may delete this log file. This rule leverages file deletion logs from Windows systems to identify instances where this specific file is removed. By monitoring for such actions, the rule assists security teams in recognizing potential defensive evasion techniques, particularly related to ongoing malicious activities.
+  This Sigma rule is designed to detect instances where the PowerShell console history log file, `ConsoleHost_history.txt`, is deleted from the Windows operating system. The deletion of this file can signify an attempt to obscure or destroy forensic evidence, which is a common tactic employed by adversaries to evade detection (MITRE ATT&CK Technique: T1070 
+  - Indicator Removal on Host). The rule relies on file deletion logs, specifically monitoring actions where the target filename concludes with `ConsoleHost_history.txt`. Enterprises can leverage Windows Event Logs related to file operations to identify these potentially malicious activities.
   ### Investigation Steps
-  - Review the EDR logs for the endpoint where the deletion occurred to identify the user account that initiated the file deletion and any associated process activity.
-  - Cross-reference the timeline of the deletion event with other security events from the SIEM to check for any related anomalies, such as unusual logins or privilege escalations.
-  - Query AV solutions to see if there are any alerts or detections related to the user account or systems involved in the deletion event, providing insight into potential compromise.
-  - Analyze Proxy and cloud logs (if applicable) for any suspicious activity tied to the same timeframe to identify potential network commands or actions connected to the detected file deletion.
+  - **Review Deleted File Logs**: Utilize Windows Security logs to verify the deletion event of the `ConsoleHost_history.txt` file and identify the user, process ID, and timestamp associated with the deletion.
+  - **Analyze User Context**: Investigate the user account that executed the deletion. Check for any anomalous behavior or anomalies in their typical activity pattern using EDR and user activity logs.
+  - **Examine Related PowerShell Sessions**: Look for previous PowerShell session logs to assess what commands were run prior to the deletion. This can help contextualize the actions taken by the user.
+  - **Correlate with Other Detection Tools**: Cross-reference this event with logs from other monitoring tools such as EDR and NGFW for any suspicious network connections or behaviors occurring around the same timeframe.
+  ### Prioritization
+  The alert is assigned a medium severity level due to the potential implications of file deletion that can hinder investigations. However, it requires additional context to determine whether the action was performed by a legitimate user or malicious actor.
+  ### Blind spots and Assumptions
+  There are inherent challenges in detecting the deletion of the console history file as it may not be logged in the same manner across all systems. Additionally, if a user has administrative privileges, they might delete files without raising alerts. It is also assumed that alert configurations and logging levels are adequately set to capture file delete events, which might not always be the case in all environments.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

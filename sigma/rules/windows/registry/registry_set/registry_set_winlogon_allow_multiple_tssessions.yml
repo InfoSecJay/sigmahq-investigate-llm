@@ -27,9 +27,17 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This detection rule identifies when the registry value `AllowMultipleTSSessions` is enabled on Windows systems, allowing multiple Remote Desktop Protocol (RDP) sessions concurrently. Attackers may exploit this setting to connect to an active session without disrupting other users, which can facilitate unauthorized access and persistence on targeted systems. The rule queries Windows registry settings, specifically monitoring for changes in the registry path `Microsoft\Windows NT\CurrentVersion\Winlogon`, checking for a DWORD value of `1`, indicating that the multiple session feature is active. By leveraging registry set logs, the detection aims to alert SOC analysts of potential misuse.
+  The Sigma rule titled "Winlogon AllowMultipleTSSessions Enable" is designed to identify instances where the registry setting `AllowMultipleTSSessions` is enabled in the Windows operating system. This specific registry key, located at `HKEY_LOCAL_MACHINE\Microsoft\Windows NT\CurrentVersion\Winlogon`, controls the ability to establish multiple Remote Desktop Protocol (RDP) sessions on a single machine simultaneously. When an attacker seeks to gain unauthorized access to a system, they may leverage the ability to connect through RDP without disrupting existing sessions, making this configuration a potential avenue for persistence and evasion tactics. The detection focuses on registry modification logs from Windows, specifically tracking changes where the `AllowMultipleTSSessions` value is set to `DWORD (0x00000001)`. This behavior aligns with the MITRE ATT&CK tactic for Persistence (T1112) and Defense Evasion (T1112) as it can facilitate covert access to a machine while maintaining existing user connections.
   ### Investigation Steps
-  - Query EDR logs for any recent registry changes, specifically checking the timestamp of the `AllowMultipleTSSessions` value modification to correlate with other suspicious activity.
-  - Review RDP connection logs to identify unusual access patterns or a high frequency of simultaneous RDP connections from the same IP address or user account.
-  - Analyze the user account associated with the registry change to determine if it belongs to an authorized administrator or if it appears to be an unauthorized change made by an attacker.
-  - Check firewall and network logs for any signs of lateral movement or unexpected RDP session initiations, particularly from external sources or unusual internal users.
+  - **Check Registry Modifications**: Use a Registry monitoring tool or EDR solution to verify when the `AllowMultipleTSSessions` value was last changed and by which user or process.
+    
+  - **Examine RDP Logs**: Review Windows RDP connection logs (Terminal Services logs) to identify any unusual or unauthorized RDP session connections that may coincide with the registry change.
+    
+  - **Assess User Activity**: Investigate user accounts that initiated RDP sessions around the time the registry change occurred. Look for accounts exhibiting suspicious or anomalies in typical behavior.
+    
+  - **Confirm Legitimate Use**: Ensure that the enabling of multiple RDP sessions aligns with intended organizational policies and workflows. If necessary, consult with IT operations or management for confirmation.
+  ### Prioritization
+  The alert is rated as medium severity due to the potential that enabling multiple RDP sessions can facilitate unauthorized access and privilege escalation, making it an essential investigation point in securing enterprise environments.
+  ### Blind Spots and Assumptions
+  This rule may not fire if the registry change is performed by legitimate administrative actions during scheduled maintenance or other authorized configurations. Furthermore, unusual methods to modify registry settings, such as exploiting vulnerabilities in granted permissions or use of scripts, may evade detection. It’s also crucial to note that if an attacker uses malware that restores this setting back to its default state after making changes, detection will falter.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

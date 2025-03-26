@@ -34,13 +34,18 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  The Sigma rule titled "Remote Utilities Host Service Install" aims to detect the installation of the Remote Utilities Host service on Windows systems. It does this by monitoring events from the Service Control Manager (SCM) that indicate a service installation, specifically looking for Event ID 7045. The rule checks for specific characteristics of the installed service, such as the service name "Remote Utilities 
-  - Host" and the presence of the executable path "C:\Program Files (x86)\Remote Utilities 
-  - Host\rutserv.exe" along with the command-line parameter "-service." Given the potential use of this software in unauthorized remote access, this detection rule assists incident responders in identifying anomalies that may signify suspicious or malicious activity.
-  The primary data sources involved include system event logs, particularly those related to service changes and installations. The focus on command-line arguments and specific service attributes enables this rule to discern legitimate installations from potentially harmful ones, aiding in the overall security posture of the organization.
+  The Sigma rule "Remote Utilities Host Service Install" is designed to detect the installation of the Remote Utilities Host service on Windows systems by monitoring the Service Control Manager (SCM) logs. Specifically, this rule looks for Event ID 7045, which indicates that a new service has been created. The detection logic inspects the service name, which should match "Remote Utilities 
+  - Host," and the service executable path must include "rutserv.exe" with the "-service" flag. By analyzing this specific event, the rule aims to identify potential unauthorized persistence mechanisms employed by threat actors, aligning with the MITRE ATT&CK tactic of persistence (T1543).
+  The primary data source for this rule is Windows Security event logs, where it captures critical information related to service installation events. It focuses on attributes such as the service name, executable path, and associated account name to distinguish between legitimate and potentially malicious activity. By leveraging this telemetry, the SOC can strengthen its defenses against threats that attempt to maintain presence through service manipulation.
   ### Investigation Steps
-  - **Review the EDR logs** for any recent service installation events, particularly focusing on those that reference "Remote Utilities 
-  - Host" and the associated executable path.
-  - **Cross-check the time of the event** with other security logs (such as VPN or Proxy) to determine if there were any unusual external connections or computer access attempts around the same time.
-  - **Inspect the corresponding process details** using your EDR or process monitoring tools to verify whether the `rutserv.exe` file is running and what command-line arguments it is launched with.
-  - **Conduct a threat intelligence lookup** to understand the reputation of the IP addresses or domains accessed by the related processes, which may aid in identifying malicious behavior associated with this service installation.
+  - **Review the Event Log:** Check Windows Security logs for Event ID 7045 entries corresponding to the "Remote Utilities 
+  - Host" service. This log entry provides details about the service installation, including the time of installation and the account used.
+  - **Verify the Service Executable:** Cross-reference the execution path of "rutserv.exe" with known good software repositories. Ensure that the executable is legitimate and not a renamed or malicious variant.
+  - **Monitor Network Traffic:** Utilize EDR tools to analyze any outbound connections made by the Remote Utilities service. Check for suspicious connections to external IP addresses that may indicate remote control activity.
+  - **Check Installed Services:** Use system management tools to list services currently running on the host. Look for other potentially malicious services that may be installed alongside or in relation to the "Remote Utilities 
+  - Host."
+  ### Prioritization
+  This alert is classified as medium severity due to the potential for unauthorized access and remote control granted by the installation of Remote Utilities. While the tool has legitimate uses, its detection signifies a need for immediate investigation to rule out malicious intent.
+  ### Blind Spots and Assumptions
+  This rule may not fire in environments where the Remote Utilities tool is used legitimately and thus configured to be whitelisted or ignored by monitoring systems. Additionally, if adversaries utilize a different name for the service or modify the command line parameters, the detection may fail. It assumes that the Windows Security event logging is enabled and functioning correctly; in cases where logs are not retained, the rule will not be effective. Other factors include system misconfiguration that could lead to undetected service modifications.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

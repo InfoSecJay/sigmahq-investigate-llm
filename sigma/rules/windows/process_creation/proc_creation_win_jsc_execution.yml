@@ -27,11 +27,17 @@ falsepositives:
 # Note: Can be decreased to informational or increased to medium depending on how this utility is used.
 level: low
 notes: |
+  n
   ### Technical Context
-  The Sigma rule titled "JScript Compiler Execution" is designed to identify the execution of `jsc.exe`, the JScript Compiler used in Windows environments. This tool can be exploited by attackers to compile JScript files on the fly, which may allow them to bypass traditional application whitelisting defenses. The rule specifically monitors process creation events for instances where the image name ends with `\jsc.exe` or has the original file name specified as `jsc.exe`. By correlating this activity with other contextual data, analysts can evaluate whether the execution is legitimate or potentially malicious.
-  Data sources involved in this detection include process creation logs, which provide details about newly created processes along with their command-line parameters. This information assists investigators in determining the context of `jsc.exe` usage, including any scripts being executed and the environments in which they are invoked.
+  The detection rule for JScript Compiler Execution identifies instances where the executable "jsc.exe" is run on a Windows system. This behavior is significant as attackers may use jsc.exe to compile and execute JScript code in real-time, potentially circumventing established application whitelisting defenses. The rule examines process creation logs, particularly focusing on the full path and original file name of the executable being invoked. Incidents captured by this rule can be associated with the MITRE ATT&CK technique T1127 (Trusted Relationship), which indicates techniques for defenders to be aware of when monitoring for potential abuse of trusted system binaries.
   ### Investigation Steps
-  - Review recent process creation logs in your EDR to identify the time and user account associated with the execution of `jsc.exe`.
-  - Check command-line parameters used during the execution to assess whether the JScript Compiler is being leveraged in a suspicious manner, such as running obfuscated scripts.
-  - Correlate the user account activity with other security events from the SIEM to identify potential lateral movement or malicious user behavior.
-  - Investigate any related network traffic through your NDR or Proxy logs to determine if the execution context involves communications with external or suspicious domains.
+  - **Investigate Process Creation Logs:** Review the process creation logs in Sysmon for instances of jsc.exe execution, paying special attention to parent processes and command-line arguments.
+    
+  - **Correlate with Other Artifacts:** Use EDR tools to cross-reference the jsc.exe executions with any related suspicious activities, such as unusual network connections or file changes at the same time.
+  - **Check for Legitimate Usage:** Verify if the detected jsc.exe executions can be linked to legitimate activities by checking user accounts or scripts that may have triggered these executions.
+  - **Review Application Whitelisting Policies:** Investigate the effectiveness of application whitelisting controls in place and determine if the execution of jsc.exe may indicate a potential bypass of these controls.
+  ### Prioritization
+  This alert is categorized with a low severity due to the potential for legitimate development activities involving JScript compilation. However, any unexpected usage should be investigated to rule out malicious intent.
+  ### Blind Spots and Assumptions
+  The rule may not trigger in environments where jsc.exe is deemed a legitimate tool used frequently by developers. Furthermore, adversaries may employ obfuscation or rename the executable to evade detection. The effectiveness of this rule also relies on comprehensive logging being enabled and maintained in the environment to capture all relevant instances of process creation.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

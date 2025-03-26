@@ -33,13 +33,16 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  The "ConvertTo-SecureString Cmdlet Usage Via CommandLine" rule is designed to detect instances where the PowerShell cmdlet `ConvertTo-SecureString` is invoked via the command line. This behavior is considered suspicious because it is infrequently used in normal operational activities and might indicate an attempt to obfuscate the passing of sensitive information, such as credentials. The rule examines process creation logs from Windows operating systems, focusing on the PowerShell executable (`powershell.exe` or `pwsh.exe`) and specific command-line arguments that contain the string `ConvertTo-SecureString`. By monitoring these activities, the rule helps identify potential defense evasion tactics employed by attackers within your enterprise environment.
+  The Sigma rule titled "ConvertTo-SecureString Cmdlet Usage Via CommandLine" detects the execution of the `ConvertTo-SecureString` cmdlet through the command line interface of PowerShell. This rule is particularly relevant within the context of the MITRE ATT&CK framework under the tactics of **Defense Evasion (T1027)** and **Execution (T1059.001)**. The detection relies on two main criteria: first, that the process being executed is PowerShell (either `powershell.exe` or `pwsh.exe`), and second, that the command line contains the specific cmdlet `ConvertTo-SecureString`. By monitoring the `process_creation` event, specifically for PowerShell commands, SOC analysts can identify potentially suspicious use of this cmdlet that may indicate an attempt to obfuscate malicious payloads or credentials.
+  The usage of `ConvertTo-SecureString` for legitimate purposes — such as for encrypting sensitive information — is not uncommon; however, its appearance in contexts where it is not typically used could signal an insider threat or an external attack exploiting PowerShell's capabilities. Therefore, the rule focuses on ensuring that analysts are alerted when this cmdlet is executed in a way that deviates from expected behavior or is out of the ordinary, prompting an investigation into the underlying intent.
   ### Investigation Steps
-   
-  Review the process creation logs in your EDR tool to identify any instances of `powershell.exe` or `pwsh.exe` launching with the `ConvertTo-SecureString` command.
-   
-  Examine the command line parameters associated with the detected process to understand the context in which this cmdlet was used, focusing on any suspicious or unexpected parameters.
-   
-  Investigate nearby events in the SIEM, such as login attempts or lateral movement activities, to determine if the command execution correlates with other suspicious behavior.
-   
-  Check proxy and firewall logs for any unusual external communications originating from the host running the PowerShell command to assess potential data exfiltration or command and control activities.
+  - **Review Process Creation Logs:** Use EDR tools to access process creation logs and examine the specific commands run. Look for the context in which `ConvertTo-SecureString` is utilized to identify if it aligns with legitimate administrative tasks.
+    
+  - **Analyze Command-Line Parameters:** Inspect the command-line parameters associated with the PowerShell process. Focus on any unusual arguments or concatenated commands that may suggest malicious intent.
+  - **Check for Related Network Activity:** Utilize NDR or NGFW logs to identify any outbound connections made by the PowerShell process during the same timeframe. Malicious scripts often communicate back to a command and control server.
+  - **Investigate User Context:** Determine the user account that executed the command. Cross-reference with access controls and privileges to ascertain if the command was executed by an authorized user or if it appears suspicious.
+  ### Prioritization
+  This alert is classified as medium severity due to the potential for both legitimate uses and misuse of the `ConvertTo-SecureString` cmdlet, necessitating follow-up to ascertain whether the execution represents benign activity or a threat.
+  ### Blind Spots and Assumptions
+  This rule may not fire if the cmdlet is obfuscated in a manner that does not match the detection criteria, or if the PowerShell process is executed with alternate command-line parameters that mask its intent. Additionally, legitimate administrative actions that utilize this cmdlet may not trigger an alert, highlighting the necessity for context when analyzing such detections. The detection assumes that PowerShell is not running in constrained language mode or that script block logging is enabled, which would otherwise limit visibility into command execution.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

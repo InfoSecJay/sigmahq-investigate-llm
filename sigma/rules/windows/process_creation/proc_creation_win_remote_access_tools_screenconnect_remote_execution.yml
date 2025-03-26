@@ -30,9 +30,19 @@ falsepositives:
 level: low
 notes: |
   ### Technical Context
-  This Sigma detection rule identifies potential remote command execution via the ScreenConnect Remote Management and Support (RMM) service. The rule focuses on processes that are launched as subprocesses of the ScreenConnect Client Service (`ScreenConnect.ClientService.exe`) and involve the execution of the Windows command line interpreter (`cmd.exe`). It specifically monitors for command-line parameters that indicate execution attempts involving temporary files within the ScreenConnect directory. By analyzing process creation logs for these patterns, the rule helps detect potentially malicious behaviors that leverage legitimate remote access tools, specifically targeting unusual command executions that may indicate misuse.
+  The Sigma rule titled "Remote Access Tool 
+  - ScreenConnect Remote Command Execution" is designed to detect potentially malicious activity related to the execution of system commands via the ScreenConnect Remote Monitoring and Management (RMM) service. The rule specifically targets processes initiated by the ScreenConnect service (identified through the `ParentImage` field) that spawn instances of `cmd.exe`. It does this by correlating the parent-child relationship between the ScreenConnect Client Service and `cmd.exe`, while also examining the command-line arguments to identify executions from temporary ScreenConnect directories.
+  The logging sources utilized for this detection rely on Windows Process Creation logs, specifically monitoring the process creation events that provide insights into which parent process spawned children. The MITRE ATT&CK framework tactic associated with this rule is "Execution" and the technique is categorized under T1059.003, which refers to native Windows command shell execution.
   ### Investigation Steps
-  - Use your EDR tool to review process creation logs, specifically looking for instances of `cmd.exe` with a parent process of `ScreenConnect.ClientService.exe`.
-  - Analyze the command-line parameters associated with the detected process to determine if any malicious activity (such as unauthorized script execution) is taking place within the ScreenConnect temporary directory.
-  - Check network traffic logs on the NGFW or NDR for any suspicious outbound connections that could be associated with the command execution.
-  - Consult the proxy logs to identify whether there were any unusual web requests or downloads related to the ScreenConnect service preceding the alert.
+  - **Review Process Creation Events:** Using an EDR tool, query for any process creation events involving `cmd.exe` with a parent process of `ScreenConnect.ClientService.exe`. Look for command-line arguments that reference the ScreenConnect temporary directory.
+    
+  - **Analyze Related Network Connections:** Investigate any network connections established by the identified `cmd.exe` processes. Use NDR tools to see if any suspicious external connections correlate with the command execution.
+    
+  - **Examine AV Logs for Alerts:** Check AV logs for any detections or alerts triggered during the timeframe of the command execution. It’s necessary to confirm whether the executed command interacted with known malicious URLs or file hashes.
+    
+  - **Consult Windows Event Logs:** Inspect relevant Windows Security and System event logs for abnormal behavior, focusing on logons or account activities associated with the ScreenConnect service during the execution time frame.
+  ### Prioritization
+  The severity level of this alert is classified as low; however, it could indicate illicit use of remote access tools if not mitigated properly. Given the potential for legitimate administrative use of ScreenConnect, analysts should proceed with caution and gather sufficient context before escalating.
+  ### Blind Spots and Assumptions
+  This detection rule may not trigger if an adversary utilizes methods to disguise command execution or if commands are executed outside of the structured methodology outlined by the rule. Additionally, environments with heavy legitimate use of ScreenConnect may produce numerous false positives, which could lead to alert fatigue. It is crucial to ensure that the rule does not fire during standard operational use cases, and engineers should validate that system logs are properly configured to capture all necessary process creation events.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

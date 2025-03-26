@@ -34,9 +34,18 @@ falsepositives:
 level: high
 notes: |
   ### Technical Context
-  This detection rule identifies suspicious use of the `rundll32.exe` executable, which is commonly utilized by attackers to load dynamic link libraries (DLLs) for malicious activities, particularly by tools like Cobalt Strike. The rule searches for process creation events where `rundll32.exe` is launched with command-line parameters indicating the loading of a DLL and the presence of specific keywords, notably ‘StartW.’ Such patterns can suggest that attackers are leveraging valid system functionality to evade detection while executing payloads. The primary data sources utilized in this detection are process creation logs from Windows systems, which provide detailed information about executing processes, their command-line parameters, and the original file names.
+  The Sigma rule titled "CobaltStrike Load by Rundll32" is designed to detect the use of the `rundll32.exe` utility to execute malicious code, specifically employed by the Cobalt Strike malware. This detection rule looks for instances where `rundll32.exe` is called with specific command-line parameters indicative of DLL loading, namely the presence of `.dll` and the usage of the `StartW` function. The rule primarily utilizes data from Windows process creation logs, focusing on the attributes of command-line execution, image name, and original file name.
+  The detection is targeted toward the MITRE ATT&CK technique T1218.011 under the 'Defense Evasion' tactic, which describes the abuse of legitimate system tools to execute potentially harmful code stealthily. By monitoring command-line parameters associated with `rundll32.exe`, incident responders can identify campaigns leveraging this technique to obfuscate their malicious activities.
   ### Investigation Steps
-  - Review recent process creation logs in EDR to identify instances of `rundll32.exe` that match the alert criteria, paying particular attention to the command line used.
-  - Investigate the DLL files loaded by the `rundll32.exe` process to determine their origin, and check if they are commonly associated with legitimate applications or known malicious activity.
-  - Cross-reference the event with endpoint logs from antivirus tools to see if any associated files were flagged as malicious or have a previous detection history.
-  - Analyze network traffic logs to track any outbound connections or unusual communication patterns initiated by the process invoking `rundll32.exe`, especially if they correspond to known malicious IPs or domains.
+  - **Examine Process Creation Logs**: Review the Windows Security event logs for any instances of `rundll32.exe` execution, paying close attention to command-line parameters that contain `.dll` and `StartW`.
+    
+  - **Analyze EDR Alerts**: Utilize the EDR tool to track any related processes spawned by `rundll32.exe`. Look for parent-child relationships indicating if trusted processes were used to launch malicious commands.
+    
+  - **Check Network Activity**: Utilize network detection tools to analyze outbound connections from the device in question. This helps determine if there were connections to known malicious IPs or domains associated with Cobalt Strike.
+    
+  - **Inspect Sysmon Logs**: Review Sysmon logs for related events, particularly focusing on image loads and network connections to validate the integrity of the processes and identify potential lateral movement within the network.
+  ### Prioritization
+  This alert is classified as high severity due to the potential impact associated with successful malware execution. Detection of `rundll32.exe` being used in this context often indicates a significant security breach and requires immediate investigation and remediation.
+  ### Blind Spots and Assumptions
+  This rule may fail to trigger if the attacker uses renaming techniques or variant executables instead of `rundll32.exe`. Additionally, legitimate applications might occasionally use similar command-line structures, creating false positives. Also, if security monitoring is not comprehensive across all endpoints or if Sysmon logging configuration is not enabled, the detection capability will be diminished.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

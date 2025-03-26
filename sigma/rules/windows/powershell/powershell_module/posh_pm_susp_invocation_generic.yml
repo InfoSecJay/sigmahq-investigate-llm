@@ -41,9 +41,19 @@ falsepositives:
 level: high
 notes: |
   ### Technical Context
-  This detection rule targets suspicious PowerShell invocations that utilize specific command parameters often associated with obfuscation or malicious intent. The rule looks for characteristics in the command line arguments of PowerShell executions such as encoded commands, hidden windows, and non-interactive sessions. By analyzing logs from PowerShell module executions in Windows environments, the detection relies on the ContextInfo property which captures the command parameters passed during these invocations. Such parameters could indicate attempts to bypass user interaction or conceal the execution environment, potentially signaling malicious activity.
+  The Sigma rule "Suspicious PowerShell Invocations 
+  - Generic 
+  - PowerShell Module" is designed to identify potentially malicious activities associated with PowerShell usage on Windows systems. It focuses on specific command parameters that are often leveraged by threat actors to execute obfuscated or covert operations. This detection mechanism looks for indicators such as encoded command flags 
+  - `-enc`, `-EncodedCommand`, and variations that involve hidden or non-interactive execution modes, which are commonly used to bypass traditional security measures. The relevant technical data sources for this rule include PowerShell command-line invocation logs, primarily captured through Windows Event Logs (specifically the logs related to PowerShell modules).
+  This rule aligns with the MITRE ATT&CK framework under the tactic of Execution and specifically targets the technique T1059.001 (Command and Scripting Interpreter: PowerShell). By monitoring for these specific command parameters, security teams can gain insights into potentially unauthorized or harmful PowerShell activities, enabling swift investigative responses.
   ### Investigation Steps
-  - Review the relevant EDR logs to identify the PowerShell executions that triggered the alert, paying close attention to the command-line parameters used.
-  - Analyze the process creation logs for any associated actions or parent processes that may provide context around the execution, helping to determine if the invocation was legitimate.
-  - Check network traffic logs from your NDR or NGFW for any outgoing connections initiated by the PowerShell process, which can indicate further malicious activities such as data exfiltration.
-  - Inspect any alerts from your AV and proxy solutions related to the same time frame to identify if any known malicious behavior or connections were detected.
+  - **Check EDR Alerts**: Review Endpoint Detection and Response (EDR) alerts for any flagged PowerShell activities that correlate with the identified malicious command parameters.
+    
+  - **Review PowerShell Logs**: Examine Windows PowerShell logs to identify the complete command executions associated with the alerts, particularly looking for encoded commands or hidden execution parameters.
+  - **Analyze Process Tree**: Investigate the process tree of the detected PowerShell processes to understand their parent processes and associated command execution flow to identify the origin of potential intrusions.
+  - **Network Connection Review**: Inspect any related network connections made during the time of the suspicious PowerShell invocation to check for outbound connections to known malicious sites or IPs.
+  ### Prioritization
+  Given the high severity level of this alert, instances of suspicious PowerShell invocations suggest potential unauthorized or malicious activities that could lead to larger compromises within the enterprise environment. Rapid investigation is crucial to mitigate potential threats.
+  ### Blind Spots and Assumptions
+  There are key areas where this rule may not operate effectively due to specific conditions. For instance, scripts that do not utilize the detected command-line parameters or use legitimate PowerShell functionalities without suspicious flags may evade detection. Additionally, if logs related to PowerShell execution are not enabled, this rule will fail to fire altogether. It's also possible for adversaries to refine their obfuscation techniques to bypass detection, leading to missed alerts. Understanding the limitations of this rule aids in enhancing overall monitoring strategies.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and usefulness, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

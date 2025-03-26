@@ -35,10 +35,16 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  This detection rule focuses on identifying potentially malicious PowerShell scripts that utilize the `Compress-Archive` cmdlet to compress files and folders, particularly targeting suspicious output locations, such as Windows’ TEMP directory. Adversaries may employ this technique to package sensitive information, like documents, before exfiltration, as it reduces the size of data sent over the network. The detection is based on the analysis of PowerShell script block logs, specifically looking for script block text that contains commands compressing files to the TEMP folder or other common temporary locations. This type of behavior may indicate preparatory steps taken by an attacker for data exfiltration.
+  This detection rule identifies the use of PowerShell's `Compress-Archive` cmdlet in contexts where folders and files are being compressed to temporary locations often exploited by adversaries for data exfiltration. The rule specifically looks for instances where the `DestinationPath` parameter points to common temporary directories such as `$env:TEMP`, `AppData\Local\Temp`, or `C:\Windows\Temp`. These paths are often used by malicious actors to store compressed files prior to transferring them out of the network, allowing for quicker exfiltration of potentially sensitive information. The detection leverages PowerShell Script Block Logging to monitor the content of executed scripts and aligns with the MITRE ATT&CK tactic of Collection (TA0124) and its technique T1074.001 (Data Staged).
   ### Investigation Steps
-  - Review the PowerShell logs in EDR to identify the specific user and context associated with the execution of the `Compress-Archive` command.
-  - Analyze the contents of the TEMP directory using the file system logs to assess whether any sensitive or unusual files have been created or modified.
-  - Check network logs via the NGFW and Proxy for any connections made shortly after the compression, which might indicate an exfiltration attempt.
-  - Correlate findings with user activity logs to determine if the actions were performed by an authorized user or an unauthorized account, enabling further investigation or escalation.
+  - **Check EDR Alerts:** Review endpoint detection and response alerts for any related suspicious activities or processes that were active during the time of the `Compress-Archive` detection.
+  - **Examine PowerShell Command History:** Look for the execution history of PowerShell commands on affected hosts to establish the context and intent of the compression command.
+  - **Analyze Temp Directory Contents:** Investigate the contents of the specified temporary directories to identify any unexpected files that have been compressed, particularly those that have been modified or created recently.
+  - **Check Network Activity:** Review network logs to determine if there are any corresponding outbound connections or traffic patterns indicating potential data exfiltration associated with the compressed files.
+  ### Prioritization
+  Given that this rule is triggered by potential malicious activity aimed at compressing and possibly exfiltrating sensitive data, alerts are categorized with medium severity. Responders should prioritize these alerts to prevent possible data breaches.
+  ### Blind Spots and Assumptions
+  This rule relies on the availability of PowerShell Script Block Logging, which must be enabled for the rule to function effectively. There may be instances where legitimate applications or scripts perform similar actions without malicious intent, leading to false positives. Additionally, adversaries may use obfuscation techniques or modify script contents to evade detection, so ongoing updates to detection logic may be necessary to adapt to evolving threats.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

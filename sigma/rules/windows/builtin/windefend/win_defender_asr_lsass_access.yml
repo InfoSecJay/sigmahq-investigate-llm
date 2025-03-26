@@ -47,10 +47,19 @@ falsepositives:
 - Some Taskmgr.exe related activity
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies unauthorized access attempts to the Local Security Authority Subsystem Service (LSASS) process on Windows systems, using Microsoft's Attack Surface Reduction (ASR) capabilities. LSASS is crucial for managing security policies and handling authentication requests; thus, malicious access can indicate credential theft attempts. The rule triggers on Event ID 1121 when any process tries to access "lsass.exe," while incorporating filters that exclude benign processes typically known not to pose a security threat. The detection engine utilizes log data from Windows Defender to track these activities effectively, focusing on specific command-line parameters and executing process paths to differentiate legitimate actions from malicious intent.
+  This detection rule identifies attempts to access the Local Security Authority Subsystem Service (LSASS) process, which is a critical component of Windows responsible for enforcing security policies and managing user credentials. The rule specifically looks for Event ID 1121, which indicates that a process has accessed lsass.exe. To minimize false positives, the rule employs several filters to eliminate benign processes that typically access LSASS, including common system applications and processes like Microsoft Installer or Windows task manager. The detection leverages telemetry from Windows Defender, focusing on processes that might signal credential access attempts, thus aligning with the MITRE ATT&CK tactic "Credential Access" and technique "T1003.001: Credential Dumping: LSASS Memory."
   ### Investigation Steps
-  - Review the detailed logs associated with Event ID 1121 for the specific timestamps of any detected access to LSASS to identify the originating process.
-  - Utilize your EDR solution to analyze the context of the access, paying special attention to the parent-child relationship of the processes involved to discern if the access was initiated by a known malicious actor.
-  - Conduct file and process reputation checks on any processes that triggered the alert (e.g., "thor64.exe" or "thor.exe") to determine if they are associated with previous incidents or known threat actors.
-  - Cross-reference the incident with firewall and proxy logs to see if any unusual external communications align with the timeline of the LSASS access, further providing insight into potential exfiltration attempts.
+  - **Review EDR alerts:** Examine endpoint detection and response (EDR) tools for details regarding the flagged process accessing LSASS. Look for additional context such as parent process and user account details.
+    
+  - **Correlate with Windows Security Logs:** Check Windows Security Event Logs to find any accompanying authorization failures or unusual access patterns related to the user accounts in question when the LSASS access event was triggered.
+    
+  - **Examine Process Behavior:** Analyze the behavior of the processes listed in the alert—particularly any that are part of the specified 'not' filter—to rule out benign activity or to investigate suspicious ones further.
+    
+  - **Monitor Network Traffic:** Utilize your network detection and response (NDR) tools to monitor any anomalous outbound connections from the identified processes, looking for connections to suspicious domains or IP addresses.
+  ### Prioritization
+  The high-severity level of this alert is justified as unauthorized access to LSASS can lead to credential theft, which is a precursor to more extensive breaches within the enterprise. Rapid response is essential to mitigate potential compromise.
+  ### Blind spots and Assumptions
+  This rule may not fire if the attack occurs from a legitimate process, which might evade detection if not included in the defined filters. Additionally, it assumes that standard Attack Surface Reduction (ASR) policies are enabled on the system. If these policies are not in place, attackers may bypass detection. The rule might also miss sophisticated attacks that utilize trusted system processes or when the malicious activity mimics legitimate processes.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

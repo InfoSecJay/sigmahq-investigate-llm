@@ -174,10 +174,17 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  The "Net WebClient Casing Anomalies" detection rule is designed to identify the misuse of PowerShell, particularly through abnormal casing when invoking the `Net.WebClient` class. Attackers often employ obfuscation techniques, manipulating the casing of class names to evade detection mechanisms. This rule inspects command line parameters of PowerShell executions to pinpoint the presence of casing anomalies, such as `nEt.WEbCliEnT`, indicative of potentially malicious activities. The rule draws from Windows process creation logs, specifically looking for processes initiated by `powershell.exe` or `pwsh.exe` along with specific encoded command-line arguments that are frequently associated with nefarious operations.
+  The detection rule titled "Net WebClient Casing Anomalies" is designed to identify suspicious PowerShell command-line executions that exhibit abnormal casing patterns in the string `Net.WebClient`. Adversaries often use such obfuscation techniques to evade traditional detection methods and security controls. The rule leverages insights from MITRE ATT&CK technique T1059.001, which pertains to PowerShell-based scripting attacks. Specifically, it looks for process creation events involving PowerShell, where the command line either contains encoded PowerShell strings or instances of `Net.WebClient` written in an unexpected casing format (e.g., `nEt.WEbCliEnT`). This detection relies primarily on telemetry from Windows process creation logs and command-line parameters.
   ### Investigation Steps
-  - Review the detailed command line arguments for any instances of abnormal casing in the `Net.WebClient` references. This can be accomplished using your EDR system or command-line audit logs.
-  - Check the originating process's parent processes in your EDR to understand the context in which this PowerShell execution occurred. This helps in identifying the attack vector.
-  - Investigate network communications related to the suspicious PowerShell execution using your NDR or NGFW tools. Look for unusual outbound connections or data exfiltration attempts that may be linked to this activity.
-  - Analyze logs from proxies and cloud platforms (if applicable) for any requests initiated by this PowerShell command that could indicate further compromise or malicious intent.
+  - **Review EDR Alerts**: Check the EDR for alerts related to the identified PowerShell process creation events. Investigate the parent process and context to determine if they appear legitimate or could indicate malicious activity.
+    
+  - **Analyze Command-Line Arguments**: Review the command-line parameters of the flagged PowerShell executions. Look for any unusual commands or behaviors that deviate from typical usage patterns within the organization.
+  - **Correlate with DNS Query Logs**: Use DNS logs to identify any associated network communications initiated by the PowerShell process. Look for connections to known malicious domains or IP addresses.
+  - **Inspect Event Logs**: Validate the Windows Event Logs, particularly the security, system, and application logs, for related entries that could provide additional context on the incident, such as user access patterns and privilege utilizations.
+  ### Prioritization
+  The alert is categorized as "high" severity due to the potential indication of malicious obfuscation techniques often leveraged in actual attacks. Given the significant risks associated with PowerShell exploitation, immediate investigation is warranted to ensure the integrity of the environment.
+  ### Blind Spots and Assumptions
+  This rule may not trigger if the attacker uses variations of the command or other obfuscation techniques that do not involve the specified casing or encoded strings. Additionally, if PowerShell is run in a restrictive policy environment or controlled manner, legitimate administrative actions could result in false negatives. Assuming that all PowerShell scripts are monitored could lead to blind spots where some could bypass detection due to their benign configurations.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

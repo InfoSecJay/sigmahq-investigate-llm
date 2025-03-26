@@ -33,10 +33,17 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies the creation of a PowerShell module that contains a specific function signature, namely "Get-VMRemoteFXPhysicalVideoAdapter". This activity may indicate potential misuse of the "RemoteFXvGPUDisablement.exe" executable, which has known vulnerabilities related to module load-order hijacking. By monitoring logs for PowerShell operations, particularly those related to module creation and manipulation, the rule captures events where the module contents fit the specified criteria. Technical data sources involved include PowerShell command logs, which contain details about executed PowerShell statements and their parameters.
+  This detection rule focuses on identifying potentially malicious activities associated with the execution of PowerShell modules that may exploit the `RemoteFXvGPUDisablement.exe` binary. Specifically, it looks for instances where the string `ModuleContents=function Get-VMRemoteFXPhysicalVideoAdapter {` appears within PowerShell logs. This behavior is indicative of module load-order hijacking tactics that adversaries may employ to manipulate processes and security mechanisms. The primary data source for this rule is classic Windows PowerShell logging, where we extract relevant fields from event logs to capture the creation activities of modules.
+  The rule aligns with the MITRE ATT&CK framework under the tactic of **Defense Evasion** and the technique **T1218: Signed Binary Proxy Execution**, which highlights the need for vigilant monitoring of PowerShell activities, especially when they involve module manipulations. This technique can assist adversaries in bypassing security controls and executing code with elevated privileges.
   ### Investigation Steps
-  - Review the recent PowerShell logs in your EDR to confirm the module creation event and analyze the context in which it occurred.
-  - Investigate the process tree surrounding the execution of RemoteFXvGPUDisablement.exe to determine if any suspicious parent processes are involved.
-  - Check for any unusual network activity through the NDR or proxy logs that may relate to the time the module was created, indicating possible remote exploitation.
-  - Search through your SIEM for any indications of unauthorized access to systems where this module was created, correlating alerts with user activity and authentication logs.
+  - **Check PowerShell Execution History:** Review the PowerShell command history on affected systems for any suspicious or unexpected usage of the `RemoteFXvGPUDisablement.exe` binary or related modules.
+  - **Analyze Process Creation Logs:** Utilize EDR tools to inspect process creation logs that correlate with the execution of PowerShell scripts or commands related to the detected module to uncover any unauthorized parent-child process relationships.
+  - **Examine Network Activity:** Investigate any outbound network connections from systems where the alert was triggered, focusing on connections that could relate to data exfiltration or command-and-control communication.
+  - **Cross-reference with Security Events:** Look for any concurrent security alerts or anomalies in Windows Event Logs to see if there are links to broader efforts such as lateral movement or privilege escalation by the same initial actor.
+  ### Prioritization
+  The severity of this alert is classified as high due to the potential implications of malicious PowerShell activity. Given that it involves module load-order hijacking, it may enable attackers to bypass security measures and execute unauthorized commands on compromised systems, escalating their control.
+  ### Blind Spots and Assumptions
+  The detection rule assumes that PowerShell command logging is enabled on the monitored systems. If logging is disabled, the rule may fail to capture these activities, allowing malicious behaviors to go unnoticed. Additionally, an adversary could obfuscate their PowerShell commands or use encoded commands to avoid detection, potentially bypassing this rule.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

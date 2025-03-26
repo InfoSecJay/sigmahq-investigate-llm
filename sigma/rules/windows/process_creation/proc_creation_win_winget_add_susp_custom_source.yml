@@ -36,10 +36,18 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  This detection rule monitors for the use of the Windows Package Manager, `winget`, specifically when it is invoked to add new sources that could potentially be deemed suspicious. The rule focuses on process creation events where `winget.exe` is executed with command-line arguments indicating an attempt to add a new source (`source add`). It looks for command-line inputs that contain direct IP addresses, suggesting that the source being added is not from a known or trusted repository. By analyzing attributes such as the command-line input and the original filename of the executable, this rule aims to identify possible evasion techniques used by malicious actors to circumvent security measures and introduce unverified software sources.
+  The Sigma rule "Add Potential Suspicious New Download Source To Winget" is designed to identify potentially malicious or unauthorized usage of the Windows Package Manager, `winget.exe`. The rule focuses on the command-line arguments of the `winget` process to detect when a user attempts to add a new source for downloadable packages, particularly those that may point to suspicious or unexpected IP addresses. This activity is analyzed through process creation logs, specifically monitoring the command-line parameters passed during the execution of `winget.exe`. The detection leverages patterns recognized in command-line inputs, looking for keywords such as "source" and "add," as well as regex to catch dynamic IP addresses that could signify an unsafe source. This rule aligns with the MITRE ATT&CK tactics of **Defense Evasion** and **Execution** (T1059 
+  - Command and Scripting Interpreter).
   ### Investigation Steps
-  - Review the process creation logs from your EDR to confirm the execution of `winget.exe` and retrieve the corresponding command-line parameters for additional context.
-  - Investigate the network activity logs to track any connections made to the IP addresses that were specified in the command-line input, looking for patterns or unusual behavior.
-  - Check your firewall or proxy logs for any access attempts to the newly added sources, confirming whether they align with known malicious indicators or previously unregistered domains.
-  - Query the organization's Group Policy settings to determine whether there are any restrictions on adding new sources to `winget`, and evaluate if the activity violates established policies.
+  - **Check Process Creation Logs:** Utilize EDR tools to examine the process creation logs, filtering for instances where `winget.exe` is invoked with the command-line parameters indicative of adding a new package source.
+    
+  - **Review Network Connections:** Analyze network activities associated with the timestamps of the suspicious `winget` invocations. Use the NDR tool to detect if there are any unexpected connections to external IP addresses during that time frame.
+  - **Inspect System Policies:** Verify Group Policies and restrictions set on package management sources to ensure that the modified configurations align with the organization's policies and that no unauthorized changes exist.
+  - **Assess User Activity:** Look into the user accounts executing the commands to determine if they have legitimate reasons for adding new sources to `winget`, considering their roles and access rights within the organization.
+  ### Prioritization
+  This alert is classified as medium severity due to the potential risk associated with adding untrusted software sources, which could lead to software supply chain attacks or unauthorized software installations within the enterprise environment.
+  ### Blind Spots and Assumptions
+  This rule may not fire in the event that the `winget` command is executed without the specific patterns targeted by the detection logic (e.g., using different command-line arguments). Additionally, if an adversary uses techniques to obfuscate their command or employs a whitelisted source, it may bypass detection. There is also an assumption that monitoring is adequately implemented, and environments with restricted internet access may not see relevant alerts.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -37,10 +37,18 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This detection rule identifies potentially malicious use of the `netsh` command-line utility on Windows systems. Specifically, it looks for instances where `netsh.exe` is executed with the "add helper" flag included in the command-line parameters. This technique can be exploited by attackers to register a custom helper DLL, which may serve as a persistence mechanism, allowing the malicious DLL to be called whenever `netsh.exe` is executed. The logs leveraged for this detection are primarily derived from process creation events, which provide detailed information about executed processes and their command-line arguments.
-  By focusing on both the presence of the `netsh.exe` binary and the specific command-line instruction, this rule aims to flag unusual behaviors that might signify a security risk. Such activities could indicate attempts at privilege escalation or establishing persistent backdoors on compromised hosts.
+  The Sigma rule titled "Potential Persistence Via Netsh Helper DLL" is designed to detect the execution of the `netsh.exe` utility with the specific command-line options "add helper." `netsh` (Network Shell) is a command-line scripting utility used to manage network configurations and settings on Windows. Malicious actors can exploit this utility to create persistence mechanisms by loading custom dynamic link libraries (DLLs) when `netsh` is invoked. The rule functions by monitoring process creation logs for the execution of `netsh.exe` with the relevant command-line parameters that indicate an attempt to add a helper DLL. The detection primarily relies on process creation logs, capturing essential details such as the command-line arguments and the image name of the executing process.
+  This rule aligns with the MITRE ATT&CK technique T1546.007 (Event Triggered Execution: DLL Search Order Hijacking) under the tactics of both 'Persistence' and 'Privilege Escalation.' By identifying such potentially harmful command invocations, SOC analysts can intervene before the malicious DLL is loaded, thus preventing potential system compromise or further exploits.
   ### Investigation Steps
-  - Review the EDR logs for the process creation events related to `netsh.exe` around the time of the alert to determine additional context and user behavior.
-  - Analyze command-line parameters associated with the flagged `netsh.exe` processes to identify suspicious patterns or known harmful arguments.
-  - Check the history of executed commands through the Shell or PowerShell logs to ascertain if there are prior instances of the "add helper" flag being used.
-  - Investigate related network activity via the NDR logs to look for any outbound connections made shortly after the execution of the suspicious `netsh.exe` command.
+  - **Check Process Creation Logs:** Review Windows Event Logs for process creation events related to `netsh.exe` to confirm the context of the execution and identify the user account associated with it.
+    
+  - **Analyze Command-Line Arguments:** Investigate the command-line parameters used in `netsh.exe` execution, specifically looking for "add" and "helper" to ascertain the intent and legitimate use case.
+    
+  - **Review Recent DLLs Loaded:** Use EDR solutions to examine recently loaded DLLs on the host, particularly focusing on any unnamed or suspicious DLLs that may have been injected or loaded through the persistence mechanism.
+    
+  - **Conduct Network Monitoring:** Check Network Traffic Analysis (NTA) logs for any unusual outbound connections or patterns that could suggest the presence of a backdoor or exfiltration activity related to the suspicious `netsh` command execution.
+  ### Prioritization
+  The alert is marked as medium severity due to the potential for substantial impact on system integrity and security. While not a direct indicator of compromise, the execution patterns captured by this rule suggest that an investigation is warranted to assess the potential risk.
+  ### Blind Spots and Assumptions
+  The rule may not fire if the `netsh` command is executed in a legitimate context, as the parameters being monitored could be part of standard network administration activities. Additionally, if an adversary alters the command arguments or uses an alternative method to invoke `netsh`, it may bypass detection. Analysts should be aware that updates or replacements to the tool itself may create variations in behavior that could avoid detection under this rule.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

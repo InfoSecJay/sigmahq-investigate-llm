@@ -31,10 +31,16 @@ falsepositives:
 - Legitimate use by a software developer.
 level: medium
 notes: |
+  n
   ### Technical Context
-  This detection rule focuses on identifying the execution of FSharp interpreters, specifically "FsiAnyCpu.exe" and "FSi.exe". These executables are known to be used for executing F# code, including potential scripts that may bypass application whitelisting controls. The rule monitors process creation logs for instances where these specific binaries are executed, analyzing both the image path and the original file name. When these files are run, it may indicate either a legitimate programming activity or an attempt by threat actors to execute harmful scripts, making it crucial for SOC analysts to distinguish benign usage from malicious behaviors leveraging these tools.
+  This Sigma rule is designed to detect the execution of FSharp interpreters, specifically "FsiAnyCpu.exe" and "FSi.exe". These interpreters are commonly utilized to bypass application control mechanisms, allowing the execution of F# code either through scripts or directly inline. The rule examines process creation logs on Windows systems, targeting specific image names and original file names associated with the FSharp interpreters. By monitoring these entries, it identifies instances where these interpreters may be invoked in inappropriate contexts, which aligns with the MITRE ATT&CK tactic of Execution (T1059). This technique can indicate potentially malicious activity, such as attempts to execute unauthorized scripts within a controlled environment.
   ### Investigation Steps
-  - Check EDR logs for additional context on the execution, including the user account and parent processes that initiated the FSharp interpreters.
-  - Investigate network activity related to the timestamps of the process creation to identify any unusual outbound connections or data exfiltration attempts tracked by NDR or firewall logs.
-  - Review any command-line arguments passed during the execution of "FsiAnyCpu.exe" or "FSi.exe" to ascertain the intent and nature of the executed scripts.
-  - Correlate findings with cloud platform logs (e.g., AWS CloudTrail, GCP Activity Logs) if applicable, to identify any related actions in cloud environments that could indicate a broader attack campaign.
+  - **Review Process Creation Logs:** Utilize EDR tools to investigate process creation events around the time of the alert, focusing on the parent process ID to identify the origin of the execution.
+  - **Analyze Command-Line Parameters:** Check command-line arguments associated with the detected processes. This can reveal unusual patterns that may suggest malicious intent, such as the use of obfuscated or complex arguments.
+  - **Assess Network Activity:** Inspect any network connections established during the execution of these interpreters. Use NDR tools to determine if there were any suspicious communications to external IPs or domains.
+  - **Verify Valid Use Cases:** Consult with development teams to confirm whether the use of FSharp interpreters is legitimate in the context of current projects. This step helps in differentiating between false positives and actual threats.
+  ### Prioritization
+  The alert is classified as medium severity as the execution of these interpreters may indicate an attempt to execute unauthorized or malicious code in line with execution tactics used by adversaries.
+  ### Blind Spots and Assumptions
+  There is a potential blind spot regarding legitimate usage by software developers, which may result in false positives if the interpreters are invoked for valid coding tasks. Additionally, the rule may not fire if the FSharp interpreters are executed under alternate, obfuscated names or through different means, such as via scripts that do not call the command directly. It is assumed that environments have standard logging enabled and that there are no restrictive configurations that might suppress process creation logs.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

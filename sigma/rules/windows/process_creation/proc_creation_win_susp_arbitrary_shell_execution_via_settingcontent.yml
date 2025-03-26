@@ -31,10 +31,17 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  This Sigma rule detects the execution of arbitrary shell commands via `SettingContent-ms` files on Windows 10 systems. The `.SettingContent-ms` file type serves as an XML shortcut to various Windows settings and can be exploited to execute commands unexpectedly by leveraging the immersive control panel. The rule specifically looks for command-line arguments that contain '.SettingContent-ms', while ensuring that the command line does not include 'immersivecontrolpanel', which helps filter out legitimate uses. By monitoring process creation logs, the rule detects potentially malicious activities where unauthorized commands may be executed, thereby enabling a proactive security response.
+  This Sigma rule is designed to detect potential arbitrary shell command execution via the use of `.SettingContent-ms` files in a Windows environment. These files, introduced in Windows 10, serve as shortcuts to various Windows settings and can be maliciously crafted to execute commands, specifically by leveraging the `immersivecontrolpanel` application. The rule identifies process creation events that contain the `.SettingContent-ms` file extension in the command line, while simultaneously filtering out benign instances that involve the `immersivecontrolpanel`. This detection aligns with the MITRE ATT&CK techniques T1204 (User Execution) and T1566.001 (Phishing: Spear Phishing Attachment), highlighting how attackers may exploit legitimate features as vectors for command execution under the guise of common settings.
   ### Investigation Steps
-  - Examine process creation logs in your EDR solution to identify the instances where `.SettingContent-ms` files were executed, noting the associated `CommandLine` and `ParentProcess`.
-  - Verify the context of the processes by correlating them with user activity logs to establish whether the execution was authorized or indicative of malicious behavior.
-  - Utilize your SIEM to analyze related events around the timestamp of the alert to detect any lateral movement or other suspicious activities by the same user or process.
-  - Investigate firewall and proxy logs for any unusual outbound connections that may have occurred after the execution of the arbitrary commands, which could indicate data exfiltration attempts.
+  - **Verify Source of Execution**: Check the event logs from the EDR or Windows Security logs for the source of the process creation. Determine if the originating process is a trusted application or if it exhibits any suspicious behavior.
+    
+  - **Analyze Command Line Arguments**: Review the command line associated with the process creation event. Look for any obfuscated or unusual commands that could indicate malicious intent.
+  - **Inspect Parent Process**: Investigate the `ParentProcess` field to identify the process that initiated the command execution. Assess the legitimacy of this parent process and any associated activity.
+  - **Cross-reference Network Activity**: Use network logs from the firewall or proxy to observe any outbound connections initiated by the suspected process. Validate whether these connections align with known malicious IPs or domains.
+  ### Prioritization
+  This alert is categorized as medium severity due to the potential risk it poses in executing arbitrary commands, which could lead to further exploitation or compromising of the system if confirmed malicious. 
+  ### Blind spots and Assumptions
+  This rule may not fire in cases where attackers employ legitimate processes not filtered out by the rule, or if they utilize alternative methods to execute commands without involving `.SettingContent-ms` files. Additionally, there may be false negatives if the command line does not adhere to the expected format. Analysts should be aware of the possibility of sophisticated adversaries who could modify commands in a manner that evades detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

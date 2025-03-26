@@ -42,10 +42,16 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect potentially suspicious loading of the `vsstrace.dll` by uncommon executables in a Windows environment. Specifically, it focuses on identifying instances where this DLL is loaded by processes that are not typically associated with this library. The rule utilizes image load events as the main data source, particularly monitoring for executables like `explorer.exe` and `SystemSettings.exe` among others, to determine whether `vsstrace.dll` is being loaded from unusual paths. By filtering out typical usage scenarios, this detection helps pinpoint potentially malicious behavior, such as attempts to manipulate volume shadow copies – a technique often used to evade detection during data exfiltration or ransomware activity.
+  This detection rule aims to identify potentially suspicious loading of the `vsstrace.dll` dynamic link library (DLL) by uncommon executables. Volume Shadow Copy Service (VSS) components like `vsstrace.dll` are typically loaded during legitimate processes related to system backups and restore operations. In this rule, we focus on those instances where the DLL is loaded by uncommon or suspicious executables, which could be indicative of evasion tactics by threat actors using these DLLs to manipulate backups or maintain persistence. The rule leverages Windows image load logs, specifically looking for the `vsstrace.dll` file, and applies a series of filters to reduce false positives by excluding known legitimate executables that commonly load this DLL. This aligns with the MITRE ATT&CK tactics of defense evasion and impact (T1490).
   ### Investigation Steps
-  - Utilize your EDR tool to search for the specific process and the associated `vsstrace.dll` load events, focusing on the parent process and any unusual command-line arguments.
-  - Analyze system event logs for recent system activities related to volume shadow copies or backups that may correlate with the times of the detected suspicious DLL load.
-  - Review network connections and log data in your NGFW or Proxy to identify any external communication from the identified process during the time frame of interest.
-  - Check cloud platform logs for any triggered automated processes or scheduled tasks that might correlate with the execution of the suspicious executable to confirm intent.
+  - **Check Source Process:** Inspect the process that triggered the alert in your EDR tool to determine whether it is a legitimate application or an uncommon executable that could indicate malicious activity.
+  - **Review Sysmon Logs:** Utilize Sysmon logs to trace the process tree and see if any parent processes can provide further context on the nature of the suspicious executable.
+  - **Analyze Network Connections:** Use network detection tools to check for any unusual outbound connections that may correlate with the execution of the suspicious process.
+  - **Inspect System Changes:** Review system and application logs for any recent changes or modifications related to Volume Shadow Copy to identify any unauthorized attempts to manipulate shadow copies.
+  ### Prioritization
+  The alert is deemed medium severity due to the potential implications of unauthorized manipulation of backup processes, which can serve as an avenue for data exfiltration or system compromise.
+  ### Blind Spots and Assumptions
+  This rule may not fire if the `vsstrace.dll` is legitimately loaded by a common executable that is not covered by the specified filters. Adversaries can employ various tactics to conceal their actions, such as using whitelisted applications for executing malicious code. Additionally, if the monitoring settings for image load events are misconfigured or incomplete, this could lead to missed detections.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

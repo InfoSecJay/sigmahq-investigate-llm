@@ -27,13 +27,14 @@ falsepositives:
 level: high
 notes: |
   ### Technical Context
-  The rule "Modify User Shell Folders Startup Value" detects modifications to a specific Windows Registry key that is associated with user shell folder locations, particularly the Startup folder. Attackers may exploit this registry key to set a malicious payload to execute upon user login, thereby aiding in persistence on compromised systems. The detection focuses on registry set operations targeting the path `SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders`, specifically monitoring for any changes that involve the Startup folder. The required data sources for this detection include Windows registry logs that capture changes to registry values.
+  The detection rule titled "Modify User Shell Folders Startup Value" aims to identify potentially malicious alterations to the Windows Registry, specifically targeting the User Shell Folders, where the Startup value can be modified. By monitoring changes to the registry key located at `SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders`, security teams can detect if an unauthorized path is set which may serve as a launching point for malware on system startup. This modification is associated with the MITRE ATT&CK technique T1547.001 (Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder), within the tactics of persistence and privilege escalation. This behavior is predominantly captured through Windows registry events, providing visibility into malicious attempts focused on achieving persistence in a compromised system.
   ### Investigation Steps
-   
-  - Review recent registry set logs to identify any changes made to the User Shell Folders Startup value. Note any unusual paths that are not associated with legitimate applications.
-   
-  - Utilize endpoint detection and response (EDR) tools to investigate the associated process activity around the time of the registry modification. Look for any suspicious processes that executed or initiated after the registry change.
-   
-  - Check the execution history of applications on the affected system to see if any unauthorized applications attempted to start during the user login phase. This may provide insight into potential payload execution.
-   
-  - Analyze network traffic logs for any connections made by the affected system after the registry modification. Look for any communications with known malicious domains or IP addresses that could indicate malicious intent.
+  - **Review Registry Changes:** Use tools like Sysinternals Suite or PowerShell to check the specific registry key modifications made around the time of the alert. Look for any unusual or unknown paths being set in the Startup value.
+  - **Check for Associated Malware:** Utilize EDR solutions to perform a comprehensive scan for known malware signatures or behavioral patterns linked to the modified registry entries. Prioritize any suspicious files that may be tied to the new startup path.
+  - **Analyze Process Activity:** Inspect process creation logs using Sysmon or your EDR to determine if any processes launched from the registered path were seen recently. Pay attention to execution context to identify any rogue processes.
+  - **Examine User Activity:** Review logs from your SIEM and user access logs to identify any suspicious or unauthorized user accounts that may correlate with the modification event. Ensure that proper user access controls are in place.
+  ### Prioritization
+  This alert is classified as high severity due to its potential association with persistent threats, where an adversary could leverage the registry modification to establish a foothold and execute payloads on system startup.
+  ### Blind Spots and Assumptions
+  There are several assumptions associated with this rule. Firstly, it presumes that the telemetry capturing registry changes is properly configured and that no mechanisms are in place to obfuscate the changes made by adversaries. Additionally, legitimate applications may also modify startup paths, leading to potential false positives. The rule may not fire if the modifications bypass monitoring due to advanced evasion tactics or if the alerting system experiences configuration errors or limitations in scope.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and applicability, we recommend validating the content and adapting it to suit specific operational needs. Please communicate any changes to the detection engineering team.

@@ -54,11 +54,16 @@ falsepositives:
 - Unlikely
 level: high
 notes: |
+  n
   ### Technical Context
-  The Sigma rule "HackTool 
-  - Mimikatz Execution" is designed to detect the execution of Mimikatz, a popular post-exploitation tool often used for credential harvesting and manipulation in Windows environments. The rule specifically looks for command-line arguments associated with Mimikatz, including well-known commands such as `DumpCreds` and various module function names. Additionally, it captures indicators from process creation logs to identify any attempts to engage Mimikatz functionalities like credential dumping (for example, via AAD cookie retrieval, Kerberos ticket management, or LSASS memory access). Technical data sources involved primarily include process creation logs that provide insights into command-line parameters, function names, and specific module executions associated with Mimikatz activities.
+  This detection rule targets the execution of Mimikatz, a well-known credential dumping tool utilized by attackers to extract credentials from the Windows operating system. It focuses on specific command-line arguments commonly associated with Mimikatz operations, such as "DumpCreds," and various inherent function calls and module names related to credential harvesting. The rule leverages process creation logs as its primary data source to identify instances where Mimikatz is invoked, potentially indicating a credential theft attack. The authoritative sources for this rule highlight its relevance to the MITRE ATT&CK tactics of Credential Access (TA0006), and specifically techniques such as credential dumping (T1003.001), and various module-specific techniques like lsadump (T1003.004) and sekurlsa (T1003.006), which can reveal critical user secrets.
   ### Investigation Steps
-  - Review the process creation logs in your EDR solution to identify instances of Mimikatz execution, emphasizing command-line arguments that contain keywords like "DumpCreds" and various module names.
-  - Check for anomalous user behavior in identity management logs, particularly those related to account access or credential use that may correlate with Mimikatz activity.
-  - Utilize the SIEM to correlate any detected Mimikatz execution with anomalous network traffic, examining proxy logs for unusual outbound connections that may indicate data exfiltration.
-  - Perform a deep dive into the affected endpoints using the EDR tool, analyzing the memory and processes to assess if Mimikatz left any artifacts, such as dumped credentials or residual files that may indicate further compromise.
+  - **Verify Process Source:** Check the process creation logs in the EDR system to identify the origin of the Mimikatz execution, noting both the user and machine context.
+  - **Analyze Command Line Arguments:** Review the command line arguments associated with the detected process to understand which specific Mimikatz modules were utilized.
+  - **Check User Accounts:** Investigate the accounts involved in the Mimikatz execution, especially for signs of unauthorized access or anomalous user behavior preceding the event.
+  - **Review Network Connections:** Utilize the NDR system to evaluate any outgoing connections made by the suspicious process to detect potential data exfiltration efforts.
+  ### Prioritization
+  The alert is assigned a high severity level due to the critical nature of credential theft, which could lead to significant breaches in security and allow attackers to escalate their privileges and maintain persistence in the targeted environment.
+  ### Blind Spots and Assumptions
+  This rule may not trigger in scenarios where Mimikatz is executed with obfuscated or altered command-line arguments, or if executed in a way that circumvents process creation logging (e.g., in-memory execution). Additionally, legitimate tools used for administrative purposes might unintentionally mimic the command patterns of Mimikatz, resulting in false negatives. Engineers should be aware that adversaries often adapt their techniques to evade detection, which indicates the need for continuous rule tuning and enhancement.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

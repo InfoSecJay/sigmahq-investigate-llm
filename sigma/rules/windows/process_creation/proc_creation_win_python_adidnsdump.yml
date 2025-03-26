@@ -24,11 +24,18 @@ falsepositives:
 - Unknown
 level: low
 notes: |
+  n
   ### Technical Context
   The Sigma rule titled "PUA 
-  - Adidnsdump Execution" is designed to detect the execution of a potentially unwanted application (PUA) called "adidnsdump." This tool is typically used for reconnaissance purposes, particularly for enumerating and exporting DNS records in environments utilizing Active Directory. The rule specifically looks for instances where the `python.exe` process is initiated with the command line containing the term "adidnsdump." Key technical data sources involved in this detection include process creation logs that document newly spawned processes and their associated command-line parameters. Identifying the execution of this tool can alert security teams to possible reconnaissance activities in the network.
+  - Adidnsdump Execution" is designed to identify potentially unwanted applications (PUA) that leverage the `adidnsdump` tool, which can be utilized for reconnaissance purposes within Active Directory environments. The primary focus of this rule is to detect instances where the Python interpreter, specifically `python.exe`, is executed with the command line containing the string `adidnsdump`. This process can indicate that an attacker is trying to enumerate DNS records or modify them via LDAP, which can be a precursor to further malicious activities. The relevant technical data sources involved in this detection include Windows process creation logs, particularly looking for command-line parameters that feature specific calls to the Python interpreter. 
+  The detection falls under the MITRE ATT&CK framework tactic of **Discovery**, specifically under the technique **T1018: Remote System Discovery**. This highlights its relevance to identifying unauthorized attempts to gather information about the internal network.
   ### Investigation Steps
-  - Review the process creation logs in the EDR system to identify any instances of `python.exe` executed with the command line containing "adidnsdump."
-  - Cross-check the timestamps of the detected executions against other logs such as user activity or remote access logs to assess the legitimacy of the commands.
-  - Analyze network traffic logs from the NDR to see if there are any anomalous queries or requests made following the execution, particularly to DNS servers.
-  - Check for any recent changes in DNS records via cloud platform logs (such as AWS Route 53) to determine if there were unauthorized modifications that coincide with the execution of adidnsdump.
+  - **Check Process Logs:** Utilize your EDR tool to review process creation logs for instances of `python.exe` and specifically look for processes where the command line contains `adidnsdump`. 
+  - **Correlate User Activity:** Investigate the accounts associated with the execution of the `adidnsdump` command to determine if the user has legitimate access or if the activity appears anomalous.
+  - **Review DNS Records:** Query DNS logs from your domain controllers to inspect for any recent modifications or queries that match the timeframe of the detected activity associated with the `adidnsdump` execution.
+  - **Analyze Network Traffic:** Consult your network detection and response (NDR) solutions to uncover any unusual DNS queries or outbound traffic that coincides with the timing of the process detection.
+  ### Prioritization
+  The severity level is marked as low because while the execution of `adidnsdump` can indicate reconnaissance activities, it may also be part of legitimate administrative tasks. However, it should still prompt further investigation due to the potential for misuse by an unauthorized actor.
+  ### Blind spots and Assumptions
+  This rule may not fire in environments where Python is uniformly deployed for legitimate purposes, as it could lead to false negatives during normal operations. Additionally, if command-line arguments are obfuscated or if the tool is executed from a different interpreter or script, detection may be bypassed. Furthermore, assumptions include that the necessary logging for process creation is enabled and configured correctly across all relevant endpoints.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

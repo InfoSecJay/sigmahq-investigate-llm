@@ -29,10 +29,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies potential User Account Control (UAC) bypass attempts leveraging the `ieinstal.exe` utility, commonly associated with the UACMe 64 exploit. UAC is a security feature in Windows that helps prevent unauthorized changes to the operating system, and bypassing it indicates a privilege escalation attempt. The rule analyzes process creation logs to detect when a `consent.exe` process is spawned from `ieinstal.exe`, particularly when running with a high or system-level integrity. The key indicators include the presence of `ieinstal.exe` in a Temp directory and the resulting process's integrity levels indicating elevated permissions. Data sources involved in this detection include Windows process creation logs, capturing details such as application paths, parent process names, and their respective integrity levels.
+  This Sigma rule is designed to detect Unsolicited Access Control (UAC) bypass attempts leveraging the `IEInstal.exe` executable, a known method for privilege escalation. The rule examines process creation events within the Windows operating system to identify instances where a process (`consent.exe`) runs with high or system integrity levels, specifically when initiated by `IEInstal.exe`. This pattern is indicative of attempts to circumvent security measures. It taps into various data sources such as process creation logs, which detail the parent-child relationship between executing processes and their integrity levels. The relevant MITRE ATT&CK tactic is "Defense Evasion" (T1548.002), which highlights techniques used by adversaries to bypass system defenses to escalate their privileges.
   ### Investigation Steps
-  - Review recent process creation logs in your EDR tool to identify instances of `ieinstal.exe` and follow the chain of processes that led to the creation of `consent.exe`.
-  - Analyze the integrity levels of the involved processes; elevated integrity levels may suggest a successful UAC bypass attempt, warranting further investigation.
-  - Utilize your SIEM to correlate any related alerts or anomalies from other data sources, such as registry changes or suspicious network activity associated with the same time frame.
-  - Check any associated user credentials or account activity in relevant logs to determine if unauthorized privilege escalation actions were taken post-bypass.
+  - **Check EDR Logs**: Review endpoint detection and response logs for any instances of the specified parent-child process relationship, particularly those tied to `IEInstal.exe` and `consent.exe` during the time window of the alert.
+  - **Examine Process Tree**: Utilize process exploration tools to visualize the process tree and confirm whether `consent.exe` was spawned from `IEInstal.exe`, noting any other suspicious parent processes.
+  - **Review User Activity Logs**: Check user activity logs for unusual account behavior or privilege escalation actions around the same timeframe as the generated alert.
+  - **Correlate with Security Events**: Analyze Windows Security logs for events related to user access controls and modifications that coincide with the detected UAC bypass attempt.
+  ### Prioritization
+  Given the high potential for privilege escalation and associated security implications within an enterprise environment, this alert should be treated with high severity to prevent unauthorized access or data breaches.
+  ### Blind Spots and Assumptions
+  There are several blind spots regarding this rule. For example, if the `IEInstal.exe` executable is not present in the environment or if UAC settings have been modified, this rule may not trigger as expected. Additionally, legitimate software using these processes may lead to false positives. It's also assumed that sufficient logging is enabled; otherwise, the relevant process creation events may not be captured, thus failing to detect actual attempts.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

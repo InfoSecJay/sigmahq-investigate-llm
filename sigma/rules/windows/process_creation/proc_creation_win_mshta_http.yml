@@ -30,10 +30,17 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies potentially malicious behavior involving the execution of the Microsoft HTML Application Host (mshta.exe). The rule looks specifically for instances where mshta.exe is invoked with command-line arguments that include remote file access protocols such as HTTP, HTTPS, or FTP. This behavior can indicate that an attacker is trying to execute a remotely hosted HTA (HTML Application) file, which is often used for delivering malware or executing malicious scripts. The data sources involved in this detection primarily include process creation logs that capture details about running processes, including their command-line parameters and original file names, allowing for the identification of suspicious execution patterns.
+  The detection rule for remotely hosted HTA files executed via Mshta.EXE targets potential malicious activities where an attacker uses the Microsoft HTML Application Host (Mshta.EXE) to run HTML applications hosted over the internet. This rule specifically looks for instances where Mshta.EXE is executed with command-line arguments containing HTTP, HTTPS, or FTP protocols, indicating that the HTA file is sourced from a remote server. The relevant technical data sources include process creation logs, which capture detailed information about process invocations, command-line parameters used during execution, and the characteristics of the executing image. This detection aligns with the MITRE ATT&CK framework under the tactics of Defense Evasion and Execution, specifically technique T1218.005 (Signed Binary Proxy Execution).
   ### Investigation Steps
-  - Use EDR tools to search for any instances of mshta.exe execution, reviewing the command-line parameters for indications of remote file access, such as URLs that may point to malicious HTA files.
-  - Check the timeline of the detected mshta.exe execution to correlate it with other suspicious activities, such as unusual network connections or file modifications that may indicate a larger compromise.
-  - Review any Proxy logs for outbound connections to the URLs executed via mshta.exe, which could provide additional context about the potential risk associated with those remote files.
-  - Look into the logs of any installed AV or endpoint protection solutions to see if they flagged the HTA file or related processes as malicious, which could aid in determining the severity of the incident.
+  - **Query Process Creation Logs:** Use the SIEM to query for logs related to Mshta.EXE executions, focusing on command-line parameters that include 'http', 'https', or 'ftp'.
+    
+  - **Analyze Command-Line Arguments:** Review the complete command-line information for context on the executed HTA file and the remote server it contacted to gather additional indicators of compromise.
+  - **Inspect Network Connections:** Check EDR and NDR systems for any network connections initiated from the workstation executing Mshta.EXE, particularly those communicating with the mentioned remote URLs.
+  - **Review Endpoint Protection Logs:** Look into AV logs and alerts to determine if any threat detection mechanisms flagged the HTA file or Mshta.EXE processes based on behavior or signatures.
+  ### Prioritization
+  This alert is categorized as high severity due to the potential for significant malicious activity; the execution of remote HTA files can lead to malware delivery, data exfiltration, or other exploitations if not promptly investigated.
+  ### Blind Spots and Assumptions
+  The rule may not fire if Mshta.EXE is invoked without using any of the specified HTTP, HTTPS, or FTP arguments; therefore, it's essential for incident responders to remain vigilant for other indicators of local HTA file executions. Additionally, the rule assumes Mshta.EXE is being run on a system with standard logging enabled; environments with disabled process creation logging may fail to capture this activity. Adversaries may also utilize obfuscation techniques to modify command-line arguments, bypassing detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

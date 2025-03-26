@@ -47,11 +47,17 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  The detection rule "Abusable DLL Potential Sideloading From Suspicious Location" is designed to identify potentially malicious dynamic link library (DLL) files that are loaded from locations traditionally deemed insecure or suspicious within a Windows environment. This rule specifically looks for the loading of DLLs known to be frequently abused by threat actors, such as `coreclr.dll` and `libcef.dll`, from directories that could be misused for sideloading attacks, including `C:\Users\Public\` and various user directories like `Favorites` and `Pictures`. 
-  When DLLs are loaded from these sensitive locations, it can indicate an attempt to execute malicious code under the guise of a legitimate process. The rule utilizes Windows image load events as its primary data source, tapping into logs that capture when and how these DLLs are loaded by applications, providing insights into potentially harmful behaviors.
+  This detection rule is designed to identify potentially malicious DLL sideloading from suspicious locations on Windows systems. Sideloading occurs when a legitimate DLL file is loaded from an untrusted or unauthorized directory, which can lead to the execution of arbitrary code by an attacker. The rule looks specifically for the loading of known-abusive DLLs, such as `coreclr.dll` and `libcef.dll`, and matches them against paths commonly abused for this purpose, including user directories (e.g., `\Users\Public\`, `\Users\Favorites\`, `\Windows\Temp\`, etc.). This approach aligns with the MITRE ATT&CK tactic for Execution (specifically technique T1059—Command and Scripting Interpreter), making it crucial to monitor these events to catch potential exploitation attempts.
   ### Investigation Steps
-  - Verify the originating process that loaded the suspicious DLL using your EDR tools to assess if it is a legitimate application or potentially malicious software.
-  - Check historical logs for any abnormalities in DLL loading patterns, focusing on the specific folders flagged by the rule to identify any previous actions related to the incident.
-  - Conduct an analysis of network activity that occurred around the same time as the DLL loading events, using NDR and Proxy logs to identify any external connections that may indicate data exfiltration or command and control communication.
-  - Review endpoint protection alerts and logs for any matching indicators of compromise (IOCs) that may correlate with the identified DLLs or their associated processes, using AV logs for deeper context.
+  - **Check the Source of the DLL:** Use EDR tools to examine the path from which the suspicious DLL was loaded and verify if it is a legitimate operating location.
+    
+  - **Analyze the Process Tree:** Investigate the parent and child processes associated with the DLL loading event to understand the context and behavior of how the DLL was invoked.
+  - **Review User Activity Logs:** Examine logs from Windows Security to determine if there were any suspicious user activities preceding the DLL loading event, such as unusual logins or unfamiliar actions.
+  - **Correlate with Network Activity:** Analyze network connection logs for any outbound connections initiated by the process that loaded the DLL to discover if it attempted to exfiltrate data or communicate with known malicious domains.
+  ### Prioritization
+  The alert is categorized as high severity due to the potential risks associated with unauthorized DLL loading, which can lead to system compromise and data breaches. Immediate attention is recommended to assess the situation and prevent possible exploitation.
+  ### Blind spots and Assumptions
+  This rule may not fire in environments where legitimate applications use the detected DLLs for standard operations, possibly leading to false positives. Additionally, it operates under the assumption that side-loaded DLLs are loaded from paths that match the query; however, sophisticated adversaries could utilize different paths or obfuscation techniques to evade detection. Furthermore, environments without adequate logging practices or older systems that do not monitor DLL loading adequately may fail to trigger this alert.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

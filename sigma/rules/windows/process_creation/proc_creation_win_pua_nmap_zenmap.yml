@@ -29,12 +29,17 @@ falsepositives:
 - Legitimate administrator activity
 level: medium
 notes: |
+  n
   ### Technical Context
   The Sigma rule titled "PUA 
-  - Nmap/Zenmap Execution" is designed to detect the execution of the Nmap and Zenmap utilities within a Windows environment. Nmap is a widely used network scanning tool that adversaries can leverage to enumerate live hosts, open ports, and services running on remote machines. The rule specifically looks for process creation events where the executable paths end with `nmap.exe` or `zenmap.exe`, or where the `OriginalFileName` property matches these names. These indicators can signal potentially malicious behavior, especially if executed outside of legitimate administrative tasks or in unusual contexts. 
-  By monitoring these process creation logs, security operations can identify attempts to gather information on network services, which might expose the organization to further exploitation attempts. The logs are pulled from the process creation category, providing critical insights into system behavior and potential unauthorized scanning activities.
+  - Nmap/Zenmap Execution" aims to detect the execution of Nmap and Zenmap, both tools commonly used for network discovery and security auditing. Adversaries often use these tools to scan for services running on remote hosts, identifying potential vulnerabilities for exploitation. The rule leverages Windows process creation logs, focusing specifically on instances where the executed image ends with 'nmap.exe' or 'zenmap.exe' and where the original file name matches these criteria. This detection falls under the MITRE ATT&CK tactic of Discovery (tagged as `attack.discovery`), specifically the technique of Network Service Scanning (T1046). This rule is essential for uncovering potentially malicious reconnaissance efforts in an enterprise environment.
   ### Investigation Steps
-  - Review EDR logs for process creation events related to `nmap.exe` or `zenmap.exe` to determine the context of the execution, including the user account and parent process.
-  - Analyze network traffic logs from the NDR to identify any port scanning activity initiated by the potentially malicious process, including the target IP addresses and ports.
-  - Investigate firewall logs on the NGFW to see if any inbound or outbound connections were made as a result of the Nmap or Zenmap scan.
-  - Check system logs and alerts from AV tools to evaluate if the execution of these tools was flagged, and if any subsequent actions were taken by security control measures.
+  - **Check EDR logs**: Investigate the process creation logs in the EDR to confirm the execution of Nmap or Zenmap, checking the user context to determine if the execution aligns with legitimate administrative tasks.
+  - **Review associated network connections**: Use network logging tools to analyze any outbound connections made by Nmap/Zenmap, identifying patterns that may indicate malicious intent, such as scanning for open ports on unauthorized hosts.
+  - **Cross-reference with VPN logs**: If the execution occurred from a remote location, check VPN logs to validate the user's access and confirm that their activities were in line with expected behavior.
+  - **Analyze other related alerts**: Look for any additional alerts correlated with this event in the SIEM that might indicate broader malicious activity or an initial compromise.
+  ### Prioritization
+  The severity level is classified as medium because while Nmap and Zenmap can be used for legitimate administrative purposes, their execution may also signal reconnaissance activities indicative of a malicious actor mapping out the network.
+  ### Blind Spots and Assumptions
+  The rule may fail to detect instances where users rename Nmap or Zenmap executables or use custom scripts to execute these scans. It assumes that logging is adequately configured for process creation and that attackers do not employ sophisticated obfuscation techniques or operate outside standard user contexts. Additionally, legitimate administrative activity may lead to false positives if not properly contextualized.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

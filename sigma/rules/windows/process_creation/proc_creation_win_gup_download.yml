@@ -29,11 +29,19 @@ falsepositives:
 - Other parent processes other than notepad++ using GUP that are not currently identified
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies the execution of the Notepad++ updater (GUP) utility when it is initiated by processes other than Notepad++. The main goal is to flag any suspicious file downloads that are executed by the GUP utility, as this behavior may indicate potential command-and-control activities. The rule focuses on process creation logs, specifically looking for instances where the `GUP.exe` is running without Notepad++ being the parent process. It checks the command line for specific parameters, notably those indicating potentially malicious URLs, reflecting an attempt to download files from the internet.
-  The rule uses specific indicators such as the image name (`GUP.exe`), its original file name, and the presence of command-line flags like `-unzipTo` alongside any HTTP requests. If these criteria are met while ensuring that the parent process is not `notepad++.exe`, an alert is triggered for further investigation.
+  This detection rule aims to identify instances where the Notepad++ updater utility (GUP.exe) is executed from a parent process other than Notepad++. Specifically, the rule captures process creation events where GUP.exe is initiated by a different executable, indicating potential misuse for unauthorized file downloads. The detection relies on process creation logs, particularly looking for the image name "GUP.exe", the original filename being "gup.exe", and a command line containing ' -unzipTo ' along with a URL (indicating a file download). By analyzing these parameters, the rule highlights anomalous behavior consistent with adversarial tactics, particularly under the MITRE ATT&CK framework, specifically the Command and Control (T1105) technique.
   ### Investigation Steps
-  - Investigate the alert in your EDR tool to gather detailed information on the process tree associated with the GUP execution, focusing on the parent process and command-line parameters.
-  - Review the file download history and monitor outbound network traffic via the proxy logs to determine if any suspicious files were downloaded during the time of the alert.
-  - Conduct a threat intelligence lookup on any downloaded files or URLs found in the logs to assess if they are known indicators of compromise or malicious activity.
-  - Check endpoint antivirus logs for any detections or blocks occurring around the same timeframe to gain insights into the potential threat landscape surrounding the detected activity.
+  - **Review Process Creation Logs:** Utilize EDR tools to inspect the process creation events for GUP.exe. Check the parent process to confirm if it is indeed from Notepad++ or another unrecognized process.
+    
+  - **Analyze Command-Line Arguments:** Investigate the parameters passed to GUP.exe as captured in the logs. Look for specific clues that might indicate the nature of the download, such as suspicious URLs or file types.
+    
+  - **Cross-Reference Network Activity:** Use NDR solutions to correlate any network traffic associated with the execution of GUP.exe. Identify if the traffic indicates downloads from any known malicious domains or IPs.
+    
+  - **Check for Related Files and Downloads:** Investigate any files downloaded by the GUP process. Analyze the file hashes against threat intelligence sources to determine if they are known malware.
+  ### Prioritization
+  The alert is classified as high severity due to the potential for data exfiltration or malicious file downloads initiated through an unexpected process, which could indicate a compromised environment.
+  ### Blind Spots and Assumptions
+  This rule may not fire if GUP.exe is executed by a legitimate parent process outside of Notepad++ if there are unidentified benign applications utilizing the updater. Additionally, sophisticated adversaries may employ techniques to obfuscate executable properties or manipulate command-line arguments to disguise malicious intentions, thereby evading detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

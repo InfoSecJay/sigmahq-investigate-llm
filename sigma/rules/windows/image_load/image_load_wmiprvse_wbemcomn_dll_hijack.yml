@@ -25,10 +25,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect instances where a malicious actor executes a DLL hijacking technique using the Windows Management Instrumentation (WMI) service. Specifically, it monitors for the creation of a file named `wbemcomn.dll` in the `C:\Windows\System32\wbem\` directory and its subsequent loading by the WMI provider host process `wmiprvse.exe`. The detection leverages image load events, which provide insights into processes and the dynamic-link libraries (DLLs) they are utilizing. By correlating these events, the rule aims to identify unauthorized modifications in the security-sensitive WMI environment, which can indicate lateral movement or exploitation attempts in the enterprise network.
+  This detection rule identifies potential DLL hijacking attacks involving the Windows Management Instrumentation (WMI) service. Specifically, it looks for the execution of `wmiprvse.exe`, a legitimate WMI process, that has loaded a malicious DLL named `wbemcomn.dll` from the `C:\Windows\System32\wbem\` directory. By creating this file and loading it, an attacker can manipulate WMI operations to execute arbitrary code, leading to potential system compromise. The primary data source for this detection is Windows Sysmon event logs, particularly focusing on image load events which capture process behavior and interactions. This aligns with the MITRE ATT&CK technique T1047 (Windows Management Instrumentation) and can also be connected to lateral movement tactics under T1021.002.
   ### Investigation Steps
-  - Review EDR logs for the execution of `wmiprvse.exe` and the loading of `wbemcomn.dll` to confirm suspicious activity.
-  - Analyze process creation logs to identify the source of the command that initiated the creation of the DLL and any related processes that were spawned.
-  - Check network logs to determine if any unusual external connections were made prior to the DLL creation, indicating a potential attacker presence.
-  - Search for any relevant alerts from the AV solution that may have detected or blocked the suspicious file, providing further context for the investigation.
+  - **Check Process Execution:** Investigate the logs of the execution path for `wmiprvse.exe` and confirm if it was started by an unexpected or unauthorized service.
+  - **Analyze DLL Load Events:** Review Sysmon logs for any occurrences of `wbemcomn.dll` being loaded into `wmiprvse.exe` and validate the file's hash against known good signatures.
+  - **Review Initial Access:** Utilize EDR solutions to determine how the file `wbemcomn.dll` was created within the `C:\Windows\System32\wbem\` directory and assess any network traffic related to its transfer.
+  - **Check for Signs of Lateral Movement:** Correlate findings with user activity and other system logs for unusual WMI queries or interactions with remote systems that may indicate compromised accounts.
+  ### Prioritization
+  This alert is categorized as high severity due to the critical nature of WMI in system administration and its exploitation by attackers for lateral movement, potentially leading to elevated privileges and broader network compromise.
+  ### Blind Spots and Assumptions
+  This rule may not fire if the `wbemcomn.dll` file is created and loaded using an alternative method that does not pass through the Sysmon monitoring layer. Additionally, if an attacker renames the malicious DLL or modifies it to evade detection heuristics, it may also go unnoticed. The assumption that `wmiprvse.exe` is always triggered from a legitimate process might be flawed, as attackers can use legitimate contexts to mask their activity.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

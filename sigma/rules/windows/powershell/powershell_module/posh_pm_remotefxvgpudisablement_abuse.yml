@@ -34,11 +34,17 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule targets specific PowerShell module actions that could indicate potential abuse of the "RemoteFXvGPUDisablement.exe" binary, which can be exploited through module load-order hijacking. The rule specifically looks for PowerShell modules that include a function definition titled `Get-VMRemoteFXPhysicalVideoAdapter`. Such signatures can reveal malicious attempts to manipulate GPU configurations or bypass security mechanisms. The technical data sources involved are primarily from PowerShell module creation logs, where the content and structure of the module are analyzed to confirm the presence of the suspicious function. 
-  By monitoring for this specific payload in PowerShell activity, the rule enhances visibility into potentially malicious behaviors that could undermine system defenses or escalate privileges.
+  The Sigma rule titled "Potential RemoteFXvGPUDisablement.EXE Abuse 
+  - PowerShell Module" is designed to detect potentially malicious activities involving the execution of PowerShell modules that may facilitate the abuse of the RemoteFXvGPUDisablement.exe binary. Specifically, it identifies instances where the contents of a PowerShell module include the function "Get-VMRemoteFXPhysicalVideoAdapter." This function's presence could indicate an attempt to exploit a known vulnerability related to module load-order hijacking. The primary technical data sources involved in this detection are PowerShell module logs, which capture the creation of PowerShell modules and their respective contents. In terms of the MITRE ATT&CK framework, this detection rule is related to the tactics of Defense Evasion under the technique ID T1218.
   ### Investigation Steps
-  - Utilize EDR tools to examine the details of the PowerShell process that generated the alert, focusing on command-line parameters and the execution context to determine the legitimacy of the module's creation.
-  - Review historical PowerShell logs to identify any preceding commands or scripts that may have led to the creation of the suspicious module, assessing for patterns of abuse or unusual activity.
-  - Correlate findings with endpoint antivirus (AV) logs to identify whether the system has any known vulnerable binaries or executed commands associated with the RemoteFX configuration.
-  - Investigate network activity via the proxy and firewall logs to observe any outbound connections or data exfiltration attempts made from the affected endpoint during or after the module's creation.
+  - **Review PowerShell Logs:** Examine the PowerShell module creation logs in the Windows Event Viewer, focusing on any entries that indicate unusual or unauthorized module activity related to RemoteFX.
+  - **Analyze Command-Line Arguments:** Use EDR solutions to check for any PowerShell command executions that include suspicious parameters or that invoke the identified function within the detected modules.
+  - **Correlate with EDR Alerts:** Investigate alerts from the EDR regarding the execution of RemoteFXvGPUDisablement.exe or other PowerShell scripts that may correlate to user activity around the time of the alert.
+  - **Assess Network Connections:** Utilize NDR tools to analyze network traffic that coincides with the detection period, checking for anomalous connections or data exfiltration attempts which may indicate malicious activities.
+  ### Prioritization
+  This rule's high-severity level is justified due to the potential of remote execution and exploitation of system vulnerabilities that can lead to unauthorized access or control over virtualized environments, making this a critical issue in large enterprise environments.
+  ### Blind Spots and Assumptions
+  There are several potential blind spots related to this rule. First, legitimate system management tasks that utilize similar PowerShell functions could result in false positives if not properly contextualized. Additionally, the detection may fail if the adversary uses obfuscation techniques or modifies the content structure to avoid triggering the rule. The reliability of the detection is contingent on consistent logging and monitoring of PowerShell actions; any gaps or delays in log collection could hinder effective alerting.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

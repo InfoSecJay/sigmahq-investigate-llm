@@ -38,10 +38,17 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This Sigma rule detects potentially malicious activity where all backups or system state backups are deleted using the `wbadmin.exe` command. `Wbadmin.exe` is a Windows utility designed for managing backups, including creating and deleting them on systems where Windows Backup is enabled. The rule looks for specific characteristics in process creation logs, particularly when `wbadmin.exe` is invoked with the command-line parameters indicating a deletion action (including 'delete' and 'backup') and an instruction to keep zero versions of existing backups (indicated by 'keepVersions:0'). This behavior is commonly associated with ransomware attacks, where attackers delete backups to hinder recovery efforts.
+  This Sigma rule detects the deletion of all system backups through the use of the `wbadmin.exe` command-line utility, which is commonly leveraged by ransomware variants to obliterate recovery points and hinder recovery efforts. The rule specifically looks for the execution of `wbadmin.exe` with command-line arguments that indicate an attempt to delete backups, particularly focusing on commands that specify `keepVersions:0`. This scenario typically arises on Windows server platforms where the Windows Backup feature is enabled, providing an opportunity for malicious actors to erase potential recovery options. By correlating this activity with process creation logs, the rule highlights actions that align with MITRE ATT&CK Tactic: Impact (T1490) 
+  - which revolves around data destruction tactics utilized during ransomware attacks.
   ### Investigation Steps
-  - Review EDR logs for instances of `wbadmin.exe` being executed on critical servers, particularly focusing on the timestamps related to the generated alert.
-  - Check command-line arguments associated with `wbadmin.exe` executions to confirm the presence of 'delete' and 'keepVersions:0', indicating the deletion of all backups.
-  - Investigate other related processes or files that may have been executed around the same time to determine if this activity is part of a larger attack pattern.
-  - Analyze cloud logs and any backup solutions in use to assess whether any backups were successfully deleted, as well as to identify the potential impact on the organization's data integrity.
+  - **Check EDR Alerts:** Utilize the Enterprise Detection and Response (EDR) system to examine the specific endpoint where the alert was triggered, analyzing any recent activities related to `wbadmin.exe`.
+  - **Review Command Line Arguments:** Investigate the command-line parameters associated with the execution of `wbadmin.exe`. Look for the presence of `delete` and `keepVersions:0` to confirm the intent to remove backups.
+  - **Analyze Process Creation Logs:** Examine process creation events in Sysmon logs for `wbadmin.exe` executions. Identify any processes that executed it, focusing on parent-child relationships that may indicate how it was initiated.
+  - **Assess Backup Configuration:** Confirm whether system backups were enabled on the affected systems and investigate if any backups were actually deleted around the time of the alert.
+  ### Prioritization
+  This alert is classified as high severity due to the critical nature of backup deletions in an enterprise environment; losing backups can severely impact incident recovery efforts, particularly in cases of ransomware attacks.
+  ### Blind Spots and Assumptions
+  The rule may not fire if `wbadmin.exe` is executing without the documented parameters, such as if an attacker uses different command-line arguments or a different tool to perform similar actions. Additionally, if Windows Backup is not enabled on the target systems, the deletion will not trigger the alert. Furthermore, false negatives may occur if attackers leverage obfuscation tactics or custom scripts to erase backups without invoking `wbadmin.exe`.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

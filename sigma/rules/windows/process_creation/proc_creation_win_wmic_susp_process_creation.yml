@@ -55,10 +55,17 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This rule detects suspicious executions of processes initiated through the Windows Management Instrumentation Command-line (WMIC) tool, specifically those involving the `process call create` command. The rule aims to identify instances where WMIC is used to launch potentially harmful processes, such as `rundll32`, `regsvr32`, or other known script-based execution methods like `cmd.exe` and `powershell`. By analyzing process creation logs and associated command-line parameters, analytics can flag unusual or malicious behavior indicative of attempts to execute unauthorized scripts or payloads. The detected activity may suggest a compromise or breach, necessitating further investigation.
+  This Sigma rule is designed to detect suspicious process creation events executed via `WMIC.EXE` (Windows Management Instrumentation Command-Line). When malware or an attacker attempts to execute arbitrary commands, they may leverage `WMIC.EXE` to facilitate covert command execution, particularly through the usage of `process call create` with known suspicious binaries such as `rundll32.exe` and `regsvr32.exe`. The technical data sources involved in this detection include process creation logs and command line parameters from Windows security telemetry. This rule is associated with the MITRE ATT&CK technique "T1047 
+  - Windows Management Instrumentation".
   ### Investigation Steps
-  - Review the process creation logs in your EDR to identify the parent-child process relationships, focusing on WMIC and any associated command lines for suspicious parameters.
-  - Utilize the SIEM to correlate the alert with other logged events, such as network connections or user logins, that may provide context around the suspicious activity.
-  - Analyze any related activity in the cloud logs, specifically looking for unusual API calls or resource usage that could indicate further compromise.
-  - Check antivirus and threat detection systems for any alerts or quarantined files associated with the processes identified in the WMIC command, as this may provide additional evidence of malicious intent.
+  - **Review EDR Events**: Use your EDR solution to correlate correlated alerts with process creation events for `WMIC.EXE` to gather detailed process execution behavior and parent-child relationships.
+  - **Inspect Command-Line Arguments**: Examine the command-line parameters associated with the detected `WMIC.EXE` process to identify any suspicious litany of commands or executable paths that could indicate malicious intent.
+  - **Check System Logs**: Investigate related Windows Security and System logs for abnormal or unauthorized access patterns that may have led to the `WMIC.EXE` execution.
+  - **Threat Intelligence Research**: Consult threat intelligence sources to verify if the detected binaries or command patterns correlate with known malicious entities or campaigns.
+  ### Prioritization
+  The alert severity is categorized as high due to the likelihood of malicious activity exploiting legitimate Windows tools for lateral movement or execution of payloads, making it imperative for SOC teams to respond promptly.
+  ### Blind Spots and Assumptions
+  Detection may be limited if attackers employ obfuscation techniques or use non-standard command syntax with `WMIC`, which may not match the predefined suspicious patterns. Additionally, environments that restrict the usage of `WMIC.EXE` may not generate this alert, potentially allowing malicious actors to circumvent detection. Regular updates to the list of suspicious commands and binaries are essential, as threat behavior evolves rapidly.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

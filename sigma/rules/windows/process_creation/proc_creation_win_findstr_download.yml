@@ -39,10 +39,16 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect suspicious use of the Windows command-line utility `findstr.exe`, particularly when it is employed to download files from remote shares. The rule specifically identifies command line executions that include the usage of `findstr` in conjunction with specific flags (`-v` and `-l`), which may indicate an intent to read or manipulate data from a remote location. The presence of a UNC path (`\\`) as part of the command line is a critical component, as it represents an attempt to access shared files on a network, which can be often exploited by threat actors to exfiltrate data or load malicious files. Data sources involved in this detection include process creation logs, analyzing command-line parameters, and confirming the original file name to be 'FINDSTR.EXE'. 
+  This detection rule identifies instances where the `findstr` command is executed with parameters that suggest it is being used to download files from a remote share. The specific command-line flags `-v` and `-l`, paired with a remote share path (indicated by patterns such as `\\`), allow attackers to leverage `findstr` for data exfiltration or other malicious activities. The rule analyzes process creation logs where the command line includes `findstr.exe` and checks for the defined conditions to trigger an alert. This behavior is notably associated with MITRE ATT&CK techniques for Defense Evasion (T1218), Remote File Copy (T1564.004), and others related to command execution anomalies.
   ### Investigation Steps
-  - Review the process creation logs in the EDR for instances of `findstr.exe` execution, particularly noting the exact command line used to identify potentially malicious parameters.
-  - Query the SIEM for any alerts that correlate with network shares accessed during the times of the detected `findstr` executions, providing insights into the remote files involved.
-  - Cross-reference the activity with any recent changes noted in AV logs that could suggest malicious files being downloaded or accessed via the remote path.
-  - Inspect proxy logs for any unusual outbound traffic that coincides with the detected command execution, as this could indicate data exfiltration attempts.
+  - **Review Process Creation Logs**: Examine the process creation logs for the user that executed the command to determine the context of the operation and any related activities.
+  - **Correlate with Network Traffic**: Utilize EDR tools to analyze network connections initiated around the same time to identify any unusual outgoing or incoming traffic, especially to external destinations.
+  - **Check File System Changes**: Investigate recent modifications in the filesystem, specifically focusing on any files within the remote paths referenced in the command to track potential data exfiltration.
+  - **Assess User Behavior**: Evaluate the user’s historical activity and any prior alerts to establish a baseline; look for patterns consistent with evasion techniques or unauthorized access.
+  ### Prioritization
+  This alert is categorized with a medium severity level as it indicates potentially malicious behavior typical of data exfiltration attempts while executing a legitimate Windows utility, presenting a need for prompt investigation to confirm intent and mitigate associated risks.
+  ### Blind Spots and Assumptions
+  The rule may not fire if the execution of `findstr` does not use specified parameters or if the command is run from a trusted script context that is often ignored in process monitoring. Additionally, if an adversary disguises their command under an apparent legitimate operation or modifies command parameters, the detection may fail. Furthermore, reliance on process creation logs alone could omit crucial telemetry from memory or other methods of execution, which some adversaries may use to evade detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

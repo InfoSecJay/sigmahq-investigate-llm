@@ -27,10 +27,19 @@ falsepositives:
 - Legitimate use by administrators
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies the execution of NirCmd, a command-line utility often used to perform various system tasks, under the context of the LOCAL SYSTEM user. The rule specifically focuses on detecting commands that include the string "runassystem," which is indicative of attempts to invoke NirCmd to run processes with elevated privileges. The primary data source for this detection is process creation logs that capture command-line parameters during the initiation of processes on Windows systems. By monitoring and correlating this data, the rule can flag potentially unauthorized or malicious use of NirCmd, which may signal an adversary attempting to gain a foothold or privilege escalation on the system.
+  The detection rule titled "PUA 
+  - NirCmd Execution As LOCAL SYSTEM" leverages Windows process creation logs to identify the execution of the NirCmd command-line tool running under the SYSTEM user context. It specifically searches for command lines containing the substring 'runassystem', which is indicative of this tool being used to run commands with elevated privileges. By monitoring the CommandLine field, along with the ParentCommandLine field for contextual insights, the rule can effectively signal potential misuse of the NirCmd tool. This detection is aligned with the MITRE ATT&CK technique T1569.002 (Command and Scripting Interpreter: Windows Command Shell) and technique T0029 (Command-Line Interface), highlighting its relevance in identifying execution-based threats within the enterprise environment.
   ### Investigation Steps
-  - Examine the process creation logs from your EDR solution to identify instances where the NirCmd tool was executed with the "runassystem" command line. Check for the parent process that initiated this action to understand its context.
-  - Utilize your SIEM to correlate the detected alert with user activity logs to determine if the execution can be attributed to legitimate administrative tasks or if it shows signs of unauthorized access.
-  - Review the settings and configurations of systems that logged the event to ensure that NirCmd is not part of sanctioned administrative tools, and evaluate the user accounts that triggered these executions.
-  - If potential malicious activity is confirmed, leverage your incident response procedures to contain the systems involved, and begin a forensic analysis to determine the extent of the compromise.
+  - **Check Process Creation Logs:** Review process creation logs in your SIEM or EDR that captured the instance of NirCmd running as the SYSTEM user. Pay close attention to the CommandLine and ParentCommandLine fields for any suspicious activity.
+    
+  - **Correlate with User Activity:** Investigate related events for the SYSTEM account or any user-initiated actions leading to this execution to determine the legitimacy of the usage. This can help distinguish between administrative tasks and potential adversarial behavior.
+    
+  - **Analyze Network Connections:** Utilize network detection resources (NDR, Proxy) to spot any outbound connections made by NirCmd that could indicate data exfiltration or command and control (C2) activity. 
+  - **Review Security Events:** Check Windows Security Event Logs for user authentication events prior to the command execution to establish a timeline and ascertain if any unauthorized access may have occurred.
+  ### Prioritization
+  The alert is classified as high severity because the execution of NirCmd as the SYSTEM user can indicate potential misuse of powerful system utilities, which may facilitate unauthorized access or malicious activities.
+  ### Blind Spots and Assumptions
+  This rule may not trigger if NirCmd is executed with different command-line arguments or if it utilizes alternate execution methods that do not incorporate 'runassystem'. Additionally, legitimate administrative use of NirCmd by system administrators may result in false positives. It is also assumed that proper logging is in place and not altered, as modifications to log visibility could prevent detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

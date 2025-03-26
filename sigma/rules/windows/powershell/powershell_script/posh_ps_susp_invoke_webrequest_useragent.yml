@@ -27,9 +27,18 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This detection rule focuses on identifying potentially malicious activities that use the `Invoke-WebRequest` PowerShell command with a modified user agent string. Adversaries often blend malicious command and control (C2) traffic with legitimate web traffic to evade detection by security systems. By modifying the user agent, they can obscure the nature of their requests and communicate commands to remote systems in a manner that resembles normal web activity. This rule inspects PowerShell script block logging data, specifically looking for the presence of the `Invoke-WebRequest` command alongside the `-UserAgent` parameter, which suggests an attempt to conceal the actual purpose of the web request.
+  The "Change User Agents with WebRequest" Sigma rule aims to detect potentially malicious activities where adversaries manipulate the User-Agent HTTP header to blend in with ordinary web traffic. This technique is often employed to exfiltrate data or maintain command and control communication while evading security controls. The detection logic for this rule specifically targets Windows PowerShell script executions that invoke the `Invoke-WebRequest` cmdlet with user-defined User-Agent strings. By leveraging script block logging, security teams can identify these instances when PowerShell scripts are executed, offering insight into possible nefarious activities matching MITRE ATT&CK Technique T1071.001 (Application Layer Protocol: Web Protocols).
+  To effectively monitor for this behavior, the rule analyzes the content of executed PowerShell scripts for the presence of 'Invoke-WebRequest' and the explicit '-UserAgent' parameter. When combined, the detection of this specific command indicates that a script may be attempting to manipulate its HTTP requests, which may warrant further investigation.
   ### Investigation Steps
-  - Review the PowerShell script block logs through EDR to identify the specific execution context of the detected `Invoke-WebRequest` commands.
-  - Analyze the associated command-line parameters and user agent string for anomalies or known malicious indicators that may provide insight into the intent behind the requests.
-  - Correlate findings with network traffic logs to determine whether the web requests were directed towards suspicious or known malicious domains.
-  - Use threat intelligence feeds to investigate the reputation of any URLs or endpoints contacted and assess if there were any previous detections or reported incidents involving the identified user agent strings.
+  - **EDR Review:** Examine the EDR alerts for the specific host involved to review the execution history of PowerShell scripts associated with the flagged User-Agent change. Focus on identifying what other processes may have been executed by the same user.
+    
+  - **Log Correlation:** Cross-reference Windows Security and Sysmon logs to identify any other unusual or suspicious activities around the same timeframe, including failed logins or abnormal process creations.
+    
+  - **Network Traffic Analysis:** Use Network Detection and Response (NDR) tools to analyze the outgoing traffic from the affected host, paying particular attention to any unusual HTTP requests or connections to known malicious IP addresses.
+    
+  - **Context Gathering:** Investigate the user account associated with the alert to determine whether it has administrative privileges and if it has a history of anomalous behavior, aiding in the risk assessment of the potential compromise.
+  ### Prioritization
+  The alert is classified as medium severity because, while manipulating the User-Agent string can signify sophisticated adversarial behavior, it might also include non-malicious use cases such as legitimate automation scripts or testing environments. As such, further context is essential to ascertain the true risk.
+  ### Blind Spots and Assumptions
+  This rule assumes that Script Block Logging is enabled, which may not be the case across all environments. Additionally, an adversary may avoid detection by using known User-Agent strings or other common web traffic patterns, which can lead to false negatives. If a PowerShell script does not include the `-UserAgent` parameter, or if the scripting is obfuscated in a way that avoids direct detection, this rule may fail to trigger an alert.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and adapt it to your specific environment and operational needs, we recommend validating the content. Please communicate any changes to the detection engineering team.

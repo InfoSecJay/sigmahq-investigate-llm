@@ -26,10 +26,19 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  The "Silenttrinity Stager Msbuild Activity" Sigma rule is designed to detect potentially malicious activities associated with the Silent Trinity framework, specifically focusing on connections to command and control (C2) servers. This rule triggers when a network connection involves `msbuild.exe`, often used in legitimate development environments but also exploited by attackers for executing payloads. The detection criteria include monitoring outbound connections initiated by `msbuild.exe` targeting ports 80 and 443, which are commonly used for HTTP and HTTPS traffic. By analyzing logs from network connections, the rule identifies anomalies in the behavior of the `msbuild.exe` process that may indicate an attacker’s attempt to establish remote connections to their C2 infrastructure.
+  The "Silenttrinity Stager Msbuild Activity" detection rule focuses on identifying potential Command and Control (C2) communication specific to Silent Trinity exploits. This malware framework often utilizes Microsoft Build Engine (MsBuild) as a stager to facilitate remote connections. The telemetry data involved in this detection primarily includes network connection logs that capture outbound communication attempts initiated by processes running MsBuild. The rule looks specifically for instances where MsBuild is attempted to connect to remote destinations on common web traffic ports (80 and 443). This falls under the MITRE ATT&CK tactic of Execution and specifically targets the technique T1127.001, which is centered around task automation and the execution of malicious actions using legitimate software tools.
   ### Investigation Steps
-  - Analyze the EDR logs for the `msbuild.exe` process to confirm its execution context. Check for any unusual parameters or command-line arguments that might suggest malicious intent.
-  - Review the destination IP addresses and domains correlated with the detected connections in your network logs. Use threat intelligence to determine if any of these are known C2 hosts.
-  - Inspect firewall logs to trace the flow of traffic associated with the detected outbound connections. Look for any other suspicious activities around the same timestamps.
-  - Check for any related alerts or incidents involving the same host and process. This will help confirm if this behavior is isolated or part of a larger attack pattern.
+  - **Check Network Connections:** Review EDR or network logging solutions for connections initiated by msbuild.exe, particularly targeting ports 80 and 443 for any suspicious activity.
+    
+  - **Analyze Process Creation Logs:** Investigate Windows Process Creation logs to confirm if msbuild.exe was executed from an expected location or if it appears suspiciously initiated by other unknown processes.
+    
+  - **Validate Command Arguments:** Examine command-line arguments of the msbuild.exe process to detect any unusual parameters that could indicate malicious execution or connection attempts.
+    
+  - **Review Endpoint Security Alerts:** Correlate findings with alerts from AV or EDR tools for known indicators of compromise associated with Silent Trinity or similar C2 frameworks.
+  ### Prioritization
+  This alert carries a high-severity level due to the potential implication of C2 communication, indicating that an endpoint could be compromised and actively communicating with an external entity, posing a serious security risk to the enterprise.
+  ### Blind Spots and Assumptions
+  One recognized blind spot is the reliance on the use of specific ports (80 and 443), which could lead to false negatives if attackers utilize other ports for C2 communication. Additionally, if the msbuild.exe execution is masked as part of legitimate administrative tasks or automated processes, it may evade detection. Furthermore, this rule assumes proper logging configurations are in place and that outbound connections are monitored adequately; if firewalls restrict external traffic, these communications might never be logged.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

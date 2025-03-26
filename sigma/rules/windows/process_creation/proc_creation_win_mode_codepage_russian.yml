@@ -39,10 +39,19 @@ falsepositives:
 - Russian speaking people changing the CodePage
 level: medium
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect a modification of the code page on Windows systems via the `mode.com` utility, specifically targeting the settings that switch the code page to Russian language. The rule focuses on process creation logs, looking for instances where `mode.com` is executed with command line arguments indicating a change to code pages 1251 (ANSI Cyrillic) or 866 (OEM Russian). The identification of this behavior is critical as threat actors, such as those behind the Dharma ransomware, have exploited this technique to obfuscate their operations or manipulate system behavior to evade detection. Consequently, monitoring for such command-line activities is vital for early threat identification and response.
+  This detection rule aims to identify the modification of the code page in Windows environments using the command-line utility "mode.com" to set it to the Russian language (CP 1251 or CP 866). Code page modification is a technique that can be exploited by malicious actors, specifically those associated with ransomware like Dharma, to obfuscate malicious activities and facilitate further exploitations. This rule leverages process creation logs, focusing on command-line parameters that include the specific patterns signifying a change in code page. By monitoring for these command-line invocations and the associated executable—mode.com—this rule falls under the MITRE ATT&CK technique T1036 (Masquerading), specifically aligning with the defense evasion tactic.
   ### Investigation Steps
-  - Review the process creation logs in your EDR tool to identify instances of `mode.com` being invoked with the specified command-line arguments related to code page modification.
-  - Cross-reference the timeline of the detected `mode.com` execution with other suspicious activities in the environment, such as unexpected file modifications or access patterns.
-  - Analyze endpoint logs or alerts from your antivirus/endpoint protection solution to check for subsequent malware behaviors linked to the detected code page change.
-  - Query network traffic logs from your NDR or Proxy solutions to monitor for unusual connections to known malicious domains or IP addresses following the time of the code page modification.
+  - **Verify the Process:** Utilize EDR tools to track the process tree associated with the `mode.com` execution. Analyze the parent processes to check if the execution was initiated by a legitimate user application or a potentially malicious one.
+    
+  - **Analyze Command Line Parameters:** Review the command-line arguments logged in Windows security logs to confirm the presence of 'con cp select=' followed by either '='1251' or '=866'. Interrogate these parameters for suspicious usage patterns.
+    
+  - **Correlate with User Activity:** Check for any user activity logs in the proxy or VPN logs surrounding the time of the code page modification to identify any unusual patterns or behaviors leading up to the alert.
+    
+  - **Investigate File Integrity:** Use file integrity monitoring solutions or AV tools to ensure that the `mode.com` utility has not been tampered with or replaced with a malicious payload.
+  ### Prioritization
+  This alert is deemed medium priority as the modification of code pages can indicate an attempt to evade detection by altering display formats for malicious commands. It requires prompt investigation to ascertain whether it's a benign action or indicative of a more significant threat.
+  ### Blind Spots and Assumptions
+  The detection rule may not fire in scenarios where legitimate users intentionally change the code page for valid reasons, such as native Russian speakers. Additionally, attacks that employ an alternate method of code page modification or manipulation outside of the monitored command-line parameters may not trigger this alert. Adversaries could bypass detection by using scripted automation or disguise the command under different operational contexts.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -22,10 +22,16 @@ falsepositives:
 - Legitimate disabling of crashdumps
 level: medium
 notes: |
+  n
   ### Technical Context
-  The "CrashControl CrashDump Disabled" detection rule identifies attempts to disable crash dumps on Windows systems, a maneuver often utilized by malware like HermeticWiper to evade detection and forensic analysis. When crash dumps are disabled via the registry setting located at `SYSTEM\CurrentControlSet\Control\CrashControl`, the value is set to `DWORD (0x00000000)`. This act can indicate malicious activity as attackers aim to prevent system crash data from being collected, making it harder for incident responders to analyze the events leading up to a compromise. The rule leverages Windows registry set logs to trigger alerts when such disabling occurs, enabling security teams to take action.
+  The "CrashControl CrashDump Disabled" Sigma rule is designed to detect when the CrashDump feature in Windows has been disabled via modifications to the registry. The rule specifically monitors changes to the registry path `SYSTEM\CurrentControlSet\Control\CrashControl`, focusing on instances where the value is set to `DWORD (0x00000000)`. Disabling CrashDump can prevent the operating system from creating memory dump files that could be useful for post-incident analysis and debugging, making this behavior indicative of potential malicious activity, such as the actions employed by malware like HermeticWiper. This detection aligns with the MITRE ATT&CK techniques T1564 (System Script Proxy Execution) and T1112 (Modification of Registry).
   ### Investigation Steps
-  - Review recent registry changes in EDR solutions to confirm if the crash dump setting was modified, noting the timestamp and the user or process responsible for the change.
-  - Correlate the timing of the registry modification with other security alerts or incidents to establish if this change relates to any known malicious activity.
-  - Check for associated process creation logs around the time of the registry change to identify any unusual or unexpected processes that may have initiated the disabling of the crash dump.
-  - Analyze network logs in your NDR or proxy systems to investigate any outbound connections or anomalies that coincide with the registry modification, helping to clarify if additional malicious behavior is present.
+  - **Verify the Change in Registry:** Use Windows Event Logs to confirm that a modification to the `SYSTEM\CurrentControlSet\Control\CrashControl` registry key has occurred around the time of the alert.
+  - **Analyze Process Activity:** Utilize EDR tools to examine any processes that were active at the time the registry key was modified, identifying any suspicious or unauthorized activities.
+  - **Check for Associated Malicious Activity:** Review other related logs such as Sysmon event logs for any unusual application behavior or system events that coincide with the registry change.
+  - **Review User and Remote Access Logs:** Inspect user access and VPN logs for any anomalous behaviors or connections that may indicate unauthorized access prior to the registry modification.
+  ### Prioritization
+  Given its potential implications for incident response and forensic investigations, this alert is prioritized as medium severity. The disabling of crash dumps can hinder the ability to effectively analyze and respond to security incidents, warranting prompt investigation.
+  ### Blind Spots and Assumptions
+  This rule may not fire in environments where legitimate administrative activities involve disabling of crash dumps, which can lead to false positives. Additionally, adversaries may employ methods to obscure their actions, such as bypassing detection mechanisms or reverting registry changes, resulting in missed detections. Furthermore, reliance on Windows registry changes assumes that adversaries will not employ alternative tactics to disable crash dumps or execute malicious activity.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

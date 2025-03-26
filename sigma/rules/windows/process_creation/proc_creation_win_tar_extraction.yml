@@ -29,10 +29,20 @@ falsepositives:
 - Likely
 level: low
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies the execution of `tar.exe`, a utility commonly used to extract compressed files. Adversaries exploit such tools to decompress files while attempting to bypass traditional security measures. The rule specifically monitors for instances where `tar.exe` is run with command line parameters that include `-x`, which is a standard option denoting extraction. The data sources utilized for this rule primarily include Windows process creation logs, which track the execution of processes along with their respective command-line parameters, image names, and original file names. By focusing on these criteria, the rule helps in recognizing potentially malicious behavior that may seek to extract data without detection.
+  The detection rule titled "Compressed File Extraction Via Tar.EXE" aims to identify instances in which the Windows utility `tar.exe` is executed for the purpose of extracting compressed files. This execution can indicate potential adversarial behavior, as attackers might use such legitimate utilities to decompress and execute malicious code while trying to evade detection mechanisms. The rule specifically looks for process creation events involving `tar.exe`, particularly those that include the command-line parameter `-x`, which denotes extraction operations.
+  In this context, data sources such as Windows Event Logs, specifically focusing on process creation logs, are leveraged. The detection aligns with the MITRE ATT&CK framework, particularly the tactic of Collection and the technique of Archive Collected Data (T1560.001). Identifying these processes can help security teams respond promptly to potential data exfiltration or other nefarious activities, given the utility's ability to handle various compressed file formats.
   ### Investigation Steps
-  - Review the process creation logs in the EDR to identify instances of `tar.exe` execution, paying attention to the command-line parameters that signify extraction.
-  - Examine the parent process associated with `tar.exe` to understand the context of its execution, looking for any suspicious or anomalous activity prior to its launch.
-  - Utilize network traffic analysis from the NDR to determine if any data exfiltration attempts were initiated following the execution of the `tar.exe` process.
-  - Check system logs for any unusual file modifications or access patterns that coincide with the execution timeline of `tar.exe`.
+  - **Review EDR Alerts:** Investigate the endpoint using your Endpoint Detection and Response (EDR) product to see if there are additional alerts correlated with the execution of `tar.exe`, including any suspicious parent processes or anomalies in user behavior.
+    
+  - **Analyze Process Creation Logs:** Examine Windows Process Creation logs for the `tar.exe` execution, focusing on the command line arguments used. Look for any unusual parent-child process relationships or executions outside of expected operation hours.
+    
+  - **Inspect File Activity:** Utilize file monitoring features to identify any newly created or modified files around the time `tar.exe` was executed. Cross-reference these files with known malicious indicators, such as hashes or behavioral attributes.
+    
+  - **Coordinate with Network Security Tools:** Check network logs from the Next-Generation Firewall (NGFW) or Network Detection and Response (NDR) systems for any outbound connections initiated shortly after the command was run, which could indicate data exfiltration attempts.
+  ### Prioritization
+  The alert is categorized as low severity; however, the execution of `tar.exe` can be a red flag, especially if it is consistent with other indicators of compromise (IOCs) in the enterprise environment. Prompt investigation is necessary to rule out any malicious intent.
+  ### Blind Spots and Assumptions
+  Potential blind spots include the possibility that legitimate users may frequently use `tar.exe` for valid tasks, leading to false positives. Additionally, if the `tar.exe` utility is removed or renamed by the adversary, the rule will not trigger. It is also assumed that network monitoring tools are properly configured to detect exfiltration attempts, which may not always be the case in all environments.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

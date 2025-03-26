@@ -23,10 +23,17 @@ falsepositives:
 - Unlikely
 level: high
 notes: |
+  # Documentation for Sigma Rule: Antivirus Filter Driver Disallowed On Dev Drive 
+  - Registry
   ### Technical Context
-  This detection rule identifies instances where users disable the ability of an antivirus mini filter to inspect a "Dev Drive" by modifying a specific registry key on Windows systems. The rule looks for changes to the registry path `\FilterManager\FltmgrDevDriveAllowAntivirusFilter`, specifically checking for the DWORD value set to `0x00000000`. This configuration essentially prevents antivirus filters from monitoring file access activities on Dev Drives, which could lead to potential evasion of malware detection methods. The primary data sources for this rule are registry set logs, which capture alterations to the Windows registry, allowing SOC analysts to respond to potentially malicious intent to circumvent antivirus protections.
+  This detection rule identifies when a user disables the functionality of antivirus mini filters on a "Dev Drive" in Windows environments through registry changes. Specifically, the rule looks for modifications to the registry key `\FilterManager\FltmgrDevDriveAllowAntivirusFilter`, with a value set to `0` (DWORD 0x00000000). This action could indicate potential evasion tactics employed by an adversary to disable security measures for a specific volume type, which aligns with the MITRE ATT&CK technique of **Defense Evasion (T1562.001)**. The primary data source for this rule is Windows registry logs, which provide visibility into system configuration changes that might compromise security.
   ### Investigation Steps
-  - Review the registry logs for the modification of `\FilterManager\FltmgrDevDriveAllowAntivirusFilter` to confirm the change to `DWORD (0x00000000)`.
-  - Utilize EDR tools to conduct a timeline analysis of process activities around the time of the registry change to identify any suspicious executable or script initiations.
-  - Check for related alerts or events from your AV solution that may indicate previous detections on the same system, providing context on potential threats.
-  - Assess any network traffic through the NGFW or proxy logs that might indicate communication with known malicious domains or IP addresses following the registry modification.
+  - **Review Registry Change Logs:** Check the Windows registry logs for any recent changes to the `\FilterManager\FltmgrDevDriveAllowAntivirusFilter` key and correlate timestamps with user activities for context.
+  - **Correlate User Activity:** Investigate the user account that made the change, including their recent login times and the history of any executed commands using Windows Event Logs or EDR.
+  - **Analyze Endpoint Protection Logs:** Inspect logs from the antivirus solution to determine if there were any alerts or anomalies related to antivirus functionality prior to the registry change.
+  - **Conduct Network Traffic Analysis:** Utilize NDR to analyze any related network activity that could indicate anomalous behavior associated with the user or system at the time of the registry modification.
+  ### Prioritization
+  The alert should be treated with high severity because disabling antivirus filters on specific drives increases the risk of successful exploitation by malware, posing a significant threat to enterprise security.
+  ### Blind Spots and Assumptions
+  This rule may not activate if the registry change is made via methods that employ administrative privileges, such as through Group Policy, or if the device is compromised by an advanced adversary capable of evading detection. Additionally, the detection depends on timely and correctly configured logging of registry changes; any gaps in logging or inadequate monitoring settings may prevent the rule from firing.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -22,11 +22,19 @@ falsepositives:
 - Legitimate use
 level: medium
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies the execution of `TTDInject.exe`, a process associated with Windows 10 version 1809 and later, which is utilized for debugging through time travel debugging capabilities leveraging `tttracer.exe`. The rule specifically focuses on the properties of the process creation events, looking for instances where the image name ends with `ttdinject.exe` or where the original file name is `TTDInject.EXE`. By monitoring these indicators within process creation logs, the rule flags potential misuse or malicious activities since `TTDInject.exe` can also be exploited for evading detections through debugging techniques. 
-  The data sources involved in this rule include Windows process creation logs that hold critical information about launched processes, including their names and other relevant metadata. This monitoring is essential for detecting unauthorized or unusual use of this debugging tool, thereby enabling a proactive approach to identifying evasive tactics commonly used in advanced threats.
+  This Sigma rule is designed to detect the execution of `TTDInject.exe`, a tool integrated into Windows 10 version 1809 and later that aids in debugging time travel. By capturing process creation events, the rule focuses on identifying instances where `TTDInject.exe` is invoked, specifically checking for the file name to ensure it ends with 'ttdinject.exe' and verifying the original file name as 'TTDInject.EXE'. This process is critical to understanding potential attempts at defense evasion, categorized under the MITRE ATT&CK technique T1127. The primary data source leveraged for this detection is the Windows Sysmon logs, which provides a detailed view of process creation activities on the system.
   ### Investigation Steps
-  - Use your EDR tool to search for any instances of `TTDInject.exe` execution and gather additional context, such as the parent process and user account that initiated the action.
-  - Review any relevant process creation logs to identify patterns or sequences of actions leading up to the execution of `TTDInject.exe`, focusing on unusual behaviors or timing.
-  - Cross-reference the execution with known legitimate uses of `TTDInject.exe` to assess whether it may be part of a valid application or whether it warrants further investigation.
-  - Analyze network connections and proxy logs to detect any suspicious communications or file transfers that may correlate with the execution of the detected process.
+  - **Review EDR Alerts:** Check your endpoint detection and response (EDR) tool for any alerts related to the execution of `TTDInject.exe`. Analyze the context of the alert to determine if it corresponds to legitimate usage or potential malicious activity.
+    
+  - **Check Process Tree:** Utilize the EDR or Sysmon tool to investigate the process tree associated with `TTDInject.exe`. Reviewing its parent processes can help understand how it was initiated and if it appears suspicious.
+    
+  - **Analyze Command-Line Arguments:** Inspect the command-line parameters used when `TTDInject.exe` was executed. Unusual or unexpected arguments may indicate abnormal behavior or an adversary's attempt to evade detection.
+    
+  - **Cross-reference with Threat Intelligence:** Use threat intelligence feeds to determine if the usage of `TTDInject.exe` has been linked to known malicious activities or actors. This can provide further context for assessing the severity of the alert.
+  ### Prioritization
+  The alert is categorized as medium severity due to the potential for `TTDInject.exe` to be used as a legitimate debugging tool, but it also presents an opportunity for adversaries to evade detection or manipulate system behavior. Investigations are warranted to confirm the context of its usage and assess any potential risks.
+  ### Blind Spots and Assumptions
+  This rule may not fire if `TTDInject.exe` is executed in ways that do not create process creation events captured by Sysmon, such as through certain scripting or automated processes. Additionally, legitimate debugging sessions by trusted application developers might produce false positives. It is also assumed that the environment is configured to log and monitor process creation adequately; if not, this detection may miss critical events on those systems. 
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

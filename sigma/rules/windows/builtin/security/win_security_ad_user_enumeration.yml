@@ -43,10 +43,16 @@ falsepositives:
 - Administrators configuring new users.
 level: medium
 notes: |
+  n
   ### Technical Context
-  This Sigma rule detects potential Active Directory (AD) user enumeration attempts originating from non-machine accounts. Specifically, it monitors Windows Security Event ID 4662, which logs detailed information about access to AD objects. The rule looks for access attempts where the `ObjectType` indicates a user object, represented by a specific GUID, and examines the `AccessMask` for specific read permissions. To enhance the integrity of detective capabilities, it filters out machine accounts and Azure AD accounts that start with "MSOL_". The detection focuses on scenarios where unauthorized users might attempt to glean information from user accounts, potentially signaling bad actors examining AD for exploitation opportunities.
+  This Sigma rule focuses on detecting unauthorized read access to domain user accounts from non-machine accounts in a Windows Active Directory environment. It looks for specific security events, particularly Event ID 4662, which records attempts to read properties of user objects in AD. By monitoring logs for access events where the ObjectType matches the user class and the AccessMask indicates read permissions, the rule aims to identify potential enumeration activities performed by attackers seeking to gain insight into the user accounts within the domain. This behavior falls under the MITRE ATT&CK framework, specifically the tactic of Discovery (T1087.002: Account Discovery). Monitoring for non-machine account access helps flag possible reconnaissance efforts during an attack.
   ### Investigation Steps
-  - Review the specific Event ID 4662 logs in your EDR system to identify the time, user, and object accessed during the enumeration attempt.
-  - Cross-reference the user account in the alert with the organization's user registry to determine if the account should have had visibility into the user information accessed.
-  - Utilize the SIEM platform to correlate any suspicious user activities within the time frame of the AD enumeration attempt to identify related incidents.
-  - Check proxy logs for outbound requests from the account if applicable; this could provide context on potentially malicious behavior following the user enumeration alert.
+  - **Review Security Log Events:** Use the Windows Security log to search for Event ID 4662 and identify the source account attempting to access user properties.
+  - **Cross-Reference User Accounts:** Correlate the suspicious account with known user accounts in your Active Directory to determine if the access attempt aligns with legitimate administrative actions.
+  - **Analyze User Permissions:** Investigate the permission levels associated with the accessed user accounts to ascertain if the access was justified or indicative of a configuration flaw.
+  - **Check for Associated Activities:** Utilize EDR and network logs to identify any additional activities from the source account that could suggest malicious intent or patterns typical of adversarial behavior.
+  ### Prioritization
+  This alert is classified as medium severity due to the potential implications of user enumeration activities, which can serve as a precursor to more significant attacks such as privilege escalation or lateral movement within the network.
+  ### Blind Spots and Assumptions
+  The rule may not trigger in scenarios where the auditing settings for "Read all properties" permissions are incorrectly configured or not enabled. Additionally, legitimate administrative actions, such as those performed by IT teams configuring new users, could generate false positives, as indicated in the rule's false positives section. Understanding organizational practices and the regular usage patterns of service accounts is crucial to avoid misinterpretation of the alerts.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

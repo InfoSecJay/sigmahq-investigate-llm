@@ -245,11 +245,19 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies potentially malicious PowerShell commandlets that are associated with various exploitation frameworks. PowerShell is a powerful scripting language used by system administrators, but it is also favored by attackers to execute commands for reconnaissance, persistence, and exfiltration efforts. The rule specifically looks for command line invocations that include certain keywords or phrases indicative of known exploit techniques or tools, such as "Invoke-Mimikatz" or "Add-Exfiltration". 
-  The primary data sources utilized for this rule are process creation logs from Windows systems, which capture details such as command-line parameters. By monitoring these logs, security teams can detect suspicious behavior that may point to attempted compromise or exploitation within the enterprise environment.
+  The Sigma rule titled "Malicious PowerShell Commandlets 
+  - ProcessCreation" is designed to detect the execution of specific commandlets commonly found in various PowerShell exploitation frameworks. This detection is centered on monitoring process creation events within Windows environments, specifically looking at command line parameters for signs of malicious activity. The rule identifies commandlets such as `Invoke-Mimikatz`, `Invoke-BackdoorLNK`, and several others that are frequently associated with post-exploitation tactics used by attackers to exfiltrate data, create persistence mechanisms, or interact with directory services.
+  The rule utilizes telemetry data obtained from Windows Security Event Logs, which detail processes initiated on a system, including the command line invocations of these processes. By filtering for known harmful commandlets as defined within the detection logic, the rule provides a proactive measure to identify potential exploitation activities that align with MITRE ATT&CK techniques including T1059.001 (PowerShell), T1069 (Permission Groups Discovery), and T1482 (Domain Credential Dumping).
   ### Investigation Steps
-  - Utilize your EDR solution to investigate the specific process creation events associated with the flagged commandlets to ascertain the user context and environmental impact.
-  - Cross-reference logs from your NGFW and Proxy environments to determine if there has been any unusual network activity or external communications initiated by the compromised system.
-  - Check the SIEM for alerts related to the affected systems, correlating with any previously recorded malicious activities for enhanced context and potential patterns.
-  - Review recent changes in your cloud environments (AWS, Azure, GCP) for any unauthorized access or modifications linked to the identified commandlets, especially if they involve credential management or resource manipulation.
+  - **Review Process Creation Logs**: Analyze Windows Security Event Logs for process creation events that match the commandlets defined in the Sigma rule. Look for contexts of execution that provide additional insight, such as parent processes.
+    
+  - **Utilize EDR Tooling**: Leverage endpoint detection and response (EDR) solutions to obtain detailed telemetry on the processes flagged by the alert, including file paths, user accounts, and execution timing.
+  - **Correlate Network Activity**: Examine network traffic logs for any suspicious outbound connections that may correlate with the timing of the detected commandlet execution, especially concerning data exfiltration attempts.
+  - **Check for Additional Context**: Conduct a review of the affected system's recent user activity and browsing history to gain context about the legitimacy of the commands executed, as legitimate usage of PowerShell may also capture some of these commandlets.
+  ### Prioritization
+  The severity level for this alert is categorized as high due to the nature of PowerShell as a powerful scripting environment often leveraged by adversaries for malicious purposes. The identified commandlets can indicate serious threats such as data exfiltration and system compromise, necessitating immediate investigation.
+  ### Blind Spots and Assumptions
+  This rule may not fire in scenarios where PowerShell is used in a benign manner but invokes one of the commandlets due to legitimate administrative or operational needs. Additionally, it assumes that system logging is adequately configured to capture all process creation events. If an attacker utilizes techniques such as obfuscation or renames commandlets, the detection can be thwarted. Furthermore, environments with limited or insufficient telemetry from Windows Security Events may lead to gaps in detection and missed malicious activities.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

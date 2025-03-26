@@ -24,10 +24,16 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies potential malicious activity related to screen capturing on Windows systems. Specifically, it looks for the use of the `.CopyFromScreen` method, which is employed in PowerShell scripts to take screenshots of the user's desktop. Such functionality can indicate an adversary's attempt to gather sensitive information as part of a broader post-compromise operation, often associated with remote access tools. To effectively utilize this rule, Script Block Logging must be enabled in order to capture detailed logs that include the PowerShell commands executed on the system. The relevant data sources for this detection include PowerShell script logs, which help provide context to the script execution and the intent behind the commands.
+  This detection rule identifies the use of the PowerShell method `.CopyFromScreen`, which can enable adversaries to take screenshots of the desktop, potentially harvesting sensitive information. The rule specifically targets command execution evidenced by PowerShell script block logging, which must be enabled in Windows environments for this rule to function correctly. The detection leverages Sysmon and Windows Security logs to monitor for script block text that contains the string `.CopyFromScreen`, indicating a potential screen capture operation consistent with MITRE ATT&CK technique T1113 (Screen Capture) under the collection tactic. By monitoring for this string, Security Operations Center (SOC) teams can pinpoint unauthorized attempts to gather visual data from compromised systems.
   ### Investigation Steps
-  - Review recent PowerShell execution logs in the EDR to identify the scripts that invoked the `.CopyFromScreen` method.
-  - Examine the command-line arguments and parameters associated with the identified scripts to assess their context and intent.
-  - Correlate the timestamps of the screen capture events with other suspicious activities in the environment using SIEM or cloud logs for comprehensive investigation.
-  - Check user activity logs for the accounts that executed the scripts to understand potential unauthorized access or privilege escalation.
+  - **Check EDR for Process Creation:** Review EDR alerts for any unusual PowerShell process activities around the time the alert was triggered, including parent-child process relationships that may indicate malicious context.
+  - **Review Windows Security Logs:** Investigate relevant Windows Security event logs to look for suspicious logins or other account activities that coincide with the detected script execution to better understand potential adversarial behavior.
+  - **Analyze Script Block Logging:** Investigate the full script block logged by PowerShell to identify the context and parameters used in the command execution, as this may provide further insights into the adversary’s actions.
+  - **Correlate with Other Data Sources:** Cross-reference the alert with network connections or proxy logs to determine if any exfiltration attempts were made following the screen capture, providing a broader view of potential data compromise.
+  ### Prioritization
+  The alert severity is categorized as medium due to the potential for sensitive data capture through unauthorized screen captures, which could indicate a higher-level compromise or the activity of an adversary already in the environment.
+  ### Blind Spots and Assumptions
+  This rule may not fire if PowerShell script block logging is not enabled or if the attacker is using obfuscation techniques that don’t include the string `.CopyFromScreen`. It assumes that adversaries are using standard methodologies for capturing screens rather than proprietary techniques. There might also be legitimate applications that employ this method for benign purposes, which could generate false positives.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

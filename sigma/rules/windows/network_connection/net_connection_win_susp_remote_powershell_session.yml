@@ -2,50 +2,63 @@ title: Potential Remote PowerShell Session Initiated
 id: c539afac-c12a-46ed-b1bd-5a5567c9f045
 status: test
 description: |
-    Detects a process that initiated a network connection over ports 5985 or 5986 from a non-network service account.
-    This could potentially indicates a remote PowerShell connection.
+  Detects a process that initiated a network connection over ports 5985 or 5986 from a non-network service account.
+  This could potentially indicates a remote PowerShell connection.
 references:
-    - https://threathunterplaybook.com/hunts/windows/190511-RemotePwshExecution/notebook.html
+- https://threathunterplaybook.com/hunts/windows/190511-RemotePwshExecution/notebook.html
 author: Roberto Rodriguez @Cyb3rWard0g
 date: 2019-09-12
 modified: 2024-02-02
 tags:
-    - attack.execution
-    - attack.t1059.001
-    - attack.lateral-movement
-    - attack.t1021.006
+- attack.execution
+- attack.t1059.001
+- attack.lateral-movement
+- attack.t1021.006
 logsource:
-    category: network_connection
-    product: windows
+  category: network_connection
+  product: windows
 detection:
-    selection:
-        DestinationPort:
-            - 5985
-            - 5986
-        Initiated: 'true' # only matches of the initiating system can be evaluated
-        SourceIsIpv6: 'false'
-    filter_main_service_users:
-        - User|contains: # covers many language settings for Network Service. Please expand
-              - 'NETWORK SERVICE'
-              - 'NETZWERKDIENST'
-              - 'SERVICIO DE RED'
-              - 'SERVIZIO DI RETE'
-        - User|contains|all:
-              - 'SERVICE R'
-              - 'SEAU'
-    filter_main_localhost:
-        SourceIp:
-            - '::1'
-            - '127.0.0.1'
-        DestinationIp:
-            - '::1'
-            - '127.0.0.1'
-    filter_optional_avast:
-        Image:
-            - 'C:\Program Files\Avast Software\Avast\AvastSvc.exe'
-            - 'C:\Program Files (x86)\Avast Software\Avast\AvastSvc.exe'
-    condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+  selection:
+    DestinationPort:
+    - 5985
+    - 5986
+    Initiated: 'true'     # only matches of the initiating system can be evaluated
+    SourceIsIpv6: 'false'
+  filter_main_service_users:
+  - User|contains:       # covers many language settings for Network Service. Please expand
+    - 'NETWORK SERVICE'
+    - 'NETZWERKDIENST'
+    - 'SERVICIO DE RED'
+    - 'SERVIZIO DI RETE'
+  - User|contains|all:
+    - 'SERVICE R'
+    - 'SEAU'
+  filter_main_localhost:
+    SourceIp:
+    - '::1'
+    - '127.0.0.1'
+    DestinationIp:
+    - '::1'
+    - '127.0.0.1'
+  filter_optional_avast:
+    Image:
+    - 'C:\Program Files\Avast Software\Avast\AvastSvc.exe'
+    - 'C:\Program Files (x86)\Avast Software\Avast\AvastSvc.exe'
+  condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
 falsepositives:
-    - Legitimate usage of remote PowerShell, e.g. remote administration and monitoring.
-    - Network Service user name of a not-covered localization
+- Legitimate usage of remote PowerShell, e.g. remote administration and monitoring.
+- Network Service user name of a not-covered localization
 level: high
+notes: |
+  ### Technical Context
+  The Sigma rule titled "Potential Remote PowerShell Session Initiated" detects suspicious network connections initiated by processes on a Windows machine that occur specifically on ports 5985 and 5986. These ports are typically used for the Windows Remote Management (WinRM) service, which enables remote management capabilities through PowerShell. The rule focuses on connections initiated by non-standard service accounts—specifically filtering out common service accounts such as 'NETWORK SERVICE' or 'SERVICE R'. This is crucial because attackers may leverage PowerShell for lateral movement within a network, and WinRM can be exploited to execute commands remotely. The relevant technical data sources include network connection logs that capture process initiation events, allowing security teams to identify potential misuse of PowerShell as outlined in the MITRE ATT&CK framework under the tactics of Execution (T1059.001) and Lateral Movement (T1021.006).
+  ### Investigation Steps
+  - **Review Network Connection Logs:** Utilize the SIEM to investigate the specific connection attempts made on ports 5985 and 5986, identifying the source processes and user accounts responsible for initiating these connections.
+  - **Correlate with EDR Data:** Examine EDR alerts and logs for any unusual behavior by the identified process, such as command-line arguments or file modifications that suggest nefarious activity.
+  - **Check PowerShell Logs:** Query PowerShell event logs (Sysmon or native logs) to determine if any PowerShell scripts or commands were executed that coincided with the network connection initiation, providing context for potential unauthorized actions.
+  - **Investigate User Account Activity:** Use user behavior analytics and identity management tools to evaluate the legitimacy of the user or process that initiated the connection, confirming whether they typically engage in remote management activities.
+  ### Prioritization
+  Given the rule's high severity level, alerts generated by this detection could indicate an active attempt by an attacker to establish a remote foothold in the environment, making it critical for immediate investigation to mitigate potential risks to enterprise security.
+  ### Blind spots and Assumptions
+  This rule may not fire if attackers utilize tools or scripts that employ alternative ports or obfuscate their connections, enabling them to bypass detection. Additionally, if legitimate service accounts are misconfigured or the localization of service accounts is not accounted for, they might also evade detection. Engineers should be aware of these potential limitations and consider enhancing the rule to encompass other commonly used ports or user accounts that may be overlooked in localized settings.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and relevance, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

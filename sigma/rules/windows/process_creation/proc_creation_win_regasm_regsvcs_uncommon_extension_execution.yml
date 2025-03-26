@@ -41,9 +41,18 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This detection rule identifies the potentially suspicious execution of the Windows utilities Regasm.exe and Regsvcs.exe when used in conjunction with uncommon file extensions. Regasm and Regsvcs are legitimate tools used for handling .NET assemblies and services; however, threat actors may misuse them to execute malicious code disguised as less common file types, such as .dat, .gif, or .txt files. The rule leverages process creation logs to monitor when these executables are invoked with command-line parameters that include these uncommon extensions. By analyzing these data sources, this rule helps to surface suspicious activity that could indicate attempts to bypass security mechanisms or execute malicious scripts.
+  This Sigma rule is designed to detect potentially suspicious executions of the .NET utilities Regasm.exe and Regsvcs.exe when they are invoked with uncommon file extensions. Regasm (Assembly Registration Tool) and Regsvcs (Service Registration Tool) are legitimate Windows tools used primarily for COM object registration. However, malicious actors can exploit these utilities for evasion tactics, particularly by masking malicious activity under unusual file extensions like .dat or .jpeg. The rule analyzes process creation logs, specifically focusing on the Image path and CommandLine parameters to identify such behaviors. This detection aligns with the MITRE ATT&CK framework under the tactics of Defense Evasion, specifically technique T1218.009.
+  The monitoring is performed through event logs capturing process creation activities in a Windows environment, with special attention given to fields such as Image and CommandLine to reveal potentially abnormal usage patterns.
   ### Investigation Steps
-  - Review the process creation logs in your EDR for any instances of Regasm.exe or Regsvcs.exe execution, focusing specifically on instances where command-line parameters include uncommon extensions.
-  - Analyze the command line used for the execution to identify any further obfuscation techniques or other arguments that could indicate malicious intent.
-  - Check for any associated network activity within your NDR or proxy logs during the time of execution to detect any external communications or data exfiltration attempts.
-  - Investigate the endpoint for any additional indicators of compromise, including unexpected file creations or modifications in the directories associated with the invoked executables.
+  - **Review Process Creation Logs:** Check the process creation logs in your EDR solution to locate executions of Regasm.exe or Regsvcs.exe, paying close attention to the associated command-line arguments and file paths.
+  - **Analyze Command-Line Arguments:** Investigate the command-line parameters used during the invocation, especially for any uncommon file extensions that indicate potential malicious intentions.
+  - **Validate File Extensions:** Use your EDR or a file integrity monitoring tool to examine the context of the files with uncommon extensions to verify their legitimacy and understand their purpose in relation to the executed commands.
+  - **Correlate with Network Logs:** Look at the related network activity via NDR or NGFW logs to see if unusual outbound connections correlate with the detected execution, potentially indicating data exfiltration or command-and-control communications.
+  ### Prioritization
+  The alert is categorized as medium severity due to the potential for misuse of legitimate tools for malicious activities. In environments where Regasm or Regsvcs are not commonly used, this behavior should be treated as a higher priority for investigation.
+  ### Blind Spots and Assumptions
+  This rule may not fire for several reasons: 
+  - If the execution of Regasm and Regsvcs occurs with common file extensions or in a legitimate context, it will go undetected.
+  - If source logging is incomplete or if the utilities are executed in a heavily obfuscated manner, the necessary signatures may not trigger the alert.
+  - The detection relies on process creation logs, which may be disabled or insufficiently detailed on certain systems. It's assumed that such utilities are used sparingly in the environment.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

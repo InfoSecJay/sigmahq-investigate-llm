@@ -32,14 +32,15 @@ falsepositives:
 level: high
 notes: |
   ### Technical Context
-  This detection rule identifies suspicious executions of the Windows Error Reporting Manager (wermgr.exe) from locations that deviate from its usual directory paths. Legitimate instances of wermgr.exe typically reside in system directories such as `C:\Windows\System32\`, `C:\Windows\SysWOW64\`, or `C:\Windows\WinSxS\`. When this executable is observed running from atypical paths, it may indicate a potential compromise, as adversaries often employ common system binaries for malicious purposes. The rule leverages process creation logs and specifically examines the image path of executions to determine their legitimacy.
-  By monitoring the execution of wermgr.exe, the organization can identify potential misuse, such as the execution of malware that mimics legitimate system processes. This proactive approach allows security teams to quickly address potential threats before they can escalate.
+  The Sigma rule "Suspicious Execution Location Of Wermgr.EXE" is designed to detect instances where the Windows Error Reporting Manager (wermgr.exe) is executed from atypical directories that do not align with expected system paths. This rule focuses specifically on process creation logs where the image "wermgr.exe" is found, indicating that the executable is being run. The legitimate instances of wermgr.exe typically reside in directories like `C:\Windows\System32\`, `C:\Windows\SysWOW64\`, or `C:\Windows\WinSxS\`. However, if this process is triggered from other locations, it can indicate potential malicious activity, such as a payload being executed by an adversary.
+  This detection is particularly relevant to the MITRE ATT&CK framework under the tactic of execution (TA0002), which encompasses techniques such as executing unauthorized or malicious applications to establish footholds within the environment. By monitoring the paths from which wermgr.exe is executed, SOC analysts can uncover suspicious behaviors that could signal a lateral movement or an attempt to deliver malware.
   ### Investigation Steps
-  - **Review Process Creation Logs**  
-  Examine the process creation logs in the EDR solution for any instances of wermgr.exe that are not from the legitimate system directories. This will help in identifying the execution context and any associated parent processes.
-  - **Analyze Command-Line Parameters**  
-  Check the command-line arguments passed to the wermgr.exe process to determine if they reveal any suspicious activity or patterns indicative of exploitation.
-  - **Check for Persistence Mechanisms**  
-  Investigate any related scheduled tasks or startup entries that may indicate persistence mechanisms linked to the suspicious execution of wermgr.exe.
-  - **Correlate with Threat Intelligence**  
-  Utilize threat intelligence platforms to assess any known malware or attack patterns associated with the usage of wermgr.exe, especially if it has been executed from an uncommon path.
+  - **Check Process Details:** Investigate the process creation details in your EDR solution for any anomalies related to wermgr.exe, such as command-line arguments or parent processes associated with its execution.
+  - **Review File Paths:** Verify the execution path of wermgr.exe against known legitimate directories, looking specifically for instances where it was run from unusual or unexpected locations that might suggest malicious behavior.
+  - **Analyze Network Activity:** Utilize network logs to check for any suspicious outbound connections made by the process, as well as any other processes that may have been launched by wermgr.exe to determine if there is an ongoing malicious campaign.
+  - **Inspect System Changes:** Examine Windows Security and System logs for any unusual changes related to system files or permissions around the time wermgr.exe was executed, which may indicate tampering or exploitation attempts.
+  ### Prioritization
+  This alert is categorized as high severity due to the potential risk associated with the execution of system processes from non-standard directories, which is a common tactic employed by threat actors to bypass defenses and execute unapproved code.
+  ### Blind Spots and Assumptions
+  One recognized blind spot is that legitimate applications or scripts may also use custom locations for legitimate purposes, leading to false positives. Additionally, the rule may not fire if attackers use obfuscation techniques or rename wermgr.exe to evade detection. It is also essential to assume that the application might be executed as a secondary process or from an alternate executable that does not trigger the rule, potentially allowing malicious behavior to go unnoticed.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and relevance, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

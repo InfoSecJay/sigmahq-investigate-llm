@@ -48,11 +48,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule monitors the Windows registry for the creation of services with binaries stored in suspicious directories. Particularly, it focuses on registry keys related to service configurations, specifically those that denote the service's binary path and startup type. The rule looks for entries under the `HKLM\System\CurrentControlSet\Services\` path that either point to executable files located in folders like `\Users\Public\`, `\Perflogs\`, `\ADMIN$\`, or `\Temp\`—all of which are often associated with malicious activity. The collected data includes registry modification logs that track both the target object and the image path details, helping to identify unauthorized service creation attempts. 
-  The logic imposes specific conditions to mitigate false positives, particularly filtering out instances where the binary appears in safer directories, such as `\Common Files\`, along with relevant startup type indicators. The intent is to provide SOC analysts with actionable alerts when potentially malicious services are initiated from these high-risk locations.
+  The "Service Binary in Suspicious Folder" Sigma rule detects the creation of Windows services that reference binary files stored in unauthorized or unusual directories. The rule focuses on registry keys associated with service configurations, particularly examining the paths specified in the 'ImagePath' and 'Start' registry entries. It targets suspicious directories such as `C:\Users\Public\`, `C:\Perflogs\`, `C:\ADMIN$`, and `C:\Temp\`, as malware often uses these locations to obscure its presence. By monitoring changes in the `HKLM\System\CurrentControlSet\Services\` registry hive, the rule seeks to identify potential malicious activity, supporting the MITRE ATT&CK tactics of Defense Evasion (T1140) and the specific technique T1112 which involves service creation. 
   ### Investigation Steps
-  - Review the EDR logs to identify the service creation event and determine the full command-line context at the time of execution.
-  - Check the registry modifications in `HKLM\System\CurrentControlSet\Services\` to confirm the presence and characteristics of the volatile service.
-  - Utilize the AV tool to scan the binaries located in the suspicious directories for malware signatures or known indicators of compromise.
-  - Verify network activity via the proxy logs to assess if the suspicious service initiated any outbound connections that could indicate exfiltration or command-and-control communications.
+  - **Check Registry Changes**: Utilize a registry monitoring tool to examine recent changes made to the `HKLM\System\CurrentControlSet\Services\` path, focusing particularly on new entries or changes to existing service configurations.
+  - **Review Security Logs**: Access Windows Security Event Logs for events related to service creation and modifications, specifically looking for Event ID 7045 that corresponds to a service being installed.
+  - **Correlate with EDR**: Use EDR to identify any processes associated with the suspicious service and examine their behavior, including command-line arguments and parent process information.
+  - **Analyze File Locations**: Investigate the files located in the directories flagged by the rule. Ensure they are legitimate, and assess whether any unusual activity (like network connections) is associated with these files.
+  ### Prioritization
+  The alert is categorized as high severity due to the potential for adversaries to establish persistence through unauthorized services, which can lead to further compromise of the system and network.
+  ### Blind Spots and Assumptions
+  Potential blind spots include legitimate applications that may use common directories for binaries, potentially resulting in false positives. Additionally, this rule may not fire if the service creation is done through methods that do not update the registry, such as direct API calls, or if predetermined legitimate services are in use. Moreover, if an adversary employs legitimate channels to deploy their services, this detection could be circumvented.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and applicability, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

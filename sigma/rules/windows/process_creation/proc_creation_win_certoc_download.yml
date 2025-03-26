@@ -29,10 +29,16 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  The Sigma rule "File Download via CertOC.EXE" is designed to identify potential unauthorized file downloads initiated by the CertOC.exe executable, which is often misused in command-and-control (C2) scenarios. This rule focuses particularly on instances where CertOC.exe is executed with command-line parameters that include both the `-GetCACAPS` flag and the presence of an HTTP link, indicating that a file is being downloaded from the internet. Technical data sources leveraged by this detection include process creation logs that capture the execution of processes and their associated command-line arguments, allowing analysts to scrutinize the behavior of CertOC.exe in their environment. The identification of such behaviors is critical in thwarting data exfiltration and other malicious activities.
+  This detection rule focuses on identifying potentially unauthorized file downloads conducted via `CertOC.exe`, a tool often used for Certificate Management in Windows environments. The rule leverages process creation logs to specifically look for instances where `CertOC.exe` is executed with a command line that includes both the `-GetCACAPS` argument and an `http` URL. These command-line parameters suggest that the tool is being misused to retrieve files from external sources, which could indicate a command-and-control (C2) activity in line with the MITRE ATT&CK technique T1105 (Ingress Tool Transfer). By monitoring process creation events, SOC analysts can respond to suspicious activities that can bypass traditional file download protections.
   ### Investigation Steps
-  - Review EDR logs to find execution logs related to CertOC.exe, noting the execution time and user context to assess legitimacy.
-  - Analyze the command-line parameters associated with CertOC.exe executions to identify any links to suspicious or untrusted domains.
-  - Check network traffic logs for outbound requests made to the URL identified in the command line, paying particular attention to amounts of data transferred.
-  - Search through Proxy logs to determine if any downloads originating from CertOC.exe were logged, correlating them with user activity for further investigation.
+  - **Check Process Details:** Investigate the `CertOC.exe` process creation event in your EDR solution to gather details such as User Account, Parent Process, and Timestamp to confirm the context of execution.
+  - **Review Network Connections:** Utilize your NDR to analyze outgoing network traffic associated with the `CertOC.exe` process for connections to potentially malicious or unknown IP addresses or URLs.
+  - **Audit System Logs:** Check Windows Security and Application Event Logs for any other related activity by the user that might indicate account compromise or misuse of legitimate tools.
+  - **Correlate User Activity:** Review user activity logs, including PowerShell or command-line histories, to determine if the download was part of a broader set of actions that could suggest malicious intent.
+  ### Prioritization
+  The alert is considered medium severity due to the use of `CertOC.exe` in a non-standard manner, indicating a potential security incident that warrants further investigation, but may also have legitimate use cases in your environment.
+  ### Blind Spots and Assumptions
+  This rule may fail to fire if `CertOC.exe` is invoked using different command-line arguments or if the executable is renamed or replaced by an adversary. Additionally, it assumes that all instances of `CertOC.exe` will be logged appropriately; improper logging configurations could result in missed detections. Analysts should be aware that attackers may use legitimate tools within their operational process to avoid detection.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

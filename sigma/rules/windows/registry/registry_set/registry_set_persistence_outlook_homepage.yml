@@ -32,10 +32,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule is designed to identify potential persistence mechanisms related to Microsoft Outlook by monitoring changes to specific registry keys. Attackers may manipulate the WebView settings in Outlook to establish a malicious home page that can facilitate remote code execution and ensure continued presence in a compromised environment. By examining the Windows registry, specifically targeting modifications under `\Software\Microsoft\Office\Outlook\WebView\`, particularly keys that end with `\URL`, this rule helps highlight unusual activities that may indicate risk. The data sources relevant to this detection include registry set logs, which capture changes to the Windows registry structure.
+  This detection rule identifies potential persistence mechanisms via modifications to the Outlook home page settings, specifically targeting Windows registry entries associated with Microsoft Office’s Outlook application. Attackers may exploit this feature by changing the WebView registry keys to set a malicious home page URL that executes unintended code on Outlook's startup, thereby establishing persistence. The rule highlights changes in the registry entries under the paths associated with Outlook's WebView, particularly those ending with 'URL'. The primary technical data source for this detection is the Windows registry, monitored through the Sysmon tool, and the rule directly aligns with the MITRE ATT&CK technique [T1112: Modify Registry](https://attack.mitre.org/techniques/T1112/) under the persistence tactic.
   ### Investigation Steps
-  - Utilize EDR tools to investigate the endpoints associated with the alert and review the registry changes for unusual modifications, particularly focusing on the URLs set in the WebView keys.
-  - Check for suspicious processes that may have triggered the registry changes by examining the process creation logs nearby the time of the modification, filtering specifically for processes that interact with Outlook.
-  - Review proxy logs to identify any web traffic to the suspected URL set in Outlook, validating whether the traffic could be associated with command-and-control activities or malicious payloads.
-  - Conduct a search across cloud platforms using management logs to check for associated user sessions or actions that may corroborate the persistence method detected in the registry.
+  - **Examine Registry Changes:** Use Sysmon and registry audit logs to review recent changes under `HKEY_CURRENT_USER\Software\Microsoft\Office\Outlook\WebView\` for unexpected entries.
+  - **Check User Activity:** Analyze Windows Security logs for unusual login behavior or patterns correlating with the timing of the registry modifications.
+  - **Inspect Network Connections:** Query your EDR for any outbound connections initiated near the time of the registry change, specifically looking for connections to suspicious domains.
+  - **Review Installed Add-ins:** Investigate any custom Outlook add-ins or extensions that may have been downloaded or altered around the detected registry change as a potential vector for executing malicious code.
+  ### Prioritization
+  This alert is classified as high severity due to the potential for an attacker to maintain persistent access to the compromised system through Outlook, which is widely used in enterprise environments.
+  ### Blind spots and Assumptions
+  This rule may not fire if the adversary employs less common methods for persistence that do not involve the modification of the registry. Additionally, if the monitoring for registry changes is not adequately configured or Sysmon is not deployed, this activity will remain undetected. It's also important to recognize that legitimate software updates or configuration changes can inadvertently trigger this alert, leading to potential false positives that require human investigation.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and timeliness, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

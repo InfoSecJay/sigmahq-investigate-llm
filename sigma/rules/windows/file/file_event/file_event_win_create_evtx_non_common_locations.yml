@@ -34,11 +34,16 @@ falsepositives:
   https://superuser.com/questions/1371229/low-disk-space-after-filling-up-c-windows-temp-with-evtx-and-txt-files
 level: medium
 notes: |
+  n
   ### Technical Context
-  The "EVTX Created In Uncommon Location" detection rule aims to identify the creation of new files with the ".evtx" extension in locations that are not typically associated with Windows event logs. Standard Windows event logs are generally found in the `C:\Windows\System32\winevt\Logs\` directory. This rule leverages file event logs, primarily generated from Sysmon, to monitor for unusual activities that may indicate attempts to evade security controls or exfiltrate sensitive information.
-  The rule specifically tracks any newly created `.evtx` files that do not originate from the standard locations, helping analysts identify potentially malicious activities. By filtering out legitimate actions, such as those performed by administrators or backup software, the rule focuses on suspicious behavior that could signify an attack or a security incident.
+  This detection rule identifies the creation of files with the ".evtx" extension in locations that are not commonly associated with event log files. Typically, Windows event log files are stored within the `C:\Windows\System32\winevt\Logs\` directory. By monitoring for the creation of ".evtx" files elsewhere, such as in temporary directories or user directories, this rule helps identify potential evasion tactics employed by adversaries seeking to manipulate or exfiltrate important log information without detection. The rule leverages Windows Sysmon's file event logging to capture relevant telemetry, looking for any instances where ".evtx" files are created outside expected paths, thus aligning with the MITRE ATT&CK technique T1562.002 (Impair Defenses: Indicator Removal on Host).
   ### Investigation Steps
-  - Review the file creation logs in the EDR for `.evtx` files. Look for creation times and associated processes to identify potential sources of the activity.
-  - Correlate the detections with existing log sources like Windows Security Events to determine if any authorized users accessed the system around the same timeframe.
-  - Investigate network traffic through the NGFW and Proxy, focusing on any outbound connections that may correlate with the creation of the suspicious logs, as they could indicate exfiltration attempts.
-  - Cross-reference cloud logs (such as Azure Monitor or AWS CloudTrail) to check for any anomalous administrative actions performed by users that coincide with the event log creation, which may help in contextualizing the activity.
+  - **Check Sysmon Logs**: Review Sysmon logs for file event creations related to ".evtx" files to determine the source and context of the creation event.
+  - **Examine Process Activity**: Investigate the process associated with the creation of the ".evtx" file by utilizing your EDR tool to assess its behavior and shadow history.
+  - **Correlate with User Activity**: Analyze activity logs from the system or application to identify any legitimate administrative actions or backup processes occurring around the same timeframe.
+  - **Search for Related Network Activity**: Utilize network logs to determine if there were any outbound connections or suspicious behaviors that align with the creation of the ".evtx" file.
+  ### Prioritization
+  The alert is considered medium severity due to the potential of tampering with event logs, which could impede incident response efforts. However, its context may also reflect legitimate administrative activities, necessitating careful investigation.
+  ### Blind Spots and Assumptions
+  This detection rule may not trigger if the process responsible for file creation has the appropriate permissions or is a whitelisted application. Additionally, if malicious actors leverage legitimate tools or create ".evtx" files under conditions mimicking administrator activity, it could defeat the detection. The rule assumes that Sysmon is correctly configured to monitor ".evtx" files and that the monitored file paths are sufficient to cover potential evasion strategies.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

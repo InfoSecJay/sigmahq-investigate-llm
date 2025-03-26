@@ -45,10 +45,16 @@ falsepositives:
 - Some build frameworks
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule is designed to identify potential crypto mining activities on Windows systems by analyzing process creation logs for specific command-line parameters and strings commonly associated with such tools. The rule looks for indicators such as variations of mining pool addresses (e.g., `stratum+tcp://`), parameters that dictate CPU priority and donation levels, as well as base64 encoded versions of these strings to cover various evasion techniques employed by attackers. By monitoring process creation logs, incident responders can detect unauthorized or suspicious mining behavior that may signify misuse of corporate resources, thus impacting both performance and security.
+  The "Potential Crypto Mining Activity" rule is designed to detect suspicious command-line arguments typically associated with cryptocurrency mining software. This rule analyzes process creation events on Windows systems, specifically looking for command-line strings that indicate the presence of crypto miners, such as parameters that set CPU priority, donation levels, and pool configurations commonly used by mining software. By leveraging Sysmon logs, the rule captures relevant command-line inputs, which allows SOC analysts to identify unauthorized mining activities on the corporate network. This detection aligns with the MITRE ATT&CK technique T1496 (Resource Hijacking), which focuses on adversaries using victim resources for cryptomining without consent.
   ### Investigation Steps
-  - Utilize EDR tools to review the process tree related to the detected command-line parameters, checking for unusual parent processes that may indicate malicious intent. 
-  - Analyze the command line arguments in detail to confirm they match known crypto mining software patterns and are not legitimate business applications.
-  - Examine network traffic logs in your NDR or firewall to identify outbound connections made to the mining pools noted in the alerts, cross-referencing them against a list of reputable services.
-  - Investigate user accounts associated with the process creation, looking for anomalies such as unauthorized use or accounts with excessive privileges that could enable crypto mining activities.
+  - **Check EDR alerts:** Review EDR logs for the detected process creation events. Look into any flagged processes to determine their legitimacy and origin.
+  - **Analyze command-line parameters:** Investigate the command-line arguments associated with the detected processes. Pay attention to patterns indicating crypto mining, such as connections to known mining pools or the presence of donation flags.
+  - **Review network connections:** Use network telemetry from the firewall (NGFW) to identify outbound connections made by the detected processes. Look for suspicious external pools that may correlate with mining activities.
+  - **Correlate with user activity:** Examine user access logs (such as VPN or proxy logs) to determine if the behavior is in line with legitimate activities. Consult with the user to gather context on the executable being flagged.
+  ### Prioritization
+  The severity of the alert is marked as high due to the potential for unauthorized use of the organization's computing resources, which can lead to financial loss, degraded system performance, and increased security risks.
+  ### Blind Spots and Assumptions
+  This rule may not detect crypto mining activities that use obfuscated command-line parameters or those executed via legitimate software that functions as a cover. Additionally, if mining activities are disguised within other legitimate applications or executed by privileged accounts, there may be a higher likelihood of evasion. Furthermore, variations in mining software and continuously evolving tactics might lead to false negatives, meaning adversaries could successfully hide their actions.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

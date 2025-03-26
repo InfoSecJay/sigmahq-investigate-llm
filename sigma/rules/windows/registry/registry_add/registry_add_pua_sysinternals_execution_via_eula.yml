@@ -25,9 +25,18 @@ falsepositives:
 level: low
 notes: |
   ### Technical Context
-  This Sigma rule is designed to detect the execution of Sysinternals tools based on changes made to the Windows Registry. Specifically, it monitors for the creation of the "accepteula" registry key, which is typically set when a user accepts the End User License Agreement (EULA) upon executing these tools. The rule focuses on capturing events classified as "CreateKey" under the registry add category, helping to identify potential unauthorized use of powerful administrative utilities. The primary data sources involved in triggering this detection include Windows registry logs that record changes in registry keys, alongside possible associated process execution logs that can provide context around the usage of these tools.
+  The Sigma rule titled "PUA 
+  - Sysinternal Tool Execution 
+  - Registry" is designed to identify potential unwanted applications (PUAs) by monitoring for the creation of the "accepteula" registry key, which is a common mechanism used by Sysinternals tools to record user acceptance of their End User License Agreement (EULA). The rule specifically looks for registry addition events that indicate a user has accepted the EULA, typically triggering the execution of a Sysinternals tool. This detection has been categorized under the MITRE ATT&CK technique T1588.002, which focuses on resource development and deployment. The primary data source leveraged for this detection is the Windows Registry logs, particularly the creation of keys indicating user actions regarding software licensing.
   ### Investigation Steps
-  - Review the corresponding EDR logs to identify the process associated with the creation of the "accepteula" key and examine its command-line parameters for abnormal usage patterns.
-  - Check the timestamp of the registry change against user activity logs in your SIEM to determine if the Sysinternals tool was executed during a legitimate user session.
-  - Utilize the AV logs to ensure that the identified executable does not match known malware signatures, confirming that it is a valid Sysinternals application.
-  - Query any proxy or network logs to see if there was anomalous network activity associated with the system at the time of the registry change, indicating possible malicious use of the tool.
+  - **Check Registry Logs:** Review the Windows Registry logs to confirm the creation of the "accepteula" key and ensure no suspicious activities coincide with this event.
+    
+  - **Cross-Reference Sysinternals Tools Execution:** Utilize EDR tools to check for any recent executions of Sysinternals tools (like PsExec or Process Explorer) that may correspond with the registry key creation.
+    
+  - **Inspect User Context:** Investigate the user account associated with the registry change to determine if the activity falls within their typical behavior profile or if it seems anomalous based on their historical access patterns.
+  - **Analyze Process Creation Logs:** Use Windows Event Logs to look for related process creation events that might reveal malicious intent or unusual command-line parameters associated with the execution of the Sysinternals tool.
+  ### Prioritization
+  This alert is rated low priority; however, in an enterprise context, its significance should not be entirely dismissed. The execution of Sysinternals tools can often indicate legitimate administrative actions, but it may also signify an unauthorized attempt to manipulate system processes or gather sensitive information.
+  ### Blind Spots and Assumptions
+  One potential blind spot is that legitimate users might frequently use Sysinternals tools, leading to false positives in detection. Engineers should also recognize that adversaries might modify the registry key or use alternative means to execute similar tools without triggering this detection. Moreover, the rule does not account for scenarios where the EULA acceptance step is bypassed entirely, such as when the tool is executed using automated scripts or integrated into other applications that may conceal its actions.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

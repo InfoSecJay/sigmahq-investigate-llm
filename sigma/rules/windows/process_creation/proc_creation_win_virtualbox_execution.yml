@@ -38,11 +38,16 @@ falsepositives:
   for operations
 level: low
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect the installation or execution of VirtualBox drivers and virtual machines, which can be indicative of an adversary attempting to evade security mechanisms. It inspects process creation logs in Windows environments for specific command-line parameters that are characteristic of VirtualBox operations. This includes references to VirtualBox driver files like `VBoxRT.dll`, `VBoxC.dll`, and `VBoxDrv.sys`, as well as commands such as `startvm` and `controlvm`. The detection is built around the premise that attackers may utilize virtual environments for malicious activities while attempting to remain undetected by traditional security solutions.
-  By monitoring for these indicators through process creation events, security teams can proactively identify potential abuse of VirtualBox, aiding in timely investigations and incident response actions.
+  This Sigma rule is designed to detect operations related to the VirtualBox virtual machine software, which can be exploited by adversaries to conduct malicious activities while evading detection. The rule looks for specific command-line parameters associated with the installation or initiation of VirtualBox drivers and virtual machines. It focuses on the presence of key terms such as `VBoxRT.dll`, `VBoxC.dll`, `VBoxDrv.sys`, `startvm`, and `controlvm` in the process creation logs from Windows. In the MITRE ATT&CK framework, this activity is classified under the "Defense Evasion" tactic (T1564), leveraging techniques designed to obscure malicious actions from security detection mechanisms.
   ### Investigation Steps
-  - Review the EDR logs to identify any process creation events related to VirtualBox, filtering specifically for command lines containing 'VBoxRT.dll', 'VBoxC.dll', or 'VBoxDrv.sys'.
-  - Analyze the context surrounding the detected events, including the ComputerName and User fields, to ascertain if the identified VirtualBox usage is legitimate or suspicious.
-  - Check the ParentCommandLine associated with the detected VirtualBox commands to determine if they were initiated from a known or trusted application, which could indicate normal usage.
-  - Investigate additional logs from the NGFW or Proxy to look for any unexpected external communications from the host where VirtualBox was initiated, which might suggest malicious intent.
+  - **Verify the Source of the Alert:** Use your EDR tool to identify the process that triggered the alert and examine its context, including associated parent processes and any other concurrent activities. 
+  - **Analyze Command-Line Arguments:** Check the command-line arguments of the detected process to confirm whether they contain the flagged keywords associated with VirtualBox. 
+  - **Review User Behavior:** Investigate the user account that executed the command to assess if it aligns with normal usage patterns or if it raises suspicion due to unusual activity. 
+  - **Cross-reference with Known Good:** If applicable, compare the alert against a list of endpoints known to have legitimate VirtualBox usage and confirm whether this instance fits that profile.
+  ### Prioritization
+  This alert is given a low severity level as it may involve benign usage of VirtualBox on systems where it is a standard application. However, its use should be monitored, particularly on endpoints not typically associated with virtual machine operations.
+  ### Blind spots and Assumptions
+  This rule may not fire in scenarios where adversaries use alternative means to launch virtual environments or disguise their operations under different process names. Additionally, environments where VirtualBox is legitimately utilized may yield false positives, potentially obscuring genuine threats. Engineers should consider these factors and adjust detection sensitivity as appropriate to their specific environments.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -39,10 +39,16 @@ falsepositives:
   group policy (it should be investigated either way)
 level: medium
 notes: |
+  n
   ### Technical Context
-  This detection rule monitors for changes to sensitive settings in the Windows Remote Desktop Protocol (RDP), specifically focusing on alterations made to the registry keys that control RDP access. The rule looks for specific registry keys, including `fDenyTSConnections`, `fSingleSessionPerUser`, and `UserAuthentication`, being set to a value of zero. This configuration typically means that RDP access is being enabled without necessary constraints, potentially allowing unauthorized users to connect to the system. The primary data sources utilized for this rule are registry set logs that capture modifications to these critical settings, providing insight into potential security risks related to RDP configurations.
+  This Sigma rule detects potential tampering of sensitive Remote Desktop Protocol (RDP) settings in Windows operating systems. Specifically, it monitors for changes to registry keys that control RDP access, such as `fDenyTSConnections`, `fSingleSessionPerUser`, and `UserAuthentication`. When these values are set to zero, it could indicate that the system allows unrestricted RDP connections or multiple concurrent sessions, which could increase the risk of unauthorized access to sensitive systems. The rule utilizes Windows registry logs to identify these changes, which can be sourced from Windows Security or System logs. This detection is relevant to the MITRE ATT&CK tactics of Defense Evasion (T1112) and Persistence, as it can signify malicious attempts to maintain access to a system.
   ### Investigation Steps
-  - **Check recent registry modifications**: Utilize EDR or SIEM tools to review the logs for any recent changes to the specified RDP-related registry keys.
-  - **Identify the user responsible for changes**: Query EDR or log files for information on the user account that made the modifications to the registry keys to determine if the changes were authorized.
-  - **Audit RDP connection attempts**: Use network monitoring tools to analyze RDP connection logs for any unauthorized or suspicious access attempts following the changes.
-  - **Verify the current RDP settings**: Cross-reference current RDP settings against organizational policies to ensure compliance and investigate any discrepancies.
+  - **Examine System Logs:** Check Windows Security and System logs for any recent registry modifications to the specified RDP settings, correlating the time with user activity or incident reports.
+  - **Review User Sessions:** Utilize EDR tools to investigate active RDP sessions, looking for any unusual user accounts or concurrent sessions that exceed normal usage patterns.
+  - **Analyze Access Attempts:** Scrutinize any incoming RDP connection attempts through the NGFW logs, noting source IPs and user accounts used for access.
+  - **Check Audit Policies:** Review whether auditing for user logins or failed login attempts is enabled to identify potential unauthorized access attempts following the registry changes.
+  ### Prioritization
+  This alert has been classified as medium severity due to the critical nature of RDP access. Unauthorized configuration of RDP settings can facilitate an attacker's ability to gain persistent access and control over enterprise systems, warranting immediate investigation.
+  ### Blind Spots and Assumptions
+  While this rule effectively identifies specific registry changes, it may not trigger if authorized administrators modify these settings for legitimate purposes, such as deploying group policies. Furthermore, if an adversary employs methods to mask their activities, like utilizing a kernel-mode driver to modify registry values, this rule may also fail to fire.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and relevance, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

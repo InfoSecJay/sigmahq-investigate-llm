@@ -75,11 +75,16 @@ falsepositives:
 - Legitimate administrator sets up autorun keys for legitimate reason
 level: medium
 notes: |
+  n
   ### Technical Context
-  The "Common Autorun Keys Modification" detection rule is designed to identify potential malicious behavior associated with the modification of autostart extensibility points (ASEP) in the Windows registry. These autostart entries, often referred to as autorun keys, are used by Windows to execute programs automatically during startup or user login. By monitoring changes to specific registry paths related to autorun keys, the rule can detect unauthorized or anomalous modifications that may suggest the presence of malware or persistence mechanisms being employed by attackers.
-  The rule primarily utilizes Windows registry set logs as the data source, focusing on various key locations that are common targets for modification by malicious actors. These include entries related to command execution, Active Setup components, and various Microsoft services. To enhance accuracy, the rule includes filters to exclude known legitimate modifications, such as those made by trusted applications and system components.
+  The "Common Autorun Keys Modification" detection rule targets unauthorized changes to specific autostart extensibility points (ASEP) in the Windows Registry that could indicate malicious persistence methods. By monitoring registry modifications, particularly in areas such as command processors and Active Setup components, this rule identifies potential attempts by an attacker to maintain footholds in a compromised environment. The rule utilizes Windows registry set events collected through Sysmon to determine if any of the specified autorun keys have been altered. This attack is documented under the MITRE ATT&CK framework, specifically T1547.001 (Registry Run Keys / Startup Folder), which describes various techniques that adversaries use to establish persistence by modifying registry keys.
   ### Investigation Steps
-  - Review the registry modification logs using your EDR solution to identify the specific details of the changes made to the autorun keys.
-  - Cross-reference the modified keys with known legitimate software behaviors or updates to discern if the alterations were authorized.
-  - Use a SIEM to correlate the time of the modification with other events such as user logins or software installations that could provide context to the changes.
-  - Conduct a threat hunt using network traffic and cloud logs from AWS, GCP, or Azure if applicable, to investigate any potential outbound connections initiated by the altered autorun keys.
+  - **Review Registry Changes**: Utilize tools to examine the Windows Registry for the keys targeted by the alert to identify if any unexpected changes have occurred.
+  - **Correlate with EDR**: Check EDR logs to identify the process that made the registry modification, analyzing its legitimacy and behavior during the timestamp of the change.
+  - **Network Traffic Analysis**: Inspect network logs for unusual outbound connections from the affected system that could indicate command-and-control (C2) activity tied to the suspected persistence mechanism.
+  - **Validate Against Whitelist**: Cross-reference the changes against organizational whitelists or known software behavior to differentiate between malicious modifications and legitimate software operations.
+  ### Prioritization
+  The severity of this alert is considered medium due to the potential implications of persistence mechanisms being established on endpoints within the enterprise, which could lead to further compromise.
+  ### Blind Spots and Assumptions
+  This rule may not trigger if malicious actors use techniques to modify registry keys without generating sysmon events, such as direct manipulation via other admin tools or scripts that bypass auditing. Additionally, legitimate applications may trigger false positives by modifying entries during normal operations, which assumes that all paths to autorun modifications are consistently monitored. Security teams should be aware that the absence of an alert does not guarantee that no unwanted changes have occurred.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

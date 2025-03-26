@@ -29,9 +29,19 @@ falsepositives:
 level: high
 notes: |
   ### Technical Context
-  This detection rule targets the execution of the LiveKD utility, specifically when it is invoked with the "-m" flag, which is used to create a kernel memory dump. The rule monitors process creation events on Windows systems, looking for the presence of the LiveKD executable files (livekd.exe or livekd64.exe). The detection focuses on identifying specific characteristics of the command-line arguments that include the “-m” option, signalling an intent to dump kernel memory, a potential indication of malicious activity aimed at evading detection or extracting sensitive information. By correlating these logs, the SOC can identify potential misuse of tools that are typically benign in certain environments, but could be leveraged by threat actors for nefarious purposes.
+  The Sigma rule titled **Kernel Memory Dump Via LiveKD** aims to detect the execution of the LiveKD utility, specifically targeting instances where it is invoked with the `-m` flag. This flag is indicative of an attempt to dump kernel memory, a technique often utilized by adversaries for gathering sensitive information from a compromised system, such as passwords, keys, or other critical data. This action directly relates to the MITRE ATT&CK tactic of **Defense Evasion** and more specifically the technique of **T1070 
+  - Indicator Removal on Host**.
+  To accomplish this, the rule examines **process creation logs** for the presence of the executable files `livekd.exe` and `livekd64.exe`. It also scrutinizes the **command-line parameters** to confirm the inclusion of the `-m` flag, which is an indication that the user intends to create a memory dump. By monitoring this potentially malicious behavior through the Windows operating system's telemetry, the rule plays a vital role in identifying suspicious activity that could signify a compromise.
   ### Investigation Steps
-  - Review process creation logs in your EDR tool to check for recent executions of livekd.exe or livekd64.exe, particularly those with the "-m" flag in the command-line parameters.
-  - Validate the authenticity and origin of the LiveKD executables found, checking against known hashes to determine if they have been altered or are running from unexpected locations.
-  - Investigate other related logs from the SIEM, focusing on user activities and network connections made during the timeframe of the suspicious process execution for any additional indicators of compromise.
-  - Conduct a review of cloud platform logs (if applicable) to identify any user accounts or services that may have invoked LiveKD, especially in environments where such activities would be atypical.
+  - **Verify Process Creation Logs:** Inspect the process creation logs in the EDR system for instances of `livekd.exe` or `livekd64.exe` being executed, especially focusing on the command line for the `-m` flag.
+    
+  - **Analyze Command-Line Activity:** Use Windows Event Logs (Security) to retrieve detailed command-line data when LiveKD is invoked, including user accounts and timestamps, to establish whether the execution was legitimate.
+    
+  - **Check for Additional Indicators:** Look for other related processes or suspicious activities occurring around the same time that may suggest an adversary is attempting further actions, like dumping or exfiltrating data.
+    
+  - **Review Sysmon Logs:** Identify any associated events logged by Sysmon, such as network connections (e.g., outflow of data) or unusual registry modifications that could correlate with the memory dump activity.
+  ### Prioritization
+  The alert generated from this detection rule is classified as **high severity** due to the critical nature of kernel memory dumping, which can lead to significant data breaches and unauthorized access to system credentials and sensitive information.
+  ### Blind Spots and Assumptions
+  This rule may not fire if the LiveKD tool is executed without the `-m` flag or if it is renamed to evade detection. Additionally, if an adversary uses a different memory dumping technique or utility not monitored by this rule, such as built-in Windows debugging tools, the detection could fail. There is also an assumption that standard monitoring configurations are enforced and that potential legitimate uses of LiveKD in production are minimal.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -53,10 +53,16 @@ falsepositives:
   you use one of the tools mentioned, comment it out
 level: medium
 notes: |
+  n
   ### Technical Context
-  This Sigma rule detects the installation of remote access tools (RATs) on Windows systems by monitoring for specific event logs, particularly Event ID 4697, which indicates that a service has been created. RATs can be exploited by threat actors to gain unauthorized access and control over systems, making their detection critical for maintaining security. The rule specifically looks for service names associated with known remote access tools such as TeamViewer, AnyDesk, and AmmyyAdmin. The data source for this rule comes from the Windows Security log and requires the 'System Security Extension' audit subcategory to be enabled to capture the relevant events. By identifying the installation of these services, the rule helps security teams proactively respond to potential threats posed by unwanted remote access.
+  This detection rule monitors for the installation of known remote access tools (RATs) on Windows systems. The rule specifically looks for Event ID 4697 in the Windows Security logs, which indicates the creation of a new service. The services targeted by this rule, such as TeamViewer, AnyDesk, and LogMeIn, are frequently abused by threat actors for unauthorized remote access and persistence, making their installation a potential indicator of compromise. This is aligned with the MITRE ATT&CK tactics of *Persistence* (TA0003) and technique 1543.003, focusing on the installation of services as a method for maintaining access to systems.
   ### Investigation Steps
-  - Review the security logs in your SIEM for Event ID 4697 and extract the details related to the identified remote access tools to understand the context of the installation.
-  - Using EDR tools, analyze the process creation and command line parameters around the time of the service installation to determine if any suspicious activities occurred.
-  - Consult network proxy logs to track outbound connections made by the installed remote access tools, which may indicate unauthorized remote access.
-  - Check user activity logs and access management in cloud platforms like AWS, GCP, or Azure for any unusual access attempts that correlate with the installation of the detected services.
+  - **Check Service Status**: Use PowerShell or EDR tools to verify the status of the identified services. Look for any unusual service states that may indicate tampering or malicious activity.
+  - **Review Service Creation Logs**: Investigate Windows Event Logs, specifically filtering around the time the service was created to identify any associated events or processes that led to the installation.
+  - **Correlate with Network Activities**: Review network logs for unusual connections or traffic associated with the identified remote access tools, especially to external IP addresses or domains that are not typically used within the organization's environment.
+  - **Inspect User Accounts**: Utilize the Security logs to identify the user account under which the service was created, checking for any anomalous access patterns or unauthorized user accounts that may have installed the service.
+  ### Prioritization
+  The alert should be treated with medium severity as the presence of remote access tools can indicate an adversary's foothold in the environment, but may also be a legitimate administrative action depending on your organization's policies regarding these tools.
+  ### Blind Spots and Assumptions
+  This rule may not fire in environments where the logging of Event ID 4697 is not enabled, or where legitimate administrative use of remote access tools is prevalent, potentially leading to false positives. Additionally, skilled adversaries might use custom service names or other tactics to obfuscate their activities, evading detection. It is assumed that all monitored systems are configured to log security events correctly for this detection to be effective.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

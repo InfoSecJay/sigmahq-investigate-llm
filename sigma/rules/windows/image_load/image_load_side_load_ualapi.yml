@@ -28,9 +28,16 @@ falsepositives:
 level: high
 notes: |
   ### Technical Context
-  This detection rule identifies a potential security risk associated with the Windows Fax service, particularly when it attempts to load the `ualapi.dll` library. The rule specifically looks for instances where the Fax service executable (`fxssvc.exe`) tries to load the `ualapi.dll` file, which is a non-existent legitimate DLL in typical Windows environments. If an attacker has placed a malicious version of `ualapi.dll` in a location that the Fax service can access, it may inadvertently load this malicious DLL, leading to possible system compromises. The rule leverages image load logs to monitor process behavior, specifically targeting the file-path patterns and conditions that would suggest DLL hijacking attempts. 
+  The "Fax Service DLL Search Order Hijack" Sigma rule identifies potentially malicious activity involving the Windows Fax Service attempting to load the non-existent DLL file, `ualapi.dll`. In a typical scenario, if an attacker can exploit this service, they could hijack the DLL loading process to load a malicious DLL of their choosing, thereby gaining persistence on the system. The rule primarily relies on the monitoring of image load events, particularly focusing on the process named `fxssvc.exe`, which is the Fax Service executable. If this service tries to load `ualapi.dll` and the DLL is not found in the standard system directory (specifically `C:\Windows\WinSxS\`), it raises an alert. The relevant MITRE ATT&CK tactics for this rule include Persistence (T1574.001) and Defense Evasion (T1574.002), which inform responders about the attacker's aim to maintain access and evade detection.
   ### Investigation Steps
-  - Review EDR logs for `fxssvc.exe` process activities to identify execution times and any associated user accounts that may indicate unauthorized access.
-  - Check for any abnormal command-line parameters or execution contexts surrounding the `fxssvc.exe` process that might suggest malicious intent.
-  - Analyze the directory where `ualapi.dll` was loaded from, ensuring it aligns with expected paths and does not originate from unusual locations that may indicate a threat.
-  - Cross-reference the event with network security logs to assess any outbound connections made by the Fax service that may align with data exfiltration or C2 communications.
+  - **Verify the process execution:** Check the process execution history of `fxssvc.exe` using EDR logs to confirm if it was running during the time of the alert and if any associated processes were spawned.
+    
+  - **Analyze DLL loading behavior:** Utilize Sysmon logs to review any DLL loads associated with `fxssvc.exe`, especially looking for entries where `ualapi.dll` was attempted to be loaded unexpectedly.
+    
+  - **Inspect system changes:** Examine recent file modifications in the system directories for suspicious DLLs or changes to `fxssvc.exe`, which may indicate an attempted DLL sideloading attack.
+  - **Review relevant network activity:** Use network logs and proxy data to look for any outbound connections initiated by `fxssvc.exe` that may indicate communication with a command and control (C2) server.
+  ### Prioritization
+  Given the nature of this alert, it is classified as high severity since the successful loading of a malicious DLL could lead to significant security breaches, including persistent access or system compromise.
+  ### Blind Spots and Assumptions
+  This rule may not fire if the attacker uses a different method of DLL hijacking or if the `fxssvc.exe` process does not operate as expected. Additionally, if the attacker manages to place the malicious DLL in the correct search order path (`C:\Windows\WinSxS\`), the rule will not trigger, thereby evading detection. Engineers should be aware that environmental configurations and different application versions can influence the detection efficacy of this rule.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

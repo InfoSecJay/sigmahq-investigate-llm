@@ -32,9 +32,18 @@ falsepositives:
 level: medium
 notes: |
   ### Technical Context
-  This detection rule identifies network connections initiated by processes to domains that end with `.devtunnels.ms`. The rule is particularly significant because attackers may exploit the DevTunnels feature to create reverse shells or establish persistence on compromised systems. By monitoring network connection logs, the rule captures instances where legitimate or malicious processes attempt to reach these specific domains. This leverages data sources such as process creation logs and network connection data from Windows, allowing analysts to see which processes are contacting potentially harmful destinations.
+  The Sigma rule titled "Network Connection Initiated To DevTunnels Domain" is designed to identify unauthorized network connections initiated by processes on Windows systems to domains associated with DevTunnels (i.e., domains ending in `.devtunnels.ms`). DevTunnels enable developers to expose local applications to the Internet, but attackers can exploit this functionality to create reverse shells or maintain persistence on compromised machines. The rule primarily analyzes network connection logs to detect when a process initiates a connection to a DevTunnel domain. This involves leveraging Windows network connection event logs, which capture details about outgoing connections, including the destination hostname. By combining these log entries with behavioral analysis of running processes, this rule aims to alert on suspicious activities that align with the MITRE ATT&CK techniques related to data exfiltration (T1567.001).
   ### Investigation Steps
-  - Review recent network connection logs in the SIEM to find instances of processes initiating connections to `.devtunnels.ms` domains. 
-  - Utilize EDR tools to analyze the process tree of the initiating application, assessing whether it is legitimate or displaying anomalous behavior.
-  - Check for related event logs, such as process creation or command line arguments, to gather context about how the detected process was executed.
-  - Cross-reference with proxy logs to determine if there were additional suspicious requests made by the same process or user related to the DevTunnels domain.
+  - **Review EDR Alerts**: Investigate the associated EDR alerts to determine which process initiated the connection to the DevTunnel domain and review its behavior and parent-child relationships to assess whether it's malicious or legitimate.
+  - **Analyze Network Logs**: Check firewall logs and proxy logs to track the volume and frequency of connections to the reported domain to identify any unusual patterns or bursts of activity that may indicate malicious intent.
+  - **Examine Process Execution**: Look into the Windows Security and Sysmon logs for the process creation events that initiated the connection for any suspicious command-line arguments or unusual execution context.
+  - **Validate Legitimate Uses**: Identify whether any known developer accounts or processes are legitimate users of DevTunnels to rule out false positives, and confirm proper authorization.
+  ### Prioritization
+  This alert is assigned a medium severity level as connections to DevTunnel domains can indicate potential data exfiltration or compromise, demanding immediate investigation to determine the legitimacy of the connection.
+  ### Blind Spots and Assumptions
+  The rule may not trigger if:
+  - The malicious process is obfuscated or employs unusual methods to initiate the connection that do not appear in standard logs.
+  - Legitimate connections from known developers occur frequently, resulting in false positives that might bury genuine threats in noise.
+  - Network connections bypass traditional logging mechanisms or leverage alternative protocols. 
+  Analysts should be aware that sophisticated adversaries might use encrypted channels or obscure techniques to avoid detection by this rule.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

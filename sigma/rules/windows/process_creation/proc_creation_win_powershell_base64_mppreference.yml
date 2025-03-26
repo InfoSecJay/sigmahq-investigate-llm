@@ -42,11 +42,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies potentially malicious attempts to modify Windows Defender Antivirus (AV) settings using PowerShell cmdlets that are encoded in Base64 format. Specifically, it looks for the execution of the `Add-MpPreference` and `Set-MpPreference` cmdlets, which are typically employed to manipulate AV configurations. The rule targets specific Base64-encoded command-line arguments that, when decoded, reveal these AV-related modifications. The main data sources utilized in this rule include process creation logs that capture command-line parameters, allowing the detection of suspicious activities that aim to evade defenses by altering antivirus policies.
-  By monitoring the invocation of these cmdlets and their encoded variations, security teams can effectively identify and investigate activities that may indicate an attempt to disable or tamper with critical security features, raising alerts for additional context and response actions.
+  This Sigma rule detects suspicious PowerShell commands that utilize base64 encoding, specifically targeting the "MpPreference" cmdlet. The "MpPreference" cmdlet is associated with modifying settings for Windows Defender Antivirus (AV). The detection relies on Windows process creation logs that capture command-line arguments associated with PowerShell executions. By looking for specific encoded strings in conjunction with the command names 'Add-MpPreference' and 'Set-MpPreference', the rule aims to identify potential manipulations intended to bypass or alter security measures put in place by the antivirus software. This mapping falls under the MITRE ATT&CK tactic of **Defense Evasion** and technique **T1562.001**, which encompasses methods adversaries use to evade detection.
   ### Investigation Steps
-  - Review the process creation logs in your EDR solution to identify the user and context under which PowerShell commands were executed.
-  - Decode the identified Base64 strings to determine the exact commands being run and assess their potential impact on security settings.
-  - Check for any recent changes to Windows Defender settings via the Defender logs to verify if unauthorized modifications occurred along with the suspicious command executions.
-  - Utilize your SIEM or log correlation tool to cross-reference flagged events with known threat actors or tactics related to defense evasion techniques.
+  - **Analyze Process Creation Logs:** Review the PowerShell process creation logs in your EDR to identify the timestamps and user accounts involved in the detected command executions.
+  - **Evaluate Command Context:** Investigate the surrounding processes and command-line arguments that led to the invocation of the suspicious PowerShell scripts to determine if they align with normal operational patterns.
+  - **Review Antivirus Alerts:** Check the Windows Defender logs to see if there were any alerts related to the modification attempts of AV configuration, ensuring that the environment remained protected.
+  - **Investigate Network Activity:** Use your NGFW and proxy logs to analyze any network activity corresponding to the times the commands were executed, checking for connections to known malicious or unauthorized IP addresses.
+  ### Prioritization
+  This alert is classified as high severity due to the potential impact of malicious attempts to modify or disable antivirus protections, which could lead to exploitation or compromise of the enterprise environment.
+  ### Blind Spots and Assumptions
+  The rule may not fire if the base64 commands are altered sufficiently to evade detection or if PowerShell logging is misconfigured or disabled in the environment. Additionally, if the environment includes legitimate usage of similar cmdlet executions, there could be an increase in false positives. It's also assumed that all necessary telemetry for PowerShell executions is being collected effectively; if not, this increases the risk of missing true threats.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

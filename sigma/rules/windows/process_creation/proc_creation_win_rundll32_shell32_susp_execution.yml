@@ -35,11 +35,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect the execution of the Windows `rundll32.exe` process when it attempts to load the `shell32.dll` library from suspicious directories such as AppData, LocalAppData, and Temp folders. These directories are often targeted by malicious actors to store and execute malware as they provide a hiding place from standard monitoring practices. By analyzing process creation logs, the rule identifies instances where the `rundll32.exe` executable, which is commonly used to run DLL files, has invoked `shell32.dll` with specific command line arguments indicative of potential malware activity.
-  The detection focuses on two main elements: the image name, which must end with `rundll32.exe`, and the command line parameters, which must include both `shell32.dll` and `Control_RunDLL`, while also checking for location keywords that suggest execution from less secure directories. This heuristic helps in identifying possible evasion tactics used by attackers in executing their payloads.
+  The detection rule identifies the execution of `shell32.dll` through `rundll32.exe` in directories typically associated with user profiles, such as `%AppData%`, `%LocalAppData%`, and `%Temp%`. By monitoring process creation events, the rule captures the command line parameters used during the DLL execution, focusing on patterns indicative of misuse or exploitation in environments where `rundll32.exe` is employed to execute shell functions. This tactic may align with the MITRE ATT&CK techniques for Defense Evasion (T1218.011) and Execution. Adversaries may leverage such methods to run malicious code from less scrutinized locations on the file system, thus evading detection from standard security measures.
   ### Investigation Steps
-  - Review the process creation logs to confirm instances of `rundll32.exe` executing `shell32.dll` along with the specified command line arguments.
-  - Utilize EDR solutions to gather detailed behavioral telemetry for the detected process, focusing on parent processes and any subsequent network activity.
-  - Inspect the filesystem for recent changes or anomalies in the identified suspicious directories (%AppData%, %LocalAppData%, %Temp%, etc.) to uncover any deployed malicious files or alterations.
-  - Correlate findings with relevant threat intelligence and logs from network (NDR) and endpoint (AV) solutions to determine if the detected behavior matches known malicious patterns or tactics.
+  - **Verify Process Source:** Check the originating process details in your EDR to determine if `rundll32.exe` is spawned from a legitimate application or an unauthorized process execution.
+  - **Inspect Command-Line Arguments:** Analyze the command-line arguments captured in the alert to identify whether they reference known malicious payloads or anomalous file paths.
+  - **Review File Locations:** Use Windows file system logs to assess the contents and legitimacy of the DLL being executed, especially from suspicious directories indicated in the alert.
+  - **Monitor Network Activity:** Investigate any associated network connections made by the `rundll32.exe` execution using NDR tools or firewall logs for signs of data exfiltration or communication with command and control servers. 
+  ### Prioritization
+  The alert carries a high severity due to the potential risk of adversaries executing code from evasion-friendly locations, indicative of malicious activity that can lead to further compromise of system integrity or data.
+  ### Blind Spots and Assumptions
+  This rule may not fire in environments with strict application control policies or when the execution of `rundll32.exe` is part of legitimate applications. Additionally, similarly named files or benign installations inside these directories can lead to false negatives. Adversaries who obfuscate their activity can defeat the rule by renaming executables or using alternative execution methods that may not trigger the defined conditions.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

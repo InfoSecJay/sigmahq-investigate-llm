@@ -27,11 +27,17 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies potentially malicious behavior involving the Windows Update Agent (wuauclt.exe). It specifically looks for instances where the wuauclt.exe process is executed without any command-line arguments, which can indicate an unauthorized or suspicious invocation of this system utility. The absence of command-line flags in a legitimate Windows Update process typically does not occur, making this pattern notable. The relevant data sources for this rule include process creation logs from Windows, which capture details about active processes, including executable filenames and their command-line arguments.
-  By monitoring activity related to the Windows Update Agent, this rule aids in early detection of tactics used by threat actors, especially those associated with evasion techniques, as they may exploit trusted system processes for malicious purposes. The findings from this rule can help incident responders determine if further investigation is necessary to assess the legitimacy of the processes involved.
+  The Sigma rule titled "Suspicious Windows Update Agent Empty Cmdline" is designed to detect potential malicious activity associated with the Windows Update Agent (wuauclt.exe). This process is responsible for automatic updates in Windows environments, but adversaries may exploit its functionality to evade detection by launching it without necessary command-line flags, which can be indicative of malicious intent. The rule leverages process creation logs to identify instances where the command line for the wuauclt.exe process is present but contains no additional parameters, a behavior that deviates from its expected operational pattern. The detection correlates with the MITRE ATT&CK technique T1036 (Masquerading), as it highlights an instance of legitimate software being potentially manipulated to conduct malicious actions.
   ### Investigation Steps
-  - Review the process creation logs in your EDR to identify the triggering event for wuauclt.exe, paying close attention to the timing and user context associated with the execution.
-  - Examine command-line parameters of recent instances of wuauclt.exe activity in the logs to confirm that they lack any specified flags, which is atypical for legitimate usage.
-  - Cross-reference the execution with network logs to determine if the process attempted to access any suspicious external addresses or engage in unusual network behavior.
-  - Check for any related alerts or signs of suspicious activity within SIEM systems that may correlate with the identified wuauclt.exe process to assess if it's part of a broader compromise.
+  - **Review Process Details:** Utilize EDR to examine the details of the wuauclt.exe process invocation, including the user who initiated it and the parent process. Investigate any known associations with unwanted software.
+    
+  - **Analyze Command-Line Parameters:** Check for other instances of wuauclt.exe execution within the same time window to determine if this behavior is consistent or abnormal. Pay specific attention to any other instances lacking command-line flags.
+  - **Check System Logs:** Utilize Windows Event Logs (Security, System) to correlate any logged events around the time of the alert, such as unusual user activity or settings changes related to the update service.
+  - **Monitor for Subsequent Network Activity:** Review network connections made by wuauclt.exe using the network logs of the EDR or NDR systems. Identifying any outbound connections to suspect domains can indicate a compromise.
+  ### Prioritization
+  The severity level of high is assigned to this alert due to the potential misuse of a system-critical process, which could indicate an evasion tactic employed by attackers to bypass security measures and compromise the system.
+  ### Blind Spots and Assumptions
+  This rule may not fire in environments where wuauclt.exe is legitimately invoked without command-line arguments due to specific operational requirements or scheduled updates. Additionally, if adversaries employ alternative techniques to invoke the update agent or utilize malware that impersonates its behavior, the rule may also fail to detect such activities. It is also assumed that there is consistent monitoring across all applicable systems.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

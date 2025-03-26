@@ -59,10 +59,17 @@ falsepositives:
 - Unlikely
 level: high
 notes: |
+  n
   ### Technical Context
-  This Sigma rule is designed to detect malicious activity associated with the use of the RemoteKrbRelay tool, which is known for performing Kerberos relaying attacks. The rule examines process creation logs on Windows systems, focusing on the execution of the `RemoteKrbRelay.exe` executable. It identifies various command-line parameters that indicate potentially harmful behavior, such as flags that target Kerberos relay operations, change passwords, or manipulate group memberships within Active Directory environments. By analyzing the process metadata, it can flag anomalous executions of the tool, contributing to proactive detection of credential manipulation and unauthorized access within the enterprise.
+  The detection rule "HackTool 
+  - RemoteKrbRelay Execution" identifies potential malicious use of the RemoteKrbRelay tool, which is commonly used for Kerberos relaying attacks in Windows environments. The rule specifically looks for the execution of the RemoteKrbRelay executable (`RemoteKrbRelay.exe`) as well as certain command line parameters that indicate its use in credential theft or unauthorized actions against the target user or service. Important parameters include `-clsid`, `-target`, and `-victim`, which can signal attempts to manipulate Kerberos tickets or impersonate users. By monitoring process creation logs in Windows systems, this rule capitalizes on telemetry from Sysmon logs to catch these critical activities, directly aligning with the MITRE ATT&CK technique T1558.003 (Credentials from Kerberos).
   ### Investigation Steps
-  - Review the EDR logs to locate the process creation events for `RemoteKrbRelay.exe`, noting the timestamp and user context under which the executable was run.
-  - Analyze the command-line parameters associated with the execution to identify specific actions being attempted, such as password changes or group modifications.
-  - Check the network traffic logs in your NDR solution for any outbound connections initiated by the machine running `RemoteKrbRelay.exe`, which may indicate communication with potentially malicious targets.
-  - Inspect the Windows Security Event logs for any accounts affected by the Kerberos authentication process during the timeframe of the RemoteKrbRelay usage to assess if there are any unauthorized access attempts.
+  - **Verify Process Execution:** Check for the `RemoteKrbRelay.exe` process in your EDR solution. Cross-reference its creation timestamps with the detected alerts to establish a timeline of the incident.
+  - **Analyze Command Line Arguments:** Review the command line arguments associated with the process. Look for flags that match those specified in the detection rule to further understand the attack vector.
+  - **Review Related User Activities:** Use the Windows Security logs to track user logins, account changes, and access patterns that may correlate with the detected use of RemoteKrbRelay.
+  - **Conduct Network Traffic Analysis:** Assess network logs for any anomalous SMB or LDAP traffic generated from the host running the RemoteKrbRelay, focusing on connections that may indicate credential theft or unauthorized access attempts.
+  ### Prioritization
+  This alert is classified as high severity due to the potential for significant damage that could stem from a successful Kerberos relaying attack, which can lead to unauthorized access to sensitive systems and data.
+  ### Blind Spots and Assumptions
+  The effectiveness of this detection rule may be reduced in environments where RemoteKrbRelay is permitted or used legitimately among administrative tasks, as well as scenarios where the executable name is altered to evade detection. Additionally, if command line flags are obfuscated or if the tool is run in a way that doesn't utilize the expected arguments, the rule may fail to trigger. Analysts should also consider that attacks may be executed from non-standard locations or via alternative methods not captured by this rule.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

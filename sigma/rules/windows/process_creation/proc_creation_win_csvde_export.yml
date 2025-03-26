@@ -30,11 +30,19 @@ falsepositives:
 - Unknown
 level: medium
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies the execution of `csvde.exe`, a command-line tool used to import and export data from an Active Directory (AD) structure in Windows environments. The rule specifically looks for process creation logs that trigger when `csvde.exe` is invoked with a command line that includes the `-f` parameter, designating a file for output, along with ensuring that the command does not involve the `-i` flag, which indicates an import action. By monitoring the execution context of this utility, the rule aims to flag potential information gathering or data exfiltration activities by unauthorized actors, which could signify malicious intent to manipulate, export, or extract sensitive organizational data from Active Directory.
-  The rule detects this activity using Windows process creation logs as the primary data source, assessing command-line parameters to distinguish between legitimate administrative actions and potentially harmful behavior. The underlying logic is based on known tactics associated with reconnaissance and data exfiltration as defined in the MITRE ATT&CK framework.
+  This detection rule identifies the execution of the command-line tool `csvde.exe`, which is designed to export Active Directory structures. The rule focuses on the command-line parameters that indicate an export operation, specifically looking for instances where the command line includes `-f`, which specifies the output file for the export. The importance of this detection stems from the potential use of this tool by threat actors to exfiltrate sensitive information about the Active Directory environment, making it a key focus area for monitoring. The rule leverages process creation logs as its primary data source and contributes to the MITRE ATT&CK framework under the tactics of **Exfiltration** (T1522) and **Discovery** (T1087.002).
   ### Investigation Steps
-  1. Review process creation logs in your EDR system to find instances of `csvde.exe` execution, specifically focusing on command lines that include the `-f` parameter.
-  2. Cross-reference the timestamps of the `csvde.exe` executions with user activity logs to determine whether authorized personnel initiated these actions.
-  3. Analyze any exported files specified in the command line for unusual or sensitive data that could indicate a breach of organizational security.
-  4. Check network logs for any outbound connections initiated shortly after the execution of `csvde.exe`, as this could suggest exfiltration of the exported AD data.
+  - **Review Process Creation Events:** Use an EDR tool to examine the process creation logs around the time of the alert. Look for any instances of `csvde.exe` execution, along with the associated user account and session details.
+    
+  - **Analyze Command-Line Arguments:** Investigate the command-line arguments passed to `csvde.exe`. Specifically, focus on any occurrences of `-f` to potentially indicate file export actions and determine the target export file/output path.
+    
+  - **Check for Unusual User Activity:** Review user account logs through Windows Security logs to identify whether the user executing `csvde.exe` has a history of creating or exporting directory structures, or if this was an unlikely event.
+    
+  - **Assess Network Behavior:** Utilize network monitoring tools (NDR) to examine any outbound connections initiated by the host running `csvde.exe`. Investigate whether this host communicated with external addresses after executing the command, as this could indicate data exfiltration.
+  ### Prioritization
+  The alert is considered medium severity because while the execution of `csvde.exe` can be legitimate in administrative scenarios, its usage can also indicate unauthorized attempts to expose sensitive directory information, necessitating closer scrutiny.
+  ### Blind Spots and Assumptions
+  This rule may not fire in cases where the `csvde.exe` execution uses custom scripts or legitimate processes that do not include the recognized command-line arguments. Additionally, some legitimate administrative activities might occur that resemble the behavior flagged by this rule but are authorized. Analysts should also consider that if a threat actor operates under normal user accounts with valid permissions, the activity may evade detection. Moreover, attackers may invoke this tool by disguising or modifying the command line parameters, which would not be captured by this detection logic.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality and relevance, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

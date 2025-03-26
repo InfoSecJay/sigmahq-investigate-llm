@@ -24,11 +24,18 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies the obfuscated use of environment variables in PowerShell scripts, particularly when invoking the `cmd` command. The rule utilizes Script Block Logging to catch specific patterns in the script execution, where `cmd` is called with environment variable manipulations that may indicate malicious intent. The regular expression used in the detection searches for variations of command-line arguments tied to environment variable access, often employed by attackers to bypass security mechanisms. This approach plays a significant role in techniques associated with evading detection and executing malicious code on compromised systems.
-  To effectively utilize this rule, it is essential that Script Block Logging is enabled in your Windows environment. The rule targets Windows PowerShell logs, specifically focusing on the ScriptBlockText field to analyze the text of executed PowerShell commands for hints of obfuscated execution tactics.
+  The "Invoke-Obfuscation VAR+ Launcher 
+  - PowerShell" Sigma rule is designed to detect obfuscated PowerShell scripts that utilize environment variables as a mechanism for execution. Specifically, this rule identifies patterns within the ScriptBlockText of PowerShell commands that employ the `cmd` command along with obfuscation techniques, typically seen in malicious payloads. The rule is contingent upon the presence of Script Block Logging, which allows for detailed logging of PowerShell code execution. The MITRE ATT&CK framework is targeted here, specifically under tactics of Defense Evasion (T1027) and Execution (T1059.001), as attackers often use obfuscation to evade detection solutions and execute harmful scripts discreetly.
+  The rule utilizes Windows event logs, particularly those from PowerShell Script Block Logging (Event ID 4104), to monitor command execution patterns. By analyzing the ScriptBlockText, the detection identifies suspicious command patterns that are likely crafted to obscure the true intention of the executed code, thus indicating potential malicious activity.
   ### Investigation Steps
-  - Query the EDR for recent PowerShell execution events and filter for instances where Script Block Logging is enabled, focusing on suspicious command patterns identified in this rule.
-  - Review related process creation logs to track the parent process of the detected PowerShell command, as this can provide context on how the script was invoked.
-  - Examine network traffic logs (NDR) for any unusual outbound connections initiated by the PowerShell process, which may indicate data exfiltration or additional malicious activities.
-  - Analyze any related logs from your AV solution to check for known malicious indicators associated with the PowerShell command and cross-reference them with threat intelligence sources.
+  - **Review PowerShell Logs:** Check Event ID 4104 in the Windows Security logs for any entries matching the specified obfuscated command patterns that triggered the alert.
+  - **Evaluate Related Processes:** Utilize EDR tools to track any suspicious processes spawned post-execution of the flagged PowerShell command, looking for anomalies in process behavior or parent-child relationships.
+  - **Analyze Network Connections:** Inspect outgoing network connections for the device in question in your NDR or firewall logs, focusing on any unusual destinations that correlate with the timing of the alert.
+  - **Cross-Reference with Environment Variables:** Investigate the environment variables of the affected system to see if any suspicious entries or recent changes align with the execution context of the PowerShell command.
+  ### Prioritization
+  Given the high severity level of this alert, it is critical to treat potential obfuscation and command execution as indicative of advanced evasion techniques used by attackers, warranting immediate investigation to mitigate possible breaches or data exfiltration.
+  ### Blind spots and Assumptions
+  This rule assumes that Script Block Logging is enabled; if it is not, the detection will fail to trigger an alert on obfuscated PowerShell uses. Additionally, sophisticated attackers may circumvent this detection by employing different obfuscation techniques that do not match the specified regex pattern. Consequently, false negatives may occur if the rule does not capture nuanced obfuscation methods or if the execution context is altered sufficiently.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

@@ -31,11 +31,16 @@ falsepositives:
 - Unknown
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies instances where a Windows service host process (svchost.exe) that manages Remote Desktop Protocol (RDP) services (termsvcs) is observed initiating network connections to target systems on HTTP (port 80) or HTTPS (port 443). This behavior is indicative of potential tunneling or data exfiltration attempts, as attackers may utilize RDP for lateral movement within an enterprise network and subsequently redirect that traffic to web service ports. The rule analyzes network connection logs, focusing on specific indicators such as the process name, source port (RDP 
-  - 3389), and destination ports (80 or 443) to identify this unusual communication pattern.
+  This detection rule identifies instances where svchost.exe, which is often used by Windows services, is hosting remote desktop protocol (RDP) sessions established on the default RDP port (TCP 3389) and making outbound network connections to HTTP (TCP 80) or HTTPS (TCP 443) target ports. Such behavior may indicate an attempt to tunnel RDP sessions through these common web ports, potentially evading network defenses while facilitating malicious lateral movement or command-and-control communications. The rule utilizes Windows network connection logs to monitor outbound traffic and cross-references the specific conditions under which the svchost.exe process operates. This is associated with MITRE ATT&CK tactics and techniques, notably Command and Control (T1572) and Lateral Movement (T1021.001).
   ### Investigation Steps
-  - Review EDR logs to trace the process activity and confirm the legitimacy of the svchost.exe instances involved, ensuring they are operating under expected conditions.
-  - Examine network traffic logs from the firewall or network detection tools to identify additional contextual information surrounding the connection, including destination IP addresses and any associated anomalies.
-  - Cross-reference the timestamps of the detected activity with user authentication logs to establish if any legitimate RDP sessions were in use during the same timeframe.
-  - Analyze proxy logs for any outbound web requests aligned with the identified target ports to assess potential data exfiltration or command and control communication attempts.
+  - **Review EDR Alerts:** Check endpoint detection and response (EDR) alerts for devices that triggered this rule, focusing on svchost.exe's execution context to identify any unusual processes or activities associated with the event.
+  - **Analyze Network Traffic:** Use network traffic analysis tools to capture and inspect packets related to the identified connections to HTTP/HTTPS ports. Look for strange or unexpected destinations.
+  - **Examine Windows Event Logs:** Investigate Windows Security and System event logs for related RDP activities, such as logon events or session creation to corroborate the connection from svchost.exe.
+  - **Audit Recent Changes:** Review any recent changes to firewall or proxy settings that might have allowed this behavior, and ensure any organizational policies regarding RDP access and tunneling are still enforced.
+  ### Prioritization
+  The severity level is high as the detection of RDP sessions tunneling through common HTTP/HTTPS ports can signify a significant security risk, possibly indicating attempts to bypass network security mechanisms for lateral movement or establishing command-and-control pathways.
+  ### Blind Spots and Assumptions
+  This rule may not fire if RDP sessions are established through non-standard ports or if svchost.exe is not present during the session. Additionally, if adversaries use signed legitimate processes or other obfuscation techniques, the rule may fail to trigger. It's important to assume that well-resourced attackers may employ techniques to evade detection; hence, it’s critical to maintain a layered security approach to complement alerting mechanisms.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

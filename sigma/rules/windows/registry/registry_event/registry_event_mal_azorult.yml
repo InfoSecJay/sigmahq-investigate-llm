@@ -30,9 +30,16 @@ falsepositives:
 level: critical
 notes: |
   ### Technical Context
-  This detection rule focuses on identifying registry key modifications associated with the Azorult malware, a known information-stealing Trojan. The rule specifically looks for Windows Registry events—specifically Event IDs 12 and 13—that indicate the creation or modification of a particular registry key. The presence of the key in `SYSTEM\services\localNETService` is characteristic of Azorult's execution and serves as a potential indicator of compromise. By monitoring these registry events, analysts can detect anomalous behavior relevant to malware activity, leveraging processes that log changes to the Windows Registry, which is critical for detecting some forms of malware that manipulate system configurations or install backdoors.
+  This detection rule aims to identify the creation of specific registry entries associated with the Azorult malware, a known information-stealing trojan. The rule monitors for Windows registry events, particularly those with Event IDs 12 and 13, which indicate that an entry has been created or modified. It specifically looks for entries targeting the `SYSTEM\services\localNETService` key, which is typically used during the execution of Azorult to establish persistence on infected systems. By leveraging Windows registry logs, this rule helps pinpoint the presence of potentially malicious activity indicative of the trojan's behavior. This activity is linked to the MITRE ATT&CK tactic of Execution (T1112 
+  - Modify Registry).
   ### Investigation Steps
-  - Utilize the EDR tool to search for any processes that interacted with the registry around the time of the detected event, focusing on those that may have originated from suspicious applications.
-  - Review Windows Event Logs to correlate the timestamp of the registry modifications with other potential indicators, such as unusual logins or abnormal process behavior.
-  - Check Proxy server logs for any network communications initiated by affected endpoints that may indicate command and control (C2) activity linked to Azorult.
-  - Analyze any recent changes in system configurations or service registrations via cloud logs, particularly if the system has integrations with AWS, GCP, or Azure services.
+  - **Query Registry Logs:** Use your SIEM to search for recent registry events associated with `SYSTEM\services\localNETService` and check for Event IDs 12 and 13. Focus on timestamps around the alert time for context.
+    
+  - **Analyze Associated Processes:** Utilize EDR tools to examine any processes that may have been created or launched around the same time as the registry modification. Look for indications of the Azorult trojan or other anomalous processes.
+  - **Review Network Connections:** Investigate any unusual outbound network connections using NDR or firewall logs. Focus on connections established by processes identified in the previous step. 
+  - **Assess File System Activity:** Check file creation and modification logs through EDR or Sysmon events to find any files that might have been created or altered alongside the registry entries related to Azorult.
+  ### Prioritization
+  The alert is categorized as critical due to the malicious intent of the Azorult malware, which focuses on data exfiltration. Prompt attention is warranted to mitigate potential data breaches within the enterprise environment.
+  ### Blind Spots and Assumptions
+  This rule assumes that the telemetry will effectively capture all registry changes; however, it may not fire if the malware employs advanced techniques to evade detection, such as using obfuscated or ephemeral registry keys. Additionally, if the detection infrastructure is not properly configured to capture registry events comprehensively, some instances of the malware's activity may go unnoticed.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

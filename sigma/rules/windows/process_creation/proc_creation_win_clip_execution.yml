@@ -25,10 +25,16 @@ falsepositives:
 - Unknown
 level: low
 notes: |
+  n
   ### Technical Context
-  This detection rule is designed to identify the execution of `clip.exe`, a built-in Windows utility used for copying data to the clipboard. Adversaries may leverage this tool to exfiltrate sensitive information from the clipboard, such as passwords or proprietary data, which users may inadvertently copy from applications. The rule specifically looks for process creation events where the executed image ends with `\clip.exe` and verifies the original filename of the process to ensure it corresponds to `clip.exe`. The primary data source involved in this detection is the process creation log, which captures details about processes that are initiated on Windows systems.
+  The Sigma rule "Data Copied To Clipboard Via Clip.EXE" aims to detect the execution of `clip.exe`, a native Windows utility that allows users to copy data into the clipboard from command-line inputs. Adversaries may exploit this functionality to exfiltrate sensitive data or gather information from user sessions by copying text, command outputs, or other data types into the clipboard. The rule operates by monitoring process creation events, specifically looking for instances where the executable is run—indicated by either its image path ending in `\clip.exe` or having the original filename as `clip.exe`. The detection directly relates to the MITRE ATT&CK framework's "Collection" tactic (T1115) pertaining to data retrieval operations.
   ### Investigation Steps
-  - Review process creation logs using your EDR solution to find instances of `clip.exe` execution, focusing on timestamps and user accounts associated with the activity.
-  - Check any related process tree activity to identify processes that may have copied sensitive information to the clipboard prior to the execution of `clip.exe`.
-  - Analyze the clipboard contents if possible, especially when the alert coincides with sensitive application usage, to determine what data may have been collected.
-  - Correlate the identified instances with user activity logs to see if there were any unauthorized attempts to access or copy critical data around the same time.
+  - **Check Process Creation Logs:** Review process creation logs from Sysmon or Windows Event Logs to identify when and where `clip.exe` was executed, including the associated user and parent process.
+  - **Correlate with User Activity:** Cross-reference the timestamp of the clip.exe execution with user activity logs to determine if the execution was legitimate or potentially malicious.
+  - **Review Clipboard Contents:** If possible, investigate what data was copied to the clipboard during the time frame of interest, as this can offer insights into the nature of the activity.
+  - **Assess Notification from Related Tools:** Utilize EDR solutions to see if there are alerts related to suspicious file activity or potential data exfiltration efforts coinciding with the execution of `clip.exe`.
+  ### Prioritization
+  This alert is categorized as low severity due to the legitimate use of `clip.exe` for innocuous purposes, but it should still be investigated, particularly in cases where the execution is unaccompanied by expected user activities.
+  ### Blind Spots and Assumptions
+  The detection relies on standard process creation telemetry, which may not capture all instances of clipboard misuse, particularly if attackers employ alternative methods to access clipboard contents or obfuscate their activities. Additionally, if users frequently utilize `clip.exe` legitimately, there may be numerous false positives; thus, context around user actions is essential. Moreover, it does not account for other ways data could be copied or exfiltrated, such as directly through other applications or over the network.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.

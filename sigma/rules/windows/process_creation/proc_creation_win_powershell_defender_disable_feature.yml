@@ -86,10 +86,16 @@ falsepositives:
 - Other Cmdlets that may use the same parameters
 level: high
 notes: |
+  n
   ### Technical Context
-  This detection rule identifies attempts to disable critical Microsoft Defender features through PowerShell commands. Specifically, it looks for commands such as `Add-MpPreference` and `Set-MpPreference` alongside specific parameters that indicate disabling features like real-time monitoring, archive scanning, and other protective measures. The rule analyzes process creation logs, focusing on command-line arguments that may enable attackers to circumvent the security controls provided by Microsoft Defender. Additionally, it inspects potential obfuscation through base64-encoded command-line arguments that, if decoded, could reveal similar disabling commands. By continuously monitoring these activities, the rule helps in promptly detecting malicious intents to reduce the effectiveness of endpoint security.
+  The "Powershell Defender Disable Scan Feature" Sigma rule is designed to detect potentially harmful actions where an attacker attempts to disable Microsoft Defender's security features using PowerShell commands. The rule specifically looks for command-line arguments associated with the `Set-MpPreference` and `Add-MpPreference` cmdlets, particularly those that disable important security functionalities like real-time monitoring and scanning services. By monitoring the process creation logs for these PowerShell command invocations, the rule can identify when such disabling actions occur. The relevant MITRE ATT&CK tactics for this rule include **Defense Evasion** (T1562.001), which focuses on methods attackers use to evade detection and security software.
   ### Investigation Steps
-  - Utilize EDR tools to search for the specific PowerShell commands in process execution logs and correlate them with user activity around the time of the alerts.
-  - Check Microsoft Defender logs to confirm whether these disabling features were successfully invoked and assess the current status of Defender settings on impacted endpoints.
-  - Review network logs via the NDR or proxy to identify any suspicious connections or behaviors following the execution of the detected commands.
-  - Analyze user and administrative account activities in the SIEM, focusing on the context of the commands being executed and determining if they align with typical user behavior or indicate unauthorized access.
+  - **Examine the EDR Alerts**: Review the EDR logs to identify the source process and the context in which the PowerShell command was executed, including the user and the time of execution.
+  - **Analyze Command Line Arguments**: Scrutinize the command line arguments passed to PowerShell to confirm if they align with known commands used to disable Microsoft Defender features.
+  - **Review Security and Application Logs**: Check Windows Security and Application logs for any preceding events that may indicate suspicious activities leading up to the execution of the disabling commands.
+  - **Cross-reference with User Activity**: Map the detected activity against normal user activity and roles to determine if the command was initiated by an authorized user performing legitimate administrative tasks.
+  ### Prioritization
+  This alert has a high severity level because disabling security features like real-time monitoring can significantly enhance an adversary's ability to conduct malicious activities undetected within the network environment.
+  ### Blind Spots and Assumptions
+  Potential blind spots include legitimate administrative activities that may use the same PowerShell cmdlets and parameters, possibly leading to false positives. The rule may also fail to fire if command executions are obfuscated or command arguments are altered. Additionally, if certain security features are already disabled or if PowerShell is executed with certain flags or encodings, the detection may be circumvented.
+  > **Disclaimer:** This investigation guide was created using generative AI technology and has not been reviewed for its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit specific environment and operational needs. Please communicate any changes to the detection engineering team.
